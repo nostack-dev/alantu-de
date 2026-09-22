@@ -32,6 +32,17 @@ jobs:
           python -m py_compile tools/databento-orcl-mbp10-live.py
       - name: Build
         run: docker build -f Dockerfile.market-runtime -t alantu-market-runtime:test .
+      - name: Smoke test runtime relay
+        shell: bash
+        run: |
+          set -euo pipefail
+          cid="$(docker run -d --rm -e MARKET_RUNTIME_RELAY_ONLY=1 -p 18080:8080 alantu-market-runtime:test)"
+          trap 'docker stop "$cid" >/dev/null 2>&1 || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:18080/health -o /tmp/health.json; then break; fi
+            sleep .25
+          done
+          jq -e '.ok==true and .l2.dataset=="XNAS.ITCH"' /tmp/health.json >/dev/null
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
