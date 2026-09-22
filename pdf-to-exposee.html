@@ -390,7 +390,11 @@
 
     let pageTextures=[];
     let leafRoots=[];
+    let frontCover=null;
+    let frontCoverPivot=null;
     let backCover=null;
+    let endCoverPivot=null;
+    let coverSupport=null;
     let pageBlock=null;
     let bookCore=null;
     let totalPages=0;
@@ -429,7 +433,25 @@
       leafRoots=[];
       pageTextures.forEach(t=>t.dispose());
       pageTextures=[];
-      if(backCover){backCover.geometry.dispose();disposeMaterial(backCover.material);root.remove(backCover);backCover=null}
+      if(frontCover){
+        frontCover.geometry.dispose();
+        disposeMaterial(frontCover.material);
+        frontCover=null;
+      }
+      if(frontCoverPivot){
+        root.remove(frontCoverPivot);
+        frontCoverPivot=null;
+      }
+      if(backCover){
+        backCover.geometry.dispose();
+        disposeMaterial(backCover.material);
+        backCover=null;
+      }
+      if(endCoverPivot){
+        root.remove(endCoverPivot);
+        endCoverPivot=null;
+      }
+      coverSupport=null;
       if(pageBlock){pageBlock.geometry.dispose();disposeMaterial(pageBlock.material);root.remove(pageBlock);pageBlock=null}
       totalPages=0;totalLeaves=0;
       if(bookCore)bookCore.reset(0);
@@ -494,6 +516,24 @@
     function rightZ(i){return .18-i*.018}
     function leftZ(i){return .18+i*.018}
 
+    function setStartCoverProgress(progress){
+      if(!frontCoverPivot||!coverSupport)return;
+      const p=Math.max(0,Math.min(1,progress));
+      frontCoverPivot.rotation.y=-Math.PI*(1-p);
+      frontCoverPivot.position.z=
+        coverSupport.startOpenZ+
+        (coverSupport.startClosedZ-coverSupport.startOpenZ)*p;
+    }
+
+    function setEndCoverProgress(progress){
+      if(!endCoverPivot||!coverSupport)return;
+      const p=Math.max(0,Math.min(1,progress));
+      endCoverPivot.rotation.y=-Math.PI*p;
+      endCoverPivot.position.z=
+        coverSupport.endOpenZ+
+        (coverSupport.endClosedZ-coverSupport.endOpenZ)*p;
+    }
+
     function updateUI(state){
       if(!totalPages){
         pageCount.textContent="— / —";
@@ -527,6 +567,8 @@
       getTotalLeaves:()=>totalLeaves,
       rightZ,
       leftZ,
+      setStartCoverProgress,
+      setEndCoverProgress,
       prefersReduced,
       onStateChange:updateUI,
       nextButton:nextBtn,
@@ -572,14 +614,43 @@
         coverThickness:.16
       });
 
-      backCover=new THREE.Mesh(
-        new THREE.BoxGeometry(PAGE_W+.30,PAGE_H+.30,.16),
+      const COVER_W=PAGE_W+.30;
+      const COVER_H=PAGE_H+.30;
+      const COVER_T=.16;
+      const HINGE_X=-COVER_W/2;
+
+      frontCoverPivot=new THREE.Group();
+      endCoverPivot=new THREE.Group();
+      frontCoverPivot.position.x=HINGE_X;
+      endCoverPivot.position.x=HINGE_X;
+      root.add(frontCoverPivot,endCoverPivot);
+
+      frontCover=new THREE.Mesh(
+        new THREE.BoxGeometry(COVER_W,COVER_H,COVER_T),
         coverMaterial.clone()
       );
-      backCover.position.set(0,0,support.backCoverCenterZ);
+      frontCover.position.set(COVER_W/2,0,0);
+      frontCover.castShadow=true;
+      frontCover.receiveShadow=true;
+      frontCoverPivot.add(frontCover);
+
+      backCover=new THREE.Mesh(
+        new THREE.BoxGeometry(COVER_W,COVER_H,COVER_T),
+        coverMaterial.clone()
+      );
+      backCover.position.set(COVER_W/2,0,0);
       backCover.castShadow=true;
       backCover.receiveShadow=true;
-      root.add(backCover);
+      endCoverPivot.add(backCover);
+
+      coverSupport={
+        startOpenZ:support.backCoverCenterZ,
+        startClosedZ:rightZ(0)+.010+COVER_T/2,
+        endOpenZ:support.backCoverCenterZ,
+        endClosedZ:leftZ(totalLeaves-1)+.010+COVER_T/2
+      };
+      setStartCoverProgress(0);
+      setEndCoverProgress(0);
 
       pageBlock=new THREE.Mesh(
         new THREE.BoxGeometry(PAGE_W+.05,PAGE_H+.08,.22),
