@@ -7,6 +7,9 @@ on:
       - "market-relay/**"
       - "tools/microstructure-core.mjs"
       - "tools/microstructure-signal.mjs"
+      - "tools/l2-event-signal.mjs"
+      - "tools/test-l2-event-signal.mjs"
+      - "orcl-l2-model.json"
       - "Dockerfile.market-relay"
       - ".github/workflows/market-relay-image.yml"
   workflow_dispatch:
@@ -25,6 +28,9 @@ jobs:
           node --check market-relay/server.mjs
           node --check tools/microstructure-core.mjs
           node --check tools/microstructure-signal.mjs
+          node --check tools/l2-event-signal.mjs
+          node --check tools/test-l2-event-signal.mjs
+          node tools/test-l2-event-signal.mjs
       - name: Build relay image
         run: docker build -f Dockerfile.market-relay -t alantu-market-relay:test .
       - name: Health smoke test without credentials
@@ -37,7 +43,7 @@ jobs:
             if curl -fsS http://127.0.0.1:18080/health > /tmp/health.json; then break; fi
             sleep 1
           done
-          jq -e '.ok==true and .configured==false and .feed=="sip"' /tmp/health.json >/dev/null
+          jq -e '.ok==true and .configured==false and .feed=="sip" and .l2.configured==false and .l2.model_status=="unavailable"' /tmp/health.json >/dev/null
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
