@@ -687,7 +687,7 @@ function tipBase(kind){
         if(kind==='iv'){
           if(name==='Welle'&&ctx.raw&&ctx.raw.flow){
             var f=ctx.raw.flow;
-            return '  '+marketFlowText(f)+' · Persistenz Kurs '+Math.round((f.pricePersist||0)*100)+' % · Volumenfluss '+Math.round((f.volumePressure||0)*100)+' %';
+            var hdr=f.impulse&&f.impulse.reliable?(' · Impulsstärke '+Math.round((f.impulse.strength||0)*100)+' · Kopplung '+Math.round((f.impulse.coherence||0)*100)):' '; return '  '+marketFlowText(f)+' · Persistenz Kurs '+Math.round((f.pricePersist||0)*100)+' % · Volumenfluss '+Math.round((f.volumePressure||0)*100)+' %'+hdr;
           }
           return '  '+name+': '+euro(v,2);
         }
@@ -1105,10 +1105,66 @@ function sentimentWave(){
   var massFit=trendFit(massPts,function(p){return p.at;},function(p){return Math.log1p(p.mass);},180*60000);
   return {dir:dir,reliable:!!dir,short:f90,long:f360,massDir:massFit&&massFit.eff>=.2?massFit.dir:0,massPersist:massFit?massFit.persist:0};
 }
+function hdrRelativeImpulse(localValue,globalValue){
+  var local=Number(localValue),global=Number(globalValue);
+  if(!isFinite(local)||!isFinite(global))return null;
+  var scale=Math.max(1e-9,Math.abs(local)+Math.abs(global));
+  return liveClamp((local-global)/scale,-1,1);
+}
+function hdrImpulseVector(p,v,s){
+  var components=[];
+  function add(name,value,quality){
+    var n=Number(value),q=Number(quality);
+    if(!isFinite(n))return;
+    if(!isFinite(q))q=.5;
+    q=liveClamp(q,0,1);
+    components.push({name:name,value:liveClamp(n,-1,1),quality:q});
+  }
+
+  // Impuls = lokale Bewegungsänderung relativ zur größeren Struktur
+  // derselben Dimension. Gemessen wird also Änderung der Bewegung, nicht Niveau.
+  if(p&&p.short&&p.mid){
+    var priceLocal=hdrRelativeImpulse(p.short.slope,p.mid.slope);
+    var priceGlobal=p.long?hdrRelativeImpulse(p.mid.slope,p.long.slope):null;
+    var priceImpulse=priceGlobal==null?priceLocal:(.68*priceLocal+.32*priceGlobal);
+    add('Kurs',priceImpulse,Math.max(p.short.persist||0,p.mid.persist||0));
+  }
+  if(v&&v.short&&v.long){
+    add('Volumen',hdrRelativeImpulse(v.short.pressure,v.long.pressure),Math.max(v.short.persist||0,v.long.persist||0));
+  }
+  if(s&&s.short&&s.long){
+    add('Crowd',hdrRelativeImpulse(s.short.slope,s.long.slope),Math.max(s.short.persist||0,s.long.persist||0));
+  }
+
+  var active=components.filter(function(x){return Math.abs(x.value)>=.12&&x.quality>=.35;});
+  if(active.length<2)return {dir:0,reliable:false,strength:0,coherence:0,evidence:0,components:components,agree:[]};
+
+  var up=active.filter(function(x){return x.value>0;}),down=active.filter(function(x){return x.value<0;});
+  var winning=up.length>down.length?up:(down.length>up.length?down:[]);
+  if(winning.length<2)return {dir:0,reliable:false,strength:0,coherence:0,evidence:0,components:components,agree:[]};
+
+  var dir=winning[0].value>0?1:-1;
+  var weighted=0,weight=0,totalAbs=0,alignedAbs=0;
+  active.forEach(function(x){
+    var w=.35+.65*x.quality,a=Math.abs(x.value)*w;
+    totalAbs+=a;
+    if(Math.sign(x.value)===dir){alignedAbs+=a;weighted+=x.value*w;weight+=w;}
+  });
+  var strength=weight?Math.abs(weighted/weight):0;
+  var coherence=totalAbs?alignedAbs/totalAbs:0;
+  var reliable=winning.length>=2&&strength>=.16&&coherence>=.62;
+
+  return {
+    dir:reliable?dir:0,reliable:reliable,strength:strength,coherence:coherence,
+    evidence:winning.length,components:components,agree:winning.map(function(x){return x.name;})
+  };
+}
 function marketWaveVector(){
   var p=priceWave(),v=volumeWave(),s=sentimentWave(),label='',dir=0,kind='';
   var crowd=s.dir,price=p.dir,vol=v.dir;
+  var impulse=hdrImpulseVector(p,v,s);
   var massSupports=crowd&&((vol===crowd)||(s.massDir===crowd)||(v.ratio!=null&&v.ratio>=1.15&&Math.sign(v.pressure)===crowd));
+
   if(crowd&&massSupports&&(!price||price!==crowd)){
     label='Welle baut sich auf';dir=crowd;kind='build';
   }else if(crowd&&price===crowd&&(vol===crowd||massSupports)){
@@ -1120,9 +1176,22 @@ function marketWaveVector(){
   }else if(crowd&&vol===crowd&&price===0){
     label='Crowd führt';dir=crowd;kind='lead';
   }
+
   var evidence=(crowd?1:0)+(price?1:0)+(vol?1:0)+(massSupports?1:0);
   if(evidence<2){label='';dir=0;kind='';}
-  return {label:label,dir:dir,kind:kind,crowdDir:crowd,priceDir:price,volumeDir:vol,volumeRatio:v.ratio,volumePressure:v.pressure,pricePersist:p.persist||0,priceEfficiency:p.eff||0,sentPersist:s.short?s.short.persist:0,massDir:s.massDir||0,evidence:evidence};
+
+  // Vor der eigentlichen Welle ist der gekoppelten HDR-Impuls das Signal:
+  // mindestens zwei unabhängige Ebenen ändern ihre Bewegung in dieselbe Richtung.
+  if(!label&&impulse.reliable){
+    label='Vorimpuls';dir=impulse.dir;kind='impulse';
+  }
+
+  return {
+    label:label,dir:dir,kind:kind,crowdDir:crowd,priceDir:price,volumeDir:vol,
+    volumeRatio:v.ratio,volumePressure:v.pressure,pricePersist:p.persist||0,
+    priceEfficiency:p.eff||0,priceAccel:p.accel||0,sentPersist:s.short?s.short.persist:0,
+    massDir:s.massDir||0,evidence:evidence,impulse:impulse
+  };
 }
 function getMarketWaveVector(){
   var now=Date.now();
@@ -1133,13 +1202,24 @@ function getMarketWaveVector(){
 function marketFlowText(f){
   if(!f||!f.label)return '';
   var arrow=f.dir>0?'↗':f.dir<0?'↘':'→',parts=[arrow+' '+f.label];
+  if(f.kind==='impulse'&&f.impulse&&f.impulse.agree&&f.impulse.agree.length){
+    parts.push(f.impulse.agree.join('+'));
+    return parts.join(' · ');
+  }
   var agrees=[];
   if(f.crowdDir===f.dir)agrees.push('Crowd');
   if(f.volumeDir===f.dir)agrees.push('Volumen');
   if(f.priceDir===f.dir)agrees.push('Kurs');
   if(agrees.length)parts.push(agrees.join('+'));
   if(f.volumeRatio!=null&&f.volumeRatio>=1.1)parts.push('Teilnahme '+f.volumeRatio.toLocaleString('de-DE',{maximumFractionDigits:1})+'×');
+  if(f.impulse&&f.impulse.reliable){
+    if(f.impulse.dir===f.dir)parts.push('Impuls voraus');
+    else parts.push('Gegenimpuls '+(f.impulse.dir>0?'↑':'↓'));
+  }
   return parts.join(' · ');
+}
+function flowPointStyle(f){
+  return f&&f.kind==='impulse'?'rectRot':'triangle';
 }
 function flowPoint(pricePts,f){
   if(!f||!f.label||!pricePts||!pricePts.length)return [];
@@ -1168,7 +1248,7 @@ function updateLivePriceChart1d(){
     var flow=getMarketWaveVector(),flowDs=ivChart.data.datasets[2],flowEl=document.getElementById('marketFlow');
     if(flowEl)flowEl.textContent=marketFlowText(flow);
     if(flowDs){
-      flowDs.data=flowPoint(pts,flow);flowDs.pointRotation=flow.dir<0?180:0;
+      flowDs.data=flowPoint(pts,flow);flowDs.pointStyle=flowPointStyle(flow);flowDs.pointRotation=flow.kind==='impulse'?0:(flow.dir<0?180:0);
       flowDs.pointBorderColor=flow.dir>0?'#5dcb5b':flow.dir<0?'#e94035':'#151517';
     }
   }
@@ -1393,7 +1473,7 @@ function renderValueChart(){
   var d0={label:'Kurs',data:s.pricePts,parsing:false,spanGaps:false,borderColor:pc,backgroundColor:pc,fill:false,tension:.10,pointRadius:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:pc,borderWidth:2.4};
   var d1={label:'Innerer Wert',data:s.fairPts,parsing:false,spanGaps:false,borderColor:'#151517',backgroundColor:'#151517',stepped:true,pointRadius:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:'#151517',borderWidth:1.7,borderDash:[5,4],hidden:!showIntrinsic};
   var flowVisible=priceRange==='1d'||priceRange==='1w',flow=flowVisible?getMarketWaveVector():{label:'',dir:0},flowEl=document.getElementById('marketFlow');if(flowEl)flowEl.textContent=flowVisible?marketFlowText(flow):'';
-  var d2={label:'Welle',data:flowVisible?flowPoint(s.pricePts,flow):[],parsing:false,showLine:false,pointStyle:'triangle',pointRotation:flow.dir<0?180:0,pointRadius:6,pointHoverRadius:8,pointBorderWidth:1.5,pointBackgroundColor:'#fff',pointBorderColor:flow.dir>0?'#5dcb5b':flow.dir<0?'#e94035':'#151517'};
+  var d2={label:'Welle',data:flowVisible?flowPoint(s.pricePts,flow):[],parsing:false,showLine:false,pointStyle:flowPointStyle(flow),pointRotation:flow.kind==='impulse'?0:(flow.dir<0?180:0),pointRadius:flow.kind==='impulse'?5:6,pointHoverRadius:8,pointBorderWidth:1.5,pointBackgroundColor:'#fff',pointBorderColor:flow.dir>0?'#5dcb5b':flow.dir<0?'#e94035':'#151517'};
   if(!ivChart){
     ivChart=new Chart(document.getElementById('ivChart'),{type:'line',data:{datasets:[d0,d1,d2]},options:{animation:false,events:chartEvents(),responsive:true,maintainAspectRatio:false,layout:{padding:{top:6,bottom:2,left:4,right:4}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('iv')},scales:{x:priceAxisX(s.priceRows,s.session),y:{grace:'8%',ticks:{color:'#6b6b76',callback:function(v){var n=Number(v);return isFinite(n)?n.toLocaleString('de-DE',{maximumFractionDigits:0})+' €':'—';},font:{size:11}},grid:{color:'#f2f2f4'},border:{display:false}}}}});
   }else{
