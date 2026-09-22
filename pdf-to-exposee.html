@@ -1,0 +1,850 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0d0d0b">
+  <title>ALANTU — PDF zu Exposé</title>
+  <style>
+    :root{
+      --ink:#0d0d0b;
+      --paper:#f4f0e8;
+      --paper-2:#e8e0d4;
+      --white:#fff;
+      --muted:#746e65;
+      --line:rgba(13,13,11,.14);
+      --gold:#b89a63;
+      --danger:#9c3f32;
+      --ok:#536b50;
+      --max:1320px;
+    }
+    *{box-sizing:border-box}
+    html{background:var(--paper);color:var(--ink)}
+    body{
+      margin:0;
+      min-width:320px;
+      background:var(--paper);
+      font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      -webkit-font-smoothing:antialiased;
+    }
+    button,input{font:inherit}
+    button{cursor:pointer}
+    .shell{width:min(var(--max),calc(100% - 40px));margin:0 auto}
+    .topbar{
+      min-height:74px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:20px;
+      border-bottom:1px solid var(--line);
+    }
+    .brand{
+      display:inline-flex;align-items:center;gap:12px;
+      font-size:13px;font-weight:700;letter-spacing:.32em;
+    }
+    .mark{width:22px;height:22px;position:relative;display:inline-block}
+    .mark:before,.mark:after{
+      content:"";position:absolute;left:2px;right:2px;height:1.5px;background:var(--ink);
+      transform-origin:left center;
+    }
+    .mark:before{top:16px;transform:rotate(-58deg)}
+    .mark:after{top:4px;transform:rotate(58deg)}
+    .mark i{position:absolute;left:7px;right:7px;top:12px;height:1.5px;background:var(--gold)}
+    .top-note{font-size:11px;color:var(--muted);letter-spacing:.05em}
+    .layout{
+      display:grid;
+      grid-template-columns:minmax(300px,.68fr) minmax(0,1.32fr);
+      gap:38px;
+      align-items:start;
+      padding:42px 0 56px;
+    }
+    .panel{min-width:0}
+    .eyebrow{
+      font-size:10px;font-weight:700;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);
+      margin-bottom:14px;
+    }
+    h1{
+      margin:0;
+      font-family:Georgia,"Times New Roman",serif;
+      font-size:clamp(42px,5vw,66px);
+      line-height:.98;
+      font-weight:400;
+      letter-spacing:-.045em;
+    }
+    .intro{
+      color:#58524a;line-height:1.6;font-size:15px;
+      margin:18px 0 22px;max-width:520px;
+    }
+    .dropzone{
+      position:relative;
+      border:1px dashed rgba(13,13,11,.28);
+      border-radius:20px;
+      min-height:190px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:28px 22px;
+      background:rgba(255,255,255,.25);
+      transition:border-color .18s ease,background .18s ease,transform .18s ease;
+    }
+    .dropzone.drag{
+      border-color:var(--gold);
+      background:rgba(184,154,99,.08);
+      transform:translateY(-1px);
+    }
+    .dropzone input{
+      position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;
+    }
+    .drop-icon{
+      width:46px;height:46px;border-radius:50%;
+      display:grid;place-items:center;
+      border:1px solid var(--line);background:rgba(255,255,255,.48);
+      margin-bottom:14px;
+    }
+    .drop-icon svg{width:20px;height:20px}
+    .drop-title{font-size:15px;font-weight:650}
+    .drop-copy{font-size:12px;color:var(--muted);margin-top:7px;line-height:1.45}
+    .status{
+      margin-top:14px;
+      min-height:20px;
+      font-size:12px;color:var(--muted);
+      display:flex;align-items:center;gap:8px;
+    }
+    .status.ok{color:var(--ok)}
+    .status.error{color:var(--danger)}
+    .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:0 0 auto}
+    .progress{
+      height:2px;background:rgba(13,13,11,.09);margin-top:10px;overflow:hidden;border-radius:999px;
+    }
+    .progress span{display:block;width:0;height:100%;background:var(--gold);transition:width .15s linear}
+    .meta{
+      margin-top:24px;border-top:1px solid var(--line);
+    }
+    .meta-row{
+      display:flex;justify-content:space-between;gap:18px;
+      padding:13px 0;border-bottom:1px solid var(--line);
+      font-size:12px;
+    }
+    .meta-row span:first-child{color:var(--muted)}
+    .meta-row strong{font-weight:620;text-align:right;overflow-wrap:anywhere}
+    .privacy{
+      margin-top:16px;font-size:11px;line-height:1.5;color:#7a7369;
+      display:flex;gap:9px;align-items:flex-start;
+    }
+    .privacy svg{width:14px;height:14px;flex:0 0 auto;margin-top:1px}
+    .viewer-card{
+      position:sticky;
+      top:18px;
+      min-width:0;
+    }
+    .stage{
+      position:relative;
+      min-height:610px;
+      aspect-ratio:1.12/1;
+      overflow:hidden;
+      border-radius:28px;
+      border:1px solid rgba(13,13,11,.08);
+      background:
+        radial-gradient(circle at 68% 20%,rgba(255,255,255,.9),transparent 31%),
+        linear-gradient(145deg,#ddd3c5,#b8ad9f);
+      isolation:isolate;
+    }
+    .stage:after{
+      content:"";
+      position:absolute;left:12%;right:12%;bottom:4%;
+      height:17%;border-radius:50%;
+      background:rgba(27,22,16,.18);
+      filter:blur(26px);
+      transform:perspective(420px) rotateX(72deg);
+      z-index:0;
+    }
+    #bookCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:1;display:block}
+    .empty{
+      position:absolute;inset:0;z-index:2;
+      display:grid;place-items:center;text-align:center;padding:40px;
+      pointer-events:none;
+    }
+    .empty-inner{max-width:300px}
+    .empty strong{display:block;font-family:Georgia,"Times New Roman",serif;font-size:28px;font-weight:400}
+    .empty span{display:block;margin-top:8px;color:#716a61;font-size:12px;line-height:1.5}
+    .stage-ui{position:absolute;inset:0;z-index:4;pointer-events:none}
+    .stage-top{
+      position:absolute;left:16px;right:16px;top:16px;
+      display:flex;align-items:center;justify-content:space-between;gap:8px;
+    }
+    .stage-actions{display:flex;align-items:center;gap:8px;pointer-events:auto}
+    .badge{
+      border:1px solid rgba(13,13,11,.12);
+      background:rgba(244,240,232,.78);
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+      padding:9px 11px;border-radius:999px;
+      font-size:10px;letter-spacing:.07em;
+      white-space:nowrap;max-width:46vw;overflow:hidden;text-overflow:ellipsis;
+    }
+    .circle{
+      width:42px;height:42px;border-radius:50%;border:1px solid rgba(13,13,11,.12);
+      background:rgba(244,240,232,.82);
+      display:grid;place-items:center;color:var(--ink);
+      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    }
+    .circle svg{width:18px;height:18px}
+    .circle:disabled{opacity:.32;cursor:default}
+    .stage-bottom{
+      position:absolute;left:16px;right:16px;bottom:16px;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+    }
+    .arrows{display:flex;gap:7px;pointer-events:auto}
+    .counter{
+      min-width:94px;text-align:center;
+      padding:9px 12px;border-radius:999px;
+      background:rgba(244,240,232,.78);
+      border:1px solid rgba(13,13,11,.12);
+      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+      font-size:10px;font-variant-numeric:tabular-nums;
+    }
+    .tapzone{
+      position:absolute;top:66px;bottom:66px;width:39%;z-index:3;
+      border:0;background:transparent;padding:0;
+    }
+    .tapzone.prev{left:0;cursor:w-resize}
+    .tapzone.next{right:0;cursor:e-resize}
+    .stage:fullscreen,.stage:-webkit-full-screen{
+      width:100vw;height:100vh;min-height:0;aspect-ratio:auto;border-radius:0;border:0;
+    }
+    .loading-mask{
+      position:absolute;inset:0;z-index:8;
+      display:none;place-items:center;
+      background:rgba(244,240,232,.72);
+      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    }
+    .loading-mask.show{display:grid}
+    .loading-card{
+      min-width:220px;text-align:center;padding:20px 24px;border-radius:18px;
+      background:rgba(255,255,255,.72);border:1px solid var(--line);
+    }
+    .loading-card strong{font-size:13px}
+    .loading-card span{display:block;margin-top:7px;font-size:11px;color:var(--muted)}
+    @media(max-width:980px){
+      .shell{width:min(var(--max),calc(100% - 28px))}
+      .layout{grid-template-columns:1fr;gap:28px;padding-top:30px}
+      .viewer-card{position:relative;top:auto}
+      .stage{min-height:560px}
+    }
+    @media(max-width:620px){
+      .shell{width:min(var(--max),calc(100% - 20px))}
+      .topbar{min-height:64px}
+      .top-note{display:none}
+      .layout{padding:24px 0 36px}
+      h1{font-size:clamp(40px,14vw,58px)}
+      .stage{min-height:430px;aspect-ratio:.87/1;border-radius:21px}
+      .stage-top,.stage-bottom{left:11px;right:11px}
+      .stage-top{top:11px}.stage-bottom{bottom:11px}
+      .badge{max-width:45vw}
+      .circle{width:44px;height:44px}
+    }
+  </style>
+</head>
+<body>
+  <header class="shell topbar">
+    <div class="brand"><span class="mark" aria-hidden="true"><i></i></span><span>ALANTU</span></div>
+    <div class="top-note">PDF → interaktives 3D-Exposé</div>
+  </header>
+
+  <main class="shell layout">
+    <section class="panel">
+      <div class="eyebrow">PDF Adapter</div>
+      <h1>Aus PDF wird Exposé.</h1>
+      <p class="intro">PDF auswählen. ALANTU rendert jede Seite hochauflösend und baut daraus sofort ein echtes, beidseitig bedrucktes 3D-Exposé.</p>
+
+      <label class="dropzone" id="dropzone">
+        <input id="pdfInput" type="file" accept="application/pdf,.pdf" aria-label="PDF auswählen">
+        <span class="drop-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4.5A1.5 1.5 0 006.5 20h11a1.5 1.5 0 001.5-1.5V14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="drop-title">PDF hier ablegen oder auswählen</span>
+        <span class="drop-copy">Ideal für bestehende Makler-Exposés · bis 40 Seiten</span>
+      </label>
+
+      <div class="status" id="status"><span class="dot"></span><span>Bereit</span></div>
+      <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+
+      <div class="meta" id="meta">
+        <div class="meta-row"><span>Datei</span><strong id="metaFile">—</strong></div>
+        <div class="meta-row"><span>Seiten</span><strong id="metaPages">—</strong></div>
+        <div class="meta-row"><span>Darstellung</span><strong id="metaMode">Duplex · 3D</strong></div>
+      </div>
+
+      <div class="privacy">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 10V7a5 5 0 0110 0v3m-11 0h12v10H6V10z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <span>Das PDF bleibt auf diesem Gerät. Die Umwandlung läuft vollständig im Browser.</span>
+      </div>
+    </section>
+
+    <section class="viewer-card" aria-label="Exposé-Vorschau">
+      <div class="stage" id="stage">
+        <canvas id="bookCanvas"></canvas>
+
+        <button class="tapzone prev" id="tapPrev" type="button" aria-label="Zurück"></button>
+        <button class="tapzone next" id="tapNext" type="button" aria-label="Weiter"></button>
+
+        <div class="empty" id="emptyState">
+          <div class="empty-inner">
+            <strong>Dein Exposé erscheint hier.</strong>
+            <span>PDF links auswählen — danach kannst du direkt blättern, wischen und auf Vollbild gehen.</span>
+          </div>
+        </div>
+
+        <div class="stage-ui">
+          <div class="stage-top">
+            <span class="badge" id="viewerTitle">ALANTU · PDF EXPOSÉ</span>
+            <div class="stage-actions">
+              <button class="circle" id="fullscreenBtn" type="button" aria-label="Vollbild öffnen" title="Vollbild">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="stage-bottom">
+            <div class="arrows">
+              <button class="circle" id="prevBtn" type="button" aria-label="Vorherige Seite">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button class="circle" id="nextBtn" type="button" aria-label="Nächste Seite">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div class="counter" id="pageCount">— / —</div>
+          </div>
+        </div>
+
+        <div class="loading-mask" id="loadingMask">
+          <div class="loading-card"><strong id="loadingTitle">PDF wird vorbereitet</strong><span id="loadingText">Seiten werden gerendert …</span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+    import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
+
+    const MAX_PAGES=40;
+    const MAX_TEXTURE_EDGE=2048;
+    const MIN_TEXTURE_EDGE=1400;
+
+    const stage=document.getElementById("stage");
+    const canvas=document.getElementById("bookCanvas");
+    const input=document.getElementById("pdfInput");
+    const dropzone=document.getElementById("dropzone");
+    const statusEl=document.getElementById("status");
+    const progressBar=document.getElementById("progressBar");
+    const metaFile=document.getElementById("metaFile");
+    const metaPages=document.getElementById("metaPages");
+    const viewerTitle=document.getElementById("viewerTitle");
+    const emptyState=document.getElementById("emptyState");
+    const loadingMask=document.getElementById("loadingMask");
+    const loadingTitle=document.getElementById("loadingTitle");
+    const loadingText=document.getElementById("loadingText");
+    const prevBtn=document.getElementById("prevBtn");
+    const nextBtn=document.getElementById("nextBtn");
+    const tapPrev=document.getElementById("tapPrev");
+    const tapNext=document.getElementById("tapNext");
+    const pageCount=document.getElementById("pageCount");
+    const fullscreenBtn=document.getElementById("fullscreenBtn");
+    const prefersReduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:"high-performance"});
+    renderer.outputColorSpace=THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled=true;
+    renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+
+    const scene=new THREE.Scene();
+    const camera=new THREE.PerspectiveCamera(30,1,.1,100);
+    camera.position.set(.1,1.22,10.8);
+    camera.lookAt(0,0,0);
+
+    scene.add(new THREE.HemisphereLight(0xfffbf3,0x66594b,2.5));
+    const key=new THREE.DirectionalLight(0xffffff,4.3);
+    key.position.set(-3.5,7,7);
+    key.castShadow=true;
+    key.shadow.mapSize.set(1024,1024);
+    scene.add(key);
+    const rim=new THREE.DirectionalLight(0xcdb88e,2.0);
+    rim.position.set(5,2,-3);
+    scene.add(rim);
+
+    const root=new THREE.Group();
+    root.rotation.x=-.13;
+    root.rotation.y=-.18;
+    root.rotation.z=-.012;
+    scene.add(root);
+
+    const coverMaterial=new THREE.MeshStandardMaterial({color:0x171713,roughness:.68,metalness:.05});
+    const edgeMaterial=new THREE.MeshStandardMaterial({color:0xeee7dc,roughness:.94});
+
+    let pageTextures=[];
+    let leafRoots=[];
+    let backCover=null;
+    let pageBlock=null;
+    let currentLeaf=0;
+    let totalPages=0;
+    let totalLeaves=0;
+    let PAGE_W=3.52;
+    let PAGE_H=4.80;
+    let bookAspect=PAGE_W/PAGE_H;
+    let animating=false;
+    let pointerStart=null;
+    let loadToken=0;
+
+    function setStatus(text,type=""){
+      statusEl.className="status"+(type?" "+type:"");
+      statusEl.innerHTML='<span class="dot"></span><span></span>';
+      statusEl.lastElementChild.textContent=text;
+    }
+
+    function setProgress(value){
+      progressBar.style.width=Math.max(0,Math.min(100,value))+"%";
+    }
+
+    function disposeMaterial(material){
+      if(!material)return;
+      const list=Array.isArray(material)?material:[material];
+      list.forEach(m=>{if(m.map)m.map.dispose();m.dispose()});
+    }
+
+    function clearBook(){
+      animating=false;
+      currentLeaf=0;
+      leafRoots.forEach(p=>{
+        p.traverse(obj=>{
+          if(obj.isMesh){
+            if(obj.geometry)obj.geometry.dispose();
+            disposeMaterial(obj.material);
+          }
+        });
+        root.remove(p);
+      });
+      leafRoots=[];
+      pageTextures.forEach(t=>t.dispose());
+      pageTextures=[];
+      if(backCover){backCover.geometry.dispose();disposeMaterial(backCover.material);root.remove(backCover);backCover=null}
+      if(pageBlock){pageBlock.geometry.dispose();disposeMaterial(pageBlock.material);root.remove(pageBlock);pageBlock=null}
+      totalPages=0;totalLeaves=0;
+      updateUI();
+    }
+
+    function createTexture(renderedCanvas){
+      const texture=new THREE.CanvasTexture(renderedCanvas);
+      texture.colorSpace=THREE.SRGBColorSpace;
+      texture.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),16);
+      texture.minFilter=THREE.LinearMipmapLinearFilter;
+      texture.magFilter=THREE.LinearFilter;
+      texture.generateMipmaps=true;
+      return texture;
+    }
+
+    function mirroredTexture(sourceCanvas){
+      const texture=new THREE.CanvasTexture(sourceCanvas);
+      texture.colorSpace=THREE.SRGBColorSpace;
+      texture.wrapS=THREE.RepeatWrapping;
+      texture.repeat.x=-1;
+      texture.offset.x=1;
+      texture.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),16);
+      texture.minFilter=THREE.LinearMipmapLinearFilter;
+      texture.magFilter=THREE.LinearFilter;
+      texture.generateMipmaps=true;
+      return texture;
+    }
+
+    async function renderPdfPage(pdf,pageNumber,token){
+      const page=await pdf.getPage(pageNumber);
+      if(token!==loadToken)throw new Error("cancelled");
+
+      const base=page.getViewport({scale:1});
+      const longest=Math.max(base.width,base.height);
+      const target=Math.max(MIN_TEXTURE_EDGE,Math.min(MAX_TEXTURE_EDGE,longest*2.2));
+      const scale=target/longest;
+      const viewport=page.getViewport({scale});
+
+      const pageCanvas=document.createElement("canvas");
+      pageCanvas.width=Math.max(1,Math.round(viewport.width));
+      pageCanvas.height=Math.max(1,Math.round(viewport.height));
+      const ctx=pageCanvas.getContext("2d",{alpha:false,willReadFrequently:false});
+      ctx.fillStyle="#fff";
+      ctx.fillRect(0,0,pageCanvas.width,pageCanvas.height);
+      await page.render({canvasContext:ctx,viewport,background:"white"}).promise;
+
+      return {canvas:pageCanvas,width:base.width,height:base.height};
+    }
+
+    function normalizePageCanvas(source,targetW,targetH){
+      if(source.width===targetW && source.height===targetH)return source;
+      const out=document.createElement("canvas");
+      out.width=targetW;out.height=targetH;
+      const ctx=out.getContext("2d",{alpha:false});
+      ctx.fillStyle="#fff";ctx.fillRect(0,0,targetW,targetH);
+      const scale=Math.min(targetW/source.width,targetH/source.height);
+      const w=source.width*scale,h=source.height*scale;
+      ctx.drawImage(source,(targetW-w)/2,(targetH-h)/2,w,h);
+      return out;
+    }
+
+    function rightZ(i){return .18-i*.018}
+    function leftZ(i){return .18+i*.018}
+
+    function buildBook(renderedPages){
+      leafRoots.forEach(p=>root.remove(p));
+      leafRoots=[];
+
+      totalPages=renderedPages.length;
+      totalLeaves=Math.ceil(totalPages/2);
+      currentLeaf=0;
+
+      const first=renderedPages[0];
+      const portrait=first.height>=first.width;
+      bookAspect=first.width/first.height;
+      PAGE_H=4.80;
+      PAGE_W=Math.max(2.65,Math.min(4.45,PAGE_H*bookAspect));
+
+      const targetLong=MAX_TEXTURE_EDGE;
+      let targetW,targetH;
+      if(bookAspect<=1){
+        targetH=targetLong;
+        targetW=Math.round(targetLong*bookAspect);
+      }else{
+        targetW=targetLong;
+        targetH=Math.round(targetLong/bookAspect);
+      }
+      targetW=Math.max(1024,targetW);
+      targetH=Math.max(1024,targetH);
+
+      const normalized=renderedPages.map(p=>normalizePageCanvas(p.canvas,targetW,targetH));
+
+      pageTextures=normalized.map(createTexture);
+
+      backCover=new THREE.Mesh(
+        new THREE.BoxGeometry(PAGE_W+.30,PAGE_H+.30,.16),
+        coverMaterial.clone()
+      );
+      backCover.position.set(0,0,-.24);
+      backCover.castShadow=true;
+      backCover.receiveShadow=true;
+      root.add(backCover);
+
+      pageBlock=new THREE.Mesh(
+        new THREE.BoxGeometry(PAGE_W+.05,PAGE_H+.08,.22),
+        edgeMaterial.clone()
+      );
+      pageBlock.position.set(.05,0,-.055);
+      pageBlock.castShadow=true;
+      root.add(pageBlock);
+
+      const baseGeometry=new THREE.PlaneGeometry(PAGE_W,PAGE_H,30,1);
+      baseGeometry.translate(PAGE_W/2,0,0);
+
+      for(let i=0;i<totalLeaves;i++){
+        const frontIndex=i*2;
+        const backIndex=frontIndex+1;
+        const pivot=new THREE.Group();
+        pivot.position.set(-PAGE_W/2,0,rightZ(i));
+
+        const geometry=baseGeometry.clone();
+        geometry.userData.basePosition=geometry.attributes.position.array.slice();
+
+        const frontMat=new THREE.MeshStandardMaterial({
+          map:pageTextures[frontIndex],
+          roughness:.9,
+          metalness:0,
+          side:THREE.FrontSide
+        });
+
+        let backMap=null;
+        if(backIndex<totalPages)backMap=mirroredTexture(normalized[backIndex]);
+
+        const backMat=new THREE.MeshStandardMaterial({
+          map:backMap,
+          color:backMap?0xffffff:0xeee7dc,
+          roughness:.92,
+          metalness:0,
+          side:THREE.BackSide
+        });
+
+        const front=new THREE.Mesh(geometry,frontMat);
+        front.castShadow=true;front.receiveShadow=true;
+        const back=new THREE.Mesh(geometry,backMat);
+        back.castShadow=true;back.receiveShadow=true;
+
+        pivot.add(front,back);
+        pivot.userData.geometry=geometry;
+        root.add(pivot);
+        leafRoots.push(pivot);
+      }
+
+      normalizeBookState();
+      emptyState.style.display="none";
+      updateUI();
+      resize();
+    }
+
+    function bendLeaf(pivot,t){
+      const geometry=pivot.userData.geometry;
+      const pos=geometry.attributes.position;
+      const base=geometry.userData.basePosition;
+      const amount=Math.sin(Math.PI*t)*.24;
+      for(let i=0;i<pos.count;i++){
+        const x=base[i*3];
+        const u=Math.max(0,Math.min(1,x/PAGE_W));
+        pos.array[i*3]=x;
+        pos.array[i*3+1]=base[i*3+1];
+        pos.array[i*3+2]=base[i*3+2]+Math.sin(Math.PI*u)*amount;
+      }
+      pos.needsUpdate=true;
+      geometry.computeVertexNormals();
+    }
+
+    function setLeafState(index,flipped){
+      const pivot=leafRoots[index];
+      if(!pivot)return;
+      pivot.rotation.y=flipped?-Math.PI:0;
+      pivot.rotation.z=0;
+      pivot.position.z=flipped?leftZ(index):rightZ(index);
+      bendLeaf(pivot,0);
+    }
+
+    function normalizeBookState(){
+      for(let i=0;i<totalLeaves;i++)setLeafState(i,i<currentLeaf);
+    }
+
+    function visiblePageLabel(){
+      if(!totalPages)return "— / —";
+      if(currentLeaf===0)return "01 / "+String(totalPages).padStart(2,"0");
+      if(currentLeaf<totalLeaves){
+        const left=Math.min(totalPages,currentLeaf*2);
+        const right=Math.min(totalPages,left+1);
+        return left===right
+          ? String(left).padStart(2,"0")+" / "+String(totalPages).padStart(2,"0")
+          : String(left).padStart(2,"0")+"–"+String(right).padStart(2,"0")+" / "+String(totalPages).padStart(2,"0");
+      }
+      return String(totalPages).padStart(2,"0")+" / "+String(totalPages).padStart(2,"0");
+    }
+
+    function updateUI(){
+      pageCount.textContent=visiblePageLabel();
+      const disabled=!totalPages;
+      prevBtn.disabled=disabled||currentLeaf===0||animating;
+      tapPrev.disabled=disabled||currentLeaf===0||animating;
+      nextBtn.disabled=disabled||currentLeaf>=totalLeaves||animating;
+      tapNext.disabled=disabled||currentLeaf>=totalLeaves||animating;
+      fullscreenBtn.disabled=disabled;
+    }
+
+    function ease(t){return 1-Math.pow(1-t,3)}
+
+    function animateLeaf(index,toFlipped,onDone){
+      if(animating||index<0||index>=totalLeaves)return;
+      animating=true;updateUI();
+
+      const pivot=leafRoots[index];
+      const fromAngle=pivot.rotation.y;
+      const toAngle=toFlipped?-Math.PI:0;
+      const fromZ=pivot.position.z;
+      const toZ=toFlipped?leftZ(index):rightZ(index);
+      const start=performance.now();
+      const duration=prefersReduced?1:820;
+
+      function frame(now){
+        const t=Math.min(1,(now-start)/duration);
+        const e=ease(t);
+        pivot.rotation.y=fromAngle+(toAngle-fromAngle)*e;
+
+        // Turning leaf stays above both stacks while crossing the spine.
+        const stackLift=Math.sin(Math.PI*t)*.075;
+        pivot.position.z=fromZ+(toZ-fromZ)*e+stackLift;
+        pivot.rotation.z=(toFlipped?-1:1)*Math.sin(Math.PI*t)*.018;
+        bendLeaf(pivot,t);
+
+        if(t<1){
+          requestAnimationFrame(frame);
+        }else{
+          pivot.rotation.y=toAngle;
+          pivot.rotation.z=0;
+          pivot.position.z=toZ;
+          bendLeaf(pivot,0);
+          animating=false;
+          if(onDone)onDone();
+          updateUI();
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function next(){
+      if(animating||currentLeaf>=totalLeaves)return;
+      const turning=currentLeaf;
+      animateLeaf(turning,true,()=>{
+        currentLeaf=turning+1;
+        normalizeBookState();
+        updateUI();
+      });
+    }
+
+    function prev(){
+      if(animating||currentLeaf<=0)return;
+      const target=currentLeaf-1;
+      animateLeaf(target,false,()=>{
+        currentLeaf=target;
+        normalizeBookState();
+        updateUI();
+      });
+    }
+
+    async function loadPdf(file){
+      if(!file)return;
+      if(file.type!=="application/pdf" && !file.name.toLowerCase().endsWith(".pdf")){
+        setStatus("Bitte eine PDF-Datei auswählen.","error");
+        return;
+      }
+
+      const token=++loadToken;
+      clearBook();
+      emptyState.style.display="grid";
+      loadingMask.classList.add("show");
+      loadingTitle.textContent="PDF wird vorbereitet";
+      loadingText.textContent="Dokument wird gelesen …";
+      setStatus("PDF wird gelesen …");
+      setProgress(3);
+      metaFile.textContent=file.name;
+      metaPages.textContent="…";
+      viewerTitle.textContent=file.name.replace(/\.pdf$/i,"").toUpperCase();
+
+      try{
+        const buffer=await file.arrayBuffer();
+        if(token!==loadToken)return;
+        const pdf=await pdfjsLib.getDocument({data:new Uint8Array(buffer)}).promise;
+        if(token!==loadToken)return;
+
+        if(pdf.numPages<1)throw new Error("PDF enthält keine Seiten.");
+        if(pdf.numPages>MAX_PAGES)throw new Error("Maximal "+MAX_PAGES+" Seiten pro Exposé.");
+
+        metaPages.textContent=String(pdf.numPages);
+        const rendered=[];
+        for(let i=1;i<=pdf.numPages;i++){
+          if(token!==loadToken)return;
+          loadingText.textContent="Seite "+i+" von "+pdf.numPages+" wird gerendert …";
+          setStatus("Rendere Seite "+i+" / "+pdf.numPages+" …");
+          setProgress(5+(i-1)/pdf.numPages*85);
+          rendered.push(await renderPdfPage(pdf,i,token));
+        }
+
+        if(token!==loadToken)return;
+        loadingText.textContent="3D-Exposé wird aufgebaut …";
+        setProgress(94);
+        buildBook(rendered);
+        setProgress(100);
+        setStatus(pdf.numPages+" Seiten bereit.","ok");
+        setTimeout(()=>{if(token===loadToken)setProgress(0)},800);
+      }catch(err){
+        if(err?.message==="cancelled")return;
+        console.error(err);
+        setStatus(err?.message||"PDF konnte nicht verarbeitet werden.","error");
+        metaPages.textContent="—";
+        viewerTitle.textContent="ALANTU · PDF EXPOSÉ";
+      }finally{
+        if(token===loadToken)loadingMask.classList.remove("show");
+      }
+    }
+
+    input.addEventListener("change",()=>loadPdf(input.files?.[0]));
+
+    ["dragenter","dragover"].forEach(type=>dropzone.addEventListener(type,e=>{
+      e.preventDefault();dropzone.classList.add("drag");
+    }));
+    ["dragleave","drop"].forEach(type=>dropzone.addEventListener(type,e=>{
+      e.preventDefault();dropzone.classList.remove("drag");
+    }));
+    dropzone.addEventListener("drop",e=>{
+      const file=e.dataTransfer?.files?.[0];
+      if(file)loadPdf(file);
+    });
+
+    prevBtn.addEventListener("click",prev);
+    nextBtn.addEventListener("click",next);
+    tapPrev.addEventListener("click",prev);
+    tapNext.addEventListener("click",next);
+
+    stage.addEventListener("pointerdown",e=>{
+      if(!totalPages)return;
+      pointerStart={x:e.clientX,y:e.clientY,id:e.pointerId};
+    });
+    stage.addEventListener("pointerup",e=>{
+      if(!pointerStart||pointerStart.id!==e.pointerId)return;
+      const dx=e.clientX-pointerStart.x;
+      const dy=e.clientY-pointerStart.y;
+      pointerStart=null;
+      if(Math.abs(dx)>42&&Math.abs(dx)>Math.abs(dy)*1.15)dx<0?next():prev();
+    });
+    stage.addEventListener("pointercancel",()=>{pointerStart=null});
+
+    fullscreenBtn.addEventListener("click",async()=>{
+      if(!totalPages)return;
+      try{
+        const active=document.fullscreenElement||document.webkitFullscreenElement;
+        if(active){
+          if(document.exitFullscreen)await document.exitFullscreen();
+          else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
+        }else{
+          if(stage.requestFullscreen)await stage.requestFullscreen();
+          else if(stage.webkitRequestFullscreen)stage.webkitRequestFullscreen();
+        }
+      }catch(err){
+        console.warn("Fullscreen unavailable",err);
+      }
+    });
+
+    function syncFullscreen(){
+      const active=document.fullscreenElement===stage||document.webkitFullscreenElement===stage;
+      fullscreenBtn.setAttribute("aria-label",active?"Vollbild schließen":"Vollbild öffnen");
+      fullscreenBtn.title=active?"Vollbild schließen":"Vollbild";
+      setTimeout(resize,30);
+    }
+    document.addEventListener("fullscreenchange",syncFullscreen);
+    document.addEventListener("webkitfullscreenchange",syncFullscreen);
+
+    function resize(){
+      const r=stage.getBoundingClientRect();
+      const w=Math.max(1,Math.round(r.width));
+      const h=Math.max(1,Math.round(r.height));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2.5));
+      renderer.setSize(w,h,false);
+      camera.aspect=w/h;
+
+      const fullscreen=document.fullscreenElement===stage||document.webkitFullscreenElement===stage;
+      if(w<560&&!fullscreen){
+        camera.fov=31;
+        root.scale.setScalar(.70);
+        root.position.set(.64,.07,0);
+      }else{
+        camera.fov=30;
+        const aspectComp=bookAspect>.85?.70:.76;
+        root.scale.setScalar(fullscreen?aspectComp+.08:aspectComp);
+        root.position.set(1.28,.02,0);
+      }
+      camera.updateProjectionMatrix();
+    }
+
+    new ResizeObserver(resize).observe(stage);
+    resize();
+    updateUI();
+
+    function render(){
+      renderer.render(scene,camera);
+      requestAnimationFrame(render);
+    }
+    render();
+  </script>
+</body>
+</html>
