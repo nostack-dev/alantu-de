@@ -511,11 +511,6 @@
     frontCover.castShadow = true;
     frontCover.receiveShadow = true;
 
-    const pageBlock = new THREE.Mesh(new THREE.BoxGeometry(3.58,4.88,.26),paperEdgeMat);
-    pageBlock.position.set(.07,0,-.06);
-    pageBlock.castShadow = true;
-    root.add(pageBlock);
-
     const spine = new THREE.Mesh(new THREE.BoxGeometry(.12,5.10,.37),goldMat);
     spine.position.set(-1.90,0,-.07);
     spine.castShadow = true;
@@ -652,10 +647,10 @@
     const support=computeAlantuBookSupportZ({
       totalLeaves,
       rightZ,
-      pageBlockThickness:.26,
+      // No fake white page slab: covers sit behind the deepest real leaf.
+      pageBlockThickness:0,
       coverThickness:.16
     });
-    pageBlock.position.z=support.pageBlockCenterZ;
 
     const COVER_W=3.85;
     const COVER_T=.16;
@@ -743,11 +738,6 @@
     let bookCore=null;
 
     function updateUI(state){
-      // The static right-hand paper block represents only pages still waiting
-      // on the right. Once the final real leaf has landed on the left it must
-      // disappear, otherwise closing the back cover leaves a white ghost slab.
-      pageBlock.visible=state.currentLeaf<totalLeaves;
-
       const shownLeaf=state.activeTurn
         ? (state.activeTurn.progress>=.5?state.activeTurn.index+1:state.activeTurn.index)
         : state.currentLeaf;
