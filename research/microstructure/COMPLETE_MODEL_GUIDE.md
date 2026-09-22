@@ -1,182 +1,553 @@
-# ALANTU 100E HDR-Δt — COMPLETE MODEL PACKAGE
+# ALANTU Microstructure — vollständiger Modell-, Daten- und Integrationsleitfaden
 
-## 0. What this package is
+Stand: 2026-09-22
 
-This archive contains the complete research, model, validation and live-integration state for the ALANTU short-horizon order-book forecasting work.
+## 0. Was in diesem Paket tatsächlich trainiert ist
 
-There are **two different model states** in this package and they must not be confused:
+Es gibt zwei klar getrennte Ebenen.
 
-### A. Trained benchmark model — FI-2010
+### A. Trainiertes Proof-Modell
 
-This model **is trained** and its exact parameters are included.
+`fi2010-microstructure-model.json` ist ein **wirklich trainiertes Ridge-Modell** auf dem öffentlichen FI-2010 Limit-Order-Book-Datensatz.
 
-It proves that the selected order-book geometry contains out-of-sample directional information on a public benchmark. It does **not** prove a profitable ORCL strategy.
+Es wurde auf den ersten sieben Handelstagen entwickelt und auf den letzten drei Tagen separat geprüft. Es enthält die vollständigen Mittelwerte, Standardabweichungen, Koeffizienten und Schwellen für die Horizonte 10/20/30/50/100 Events.
 
-Files:
-- `models/fi2010-microstructure-model.json`
-- `results/fi2010-microstructure-proof.json`
-- `data/FI-2010-data.zip`
-- `src/research/validate-fi2010-microstructure.py`
+Dieses Modell ist reproduzierbar, aber **kein ORCL-Produktionsmodell**.
 
-### B. ORCL production model — hdr-dt-v1
+### B. ORCL Produktionsmodell `hdr-dt-v1`
 
-The complete production architecture, feature contract, trainer, validator, live collector and relay are included.
+`orcl-l2-model.json` ist momentan absichtlich **`status=unavailable`**.
 
-The current model file is intentionally:
+Das ist kein fehlender Code. Es ist eine Sicherheitsbedingung: Das ORCL-Modell darf erst trainiert und veröffentlicht werden, wenn echte historische ORCL-Daten des gleichen Live-Datenvertrags vorliegen und der harte Holdout-Gate bestanden wurde.
 
-`status = unavailable`
-
-because a real ORCL MBP-10 history of at least 252 usable trading days has not yet been supplied to the trainer.
-
-**No ORCL coefficients are fabricated.**
-
-Files:
-- `models/orcl-l2-model.json`
-- `src/research/train-orcl-l2-100.py`
-- `src/research/l2_temporal_features.py`
-- `src/live/l2-event-signal.mjs`
-- `src/live/databento-orcl-mbp10-live.py`
-- `src/live/market-relay-server.mjs`
+Kein FI-2010-Koeffizient wird als ORCL-Koeffizient ausgegeben.
 
 ---
 
-# 1. Goal
+# 1. Forschungsfrage
 
-The target is not "predict the next candle".
+Die operative Frage lautet:
 
-The production target is:
+> Kann der aktuelle Zustand und die Bewegung des ORCL-Orderbuchs vorhersagen, ob der Midprice nach den nächsten 100 echten Orderbuch-Events höher oder niedriger liegt?
 
-> Given the complete current ORCL top-10 limit-order-book state and its exact event-time trajectory, estimate whether the L1 midprice will be higher or lower **100 order-book events in the future**.
+Das Modell arbeitet deshalb nicht primär in Kerzen oder Sekunden, sondern auf der **Event-Uhr des Marktes**.
 
-The model simultaneously reports the estimated wall-clock duration of those 100 future events from the current event pace:
+Der reale Zeithorizont ist dynamisch:
 
-`100E ↑ · ≈ 1.8 s`
+[
+\Delta T_{100}(t)=t_{event+100}-t_{event}
+]
 
-or
+Live wird er aus der aktuellen Eventrate geschätzt:
 
-`100E ↓ · ≈ 2.6 s`
+[
+\widehat{\Delta T}_{100}=100/r_{events}
+]
 
-If the evidence or timing quality is insufficient:
-
-`NO SIGNAL`
-
-This separation is intentional. Event count defines the structural horizon. Δt converts it into current real time.
-
----
-
-# 2. Why Δt is part of the model
-
-100 order-book changes in 150 ms and the same 100 changes over 20 seconds are not the same market state.
-
-For every event:
-
-`Δt_i = ts_event_i - ts_event_(i-1)`
-
-The production feature vector therefore includes both state and motion:
-
-- state Z(t)
-- velocity dZ/dt
-- acceleration d²Z/dt²
-- event pace
-- short/long pace ratio
-- self/local/global relative position
-
-This is the HDR-inspired part of the model.
+Damit bedeuten 100 Events an einem schnellen Markt einen kürzeren Zeithorizont als 100 Events in einem ruhigen Markt.
 
 ---
 
-# 3. Exact timestamps
+# 2. Zeit ist ein Feature, nicht nur Metadaten
 
-The live collector preserves four clocks separately:
+Für zwei aufeinanderfolgende Börsenereignisse:
 
-1. `ts_event` — exchange/venue event time; used for market Δt.
-2. `ts_recv` — provider receive time.
-3. `ts_out` — provider egress time.
-4. `ts_local_recv` — timestamp when our collector receives the event.
+[
+\Delta t_i = t_i-t_{i-1}
+]
 
-The market dynamics use **ts_event**.
+Verwendet wird der **Exchange Event Timestamp** `ts_event` in Nanosekunden.
 
-The other timestamps measure whether the forecast arrives in time to still be useful.
+Zusätzlich werden getrennt gemessen:
 
-The relay decomposes latency into:
+- `ts_event`: Markt-/Exchange-Zeit
+- `ts_recv`: Empfang beim Datenprovider
+- `ts_out`: Ausgabe des Providers
+- `ts_local_recv`: Empfang in unserem Collector
 
-- venue → provider capture
-- provider processing/gateway
-- network/provider → our collector
-- complete event → collector latency
+Damit entstehen:
 
-A direction signal is suppressed when latency consumes too much of the current estimated 100-event horizon.
+[
+L_{capture}=ts_{recv}-ts_{event}
+]
 
----
+[
+L_{gateway}=ts_{out}-ts_{recv}
+]
 
-# 4. XY trajectory
+[
+L_{network}=ts_{local}-ts_{out}
+]
 
-The model maps every order-book event into a compact trajectory:
+[
+L_{E2E}=ts_{local}-ts_{event}
+]
 
-### X — directional book pressure
-
-A coupled combination of:
-
-- L1 imbalance
-- L3 imbalance
-- L5 imbalance
-- L10 imbalance
-- microprice displacement
-
-Positive X = bid-side/upward pressure.
-Negative X = ask-side/downward pressure.
-
-### Y — displayed liquidity mass
-
-`Y = log(1 + total displayed bid+ask size across top 10 levels)`
-
-The state evolves as:
-
-`P(t) = (X(t), Y(t))`
-
-Velocity:
-
-`V(t) = (P(t)-P(t-1)) / Δt`
-
-Acceleration:
-
-`A(t) = (V(t)-V(t-1)) / Δt_accel`
-
-Signed logarithms are used for V/A features so extreme bursts do not numerically dominate the model while direction is preserved.
+Diese Latenzen werden **nicht mit der Marktbewegung verwechselt**. Sie dienen als Qualitäts-/Handelbarkeit-Gate.
 
 ---
 
-# 5. HDR self / local / global coupling
+# 3. Der L2-Zustand
 
-For each X and Y dimension the current state is compared against three references.
+Benötigt werden pro Event die besten zehn Bid- und Ask-Ebenen:
 
-### Self
+[
+(BidPx_j,BidSize_j,AskPx_j,AskSize_j),\quad j=1..10
+]
 
-Current state relative to the same trajectory 100 events ago.
+Aus ihnen entstehen die sieben klassischen, skalenfreien Basisfeatures.
 
-`R_self = (current - state[t-100]) / (|current| + |reference| + epsilon)`
+## 3.1 Depth Imbalance
 
-### Local
+Für Tiefe (k\in\{1,3,5,10\}):
 
-Current state relative to the mean of the **previous 10 events**.
+[
+I_k=\frac{\sum_{j=1}^k BidSize_j-\sum_{j=1}^k AskSize_j}
+{\sum_{j=1}^k BidSize_j+\sum_{j=1}^k AskSize_j}
+]
 
-This measures immediate neighborhood departure.
+Features:
 
-### Global
+1. `imbalance_l1`
+2. `imbalance_l3`
+3. `imbalance_l5`
+4. `imbalance_l10`
 
-Current state relative to the mean of the **previous 1000 events**.
+## 3.2 Microprice bias
 
-This measures where the current move sits inside the broader local market regime.
+[
+Mid=\frac{Ask_1+Bid_1}{2}
+]
 
-All references are strictly backward-looking. No future data enters the feature vector.
+[
+Micro=\frac{Ask_1 BidSize_1+Bid_1 AskSize_1}{BidSize_1+AskSize_1}
+]
+
+[
+MicroBias=\frac{Micro-Mid}{Ask_1-Bid_1}
+]
+
+Feature 5: `microprice_bias`.
+
+## 3.3 Nah gegen Gesamtbuch
+
+[
+NearFar=I_1-I_{10}
+]
+
+Feature 6: `near_far_imbalance`.
+
+## 3.4 Depth Ratio
+
+[
+DepthRatio_5=\log\frac{\sum_{j=1}^5 BidSize_j+\epsilon}
+{\sum_{j=1}^5 AskSize_j+\epsilon}
+]
+
+Feature 7: `depth_ratio_l5`.
 
 ---
 
-# 6. Complete hdr-dt-v1 feature vector
+# 4. XY-Zustandsraum
 
-The production contract contains **24 features**.
+Die HDR/Trajektorien-Schicht komprimiert den Zustand in zwei geometrisch interpretierbare Achsen.
 
-## Static book geometry
+## X = gekoppelter Marktdruck
+
+[
+X=\frac{I_1+I_3+I_5+I_{10}+2\cdot MicroBias}{6}
+]
+
+Positive X-Werte bedeuten stärker bid-seitigen/aufwärtsgerichteten Buchdruck; negative entsprechend die Gegenrichtung.
+
+## Y = sichtbare Liquiditätsmasse
+
+[
+Y=\log\left(1+\sum_{j=1}^{10}(BidSize_j+AskSize_j)\right)
+]
+
+Y ist keine Richtung, sondern die logarithmierte sichtbare Top-10-Liquiditätsmasse.
+
+Features:
+
+8. `xy_pressure`
+9. `xy_liquidity_log`
+
+Feature 10 ist zusätzlich `spread_bps`.
+
+---
+
+# 5. Bewegung relativ zu echtem Delta-t
+
+Feature 11:
+
+[
+log\_dt\_us=\log(1+\Delta t\;in\;\mu s)
+]
+
+Die Geschwindigkeit im XY-Raum:
+
+[
+v_x=\frac{X_i-X_{i-1}}{\Delta t_i},\qquad
+v_y=\frac{Y_i-Y_{i-1}}{\Delta t_i}
+]
+
+Die Beschleunigung:
+
+[
+a_x=\frac{v_{x,i}-v_{x,i-1}}
+{(\Delta t_i+\Delta t_{i-1})/2}
+]
+
+analog für (a_y).
+
+Um extreme Tick-Raten numerisch stabil zu halten, wird eine vorzeichenbehaftete Log-Transformation benutzt:
+
+[
+slog(z)=sign(z)\log(1+|z|)
+]
+
+Features:
+
+12. `vx_log`
+13. `vy_log`
+14. `ax_log`
+15. `ay_log`
+
+---
+
+# 6. HDR-Kopplung: self / local / global
+
+Für einen aktuellen Wert (z) und Referenzwert (r):
+
+[
+HDR(z,r)=\frac{z-r}{|z|+|r|+\epsilon}
+]
+
+Diese Relation ist dimensionslos und begrenzt die Wirkung von Skalenniveaus.
+
+## Self
+
+Referenz: eigener Zustand vor 100 Events.
+
+[
+Self_X=HDR(X_t,X_{t-100})
+]
+
+[
+Self_Y=HDR(Y_t,Y_{t-100})
+]
+
+Features 16–17.
+
+## Local
+
+Referenz: Mittelwert der vorherigen 10 Events.
+
+[
+Local_X=HDR(X_t,mean(X_{t-10:t-1}))
+]
+
+analog Y.
+
+Features 18–19.
+
+## Global
+
+Referenz: Mittelwert der vorherigen 1000 Events.
+
+[
+Global_X=HDR(X_t,mean(X_{t-1000:t-1}))
+]
+
+analog Y.
+
+Features 20–21.
+
+Wichtig: Alle Referenzen enden bei (t-1). Kein Future Leakage.
+
+---
+
+# 7. Event-Pace
+
+Das Modell sieht zusätzlich, **wie schnell die Marktmasse gerade Zustände wechselt**.
+
+[
+r_{10}=10/(t_t-t_{t-10})
+]
+
+[
+r_{100}=100/(t_t-t_{t-100})
+]
+
+Features:
+
+22. `log_rate_10 = log(1+r10)`
+23. `log_rate_100 = log(1+r100)`
+24. `pace_ratio_log = log(r10/r100)`
+
+Damit unterscheidet das Modell eine plötzliche Beschleunigung der Eventaktivität von einer normalen gleichmäßigen Eventrate.
+
+---
+
+# 8. Exakte Feature-Reihenfolge von hdr-dt-v1
+
+Die Reihenfolge ist Teil des Modellvertrags und darf nicht geändert werden:
+
+1. imbalance_l1
+2. imbalance_l3
+3. imbalance_l5
+4. imbalance_l10
+5. microprice_bias
+6. near_far_imbalance
+7. depth_ratio_l5
+8. xy_pressure
+9. xy_liquidity_log
+10. spread_bps
+11. log_dt_us
+12. vx_log
+13. vy_log
+14. ax_log
+15. ay_log
+16. hdr_self_x
+17. hdr_self_y
+18. hdr_local_x
+19. hdr_local_y
+20. hdr_global_x
+21. hdr_global_y
+22. log_rate_10
+23. log_rate_100
+24. pace_ratio_log
+
+Die Konstante lautet:
+
+`feature_version = "hdr-dt-v1"`
+
+Training (Python) und Live-Inference (JavaScript) werden in CI numerisch gegeneinander getestet.
+
+---
+
+# 9. Forecast-Ziel
+
+Fixer Eventhorizont:
+
+[
+H=100
+]
+
+Für Event (i):
+
+[
+R_{i,100}=10000\left(\frac{Mid_{i+100}}{Mid_i}-1\right)
+]
+
+Mit Deadband 0,5 bp:
+
+- (R > +0.5bp\) → UP
+- (R < -0.5bp\) → DOWN
+- sonst → STATIONARY / kein Richtungsziel
+
+Das Modell versucht nicht, den exakten Preis zu erraten. Es schätzt die **Richtung über die nächsten 100 Book-Events**.
+
+---
+
+# 10. Modell
+
+Das Modell ist bewusst transparent:
+
+[
+z_j=\frac{x_j-\mu_j}{\sigma_j}
+]
+
+[
+score=\beta_0+\sum_j\beta_jz_j
+]
+
+Ridge-Regularisierung:
+
+[
+\lambda=8
+]
+
+Signal:
+
+- `score >= threshold` → UP
+- `score <= -threshold` → DOWN
+- sonst → NO SIGNAL
+
+Der Threshold wird ausschließlich auf dem Validation-Block gewählt.
+
+---
+
+# 11. Historisches Training für ORCL
+
+Script:
+
+`tools/databento-orcl-mbp10-backfill.py`
+
+holt echte `ORCL / XNAS.ITCH / mbp-10` Events und persistiert tageweise:
+
+- `ts_event_ns`
+- `ts_recv_ns`
+- 7 Basisfeatures
+- X/Y
+- Midprice
+- Spread in bps
+- Venue sequence
+
+Danach:
+
+`tools/train-orcl-l2-100.py`
+
+Chronologischer Split:
+
+- erste 55 % der brauchbaren Handelstage: Fit
+- nächste 20 %: Threshold-Selection
+- letzte 25 %: vollständig unangetasteter Holdout
+
+Kein Random Shuffle.
+
+---
+
+# 12. Unabhängige Signale
+
+Damit 100 direkt aufeinanderfolgende Signale nicht 100-mal praktisch dieselbe Zukunft zählen:
+
+Nach jedem gezählten Signal werden im Validator die nächsten **100 Events übersprungen**.
+
+So werden die Holdout-Samples wesentlich weniger abhängig voneinander.
+
+---
+
+# 13. Kostenmodell
+
+Jedes Signal wird netto bewertet:
+
+[
+NetEdge=DirectionalMove-ObservedSpread-0.35bp
+]
+
+Das ist bewusst konservativer als ein reiner Midprice-Backtest.
+
+Ein Modell wird nicht aufgrund guter Brutto-Richtung freigeschaltet.
+
+---
+
+# 14. Promotion-Gate
+
+Ein ORCL-Modell darf nur `status=validated` erhalten, wenn mindestens:
+
+- 252 brauchbare Handelstage
+- 500 unabhängige Holdout-Signale
+- 60 Holdout-Handelstage
+- unteres 95%-Wilson-Intervall der netto-positiven Trefferquote > 50 %
+- mittlerer Netto-Edge > 0,5 bp
+- Median-Netto-Edge > 0
+- 95%-Day-Block-Bootstrap-Untergrenze des Mittelwerts > 0
+- erster und zweiter Holdout-Abschnitt positiv
+- Low-Vol-Regime positiv
+- High-Vol-Regime positiv
+- besser als L1-Imbalance-Baseline
+- besser als kurzfristige Momentum-Baseline
+
+Erst danach wird eine Modell-ID erzeugt.
+
+---
+
+# 15. Modell-ID
+
+Die Modell-ID ist ein SHA-256-basierter Fingerprint über:
+
+- Symbol
+- Dataset
+- Schema
+- Feature-Version
+- Horizont
+- Feature-Namen
+- Standardisierung
+- Koeffizienten
+- Threshold
+
+Browser, Relay und Modell müssen dieselbe ID sehen.
+
+Damit kann kein altes Modell versehentlich mit neuen Features laufen.
+
+---
+
+# 16. Live-Pfad
+
+```
+Databento XNAS.ITCH mbp-10
+       |
+       | ts_event / ts_recv / ts_out
+       v
+databento-orcl-mbp10-live.py
+       |
+       | HTTPS internal ingest, ~10 ms batches
+       v
+market-relay/server.mjs
+       |
+       | 24 hdr-dt-v1 features
+       | score + threshold
+       | 100E ETA
+       | latency gate
+       v
+SSE /v1/stream
+       |
+       v
+ALANTU UI
+```
+
+Der alte Yahoo-Pfad bleibt unabhängig davon bestehen.
+
+---
+
+# 17. Live-Latenz-Gate
+
+Ein Forecast ist wertlos, wenn die Daten bereits einen großen Teil des Forecastfensters alt sind.
+
+Darum wird dynamisch geprüft:
+
+[
+Budget=min(250ms,0.35\cdot ETA_{100})
+]
+
+Standardgrenzen:
+
+- Provider Capture: maximal 50 ms
+- End-to-End: maximal 250 ms
+- zusätzlich maximal 35 % des geschätzten 100E-Horizonts
+- Relay-Staleness ebenfalls begrenzt
+
+Wenn eines davon reißt, wird der Forecast **nicht ausgeliefert**.
+
+Diese Werte sind Konfiguration, keine Trainingsfeatures.
+
+---
+
+# 18. Live-Ausgabe
+
+Nur bei validiertem Modell und bestandenem Timing-Gate:
+
+`100E FORECAST ↑ · L2 · +100 Events · ≈ X s · Δt Y ms · E2E Z ms`
+
+Die drei geometrischen Komponenten zeigen:
+
+- Self
+- Lokal
+- Global
+
+Kein Gate → kein Richtungsclaim.
+
+---
+
+# 19. Das bereits trainierte FI-2010-Modell
+
+Datei:
+
+`trained/fi2010-microstructure-model.json`
+
+Features:
 
 1. imbalance_l1
 2. imbalance_l3
@@ -186,382 +557,158 @@ The production contract contains **24 features**.
 6. near_far_imbalance
 7. depth_ratio_l5
 
-## XY state and time
+Für jeden Horizont existieren:
 
-8. xy_pressure
-9. xy_liquidity_log
-10. spread_bps
-11. log_dt_us
+- Threshold
+- Intercept
+- sieben Koeffizienten
 
-## Motion
+Beispiel 100 Events aus dem gespeicherten Modell:
 
-12. vx_log
-13. vy_log
-14. ax_log
-15. ay_log
+`threshold = 0.07249791296956642`
 
-## HDR relations
+Die vollständigen Parameter stehen in der JSON-Datei; keine Werte müssen aus diesem Dokument abgeschrieben werden.
 
-16. hdr_self_x
-17. hdr_self_y
-18. hdr_local_x
-19. hdr_local_y
-20. hdr_global_x
-21. hdr_global_y
+## Inference
 
-## Event pace
+1. Features in exakt derselben Reihenfolge berechnen.
+2. Mit gespeicherten `mean/std` standardisieren.
+3. `score = intercept + beta dot z`.
+4. Score gegen den für den Horizont gespeicherten Threshold prüfen.
 
-22. log_rate_10
-23. log_rate_100
-24. pace_ratio_log
+Ein ausführbares Beispiel liegt als:
 
-The exact implementation exists twice:
+`examples/use_fi2010_trained_model.py`
 
-- Python for historical training
-- JavaScript for live inference
+bei.
 
-CI runs a **numerical parity test** against an identical event fixture. This prevents research/live drift.
+Dieses Modell darf **nicht** in den ORCL-Livepfad kopiert werden. Es wurde auf einem anderen Benchmark trainiert und hat keinen Δt/HDR-Vertrag.
 
 ---
 
-# 7. Target
+# 20. Wie das ORCL-Modell trainiert wird
 
-Fixed structural horizon:
-
-`H = 100 order-book events`
-
-At event t:
-
-`return_100 = mid[t+100] / mid[t] - 1`
-
-Classification deadband:
-
-- > +0.5 bps → UP
-- < -0.5 bps → DOWN
-- otherwise → STATIONARY
-
-The model emits a directional live signal only when the continuous model score exceeds a validation-selected threshold.
-
----
-
-# 8. Model family
-
-The current production candidate is deliberately simple:
-
-**Ridge regression, lambda = 8**
-
-Why simple:
-
-- deterministic
-- inspectable
-- very fast live
-- low inference latency
-- difficult to hide leakage inside
-- exact same calculation can be reproduced in Python and JavaScript
-- lets the data prove whether HDR/Δt adds information before moving to a larger neural model
-
-The model uses standardized features:
-
-`z_i = (x_i - mean_i) / std_i`
-
-and:
-
-`score = intercept + Σ beta_i × z_i`
-
-Decision:
-
-- score >= threshold → UP
-- score <= -threshold → DOWN
-- otherwise → NO SIGNAL
-
----
-
-# 9. Chronological training protocol
-
-No random train/test split is allowed.
-
-For a valid ORCL run:
-
-- first 55% of usable trading days → coefficient training
-- next 20% → threshold selection
-- final 25% → untouched holdout
-
-Minimum:
-
-- 252 usable trading days total
-- 60 holdout trading days
-- 500 independent holdout signals
-
-After one counted signal, the evaluator skips the next 100 events. This prevents multiple overlapping observations of effectively the same future interval from inflating n.
-
----
-
-# 10. Trading-cost treatment
-
-Every signal is evaluated after:
-
-- observed spread at the signal event
-- + 0.35 bps conservative extra slippage
-
-The promotion gate uses **net**, not gross, outcome.
-
-This is not a full broker/execution simulator. Commission, taxes, queue position, market impact and broker-specific routing can matter and should be added before capital deployment.
-
----
-
-# 11. Promotion gate
-
-The ORCL model may become `validated` only if all conditions hold:
-
-- >=252 usable ORCL trading days
-- >=500 independent final-holdout signals
-- >=60 final-holdout days
-- lower 95% Wilson bound of net-positive signal hit rate > 50%
-- mean net edge > 0.5 bps
-- median net edge > 0
-- lower 95% day-block bootstrap bound for mean net edge > 0
-- positive first half of holdout
-- positive second half of holdout
-- positive low-volatility regime
-- positive high-volatility regime
-- beats L1 imbalance baseline
-- beats short-momentum baseline
-
-Anything else remains `unproven`.
-
-No UI forecast is allowed from an unproven model.
-
----
-
-# 12. Latency gate
-
-Even a validated model may not emit a live signal if the current feed is too late.
-
-Default relay limits:
-
-- provider capture: max 50 ms
-- absolute end-to-end collector latency: max 250 ms
-- dynamic latency budget: max 35% of the estimated 100-event horizon
-
-Example:
-
-If 100 events are currently expected in 300 ms, the dynamic latency budget is ~105 ms.
-
-A 180 ms-old signal is therefore suppressed even though 180 ms would pass the global 250 ms ceiling.
-
-This is critical: prediction quality without enough remaining time is not actionable information.
-
----
-
-# 13. Live architecture
-
-```
-NASDAQ order book
-      │
-      ▼
-Databento XNAS.ITCH / MBP-10
-      │ exact top-10 events
-      │ ts_event / ts_recv / ts_out
-      ▼
-databento-orcl-mbp10-live.py
-      │ batches ≤ ~10 ms
-      │ + local receive timestamp
-      ▼
-authenticated internal relay endpoint
-      │
-      ▼
-market-relay/server.mjs
-      │ 1000-event context
-      │ hdr-dt-v1 feature vector
-      │ latency gate
-      │ validated model only
-      ▼
-SSE "l2" event
-      │
-      ▼
-ALANTU UI
-      │
-      └── 100E FORECAST ↑/↓ · ≈ X s · Δt · E2E
-```
-
-The old Yahoo path remains independent and is not used to fabricate L2 information.
-
----
-
-# 14. How to train the real ORCL model
-
-Requirements:
-
-- Python 3.12+
-- Node 22+
-- a Databento API key with access to the required XNAS.ITCH MBP-10 history
-- at least 252 usable ORCL sessions
-
-Environment:
+Nach vorhandenem Databento-Zugang:
 
 ```bash
-export DATABENTO_API_KEY="..."
-export L2_SYMBOL="ORCL"
-export L2_DATASET="XNAS.ITCH"
-export L2_START="YYYY-MM-DD"
-export L2_END="YYYY-MM-DD"
-export L2_OUT_DIR="./orcl-l2-days"
-```
+export DATABENTO_API_KEY='...'
+export L2_START='YYYY-MM-DD'
+export L2_END='YYYY-MM-DD'
+export L2_OUT_DIR='orcl-l2-days'
 
-Install:
-
-```bash
 python -m pip install databento pandas numpy
+python tools/databento-orcl-mbp10-backfill.py
+python tools/train-orcl-l2-100.py \
+  orcl-l2-days \
+  orcl-l2-model.candidate.json \
+  orcl-l2-proof.json
+
+node tools/finalize-l2-model.mjs orcl-l2-model.candidate.json
 ```
 
-Backfill:
+Danach die JSON prüfen:
 
 ```bash
-python src/research/databento-orcl-mbp10-backfill.py
+jq '.status,.evidence' orcl-l2-model.candidate.json
 ```
 
-Train:
-
-```bash
-python src/research/train-orcl-l2-100.py \
-  ./orcl-l2-days \
-  ./models/orcl-l2-model.json \
-  ./results/orcl-l2-proof.json
-```
-
-Finalize deterministic model ID:
-
-```bash
-node src/live/finalize-l2-model.mjs ./models/orcl-l2-model.json
-```
-
-Inspect:
-
-```bash
-jq .status ./models/orcl-l2-model.json
-jq .evidence ./models/orcl-l2-model.json
-```
-
-Do **not** deploy a model unless status is `validated`.
+Nur `status=validated` darf produktiv übernommen werden.
 
 ---
 
-# 15. How to run live
+# 21. Live Deployment
 
-Required secrets:
+Benötigte Secrets:
 
-```
-DATABENTO_API_KEY
-L2_INGEST_TOKEN
-```
+- `DATABENTO_API_KEY`
+- `L2_INGEST_TOKEN`
 
-Generate a strong private relay token yourself. It is not included in this archive.
+Optional für den alten SIP-Shadow-Pfad:
 
-Start relay and collector using:
+- `APCA_API_KEY_ID`
+- `APCA_API_SECRET_KEY`
+
+Beispiel liegt als `deploy/.env.example` bei.
+
+Start:
 
 ```bash
-docker compose -f deploy/market-stack.compose.yml up -d
+docker compose --env-file .env -f deploy/market-stack.compose.yml up -d
 ```
 
-The relay loads the current validated model and accepts L2 events only through its private authenticated ingest endpoint.
-
-The browser never receives provider credentials.
+Der Collector sendet nur an den internen Relay-Ingest. Der Databento-Key erscheint niemals im Browser.
 
 ---
 
-# 16. What the user sees
+# 22. Browser-Anbindung
 
-Only after a model has passed every gate:
+Der Browser verbindet sich ausschließlich zum Relay-SSE-Endpunkt.
 
-`100E FORECAST ↑ · L2 · +100 Events · ≈ 1.84 s · Δt 1.17 ms · E2E 24.3 ms`
+Die Client-Konfiguration steht in:
 
-The three geometry axes become:
+`microstructure-live-config.json`
 
-- Self
-- Lokal
-- Global
+Sie bleibt `enabled:false`, solange der reale Relay-Host und das validierte Modell nicht verfügbar sind.
 
-They visualize the current directional-pressure relation of the current state to the three HDR reference scales.
+Im Browser wird ein L2-Signal außerdem nur akzeptiert, wenn:
 
-No validated model → no 100E direction.
-
----
-
-# 17. Current evidence status
-
-## FI-2010
-
-A trained benchmark model is included.
-
-It demonstrates that order-book geometry can contain out-of-sample directional information.
-
-The broader strict verdict remains `not_proven` as a trading strategy.
-
-## Published ORCL evidence
-
-The package includes the ORCL-specific external evidence file covering the published LOBSTER/DeepLOB study over 2017–2019.
-
-The important lesson is that strong classification metrics do not automatically become good transaction timing.
-
-## Real current ORCL hdr-dt-v1
-
-**Not trained yet.**
-
-Reason:
-
-The package does not contain 252+ current ORCL XNAS.ITCH MBP-10 sessions with exact event timestamps. Fabricating or substituting candle data would destroy the central Δt/L2 premise.
-
-The entire training and live path is ready; coefficients must only be created from the real historical feed.
+- Modellstatus `validated`
+- Modell-ID exakt gleich
+- Schema `mbp-10`
+- Horizont exakt 100
+- Event aktuell
+- Latenz-Gate bestanden
 
 ---
 
-# 18. Reproducibility
+# 23. Reproduzierbarkeit Training ↔ Live
 
-This archive includes:
+Das Paket enthält zwei unabhängige Implementierungen derselben 24 Features:
 
-- exact FI-2010 source data
-- source-data hashes
-- exact benchmark model
-- exact benchmark proof
-- long-horizon results
-- horizon-sweep results
-- all research scripts
-- Python/JS feature parity fixtures
-- ORCL L2 backfill
-- ORCL trainer
-- live model engine
-- latency decomposition
-- Databento collector
-- relay
-- Dockerfiles
-- compose file
-- CI workflows
-- current ALANTU UI source
-- external evidence
-- model-status files
-- source revision manifest
+- Python: `l2_temporal_features.py`
+- JavaScript: `l2-event-signal.mjs`
 
-No API keys, passwords, provider tokens or broker credentials are included.
+CI baut denselben deterministischen Event-Stream in beiden Implementierungen und vergleicht alle 24 Werte numerisch.
+
+Aktueller Crosscheck:
+
+- Featurezahl: 24
+- maximale absolute Differenz: ca. `5.55e-11`
+
+Damit ist die Trainings-/Live-Featuredefinition praktisch numerisch identisch.
 
 ---
 
-# 19. Non-negotiable integrity rule
+# 24. Validierungen im Paket
 
-Never replace missing L2/timestamp data with synthetic values in a production proof.
+Unter `validation/` liegen bzw. werden beim Paketbuild frisch erzeugt:
 
-If:
+- FI-2010 Holdout-Proof
+- trainiertes FI-2010-Modell
+- langer Event-Horizont-Test
+- Development-only Horizon Sweep
+- JS Unit-Test für Δt/HDR
+- Python↔JS Feature-Parity
+- ORCL externe LOBSTER-Evidenz
+- ORCL aktueller Proof-Verdict
+- ORCL Modell-Placeholder / Status
 
-- exact top-10 levels are unavailable,
-- event timestamps are missing,
-- receive timestamps are missing for latency measurement,
-- sequence continuity is broken,
-- model contract differs,
-- model ID differs,
-- holdout gate fails,
-- or latency budget fails,
+Die Rohdaten des FI-2010-Proofs sind ebenfalls im ZIP.
 
-the correct output is:
+---
 
-**NO SIGNAL**
+# 25. Aktuelle wissenschaftliche Aussage
 
-That is part of the model, not an error condition.
+Bewiesen:
+
+- Orderbuchzustand trägt Richtungsinformation.
+- Eventhorizont und reale Eventpace sind unterschiedliche Dinge.
+- Training und Live können exakt dieselbe Δt/HDR-Mathematik verwenden.
+
+Nicht bewiesen:
+
+- ein aktuell profitabler ORCL-Live-Edge mit hdr-dt-v1.
+
+Daher bleibt das ORCL-Modell fail-closed, bis genau dieser Datensatz den vorgeschriebenen Holdout durchläuft.
+
+Das ist Absicht und Teil des Modells, kein fehlendes Feature.
