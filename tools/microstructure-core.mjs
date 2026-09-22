@@ -131,3 +131,40 @@ export function aggregateMicrostructure(trades, quotes) {
     };
   });
 }
+
+
+export function microstructureQuality(minutes, meta = {}) {
+  const rows=(minutes||[]).filter(x=>x&&x.at);
+  const trades=rows.reduce((s,x)=>s+Number(x.trade_count||0),0);
+  const volume=rows.reduce((s,x)=>s+Number(x.trade_volume||0),0);
+  const known=rows.reduce((s,x)=>s+Number(x.buy_volume||0)+Number(x.sell_volume||0),0);
+  const unknown=rows.reduce((s,x)=>s+Number(x.unknown_volume||0),0);
+  const quoted=rows.filter(x=>Number(x.quote_updates||0)>0).length;
+  const spreads=rows.map(x=>Number(x.spread_bps_median)).filter(Number.isFinite);
+  const freshMs=rows.length?Date.parse(rows[rows.length-1].at):NaN;
+  const unknownShare=(known+unknown)>0?unknown/(known+unknown):1;
+  const quoteCoverage=rows.length?quoted/rows.length:0;
+  const medianSpread=median(spreads);
+  const reasons=[];
+  if(rows.length<30)reasons.push('too_few_minutes');
+  if(trades<100)reasons.push('too_few_trades');
+  if(!(volume>0))reasons.push('no_trade_volume');
+  if(quoteCoverage<.8)reasons.push('low_quote_coverage');
+  if(unknownShare>.2)reasons.push('high_unknown_aggressor_share');
+  if(!Number.isFinite(medianSpread)||medianSpread<=0)reasons.push('invalid_spread');
+  return {
+    status:reasons.length?'insufficient':'usable',
+    reasons,
+    minutes:rows.length,
+    trades,
+    volume,
+    quote_coverage:quoteCoverage,
+    unknown_aggressor_share:unknownShare,
+    median_spread_bps:medianSpread,
+    first_at:rows[0]?.at||null,
+    last_at:rows.at(-1)?.at||null,
+    last_at_ms:Number.isFinite(freshMs)?freshMs:null,
+    feed:meta.feed||null,
+    symbol:meta.symbol||null
+  };
+}
