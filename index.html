@@ -210,7 +210,7 @@
   .sentiment-source{font-size:12px;line-height:1.4;color:#74747c;margin:6px 0 9px;font-variant-numeric:tabular-nums}
 
   .sync-footer{display:flex!important;align-items:center;justify-content:space-between;gap:10px;max-width:760px;margin:0 auto;padding:11px 18px 18px;color:#8a8a92;font-size:11px;line-height:1.2;font-variant-numeric:tabular-nums}
-  .sync-footer.stale #syncStatus,.sync-footer.error #syncStatus{color:#e94035;font-weight:700}
+  .sync-footer.stale #syncStatus,.sync-footer.error #syncStatus{color:#8a8a92;font-weight:400}
   .sync-footer button{border:0;background:transparent;color:#5d5d64;font:inherit;font-weight:700;padding:5px 0;cursor:pointer;white-space:nowrap}
   .sync-footer button:disabled{opacity:.45;cursor:default}
   .info-link{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1px solid #d7d7dc;border-radius:50%;color:#5d5d64;text-decoration:none;font-size:11px;font-weight:800;line-height:1;vertical-align:1px;margin-left:6px;text-transform:none;letter-spacing:0}
@@ -270,10 +270,10 @@
       <div class="note" id="biasNote"></div>
     </div>
     <div class="card">
-      <div class="label">Oracle <span class="live-state" id="liveState">Kurs wird geladen</span></div>
+      <div class="label">Oracle <span class="live-state" id="liveState">Lädt …</span></div>
       <div class="market-clock" id="marketClock">US-Marktstatus wird geladen</div>
       <div class="hero-price" id="livePrice">—</div>
-      <div class="hero-change flat" id="liveChange">—</div>
+      <div class="hero-change flat" id="liveChange"></div>
       <div class="oracle-secondary"><div class="big"><span class="pill" id="orclSig">—</span></div>
       <div class="kpis">
         <span style="display:none">Social-Druck <b id="orclImp">—</b></span>
@@ -349,8 +349,8 @@
   </div>
 </div>
 <footer class="sync-footer" id="syncFooter">
-  <span id="syncStatus">Daten — · Sync —</span>
-  <button type="button" id="syncNow" aria-label="Daten jetzt synchronisieren">↻ Sync</button>
+  <span id="syncStatus">Letzte Aktualisierung —</span>
+  <button type="button" id="syncNow" aria-label="Daten jetzt aktualisieren">↻ Aktualisieren</button>
 </footer>
 <script src="market-clock-core.js"></script>
 <script src="price-shock-core.js"></script>
@@ -690,7 +690,16 @@ function renderLiveMarket(isLive){
   var p=document.getElementById('livePrice'),c=document.getElementById('liveChange'),s=document.getElementById('liveState');
   if(!p||!c||!s)return;
   var eur=usdToEur(liveMarket.orclUsd,Date.now());
-  if(!eur){p.textContent='—';c.textContent='Kurs nicht verfügbar';return;}
+  if(!eur){
+    if(!liveMarket.lastRenderedEur){
+      p.textContent='—';
+      c.textContent='';
+      c.className='hero-change flat';
+      s.className='live-state';
+      s.textContent='Lädt …';
+    }
+    return;
+  }
   var prevFx=liveMarket.prevEurusd||fxAt(Date.now()-864e5);
   var prevEur=(liveMarket.prevOrclUsd&&prevFx)?liveMarket.prevOrclUsd/prevFx:null;
   var delta=prevEur?eur-prevEur:null,pct=prevEur?(delta/prevEur*100):null;
@@ -957,12 +966,12 @@ function renderSyncFooter(error){
   var dataAt=syncDataAt(), dataMs=dataAt?new Date(dataAt).getTime():NaN;
   var age=isFinite(dataMs)?Date.now()-dataMs:Infinity;
   var stale=age>20*60*1000;
-  foot.classList.toggle('stale',stale&&!syncLastError);
-  foot.classList.toggle('error',syncLastError);
-  var state=syncLastError?'Sync-Fehler':(stale?'veraltet':'aktuell');
-  el.textContent='Daten '+(dataAt?footerClock(dataAt):'—')+' · Sync '+(lastBrowserSyncAt?footerClock(lastBrowserSyncAt):'—')+' · '+state;
+  foot.classList.toggle('stale',stale);
+  foot.classList.toggle('error',false);
+  var lastAt=lastBrowserSyncAt||dataAt;
+  el.textContent=lastAt?('Letzte Aktualisierung '+footerClock(lastAt)):'Letzte Aktualisierung —';
   btn.disabled=syncBusy;
-  btn.textContent=syncBusy?'↻ Sync …':'↻ Sync';
+  btn.textContent=syncBusy?'↻ Aktualisiert …':'↻ Aktualisieren';
 }
 async function fetchJson(url,optional){
   var remote='https://raw.githubusercontent.com/nostack-dev/alantu-de/main/'+url+'?t='+Date.now();
