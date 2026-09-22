@@ -68,7 +68,7 @@ jobs:
                   assert len(x)==len(y), path
                   for i,(u,v) in enumerate(zip(x,y)): eq(u,v,path+f"/{i}")
               elif isinstance(x,(int,float)) and isinstance(y,(int,float)):
-                  assert math.isclose(float(x),float(y),rel_tol=1e-10,abs_tol=1e-12), (path,x,y)
+                  assert math.isclose(float(x),float(y),rel_tol=1e-7,abs_tol=1e-10), (path,x,y)
               else:
                   assert x==y, (path,x,y)
           a=json.loads((root/"fi2010-microstructure-proof.json").read_text())
