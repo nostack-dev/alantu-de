@@ -39,6 +39,8 @@ export function createAlantuBookCore(options){
     getTotalLeaves,
     rightZ,
     leftZ,
+    setStartCoverProgress=()=>{},
+    setEndCoverProgress=()=>{},
     prefersReduced=false,
     onStateChange=()=>{},
     nextButton=null,
@@ -49,8 +51,10 @@ export function createAlantuBookCore(options){
   } = options;
 
   let currentLeaf=0;
-  let desiredLeaf=0;
+  let desiredPosition=0; // -1=start closed, 0..N=open leaf states, N+1=end closed
+  let closedSide=null;   // null | "start" | "end"
   let activeTurn=null;
+  let activeBoundary=null;
   let dragState=null;
   let lastMotionTime=performance.now();
   let suppressTapUntil=0;
@@ -62,19 +66,23 @@ export function createAlantuBookCore(options){
   };
 
   function state(){
+    const totalLeaves=getTotalLeaves();
     return {
       currentLeaf,
-      desiredLeaf,
-      activeTurn: activeTurn ? {...activeTurn} : null,
+      desiredLeaf:clamp(desiredPosition,0,totalLeaves),
+      desiredPosition,
+      closedSide,
+      activeTurn:activeTurn?{...activeTurn}:null,
+      activeBoundary:activeBoundary?{...activeBoundary}:null,
       dragging:!!dragState,
-      totalLeaves:getTotalLeaves()
+      totalLeaves
     };
   }
 
   function notify(){
     const totalLeaves=getTotalLeaves();
-    const hardStart=currentLeaf===0&&!activeTurn&&desiredLeaf===0;
-    const hardEnd=currentLeaf===totalLeaves&&!activeTurn&&desiredLeaf===totalLeaves;
+    const hardStart=closedSide==="start"&&!activeBoundary&&desiredPosition<=-1;
+    const hardEnd=closedSide==="end"&&!activeBoundary&&desiredPosition>=totalLeaves+1;
 
     if(prevButton)prevButton.disabled=hardStart;
     if(prevTap)prevTap.disabled=hardStart;
@@ -97,7 +105,6 @@ export function createAlantuBookCore(options){
     const ds=PAGE_W/segments;
     const p=clamp(progress,0,1);
 
-    // Inextensible strip: equal-length segments bend around the spine.
     const theta=Math.PI*p;
     const lag=.58*Math.sin(Math.PI*p);
     const spineBlend=smoothstep(.35,.92,p);
@@ -110,11 +117,7 @@ export function createAlantuBookCore(options){
 
     for(let j=1;j<=segments;j++){
       const u=(j-.5)/segments;
-      const localAngle=clamp(
-        theta-lag*Math.sin(Math.PI*u),
-        0,
-        Math.PI
-      );
+      const localAngle=clamp(theta-lag*Math.sin(Math.PI*u),0,Math.PI);
       curveX[j]=curveX[j-1]+ds*Math.cos(localAngle);
       curveZ[j]=curveZ[j-1]+ds*Math.sin(localAngle);
     }
@@ -132,16 +135,12 @@ export function createAlantuBookCore(options){
       let x=curveX[seg];
       let z=curveZ[seg];
 
-      // Collision constraints: the moving sheet can touch a settled stack,
-      // but it cannot geometrically pass through it.
       if(x<0){
         const landing=smoothstep(.72,1,p);
-        const floor=leftStackTop+safety*(1-landing);
-        z=Math.max(z,floor);
+        z=Math.max(z,leftStackTop+safety*(1-landing));
       }else{
         const leaving=smoothstep(0,.28,p);
-        const floor=rightStackTop-safety*leaving;
-        z=Math.max(z,floor);
+        z=Math.max(z,rightStackTop-safety*leaving);
       }
 
       pos.array[i*3]=x;
@@ -151,8 +150,6 @@ export function createAlantuBookCore(options){
 
     pos.needsUpdate=true;
     geometry.computeVertexNormals();
-
-    // Geometry owns the motion; the pivot remains fixed at the spine.
     pivot.rotation.set(0,0,0);
     pivot.position.set(-PAGE_W/2,0,0);
   }
@@ -166,26 +163,93 @@ export function createAlantuBookCore(options){
     for(let i=0;i<totalLeaves;i++)setLeafState(i,i<currentLeaf);
   }
 
+  function setBoundaryVisual(side,progress){
+    const p=clamp(progress,0,1);
+    if(side==="start")setStartCoverProgress(p);
+    else setEndCoverProgress(p);
+  }
+
+  function beginBoundary(side,target,progress){
+    const totalLeaves=getTotalLeaves();
+    if(activeBoundary&&activeBoundary.side===side){
+      activeBoundary.target=target;
+      return;
+    }
+    activeBoundary={
+      side,
+      progress:progress ?? (closedSide===side?1:0),
+      velocity:0,
+      target
+    };
+    if(target===0)closedSide=null;
+    desiredPosition=side==="start"
+      ? (target===1?-1:0)
+      : (target===1?totalLeaves+1:totalLeaves);
+  }
+
   function ensureTurn(){
     const totalLeaves=getTotalLeaves();
     if(dragState||totalLeaves<=0)return;
 
-    if(activeTurn){
-      if(activeTurn.index===currentLeaf){
-        activeTurn.target=desiredLeaf>currentLeaf?1:0;
-      }else if(activeTurn.index===currentLeaf-1){
-        activeTurn.target=desiredLeaf<currentLeaf?0:1;
+    if(activeBoundary){
+      if(activeBoundary.side==="start"){
+        activeBoundary.target=desiredPosition<0?1:0;
+      }else{
+        activeBoundary.target=desiredPosition>totalLeaves?1:0;
       }
       return;
     }
 
-    if(desiredLeaf>currentLeaf){
+    if(closedSide==="start"){
+      if(desiredPosition>=0)beginBoundary("start",0,1);
+      return;
+    }
+    if(closedSide==="end"){
+      if(desiredPosition<=totalLeaves)beginBoundary("end",0,1);
+      return;
+    }
+
+    if(activeTurn){
+      if(activeTurn.index===currentLeaf){
+        activeTurn.target=desiredPosition>currentLeaf?1:0;
+      }else if(activeTurn.index===currentLeaf-1){
+        activeTurn.target=desiredPosition<currentLeaf?0:1;
+      }
+      return;
+    }
+
+    if(desiredPosition<0&&currentLeaf===0){
+      beginBoundary("start",1,0);
+    }else if(desiredPosition>totalLeaves&&currentLeaf===totalLeaves){
+      beginBoundary("end",1,0);
+    }else if(desiredPosition>currentLeaf){
       activeTurn={index:currentLeaf,progress:0,velocity:0,target:1};
-    }else if(desiredLeaf<currentLeaf){
+    }else if(desiredPosition<currentLeaf){
       activeTurn={index:currentLeaf-1,progress:1,velocity:0,target:0};
     }
 
     notify();
+  }
+
+  function springStep(item,dt){
+    const stiffness=prefersReduced?900:120;
+    const damping=prefersReduced?80:18;
+    const error=item.target-item.progress;
+
+    item.velocity+=(error*stiffness-item.velocity*damping)*dt;
+    item.progress+=item.velocity*dt;
+
+    if(item.progress<=0){
+      item.progress=0;
+      if(item.velocity<0)item.velocity*=.18;
+    }else if(item.progress>=1){
+      item.progress=1;
+      if(item.velocity>0)item.velocity*=.18;
+    }
+  }
+
+  function settled(item){
+    return Math.abs(item.target-item.progress)<.0015&&Math.abs(item.velocity)<.045;
   }
 
   function step(now){
@@ -193,26 +257,34 @@ export function createAlantuBookCore(options){
     lastMotionTime=now;
 
     ensureTurn();
-    if(!activeTurn||dragState)return;
+    if(dragState)return;
 
-    const stiffness=prefersReduced?900:120;
-    const damping=prefersReduced?80:18;
-    const error=activeTurn.target-activeTurn.progress;
+    if(activeBoundary){
+      springStep(activeBoundary,dt);
+      setBoundaryVisual(activeBoundary.side,activeBoundary.progress);
 
-    activeTurn.velocity+=(error*stiffness-activeTurn.velocity*damping)*dt;
-    activeTurn.progress+=activeTurn.velocity*dt;
+      if(settled(activeBoundary)){
+        const finished=activeBoundary;
+        finished.progress=finished.target;
+        setBoundaryVisual(finished.side,finished.target);
 
-    if(activeTurn.progress<=0){
-      activeTurn.progress=0;
-      if(activeTurn.velocity<0)activeTurn.velocity*=.18;
-    }else if(activeTurn.progress>=1){
-      activeTurn.progress=1;
-      if(activeTurn.velocity>0)activeTurn.velocity*=.18;
+        if(finished.target===1)closedSide=finished.side;
+        else closedSide=null;
+
+        activeBoundary=null;
+        ensureTurn();
+      }
+
+      notify();
+      return;
     }
 
+    if(!activeTurn)return;
+
+    springStep(activeTurn,dt);
     deformLeaf(activeTurn.index,activeTurn.progress);
 
-    if(Math.abs(activeTurn.target-activeTurn.progress)<.0015&&Math.abs(activeTurn.velocity)<.045){
+    if(settled(activeTurn)){
       const finished=activeTurn;
       deformLeaf(finished.index,finished.target);
 
@@ -233,14 +305,15 @@ export function createAlantuBookCore(options){
   function next(){
     const totalLeaves=getTotalLeaves();
     if(totalLeaves<=0)return;
-    desiredLeaf=Math.min(totalLeaves,desiredLeaf+1);
+    desiredPosition=Math.min(totalLeaves+1,desiredPosition+1);
     ensureTurn();
     notify();
   }
 
   function prev(){
-    if(getTotalLeaves()<=0)return;
-    desiredLeaf=Math.max(0,desiredLeaf-1);
+    const totalLeaves=getTotalLeaves();
+    if(totalLeaves<=0)return;
+    desiredPosition=Math.max(-1,desiredPosition-1);
     ensureTurn();
     notify();
   }
@@ -248,10 +321,14 @@ export function createAlantuBookCore(options){
   function reset(leaf=0){
     const totalLeaves=getTotalLeaves();
     currentLeaf=clamp(leaf,0,totalLeaves);
-    desiredLeaf=currentLeaf;
+    desiredPosition=currentLeaf;
+    closedSide=null;
     activeTurn=null;
+    activeBoundary=null;
     dragState=null;
     lastMotionTime=performance.now();
+    setStartCoverProgress(0);
+    setEndCoverProgress(0);
     normalize();
     notify();
   }
@@ -266,8 +343,14 @@ export function createAlantuBookCore(options){
     if(getTotalLeaves()<=0)return;
     if(ignorePointerSelector&&e.target.closest?.(ignorePointerSelector))return;
 
+    const totalLeaves=getTotalLeaves();
     const now=performance.now();
-    desiredLeaf=currentLeaf;
+
+    desiredPosition=closedSide==="start"
+      ? -1
+      : closedSide==="end"
+        ? totalLeaves+1
+        : currentLeaf;
 
     dragState={
       id:e.pointerId,
@@ -275,9 +358,11 @@ export function createAlantuBookCore(options){
       startY:e.clientY,
       lastX:e.clientX,
       lastTime:now,
+      mode:activeBoundary?"boundary":activeTurn?"leaf":null,
+      side:activeBoundary?.side??null,
       index:activeTurn?.index??null,
-      startProgress:activeTurn?.progress??null,
-      velocity:activeTurn?.velocity??0,
+      startProgress:activeBoundary?.progress??activeTurn?.progress??null,
+      velocity:activeBoundary?.velocity??activeTurn?.velocity??0,
       moved:false
     };
 
@@ -287,40 +372,72 @@ export function createAlantuBookCore(options){
   function pointerMove(e){
     if(!dragState||dragState.id!==e.pointerId)return;
 
+    const totalLeaves=getTotalLeaves();
     const dx=e.clientX-dragState.startX;
     const dy=e.clientY-dragState.startY;
 
-    if(dragState.index===null){
+    if(dragState.mode===null){
       if(Math.abs(dx)<6||Math.abs(dx)<Math.abs(dy)*1.05)return;
 
-      const index=dx<0?currentLeaf:currentLeaf-1;
-      const totalLeaves=getTotalLeaves();
-      if(index<0||index>=totalLeaves)return;
-
-      dragState.index=index;
-      dragState.startProgress=dx<0?0:1;
-      activeTurn={
-        index,
-        progress:dragState.startProgress,
-        velocity:0,
-        target:dragState.startProgress
-      };
+      if(closedSide==="start"&&dx<0){
+        dragState.mode="boundary";
+        dragState.side="start";
+        dragState.startProgress=1;
+        activeBoundary={side:"start",progress:1,velocity:0,target:1};
+      }else if(closedSide==="end"&&dx>0){
+        dragState.mode="boundary";
+        dragState.side="end";
+        dragState.startProgress=1;
+        activeBoundary={side:"end",progress:1,velocity:0,target:1};
+      }else if(!closedSide&&currentLeaf===0&&dx>0){
+        dragState.mode="boundary";
+        dragState.side="start";
+        dragState.startProgress=0;
+        activeBoundary={side:"start",progress:0,velocity:0,target:0};
+      }else if(!closedSide&&currentLeaf===totalLeaves&&dx<0){
+        dragState.mode="boundary";
+        dragState.side="end";
+        dragState.startProgress=0;
+        activeBoundary={side:"end",progress:0,velocity:0,target:0};
+      }else if(!closedSide){
+        const index=dx<0?currentLeaf:currentLeaf-1;
+        if(index<0||index>=totalLeaves)return;
+        dragState.mode="leaf";
+        dragState.index=index;
+        dragState.startProgress=dx<0?0:1;
+        activeTurn={index,progress:dragState.startProgress,velocity:0,target:dragState.startProgress};
+      }else{
+        return;
+      }
     }
 
     const distance=Math.max(160,stage.clientWidth*.56);
-    const progress=clamp(dragState.startProgress-dx/distance,0,1);
     const now=performance.now();
     const dt=Math.max(.008,(now-dragState.lastTime)/1000);
-    const velocity=-(e.clientX-dragState.lastX)/distance/dt;
+    const deltaX=e.clientX-dragState.lastX;
 
-    dragState.velocity=velocity;
+    if(dragState.mode==="boundary"){
+      const dir=dragState.side==="start"?1:-1;
+      const progress=clamp(dragState.startProgress+dir*dx/distance,0,1);
+      const velocity=dir*deltaX/distance/dt;
+
+      dragState.velocity=velocity;
+      activeBoundary.progress=progress;
+      activeBoundary.velocity=velocity;
+      setBoundaryVisual(dragState.side,progress);
+    }else{
+      const progress=clamp(dragState.startProgress-dx/distance,0,1);
+      const velocity=-deltaX/distance/dt;
+
+      dragState.velocity=velocity;
+      activeTurn.progress=progress;
+      activeTurn.velocity=velocity;
+      deformLeaf(activeTurn.index,progress);
+    }
+
     dragState.lastX=e.clientX;
     dragState.lastTime=now;
     dragState.moved=dragState.moved||Math.abs(dx)>8;
-
-    activeTurn.progress=progress;
-    activeTurn.velocity=velocity;
-    deformLeaf(activeTurn.index,progress);
     notify();
 
     if(dragState.moved)e.preventDefault();
@@ -329,12 +446,27 @@ export function createAlantuBookCore(options){
   function releaseDrag(cancelled=false){
     if(!dragState)return;
 
-    if(activeTurn&&dragState.index!==null){
+    const totalLeaves=getTotalLeaves();
+
+    if(dragState.mode==="boundary"&&activeBoundary){
+      const projected=activeBoundary.progress+(cancelled?0:dragState.velocity*.12);
+      const target=projected>=.5?1:0;
+      activeBoundary.target=target;
+      activeBoundary.velocity=cancelled?0:dragState.velocity;
+
+      if(activeBoundary.side==="start"){
+        desiredPosition=target===1?-1:0;
+      }else{
+        desiredPosition=target===1?totalLeaves+1:totalLeaves;
+      }
+
+      if(target===0)closedSide=null;
+    }else if(dragState.mode==="leaf"&&activeTurn){
       const projected=activeTurn.progress+(cancelled?0:dragState.velocity*.12);
       const target=projected>=.5?1:0;
       activeTurn.target=target;
       activeTurn.velocity=cancelled?0:dragState.velocity;
-      desiredLeaf=target?activeTurn.index+1:activeTurn.index;
+      desiredPosition=target?activeTurn.index+1:activeTurn.index;
     }
 
     if(dragState.moved)suppressTapUntil=performance.now()+260;
