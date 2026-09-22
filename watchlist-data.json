@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-22T19:54:24+02:00",
+  "updated_at": "2026-09-22T19:57:17+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,7 +9,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-22T19:54:24+02:00",
+        "at": "2026-09-22T19:57:17+02:00",
         "signal": "buy",
         "social_impulse": 7,
         "hype_bull": 48,
@@ -2702,6 +2702,20 @@
           "voice_bear": 3,
           "voice_mixed": 10,
           "price": 149.10000610351562
+        },
+        {
+          "at": "2026-09-22T19:57:17+02:00",
+          "hype_bull": 48,
+          "hype_bear": 15,
+          "hype_net": 33,
+          "social_impulse": 7,
+          "signal": "buy",
+          "confidence": 76,
+          "hype_mixed": 37,
+          "voice_bull": 9,
+          "voice_bear": 3,
+          "voice_mixed": 10,
+          "price": 149.36500549316406
         }
       ],
       "voices_archive": [
@@ -3024,16 +3038,16 @@
       "hype_net": 33,
       "confidence": 76,
       "hype_state": "bullish",
-      "updated_at": "2026-09-22T19:54:24+02:00",
-      "why": "Reddit 86% positiv bei 9 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $149.10.",
+      "updated_at": "2026-09-22T19:57:17+02:00",
+      "why": "Reddit 86% positiv bei 9 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $149.37.",
       "evidence": {
         "x_posts": 0,
         "reddit_posts": 9,
         "news": 20,
         "snippets": [
           "ApeWisdom: 9 Mentions/24h, Sentiment 86%",
-          "Revealed: Some of the Oracle Cloud Roles Hit Hardest in Layoffs",
           "Prediction: Oracle Could Have 50% Upside From Here",
+          "Revealed: Some of the Oracle Cloud Roles Hit Hardest in Layoffs",
           "ORCL Stock Snaps 3-Day Losing Streak: What’s Making Retail Traders ‘Extremely Bullish’?"
         ]
       },
@@ -3041,11 +3055,11 @@
         "bull": 9,
         "bear": 3,
         "mixed": 10,
-        "updated_at": "2026-09-22T19:54:24+02:00"
+        "updated_at": "2026-09-22T19:57:17+02:00"
       },
       "hype_mixed": 37,
       "sentiment_unit": "percent_all_classified",
-      "price": 149.10000610351562
+      "price": 149.36500549316406
     }
   }
 }
