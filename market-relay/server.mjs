@@ -172,6 +172,8 @@ const server=http.createServer((req,res)=>{
     return json(res,200,{ok:true,configured:!!(KEY&&SECRET),feed:FEED,symbols:SYMBOLS,upstream_fresh:Date.now()-lastUpstreamAt<15000,edge_status:edgeModel?.status||'unavailable',
       l2:{
         configured:!!L2_INGEST_TOKEN,
+        collector_mode:process.env.MARKET_RUNTIME_RELAY_ONLY==='1'?'disabled':'enabled',
+        disabled_reason:process.env.L2_COLLECTOR_DISABLED_REASON||null,
         dataset:L2_DATASET,
         fresh:Date.now()-lastL2At<5000,
         model_status:l2Model?.status||'unavailable',
