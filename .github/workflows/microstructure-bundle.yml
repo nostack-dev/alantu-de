@@ -56,8 +56,12 @@ jobs:
           python -m pip install --disable-pip-version-check --quiet numpy
           python tools/validate-fi2010-microstructure.py             "$RUNNER_TEMP/fi2010"             "$root/research/fi2010-microstructure-proof.json"             "$root/research/fi2010-microstructure-model.json"
 
-          cmp "$root/research/fi2010-microstructure-proof.json" research/microstructure/fi2010-microstructure-proof.json
-          cmp "$root/research/fi2010-microstructure-model.json" research/microstructure/fi2010-microstructure-model.json
+          jq -S . "$root/research/fi2010-microstructure-proof.json" > /tmp/proof-new.json
+          jq -S . research/microstructure/fi2010-microstructure-proof.json > /tmp/proof-repo.json
+          cmp /tmp/proof-new.json /tmp/proof-repo.json
+          jq -S . "$root/research/fi2010-microstructure-model.json" > /tmp/model-new.json
+          jq -S . research/microstructure/fi2010-microstructure-model.json > /tmp/model-repo.json
+          cmp /tmp/model-new.json /tmp/model-repo.json
 
           cat > "$root/CONTENTS.txt" <<'EOF'
           ALANTU MICROSTRUCTURE COMPLETE PACKAGE
