@@ -465,7 +465,7 @@ var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null
 var hypeChart=null, magChart=null, ivChart=null, pieChart=null;
 var fxBars=[], orclMinuteBars=[], orclDailyBars=[];
 var liveMarket={orclUsd:null,eurusd:null,prevOrclUsd:null,prevEurusd:null,at:null,connected:false,lastRenderedEur:null};
-var livePriceTicks=[],liveWs=null,liveHeartbeat=null,liveReconnect=null,liveShockTimer=null,lastFlowRenderAt=0,waveCache=null,waveCacheAt=0,lastLiveTickPruneAt=0;
+var livePriceTicks=[],liveWs=null,liveHeartbeat=null,liveReconnect=null,liveShockTimer=null,lastFlowRenderAt=0,lastLiveTickPruneAt=0;
 function loadAccOpen(){ try{ return JSON.parse(localStorage.getItem(LS_ACC)||'{}'); }catch(e){ return {}; } }
 function saveAccOpen(map){ try{ localStorage.setItem(LS_ACC, JSON.stringify(map)); }catch(e){} }
 function loadLocalSentimentHistory(){
@@ -514,10 +514,13 @@ var DIR_DE = {
 var SIG_DE = { hold: 'Halten', buy: 'Kaufen', sell: 'Verkaufen' };
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function cls(s){s=String(s||'').toLowerCase(); if(s.indexOf('buy')>=0||s==='kaufen')return 'buy'; if(s.indexOf('sell')>=0||s==='verkaufen')return 'sell'; return 'hold';}
+var BERLIN_DAY_FMT=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'});
+var BERLIN_MONTH_FMT=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit'});
+var BERLIN_PARTS_FMT=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
 function berlinDayKey(value){
   var t=value instanceof Date?value:new Date(value);
   if(isNaN(t.getTime()))return '';
-  return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(t);
+  return BERLIN_DAY_FMT.format(t);
 }
 function oneBerlinDay(arr,getAt){
   if(!arr||!arr.length)return [];
@@ -530,7 +533,7 @@ function oneBerlinDay(arr,getAt){
 function berlinPartsAt(value){
   var t=new Date(value||0);if(isNaN(t.getTime()))return null;
   var out={};
-  new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(t).forEach(function(p){if(p.type!=='literal')out[p.type]=p.value;});
+  BERLIN_PARTS_FMT.formatToParts(t).forEach(function(p){if(p.type!=='literal')out[p.type]=p.value;});
   return {year:+out.year,month:+out.month,day:+out.day,hour:+out.hour,minute:+out.minute,second:+out.second};
 }
 function berlinZonedMs(y,m,d,h,min){
@@ -786,8 +789,8 @@ function aggregateForRange(rows,getAt,getY,range){
     if(!isFinite(x)||!isFinite(y))return;
     if(mode==='raw'){raw.push({at:new Date(x).toISOString(),value:y});return;}
     var key;
-    if(mode==='day')key=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(x));
-    else if(mode==='month')key=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit'}).format(new Date(x));
+    if(mode==='day')key=BERLIN_DAY_FMT.format(new Date(x));
+    else if(mode==='month')key=BERLIN_MONTH_FMT.format(new Date(x));
     else key=String(Math.floor(x/(7*864e5)));
     if(!groups[key])groups[key]={sum:0,n:0,xsum:0};
     groups[key].sum+=y;groups[key].n++;groups[key].xsum+=x;
@@ -1204,10 +1207,7 @@ function marketWaveVector(){
   };
 }
 function getMarketWaveVector(){
-  var now=Date.now();
-  if(waveCache&&now-waveCacheAt<15000)return waveCache;
-  waveCache=marketWaveVector();waveCacheAt=now;
-  return waveCache;
+  return marketWaveVector();
 }
 function marketFlowText(f){
   if(!f||!f.label)return '→ Kein gekoppelter Impuls';
@@ -1269,7 +1269,7 @@ function updateLivePriceChart1d(){
 var liveChartTimer=null;
 function scheduleLiveChartUpdate(){
   if(liveChartTimer)return;
-  var delay=priceRange==='1d'?250:(priceRange==='1w'?1200:5000);
+  var delay=priceRange==='1d'?180:(priceRange==='1w'?1200:5000);
   liveChartTimer=setTimeout(function(){
     liveChartTimer=null;
     if(priceRange==='1d'&&updateLivePriceChart1d())return;
@@ -1358,14 +1358,24 @@ function hdrDailySentiment(rows){
   });
   return Object.keys(by).map(function(k){return by[k];}).sort(function(a,b){return a.t-b.t;});
 }
+function percentileSorted(a,p){
+  if(!a||!a.length)return null;
+  var i=(a.length-1)*Math.max(0,Math.min(1,p)),lo=Math.floor(i),hi=Math.ceil(i);
+  return lo===hi?a[lo]:a[lo]+(a[hi]-a[lo])*(i-lo);
+}
 function hdrRelationSeries(rows){
-  var daily=hdrDailySentiment(rows),out=[];
+  var daily=hdrDailySentiment(rows),out=[],windowStart=0,yearMs=366*864e5;
   for(var i=0;i<daily.length;i++){
-    var cur=daily[i],prior=daily.slice(0,i).filter(function(p){return cur.t-p.t<=366*864e5;});
+    var cur=daily[i];
+    while(windowStart<i&&cur.t-daily[windowStart].t>yearMs)windowStart++;
+    var prior=daily.slice(windowStart,i);
     if(prior.length<6){out.push(Object.assign({},cur,{hdr:null}));continue;}
-    var globalVals=prior.map(function(p){return p.value;}).filter(isFinite);
-    var pct=globalVals.length?Math.round(100*globalVals.filter(function(v){return v<=cur.value;}).length/globalVals.length):null;
-    var q10=percentileNum(globalVals,.10),q90=percentileNum(globalVals,.90),span=Math.max(8,(q90==null||q10==null)?20:q90-q10);
+    var sorted=prior.map(function(p){return p.value;}).filter(isFinite).sort(function(a,b){return a-b;});
+    var rank=0,lo=0,hi=sorted.length;
+    while(lo<hi){var mid=(lo+hi)>>1;if(sorted[mid]<=cur.value)lo=mid+1;else hi=mid;}
+    rank=lo;
+    var pct=sorted.length?Math.round(100*rank/sorted.length):null;
+    var q10=percentileSorted(sorted,.10),q90=percentileSorted(sorted,.90),span=Math.max(8,(q90==null||q10==null)?20:q90-q10);
     var local=prior.slice(-5),step=[];
     for(var d=1;d<local.length;d++)step.push(Math.max(1,local[d].t-local[d-1].t));
     var half=Math.max(864e5,(medianNum(step)||864e5)*2.5),ws=0,mean=0;
@@ -1391,6 +1401,98 @@ function hdrRelationSeries(rows){
   }
   return out;
 }
+var hdrWorker=null,hdrWorkerSeq=0;
+function runHdrFreshAsync(rows,range,done){
+  var seq=++hdrWorkerSeq;
+  if(hdrWorker){try{hdrWorker.terminate();}catch(e){} hdrWorker=null;}
+  if(typeof Worker==='undefined'){
+    var rel=hdrRelationSeries(rows),latest=rel.length?rel[rel.length-1]:null;
+    done({seq:seq,latestRel:latest,markers:hdrVisibleMarkers(rel,range)});
+    return;
+  }
+  var minimal=(rows||[]).map(function(h){return {at:h.at,y:stimmungNorm(h),price:h.price};});
+  function workerMain(){
+    var DAY=864e5,YEAR=366*DAY;
+    var DF=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'});
+    function dayKey(v){var d=new Date(v);return isNaN(d.getTime())?'':DF.format(d);}
+    function median(a){var x=a.filter(function(v){return isFinite(v)&&v>0;}).slice().sort(function(a,b){return a-b;});if(!x.length)return null;var m=Math.floor(x.length/2);return x.length%2?x[m]:(x[m-1]+x[m])/2;}
+    function pctSorted(a,p){if(!a.length)return null;var i=(a.length-1)*Math.max(0,Math.min(1,p)),lo=Math.floor(i),hi=Math.ceil(i);return lo===hi?a[lo]:a[lo]+(a[hi]-a[lo])*(i-lo);}
+    function daily(rows){
+      var by={};
+      rows.forEach(function(h){
+        var t=new Date(h&&h.at||0).getTime(),y=Number(h&&h.y);
+        if(!isFinite(t)||!isFinite(y))return;
+        var k=dayKey(t),p=by[k];
+        if(k&&(!p||t>=p.t))by[k]={at:new Date(t).toISOString(),t:t,value:y,price:isFinite(Number(h.price))?Number(h.price):null};
+      });
+      return Object.keys(by).map(function(k){return by[k];}).sort(function(a,b){return a.t-b.t;});
+    }
+    function relations(rows){
+      var d=daily(rows),out=[],start=0;
+      for(var i=0;i<d.length;i++){
+        var cur=d[i];
+        while(start<i&&cur.t-d[start].t>YEAR)start++;
+        var prior=d.slice(start,i);
+        if(prior.length<6){out.push(Object.assign({},cur,{hdr:null}));continue;}
+        var sorted=prior.map(function(p){return p.value;}).filter(isFinite).sort(function(a,b){return a-b;});
+        var lo=0,hi=sorted.length;
+        while(lo<hi){var mid=(lo+hi)>>1;if(sorted[mid]<=cur.value)lo=mid+1;else hi=mid;}
+        var pct=sorted.length?Math.round(100*lo/sorted.length):null;
+        var q10=pctSorted(sorted,.10),q90=pctSorted(sorted,.90),span=Math.max(8,(q90==null||q10==null)?20:q90-q10);
+        var local=prior.slice(-5),step=[];
+        for(var z=1;z<local.length;z++)step.push(Math.max(1,local[z].t-local[z-1].t));
+        var half=Math.max(DAY,(median(step)||DAY)*2.5),ws=0,mean=0;
+        local.forEach(function(p){var w=Math.exp(-Math.LN2*(cur.t-p.t)/half);ws+=w;mean+=w*p.value;});
+        mean=ws?mean/ws:local[local.length-1].value;
+        var variance=0;
+        local.forEach(function(p){var w=Math.exp(-Math.LN2*(cur.t-p.t)/half);variance+=w*Math.pow(p.value-mean,2);});
+        var sd=Math.max(3,Math.sqrt(ws?variance/ws:0)),zs=(cur.value-mean)/sd,dir=zs>0?1:zs<0?-1:0,deltas=[];
+        for(var j=Math.max(1,prior.length-5);j<prior.length;j++){var dd=prior[j].value-prior[j-1].value;if(Math.abs(dd)>=1)deltas.push(dd>0?1:-1);}
+        var agree=dir?deltas.filter(function(v){return v===dir;}).length:0,impact=Math.abs(cur.value-mean)/span;
+        var eh=pct!=null&&pct>=80,el=pct!=null&&pct<=20,label='',kind='';
+        if(eh&&zs<=-1.05){kind='reversal-down';label='Global hoch · lokal dreht ab';}
+        else if(el&&zs>=1.05){kind='reversal-up';label='Global niedrig · lokal dreht auf';}
+        else if(eh&&zs>=1.15&&agree>=Math.max(2,Math.ceil(deltas.length*.6))){kind='continuation-up';label='Global hoch · lokal beschleunigt';}
+        else if(el&&zs<=-1.15&&agree>=Math.max(2,Math.ceil(deltas.length*.6))){kind='continuation-down';label='Global niedrig · lokal fällt weiter';}
+        else if(Math.abs(zs)>=1.55&&impact>=.10){kind=zs>0?'break-up':'break-down';label='Lokaler Strukturbruch '+(zs>0?'↑':'↓');}
+        out.push(Object.assign({},cur,{hdr:{percentile:pct,z:zs,impact:impact,agree:agree,neighbors:deltas.length,kind:kind,label:label}}));
+      }
+      return out;
+    }
+    function cutoff(range,now){if(range==='1w')return now-7*DAY;if(range==='1m')return now-Math.round(30.4375*DAY);if(range==='year')return now-365*DAY;if(range==='5y')return now-Math.round(5*365.25*DAY);return 0;}
+    function markers(rel,range,now){
+      var vis;
+      if(range==='all')vis=rel.slice();
+      else if(range==='1d'){
+        var today=dayKey(now),has=rel.some(function(r){return dayKey(r.at)===today;}),key=has?today:(rel.length?dayKey(rel[rel.length-1].at):'');
+        vis=rel.filter(function(r){return dayKey(r.at)===key;});
+      }else{
+        var cut=cutoff(range,now);vis=rel.filter(function(r){return r.t>=cut;});
+      }
+      vis=vis.filter(function(r){return r.hdr&&r.hdr.kind;});
+      if(vis.length>8)vis=vis.slice().sort(function(a,b){return Math.abs(b.hdr.z)*(1+b.hdr.impact)-Math.abs(a.hdr.z)*(1+a.hdr.impact);}).slice(0,8).sort(function(a,b){return a.t-b.t;});
+      return vis.map(function(r){return {x:r.t,y:r.value,hdr:r.hdr};});
+    }
+    self.onmessage=function(e){
+      var m=e.data||{},rel=relations(m.rows||[]),latest=rel.length?rel[rel.length-1]:null;
+      self.postMessage({seq:m.seq,range:m.range,latestRel:latest,markers:markers(rel,m.range,m.now)});
+    };
+  }
+  var src='('+workerMain.toString()+')();',url=URL.createObjectURL(new Blob([src],{type:'text/javascript'}));
+  var w=new Worker(url);URL.revokeObjectURL(url);hdrWorker=w;
+  w.onmessage=function(e){
+    if(seq!==hdrWorkerSeq)return;
+    try{w.terminate();}catch(err){} if(hdrWorker===w)hdrWorker=null;
+    done(e.data||{});
+  };
+  w.onerror=function(){
+    if(seq!==hdrWorkerSeq)return;
+    try{w.terminate();}catch(err){} if(hdrWorker===w)hdrWorker=null;
+    var rel=hdrRelationSeries(rows),latest=rel.length?rel[rel.length-1]:null;
+    done({seq:seq,range:range,latestRel:latest,markers:hdrVisibleMarkers(rel,range)});
+  };
+  w.postMessage({seq:seq,range:range,now:Date.now(),rows:minimal});
+}
 function hdrCurrentText(rel){
   if(!rel||!rel.hdr)return '';
   var h=rel.hdr,z=(h.z>=0?'+':'')+h.z.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})+'σ',parts=[];
@@ -1412,20 +1514,25 @@ function renderSentimentChart(){
   var x=currentContext(),all=mergedSentimentHistory(x.orcl.history||[]);
   var hist=filterByAt(all,function(h){return h.at;},sentimentRange);
   var agg=aggregateForRange(hist,function(h){return h.at;},function(h){return stimmungNorm(h);},sentimentRange);
-  var relations=hdrRelationSeries(all),latestRel=relations.length?relations[relations.length-1]:null;
-  var relEl=document.getElementById('sentimentRelation');if(relEl)relEl.textContent=hdrCurrentText(latestRel);
-  var markers=hdrVisibleMarkers(relations,sentimentRange);
   var cov=document.getElementById('hypeCoverage');if(cov){var ct=compactCoverage(agg,function(h){return h.at;},sentimentRange);cov.textContent=ct;cov.parentElement.style.display=ct?'block':'none';}
   var pts=agg.map(function(h){return {x:new Date(h.at).getTime(),y:Number(h.value)};});
   var line={label:'Stimmung',data:pts,parsing:false,spanGaps:false,borderColor:'#151517',backgroundColor:'#151517',fill:false,tension:.12,pointRadius:agg.length<=12?2:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:function(ctx){return sentimentColor(ctx.raw&&ctx.raw.y);},borderWidth:2,segment:{borderColor:function(ctx){return sentimentSegmentGradient(ctx);}},pointBackgroundColor:function(ctx){return sentimentColor(ctx.raw&&ctx.raw.y);}};
-  var structure={label:'Struktur',data:markers,parsing:false,showLine:false,pointRadius:4,pointHoverRadius:6,pointBorderWidth:1.8,pointBackgroundColor:'#fff',pointBorderColor:function(ctx){return sentimentColor(ctx.raw&&ctx.raw.y);},order:0};
+  var structure={label:'Struktur',data:[],parsing:false,showLine:false,pointRadius:4,pointHoverRadius:6,pointBorderWidth:1.8,pointBackgroundColor:'#fff',pointBorderColor:function(ctx){return sentimentColor(ctx.raw&&ctx.raw.y);},order:0};
+  var relEl=document.getElementById('sentimentRelation');if(relEl)relEl.textContent='';
   if(!hypeChart){
-    hypeChart=new Chart(document.getElementById('hypeChart'),{type:'line',data:{datasets:[line,structure]},options:{animation:false,events:chartEvents(),responsive:true,maintainAspectRatio:false,layout:{padding:{top:6,bottom:2,left:4,right:4}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('hype')},scales:{x:axisX(agg,function(h){return h.at;},sentimentRange),y:{min:-4,max:104,afterBuildTicks:function(scale){scale.ticks=[{value:0},{value:50},{value:100}];},ticks:{color:'#6b6b76',font:{size:11},callback:function(v){return v===0||v===50||v===100?v:'';}},grid:{color:'#f2f2f4'},border:{display:false}}}}});
+    hypeChart=new Chart(document.getElementById('hypeChart'),{type:'line',data:{datasets:[line,structure]},options:{animation:false,normalized:true,events:chartEvents(),responsive:true,maintainAspectRatio:false,layout:{padding:{top:6,bottom:2,left:4,right:4}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('hype')},scales:{x:axisX(agg,function(h){return h.at;},sentimentRange),y:{min:-4,max:104,afterBuildTicks:function(scale){scale.ticks=[{value:0},{value:50},{value:100}];},ticks:{color:'#6b6b76',font:{size:11},callback:function(v){return v===0||v===50||v===100?v:'';}},grid:{color:'#f2f2f4'},border:{display:false}}}}});
   }else{
     hypeChart.data.datasets[0]=line;hypeChart.data.datasets[1]=structure;
     hypeChart.options.scales.x=axisX(agg,function(h){return h.at;},sentimentRange);
     hypeChart.update('none');
   }
+  var requestedRange=sentimentRange;
+  runHdrFreshAsync(all,requestedRange,function(result){
+    if(requestedRange!==sentimentRange||!hypeChart)return;
+    if(relEl)relEl.textContent=hdrCurrentText(result.latestRel);
+    hypeChart.data.datasets[1].data=result.markers||[];
+    hypeChart.update('none');
+  });
 }
 function renderMagnitudeChart(){
   var x=currentContext(),t=x.t,v=x.v;
@@ -1436,7 +1543,7 @@ function renderMagnitudeChart(){
   var now=vals.length?vals[vals.length-1]:(v.magnitude!=null?v.magnitude:null),nowEl=document.getElementById('magNow');if(nowEl)nowEl.textContent=now!=null?('· jetzt '+now):'';
   var ds={label:'Stimmungsstärke',data:seriesWithGaps(hist,function(h){return h.scraped_at||h.tick_id||h.at;},function(h){return h.magnitude;}),parsing:false,spanGaps:false,borderColor:'#5dcb5b',backgroundColor:'rgba(93,203,91,.12)',fill:true,tension:.18,pointRadius:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:'#5dcb5b',borderWidth:2.5};
   if(!magChart){
-    magChart=new Chart(document.getElementById('magChart'),{type:'line',data:{datasets:[ds]},options:{animation:false,responsive:true,maintainAspectRatio:false,layout:{padding:{top:10,bottom:6,left:8,right:8}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('mag')},scales:{x:axisX(hist,function(h){return h.scraped_at||h.tick_id||h.at;},magnitudeRange),y:{min:0,max:100,grace:'4%',ticks:{color:'#6b6b76',font:{size:11}},grid:{color:'#f0f0f3'},border:{display:false}}}}});
+    magChart=new Chart(document.getElementById('magChart'),{type:'line',data:{datasets:[ds]},options:{animation:false,normalized:true,responsive:true,maintainAspectRatio:false,layout:{padding:{top:10,bottom:6,left:8,right:8}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('mag')},scales:{x:axisX(hist,function(h){return h.scraped_at||h.tick_id||h.at;},magnitudeRange),y:{min:0,max:100,grace:'4%',ticks:{color:'#6b6b76',font:{size:11}},grid:{color:'#f0f0f3'},border:{display:false}}}}});
   }else{
     magChart.data.datasets[0]=ds;
     magChart.options.scales.x=axisX(hist,function(h){return h.scraped_at||h.tick_id||h.at;},magnitudeRange);
@@ -1749,11 +1856,21 @@ document.getElementById('syncNow').onclick=async function(){
 };
 setInterval(function(){renderSyncFooter();},30000);
 
+var rangeRenderSeq=0;
 function setChartRange(kind,r){
   if(['1d','1w','1m','year','5y','all'].indexOf(r)<0)return;
-  if(kind==='price'){priceRange=r;saveChartRange(kind,r);syncRangeButtons();renderValueChart();}
-  else if(kind==='sentiment'){sentimentRange=r;saveChartRange(kind,r);syncRangeButtons();renderSentimentChart();renderOpinions();}
-  else if(kind==='magnitude'){magnitudeRange=r;saveChartRange(kind,r);syncRangeButtons();renderMagnitudeChart();}
+  if(kind==='price'){priceRange=r;saveChartRange(kind,r);}
+  else if(kind==='sentiment'){sentimentRange=r;saveChartRange(kind,r);}
+  else if(kind==='magnitude'){magnitudeRange=r;saveChartRange(kind,r);}
+  else return;
+  syncRangeButtons();
+  var seq=++rangeRenderSeq;
+  requestAnimationFrame(function(){
+    if(seq!==rangeRenderSeq)return;
+    if(kind==='price')renderValueChart();
+    else if(kind==='sentiment'){renderSentimentChart();renderOpinions();}
+    else renderMagnitudeChart();
+  });
 }
 document.getElementById('priceRange').onclick=function(e){var b=e.target.closest('button[data-price-range]');if(b)setChartRange('price',b.getAttribute('data-price-range'));};
 document.getElementById('sentimentRange').onclick=function(e){var b=e.target.closest('button[data-sentiment-range]');if(b)setChartRange('sentiment',b.getAttribute('data-sentiment-range'));};
