@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-09-22T19:53:28+02:00",
+  "updated_at": "2026-09-22T19:54:24+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-22T19:53:28+02:00",
-    "scraped_at": "2026-09-22T19:53:28+02:00",
+    "tick_id": "2026-09-22T19:54:24+02:00",
+    "scraped_at": "2026-09-22T19:54:24+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "PublicReddit": {
@@ -11,7 +11,7 @@
         "items": 9,
         "provider": "apewisdom.io",
         "window": "24h aggregate snapshot",
-        "freshest": "2026-09-22T19:53:28+02:00",
+        "freshest": "2026-09-22T19:54:24+02:00",
         "sentiment_pct_bullish": 86,
         "upvotes_24h": 22
       },
@@ -20,7 +20,7 @@
         "items": 20,
         "provider": "news.google.com",
         "window": "last 36h, fetched now",
-        "freshest": "2026-09-22T19:53:28+02:00",
+        "freshest": "2026-09-22T19:54:24+02:00",
         "notes": [
           "Revealed: Some of the Oracle Cloud Roles Hit Hardest in Layoffs",
           "Prediction: Oracle Could Have 50% Upside From Here",
@@ -31,9 +31,9 @@
         "status": "ok",
         "items": 1,
         "prices": {
-          "ORCL": 149.05850219726562
+          "ORCL": 149.10000610351562
         },
-        "price_at": "2026-09-22T17:53:22.000Z",
+        "price_at": "2026-09-22T17:54:22.000Z",
         "note": "Yahoo chart 5d/1m fallback feed"
       }
     },
@@ -49,20 +49,20 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-22T19:53:28+02:00",
+      "freshest_absolute": "2026-09-22T19:54:24+02:00",
       "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
       "quality": "medium-high public sources",
-      "scrape_berlin": "2026-09-22T19:53:28+02:00",
+      "scrape_berlin": "2026-09-22T19:54:24+02:00",
       "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
       "freshest_item_age": "snapshot fetched now",
       "oldest_usable_signal": "ORCL Stock Snaps 3-Day Losing Streak: What’s Making Retail Traders ‘Extremely Bullish’?"
     },
     "vector": {
       "direction": "leicht_bullish_risk_on",
-      "magnitude": 44,
+      "magnitude": 46,
       "confidence": 76,
       "early_signal": true,
-      "early_signal_note": "Reddit 86% positiv bei 9 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $149.06."
+      "early_signal_note": "Reddit 86% positiv bei 9 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $149.10."
     },
     "top_themes": [
       {
@@ -482,11 +482,11 @@
         "hype_state": "bullish",
         "signal": "buy",
         "confidence": 76,
-        "social_impulse": 6,
-        "hype_bull": 44,
+        "social_impulse": 7,
+        "hype_bull": 48,
         "hype_bear": 15,
-        "hype_net": 29,
-        "why": "Reddit 86% positiv bei 9 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $149.06.",
+        "hype_net": 33,
+        "why": "Reddit 86% positiv bei 9 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $149.10.",
         "evidence": {
           "x_posts": 0,
           "reddit_posts": 9,
@@ -502,7 +502,7 @@
           "tradingview": "https://www.tradingview.com/symbols/ORCL/",
           "yahoo": "https://finance.yahoo.com/quote/ORCL"
         },
-        "price": 149.05850219726562
+        "price": 149.10000610351562
       }
     ],
     "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
@@ -511,10 +511,10 @@
   "signals_disclaimer": "",
   "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
   "freshness": {
-    "freshest_absolute": "2026-09-22T19:53:28+02:00",
+    "freshest_absolute": "2026-09-22T19:54:24+02:00",
     "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
     "quality": "medium-high public sources",
-    "scrape_berlin": "2026-09-22T19:53:28+02:00",
+    "scrape_berlin": "2026-09-22T19:54:24+02:00",
     "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
     "freshest_item_age": "snapshot fetched now",
     "oldest_usable_signal": "ORCL Stock Snaps 3-Day Losing Streak: What’s Making Retail Traders ‘Extremely Bullish’?"
@@ -1968,6 +1968,15 @@
       "tick_id": "2026-09-22T19:53:28+02:00",
       "scraped_at": "2026-09-22T19:53:28+02:00",
       "magnitude": 44,
+      "confidence": 76,
+      "direction": "leicht_bullish_risk_on",
+      "items": 21,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-22T19:54:24+02:00",
+      "scraped_at": "2026-09-22T19:54:24+02:00",
+      "magnitude": 46,
       "confidence": 76,
       "direction": "leicht_bullish_risk_on",
       "items": 21,
