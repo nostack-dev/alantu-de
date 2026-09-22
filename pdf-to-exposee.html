@@ -150,6 +150,7 @@
         radial-gradient(circle at 68% 20%,rgba(255,255,255,.9),transparent 31%),
         linear-gradient(145deg,#ddd3c5,#b8ad9f);
       isolation:isolate;
+      touch-action:pan-y;
     }
     .stage:after{
       content:"";
@@ -391,13 +392,16 @@
     let backCover=null;
     let pageBlock=null;
     let currentLeaf=0;
+    let desiredLeaf=0;
+    let activeTurn=null;
+    let dragState=null;
+    let lastMotionTime=performance.now();
+    let suppressTapUntil=0;
     let totalPages=0;
     let totalLeaves=0;
     let PAGE_W=3.52;
     let PAGE_H=4.80;
     let bookAspect=PAGE_W/PAGE_H;
-    let animating=false;
-    let pointerStart=null;
     let loadToken=0;
 
     function setStatus(text,type=""){
@@ -417,8 +421,10 @@
     }
 
     function clearBook(){
-      animating=false;
       currentLeaf=0;
+      desiredLeaf=0;
+      activeTurn=null;
+      dragState=null;
       leafRoots.forEach(p=>{
         p.traverse(obj=>{
           if(obj.isMesh){
@@ -503,6 +509,9 @@
       totalPages=renderedPages.length;
       totalLeaves=Math.ceil(totalPages/2);
       currentLeaf=0;
+      desiredLeaf=0;
+      activeTurn=null;
+      dragState=null;
 
       const first=renderedPages[0];
       const portrait=first.height>=first.width;
@@ -683,9 +692,14 @@
 
     function visiblePageLabel(){
       if(!totalPages)return "— / —";
-      if(currentLeaf===0)return "01 / "+String(totalPages).padStart(2,"0");
-      if(currentLeaf<totalLeaves){
-        const left=Math.min(totalPages,currentLeaf*2);
+
+      const shownLeaf=activeTurn
+        ? (activeTurn.progress>=.5?activeTurn.index+1:activeTurn.index)
+        : currentLeaf;
+
+      if(shownLeaf===0)return "01 / "+String(totalPages).padStart(2,"0");
+      if(shownLeaf<totalLeaves){
+        const left=Math.min(totalPages,shownLeaf*2);
         const right=Math.min(totalPages,left+1);
         return left===right
           ? String(left).padStart(2,"0")+" / "+String(totalPages).padStart(2,"0")
@@ -697,62 +711,92 @@
     function updateUI(){
       pageCount.textContent=visiblePageLabel();
       const disabled=!totalPages;
-      prevBtn.disabled=disabled||currentLeaf===0||animating;
-      tapPrev.disabled=disabled||currentLeaf===0||animating;
-      nextBtn.disabled=disabled||currentLeaf>=totalLeaves||animating;
-      tapNext.disabled=disabled||currentLeaf>=totalLeaves||animating;
+      const hardStart=currentLeaf===0&&!activeTurn&&desiredLeaf===0;
+      const hardEnd=currentLeaf===totalLeaves&&!activeTurn&&desiredLeaf===totalLeaves;
+      prevBtn.disabled=disabled||hardStart;
+      tapPrev.disabled=disabled||hardStart;
+      nextBtn.disabled=disabled||hardEnd;
+      tapNext.disabled=disabled||hardEnd;
       fullscreenBtn.disabled=disabled;
     }
 
     function ease(t){return 1-Math.pow(1-t,3)}
 
-    function animateLeaf(index,toFlipped,onDone){
-      if(animating||index<0||index>=totalLeaves)return;
-      animating=true;
-      updateUI();
+    function ensureTurn(){
+      if(dragState||!totalPages)return;
 
-      const start=performance.now();
-      const duration=prefersReduced?1:860;
-      const from=toFlipped?0:1;
-      const to=toFlipped?1:0;
-
-      function frame(now){
-        const t=Math.min(1,(now-start)/duration);
-        const e=ease(t);
-        const progress=from+(to-from)*e;
-
-        deformLeaf(index,progress);
-
-        if(t<1){
-          requestAnimationFrame(frame);
-        }else{
-          deformLeaf(index,to);
-          animating=false;
-          if(onDone)onDone();
-          updateUI();
+      if(activeTurn){
+        if(activeTurn.index===currentLeaf){
+          activeTurn.target=desiredLeaf>currentLeaf?1:0;
+        }else if(activeTurn.index===currentLeaf-1){
+          activeTurn.target=desiredLeaf<currentLeaf?0:1;
         }
+        return;
       }
-      requestAnimationFrame(frame);
+
+      if(desiredLeaf>currentLeaf){
+        activeTurn={index:currentLeaf,progress:0,velocity:0,target:1};
+      }else if(desiredLeaf<currentLeaf){
+        activeTurn={index:currentLeaf-1,progress:1,velocity:0,target:0};
+      }
+
+      updateUI();
+    }
+
+    function stepMotion(now){
+      const dt=Math.max(.001,Math.min(.033,(now-lastMotionTime)/1000));
+      lastMotionTime=now;
+
+      ensureTurn();
+      if(!activeTurn||dragState)return;
+
+      const stiffness=prefersReduced?900:120;
+      const damping=prefersReduced?80:18;
+      const error=activeTurn.target-activeTurn.progress;
+
+      activeTurn.velocity+=(error*stiffness-activeTurn.velocity*damping)*dt;
+      activeTurn.progress+=activeTurn.velocity*dt;
+
+      if(activeTurn.progress<=0){
+        activeTurn.progress=0;
+        if(activeTurn.velocity<0)activeTurn.velocity*=.18;
+      }else if(activeTurn.progress>=1){
+        activeTurn.progress=1;
+        if(activeTurn.velocity>0)activeTurn.velocity*=.18;
+      }
+
+      deformLeaf(activeTurn.index,activeTurn.progress);
+
+      if(Math.abs(activeTurn.target-activeTurn.progress)<.0015&&Math.abs(activeTurn.velocity)<.045){
+        const finished=activeTurn;
+        deformLeaf(finished.index,finished.target);
+
+        if(finished.target===1&&finished.index===currentLeaf){
+          currentLeaf++;
+        }else if(finished.target===0&&finished.index===currentLeaf-1){
+          currentLeaf--;
+        }
+
+        activeTurn=null;
+        normalizeBookState();
+        ensureTurn();
+      }
+
+      updateUI();
     }
 
     function next(){
-      if(animating||currentLeaf>=totalLeaves)return;
-      const turning=currentLeaf;
-      animateLeaf(turning,true,()=>{
-        currentLeaf=turning+1;
-        normalizeBookState();
-        updateUI();
-      });
+      if(!totalPages)return;
+      desiredLeaf=Math.min(totalLeaves,desiredLeaf+1);
+      ensureTurn();
+      updateUI();
     }
 
     function prev(){
-      if(animating||currentLeaf<=0)return;
-      const target=currentLeaf-1;
-      animateLeaf(target,false,()=>{
-        currentLeaf=target;
-        normalizeBookState();
-        updateUI();
-      });
+      if(!totalPages)return;
+      desiredLeaf=Math.max(0,desiredLeaf-1);
+      ensureTurn();
+      updateUI();
     }
 
     async function loadPdf(file){
@@ -826,21 +870,89 @@
 
     prevBtn.addEventListener("click",prev);
     nextBtn.addEventListener("click",next);
-    tapPrev.addEventListener("click",prev);
-    tapNext.addEventListener("click",next);
+    tapPrev.addEventListener("click",()=>{if(performance.now()>=suppressTapUntil)prev()});
+    tapNext.addEventListener("click",()=>{if(performance.now()>=suppressTapUntil)next()});
 
     stage.addEventListener("pointerdown",e=>{
-      if(!totalPages)return;
-      pointerStart={x:e.clientX,y:e.clientY,id:e.pointerId};
+      if(!totalPages||e.target.closest(".circle"))return;
+
+      const now=performance.now();
+      desiredLeaf=currentLeaf;
+
+      dragState={
+        id:e.pointerId,
+        startX:e.clientX,
+        startY:e.clientY,
+        lastX:e.clientX,
+        lastTime:now,
+        index:activeTurn?.index??null,
+        startProgress:activeTurn?.progress??null,
+        velocity:activeTurn?.velocity??0,
+        moved:false
+      };
+
+      if(stage.setPointerCapture)stage.setPointerCapture(e.pointerId);
     });
+
+    stage.addEventListener("pointermove",e=>{
+      if(!dragState||dragState.id!==e.pointerId)return;
+
+      const dx=e.clientX-dragState.startX;
+      const dy=e.clientY-dragState.startY;
+
+      if(dragState.index===null){
+        if(Math.abs(dx)<6||Math.abs(dx)<Math.abs(dy)*1.05)return;
+
+        const index=dx<0?currentLeaf:currentLeaf-1;
+        if(index<0||index>=totalLeaves)return;
+
+        dragState.index=index;
+        dragState.startProgress=dx<0?0:1;
+        activeTurn={index,progress:dragState.startProgress,velocity:0,target:dragState.startProgress};
+      }
+
+      const distance=Math.max(160,stage.clientWidth*.56);
+      const progress=Math.max(0,Math.min(1,dragState.startProgress-dx/distance));
+      const now=performance.now();
+      const dt=Math.max(.008,(now-dragState.lastTime)/1000);
+      const velocity=-(e.clientX-dragState.lastX)/distance/dt;
+
+      dragState.velocity=velocity;
+      dragState.lastX=e.clientX;
+      dragState.lastTime=now;
+      dragState.moved=dragState.moved||Math.abs(dx)>8;
+
+      activeTurn.progress=progress;
+      activeTurn.velocity=velocity;
+      deformLeaf(activeTurn.index,progress);
+      updateUI();
+
+      if(dragState.moved)e.preventDefault();
+    });
+
+    function releaseDrag(cancelled=false){
+      if(!dragState)return;
+
+      if(activeTurn&&dragState.index!==null){
+        const projected=activeTurn.progress+(cancelled?0:dragState.velocity*.12);
+        const target=projected>=.5?1:0;
+        activeTurn.target=target;
+        activeTurn.velocity=cancelled?0:dragState.velocity;
+        desiredLeaf=target?activeTurn.index+1:activeTurn.index;
+      }
+
+      if(dragState.moved)suppressTapUntil=performance.now()+260;
+      dragState=null;
+      ensureTurn();
+      updateUI();
+    }
+
     stage.addEventListener("pointerup",e=>{
-      if(!pointerStart||pointerStart.id!==e.pointerId)return;
-      const dx=e.clientX-pointerStart.x;
-      const dy=e.clientY-pointerStart.y;
-      pointerStart=null;
-      if(Math.abs(dx)>42&&Math.abs(dx)>Math.abs(dy)*1.15)dx<0?next():prev();
+      if(!dragState||dragState.id!==e.pointerId)return;
+      releaseDrag(false);
     });
-    stage.addEventListener("pointercancel",()=>{pointerStart=null});
+    stage.addEventListener("pointercancel",()=>releaseDrag(true));
+
 
     fullscreenBtn.addEventListener("click",async()=>{
       if(!totalPages)return;
@@ -900,7 +1012,8 @@
     resize();
     updateUI();
 
-    function render(){
+    function render(now){
+      stepMotion(now||performance.now());
       renderer.render(scene,camera);
       requestAnimationFrame(render);
     }
