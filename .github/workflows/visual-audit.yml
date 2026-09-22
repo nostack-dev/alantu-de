@@ -1,0 +1,94 @@
+name: visual-audit
+on:
+  push:
+    paths:
+      - ".github/workflows/visual-audit.yml"
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null
+      - name: Capture
+        run: |
+          python3 -m http.server 4173 > /tmp/alantu-http.log 2>&1 &
+          cat > /tmp/audit.mjs <<'JS'
+          import { chromium } from "playwright";
+          const browser=await chromium.launch({headless:true});
+          const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+          async function shotMain(viewport,namePrefix){
+            const page=await browser.newPage({viewport});
+            await page.goto("http://127.0.0.1:4173/index-brand.html?audit=1",{waitUntil:"networkidle"});
+            await wait(1000);
+            await page.screenshot({path:`screenshots/${namePrefix}-open.png`,fullPage:false});
+
+            await page.locator("#tapPrev").click({position:{x:10,y:10}});
+            await wait(1200);
+            await page.screenshot({path:`screenshots/${namePrefix}-front-closed.png`,fullPage:false});
+
+            await page.locator("#tapNext").click({position:{x:10,y:10}});
+            await wait(1200);
+            for(let i=0;i<3;i++){await page.locator("#tapNext").click({position:{x:10,y:10}});await wait(1100);}
+            await page.screenshot({path:`screenshots/${namePrefix}-last-open.png`,fullPage:false});
+            await page.locator("#tapNext").click({position:{x:10,y:10}});
+            await wait(1200);
+            await page.screenshot({path:`screenshots/${namePrefix}-end-closed.png`,fullPage:false});
+            await page.close();
+          }
+
+          async function makePdf(){
+            const p=await browser.newPage({viewport:{width:900,height:1200}});
+            let html='<style>@page{size:A4;margin:0}body{margin:0;font-family:Arial}section{height:1122px;padding:90px;box-sizing:border-box;page-break-after:always;background:#f4f0e8;color:#171713}h1{font:64px Georgia;margin-top:250px}p{font-size:28px;line-height:1.45}</style>';
+            const titles=["Villa am See","Lage","Architektur","Wohnen","Grundriss","Kontakt"];
+            for(let i=0;i<titles.length;i++) html+=`<section><div style="letter-spacing:.2em;color:#8d7347">ALANTU</div><h1>${titles[i]}</h1><p>Premium Exposé · Seite ${i+1}</p></section>`;
+            await p.setContent(html);
+            await p.pdf({path:"/tmp/sample.pdf",format:"A4",printBackground:true});
+            await p.close();
+          }
+
+          async function shotPdf(viewport,namePrefix){
+            const page=await browser.newPage({viewport});
+            await page.goto("http://127.0.0.1:4173/pdf-to-exposee.html?audit=1",{waitUntil:"networkidle"});
+            await page.locator("#pdfInput").setInputFiles("/tmp/sample.pdf");
+            await page.waitForFunction(()=>document.querySelector("#status")?.textContent?.includes("Seiten bereit"),null,{timeout:30000});
+            await wait(700);
+            await page.screenshot({path:`screenshots/${namePrefix}-open.png`,fullPage:false});
+
+            await page.locator("#tapPrev").click({position:{x:10,y:10}});
+            await wait(1200);
+            await page.screenshot({path:`screenshots/${namePrefix}-front-closed.png`,fullPage:false});
+
+            await page.locator("#tapNext").click({position:{x:10,y:10}});
+            await wait(1200);
+            for(let i=0;i<3;i++){await page.locator("#tapNext").click({position:{x:10,y:10}});await wait(1100);}
+            await page.screenshot({path:`screenshots/${namePrefix}-last-open.png`,fullPage:false});
+            await page.locator("#tapNext").click({position:{x:10,y:10}});
+            await wait(1200);
+            await page.screenshot({path:`screenshots/${namePrefix}-end-closed.png`,fullPage:false});
+            await page.close();
+          }
+
+          await makePdf();
+          await shotMain({width:1600,height:1100},"main-desktop");
+          await shotPdf({width:1600,height:1100},"pdf-desktop");
+          await shotMain({width:390,height:844},"main-mobile");
+          await shotPdf({width:390,height:844},"pdf-mobile");
+          await browser.close();
+          JS
+          mkdir -p screenshots
+          node /tmp/audit.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: visual-audit
+          path: screenshots/
+          if-no-files-found: error
