@@ -1,0 +1,26 @@
+services:
+  relay:
+    image: ghcr.io/nostack-dev/alantu-market-relay:latest
+    restart: unless-stopped
+    environment:
+      PORT: "8080"
+      ALLOWED_ORIGINS: "https://www.alantu.de,https://alantu.de"
+      EDGE_STATUS_URL: "https://www.alantu.de/microstructure-edge-status.json"
+      L2_MODEL_URL: "https://www.alantu.de/orcl-l2-model.json"
+      L2_INGEST_TOKEN: "${L2_INGEST_TOKEN}"
+      APCA_API_KEY_ID: "${APCA_API_KEY_ID:-}"
+      APCA_API_SECRET_KEY: "${APCA_API_SECRET_KEY:-}"
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  l2:
+    image: ghcr.io/nostack-dev/alantu-l2-collector:latest
+    restart: unless-stopped
+    depends_on:
+      - relay
+    environment:
+      DATABENTO_API_KEY: "${DATABENTO_API_KEY}"
+      L2_INGEST_TOKEN: "${L2_INGEST_TOKEN}"
+      L2_RELAY_INGEST_URL: "http://relay:8080/internal/l2-events"
+      L2_SYMBOL: "ORCL"
+      L2_DATASET: "XNAS.ITCH"
