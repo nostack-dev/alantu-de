@@ -1213,12 +1213,10 @@ function marketWaveVector(){
   var evidence=(crowd?1:0)+(price?1:0)+(vol?1:0)+(massSupports?1:0);
   if(evidence<2){label='';dir=0;kind='';}
 
-  // Vor der eigentlichen Welle ist der gekoppelten HDR-Impuls das Signal:
-  // mindestens zwei unabhängige Ebenen ändern ihre Bewegung in dieselbe Richtung.
-  if(!label&&impulse.reliable){
-    label='Vorimpuls';dir=impulse.dir;kind='impulse';
-  }
-
+  // Kein unvalidierter Vorimpuls als Richtungsclaim.
+  // Der Impuls bleibt als beobachtbare Komponente verfügbar, aber ein
+  // handelbarer Richtungszustand wird erst gezeigt, wenn die Welle selbst
+  // durch mehrere Ebenen bestätigt ist.
   return {
     label:label,dir:dir,kind:kind,crowdDir:crowd,priceDir:price,volumeDir:vol,
     volumeRatio:v.ratio,volumePressure:v.pressure,pricePersist:p.persist||0,
@@ -1261,9 +1259,8 @@ function renderMarketFlowVisual(f){
   var el=document.getElementById('marketFlow');if(!el)return;
   f=f||{};
   var counter=!!(f.label&&f.impulse&&f.impulse.reliable&&f.impulse.dir&&f.dir&&f.impulse.dir!==f.dir);
-  var phase='KEIN GEKOPPELTER IMPULS',dir=0,sub='';
+  var phase='KEIN VERIFIZIERTER EDGE',dir=0,sub='';
   if(counter){phase='GEGENIMPULS';dir=f.impulse.dir;sub='gegen laufende Welle '+flowArrow(f.dir);}
-  else if(f.kind==='impulse'){phase='VORIMPULS';dir=f.dir;sub='Bewegung baut sich auf';}
   else if(f.kind==='build'||f.kind==='lead'){phase='WELLE BAUT SICH AUF';dir=f.dir;}
   else if(f.kind==='confirm'){phase='WELLE BESTÄTIGT';dir=f.dir;}
   else if(f.kind==='turn'){phase='WELLE DREHT';dir=f.dir;}
