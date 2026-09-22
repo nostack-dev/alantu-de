@@ -389,6 +389,7 @@
 
     const coverMaterial=new THREE.MeshStandardMaterial({color:0x171713,roughness:.68,metalness:.05});
     const edgeMaterial=new THREE.MeshStandardMaterial({color:0xeee7dc,roughness:.94});
+    const spineMaterial=new THREE.MeshStandardMaterial({color:0xb89a63,roughness:.4,metalness:.35});
 
     function hardcoverMaterials(title){
       const canvas=createAlantuCoverCanvas({title});
@@ -418,6 +419,7 @@
     let frontCoverPivot=null;
     let backCover=null;
     let endCoverPivot=null;
+    let spine=null;
     let coverSupport=null;
     let bookCore=null;
     let totalPages=0;
@@ -474,6 +476,12 @@
       if(endCoverPivot){
         root.remove(endCoverPivot);
         endCoverPivot=null;
+      }
+      if(spine){
+        spine.geometry.dispose();
+        disposeMaterial(spine.material);
+        root.remove(spine);
+        spine=null;
       }
       coverSupport=null;
       totalPages=0;totalLeaves=0;
@@ -647,7 +655,9 @@
       const COVER_W=PAGE_W+.30;
       const COVER_H=PAGE_H+.30;
       const COVER_T=.16;
-      const HINGE_X=-COVER_W/2;
+      // Same hinge as the sheet geometry. The extra .30 belongs only
+      // to the outer hardcover edge, never between page and binding.
+      const HINGE_X=-PAGE_W/2;
 
       frontCoverPivot=new THREE.Group();
       endCoverPivot=new THREE.Group();
@@ -676,6 +686,16 @@
       backCover.castShadow=true;
       backCover.receiveShadow=true;
       endCoverPivot.add(backCover);
+
+      // Match the main-page binding: a real spine attached to the common hinge.
+      spine=new THREE.Mesh(
+        new THREE.BoxGeometry(.12,Math.max(.2,COVER_H-.05),.37),
+        spineMaterial.clone()
+      );
+      spine.position.set(HINGE_X-.06,0,support.backCoverCenterZ);
+      spine.castShadow=true;
+      spine.receiveShadow=true;
+      root.add(spine);
 
       coverSupport={
         startOpenZ:support.backCoverCenterZ,
