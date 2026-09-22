@@ -1,0 +1,48 @@
+name: Microstructure data audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      symbol:
+        description: Symbol
+        required: true
+        default: ORCL
+      start:
+        description: RFC3339 start
+        required: true
+      end:
+        description: RFC3339 end
+        required: true
+  schedule:
+    - cron: "20 22 * * 1-5"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    env:
+      APCA_API_KEY_ID: ${{ secrets.APCA_API_KEY_ID }}
+      APCA_API_SECRET_KEY: ${{ secrets.APCA_API_SECRET_KEY }}
+      ALANTU_MARKET_FEED: sip
+      MICRO_SYMBOL: ${{ inputs.symbol || 'ORCL' }}
+      MICRO_START: ${{ inputs.start || '' }}
+      MICRO_END: ${{ inputs.end || '' }}
+      MICRO_OUT: microstructure-report.json
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve scheduled window
+        if: ${{ github.event_name == 'schedule' }}
+        run: |
+          echo "MICRO_START=$(date -u -d '1 day ago' +%Y-%m-%dT00:00:00Z)" >> "$GITHUB_ENV"
+          echo "MICRO_END=$(date -u +%Y-%m-%dT00:00:00Z)" >> "$GITHUB_ENV"
+      - name: Build exact tape + NBBO microstructure
+        run: node tools/alpaca-microstructure-backfill.mjs
+      - name: Upload reproducible derived report
+        if: ${{ hashFiles('microstructure-report.json') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: microstructure-${{ env.MICRO_SYMBOL }}-${{ github.run_id }}
+          path: microstructure-report.json
+          retention-days: 30
