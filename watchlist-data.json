@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-22T22:28:19+02:00",
+  "updated_at": "2026-09-22T22:28:34+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,12 +9,12 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-22T22:28:19+02:00",
+        "at": "2026-09-22T22:28:34+02:00",
         "signal": "hold",
-        "social_impulse": 3,
-        "hype_bull": 37,
+        "social_impulse": 4,
+        "hype_bull": 41,
         "hype_bear": 21,
-        "hype_net": 16,
+        "hype_net": 20,
         "confidence": 75
       },
       "history": [
@@ -3010,6 +3010,20 @@
           "voice_bear": 4,
           "voice_mixed": 11,
           "price": 149.186
+        },
+        {
+          "at": "2026-09-22T22:28:34+02:00",
+          "hype_bull": 41,
+          "hype_bear": 21,
+          "hype_net": 20,
+          "social_impulse": 4,
+          "signal": "hold",
+          "confidence": 75,
+          "hype_mixed": 38,
+          "voice_bull": 8,
+          "voice_bear": 4,
+          "voice_mixed": 10,
+          "price": 149.186
         }
       ],
       "voices_archive": [
@@ -3325,14 +3339,14 @@
         }
       ],
       "signal": "hold",
-      "social_impulse": 3,
-      "impulse": 3,
-      "hype_bull": 37,
+      "social_impulse": 4,
+      "impulse": 4,
+      "hype_bull": 41,
       "hype_bear": 21,
-      "hype_net": 16,
+      "hype_net": 20,
       "confidence": 75,
       "hype_state": "bullish",
-      "updated_at": "2026-09-22T22:28:19+02:00",
+      "updated_at": "2026-09-22T22:28:34+02:00",
       "why": "Reddit 75% positiv bei 7 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $149.19.",
       "evidence": {
         "x_posts": 0,
@@ -3342,16 +3356,16 @@
           "ApeWisdom: 7 Mentions/24h, Sentiment 75%",
           "Prediction: Oracle Could Have 50% Upside From Here",
           "Revealed: the Oracle Cloud Roles Hit Hard by Layoffs",
-          "ORCL Stock Snaps 3-Day Losing Streak: What’s Making Retail Traders ‘Extremely Bullish’?"
+          "Oracle Investors Weigh Fresh Wipro Deal Against Layoffs, Project Jupiter Debt Stress"
         ]
       },
       "voices": {
-        "bull": 7,
+        "bull": 8,
         "bear": 4,
-        "mixed": 11,
-        "updated_at": "2026-09-22T22:28:19+02:00"
+        "mixed": 10,
+        "updated_at": "2026-09-22T22:28:34+02:00"
       },
-      "hype_mixed": 42,
+      "hype_mixed": 38,
       "sentiment_unit": "percent_all_classified",
       "price": 149.186
     }
