@@ -1260,7 +1260,7 @@ function renderMarketFlowVisual(f){
   var el=document.getElementById('marketFlow');if(!el)return;
   f=f||{};
   var counter=!!(f.label&&f.impulse&&f.impulse.reliable&&f.impulse.dir&&f.dir&&f.impulse.dir!==f.dir);
-  var phase='KEIN VERIFIZIERTER EDGE',dir=0,sub='';
+  var phase='KEIN SIGNAL',dir=0,sub='Modell wartet auf verifizierte Richtung';
   if(counter){phase='GEGENIMPULS';dir=f.impulse.dir;sub='gegen laufende Welle '+flowArrow(f.dir);}
   else if(f.kind==='build'||f.kind==='lead'){phase='WELLE BAUT SICH AUF';dir=f.dir;}
   else if(f.kind==='confirm'){phase='WELLE BESTÄTIGT';dir=f.dir;}
@@ -1268,11 +1268,12 @@ function renderMarketFlowVisual(f){
   else if(f.kind==='exhaust'){phase='WELLE LÄUFT AUS';dir=f.dir;sub='Unterstützung bricht weg';}
   else if(f.kind==='micro'){phase='SIP EDGE';dir=f.dir;sub='Tape + NBBO · Holdout validiert';}
   else if(f.kind==='l2'){
-    phase='100E FORECAST';dir=f.dir;
+    dir=f.dir;
+    phase=dir>0?'BUY-POTENZIAL':'SELL-POTENZIAL';
     var eta=f.microSignal&&Number(f.microSignal.eta_seconds);
     var tr=f.microSignal&&f.microSignal.trajectory||{},lm=f.microSignal&&f.microSignal.latency||{};
     var dtms=Number(tr.dt_ms),e2e=Number(lm.collector_latency_ms);
-    sub='L2 · +100 Events'
+    sub='Modell · +100 Events'
       +(isFinite(eta)?' · ≈ '+(eta<10?eta.toLocaleString('de-DE',{maximumFractionDigits:2}):Math.round(eta))+' s':'')
       +(isFinite(dtms)?' · Δt '+dtms.toLocaleString('de-DE',{maximumFractionDigits:3})+' ms':'')
       +(isFinite(e2e)?' · E2E '+e2e.toLocaleString('de-DE',{maximumFractionDigits:1})+' ms':'');
@@ -1311,7 +1312,7 @@ function renderMarketFlowVisual(f){
   }).join('');
   el.innerHTML=
     '<div class="flow-head"><span class="flow-phase '+flowClass(dir)+'">'+(dir?flowArrow(dir)+' ':'')+phase+'</span>'+(sub?'<span class="flow-sub">'+sub+'</span>':'')+'</div>'+
-    '<div class="flow-geometry" role="img" aria-label="'+phase+'. Crowd '+flowArrow(vals[0].v)+', Volumen '+flowArrow(vals[1].v)+', Kurs '+flowArrow(vals[2].v)+'.">'+
+    '<div class="flow-geometry" role="img" aria-label="'+phase+'. '+vals[0].name+' '+flowArrow(vals[0].v)+', '+vals[1].name+' '+flowArrow(vals[1].v)+', '+vals[2].name+' '+flowArrow(vals[2].v)+'.">'+
       '<div class="flow-scale">'+
         '<svg class="flow-link-layer" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"><polyline class="flow-link" points="'+points+'"/></svg>'+
         nodes+
