@@ -43,13 +43,19 @@ def event_time(df):
     idx=pd.to_datetime(df.index,utc=True,errors="coerce")
     return pd.Series(idx,index=df.index)
 
+def receive_time(df):
+    if "ts_recv" in df.columns:
+        return pd.to_datetime(df["ts_recv"],utc=True,errors="coerce")
+    return pd.Series(pd.NaT,index=df.index,dtype="datetime64[ns, UTC]")
+
 def extract(df,day):
     if df is None or len(df)==0:return None
     ts=event_time(df)
+    tr=receive_time(df)
     local=ts.dt.tz_convert("America/New_York")
     mins=local.dt.hour*60+local.dt.minute
     mask=(local.dt.date==day)&(mins>=570)&(mins<960)
-    df=df.loc[mask].copy(); ts=ts.loc[mask]
+    df=df.loc[mask].copy(); ts=ts.loc[mask]; tr=tr.loc[mask]
     if len(df)<1000:return None
 
     bidp=[];askp=[];bids=[];asks=[]
@@ -68,6 +74,9 @@ def extract(df,day):
     if good.sum()<1000:return None
     bidp=bidp[good];askp=askp[good];bids=bids[good];asks=asks[good]
     t=pd.DatetimeIndex(ts[good]).asi8.astype(np.int64)
+    tr_idx=pd.DatetimeIndex(tr[good])
+    tr_ns=tr_idx.asi8.astype(np.int64)
+    tr_ns[tr_idx.isna()]=-1
 
     eps=1e-12
     def imb(k):
@@ -79,10 +88,22 @@ def extract(df,day):
     d0=bids[:,0]+asks[:,0]
     micro=np.where(d0>0,(askp[:,0]*bids[:,0]+bidp[:,0]*asks[:,0])/(d0+eps),mid)
     depth_ratio=np.log((bids[:,:5].sum(1)+eps)/(asks[:,:5].sum(1)+eps))
-    X=np.column_stack([i1,i3,i5,i10,(micro-mid)/spread,i1-i10,depth_ratio])
+    micro_bias=(micro-mid)/spread
+    X=np.column_stack([i1,i3,i5,i10,micro_bias,i1-i10,depth_ratio])
+    x_pressure=(i1+i3+i5+i10+2*micro_bias)/6
+    y_liquidity_log=np.log1p((bids+asks).sum(1))
     spread_bps=spread/mid*10000
     sequence=pd.to_numeric(df.loc[good,"sequence"],errors="coerce").fillna(0).to_numpy(dtype=np.int64) if "sequence" in df.columns else np.arange(len(mid),dtype=np.int64)
-    return dict(ts_event_ns=t,features=X.astype(np.float64),mid=mid.astype(np.float64),spread_bps=spread_bps.astype(np.float64),sequence=sequence)
+    return dict(
+        ts_event_ns=t,
+        ts_recv_ns=tr_ns,
+        features=X.astype(np.float64),
+        x_pressure=x_pressure.astype(np.float64),
+        y_liquidity_log=y_liquidity_log.astype(np.float64),
+        mid=mid.astype(np.float64),
+        spread_bps=spread_bps.astype(np.float64),
+        sequence=sequence
+    )
 
 client=db.Historical(KEY)
 manifest=[]
@@ -100,7 +121,10 @@ for d in daterange(START,END):
         if out is None:
             manifest.append({"day":d.isoformat(),"events":0,"status":"empty_or_thin"});continue
         np.savez_compressed(p,**out)
-        manifest.append({"day":d.isoformat(),"events":int(len(out["mid"])),"status":"ok"})
+        manifest.append({
+            "day":d.isoformat(),"events":int(len(out["mid"])),"status":"ok",
+            "receive_timestamp_coverage":float(np.mean(out["ts_recv_ns"]>0))
+        })
         print(json.dumps(manifest[-1]),flush=True)
     except Exception as e:
         manifest.append({"day":d.isoformat(),"events":0,"status":"error","error":str(e)[:500]})
