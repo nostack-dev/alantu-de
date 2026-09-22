@@ -31,6 +31,8 @@ process.on('SIGTERM',()=>shutdown(0));
 process.on('SIGINT',()=>shutdown(0));
 
 run('node',['market-relay/server.mjs'],'relay');
-if(process.env.MARKET_RUNTIME_RELAY_ONLY!=='1'){
+if(process.env.MARKET_RUNTIME_RELAY_ONLY!=='1'&&env.DATABENTO_API_KEY){
   setTimeout(()=>run('python',['tools/databento-orcl-mbp10-live.py'],'l2-collector'),500);
+}else if(process.env.MARKET_RUNTIME_RELAY_ONLY!=='1'){
+  console.log(JSON.stringify({service:'alantu-market-runtime',child:'l2-collector',event:'disabled',reason:'missing_databento_api_key'}));
 }
