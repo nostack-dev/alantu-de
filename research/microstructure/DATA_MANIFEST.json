@@ -1,0 +1,37 @@
+{
+  "dataset": "FI-2010 NoAuction DecPre",
+  "upstream_repository": "zcakhaa/DeepLOB-Deep-Convolutional-Neural-Networks-for-Limit-Order-Books",
+  "upstream_commit": "ff14d7c2fd38bdfc143389786993d0f0236d4eb8",
+  "path": "data/data.zip",
+  "raw_url": "https://raw.githubusercontent.com/zcakhaa/DeepLOB-Deep-Convolutional-Neural-Networks-for-Limit-Order-Books/ff14d7c2fd38bdfc143389786993d0f0236d4eb8/data/data.zip",
+  "git_blob_sha1": "2d8d7749caf622dd07e0df954413dc698129c766",
+  "bytes": 56278154,
+  "label_map": {
+    "1": "down",
+    "2": "stationary",
+    "3": "up"
+  },
+  "split": {
+    "train_days": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "fit_fraction": 0.8,
+    "validation_fraction": 0.2,
+    "holdout_days": [
+      8,
+      9,
+      10
+    ]
+  },
+  "validator": "tools/validate-fi2010-microstructure.py",
+  "workflow": ".github/workflows/fi2010-proof.yml",
+  "proof_run_id": 35758967784,
+  "proof_artifact_id": 10709271128,
+  "verdict": "not_proven"
+}
