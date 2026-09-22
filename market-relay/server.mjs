@@ -14,6 +14,7 @@ const EDGE_URL=process.env.EDGE_STATUS_URL||'https://www.alantu.de/microstructur
 const L2_MODEL_PATH=process.env.L2_MODEL_PATH||'/app/orcl-l2-model.json';
 const L2_MODEL_URL=process.env.L2_MODEL_URL||'https://www.alantu.de/orcl-l2-model.json';
 const L2_INGEST_TOKEN=process.env.L2_INGEST_TOKEN||'';
+const L2_DATASET=process.env.L2_DATASET||'MEMX.MEMOIR';
 const L2_MAX_PROVIDER_CAPTURE_MS=Number(process.env.L2_MAX_PROVIDER_CAPTURE_MS||50);
 const L2_MAX_TOTAL_LATENCY_MS=Number(process.env.L2_MAX_TOTAL_LATENCY_MS||250);
 const L2_MAX_LATENCY_FRACTION=Number(process.env.L2_MAX_LATENCY_FRACTION||0.35);
@@ -54,7 +55,7 @@ function eventNs(x,key){
 }
 function validL2Event(x){
   const te=eventNs(x,'ts_event_ns'),tr=eventNs(x,'ts_recv_ns'),to=eventNs(x,'ts_out_ns'),tl=eventNs(x,'ts_local_recv_ns');
-  return x&&x.provider==='databento'&&x.dataset==='XNAS.ITCH'&&x.schema==='mbp-10'&&SYMBOLS.includes(String(x.symbol||'').toUpperCase())
+  return x&&x.provider==='databento'&&x.dataset===L2_DATASET&&x.schema==='mbp-10'&&SYMBOLS.includes(String(x.symbol||'').toUpperCase())
     &&typeof x.at==='string'&&Number.isFinite(Date.parse(x.at))
     &&te!=null&&tr!=null&&to!=null&&tl!=null&&te>0n&&tr>=te&&to>=tr&&tl>0n
     &&Array.isArray(x.levels)&&x.levels.length>=10;
@@ -81,7 +82,9 @@ function addL2Events(batch){
 }
 function l2Snapshot(symbol){
   const events=l2Raw[symbol]||[],lastEvent=events.at(-1)||null;
-  const contract=validateL2ModelContract(l2Model);
+  const baseContract=validateL2ModelContract(l2Model);
+  const datasetMatch=l2Model?.dataset===L2_DATASET;
+  const contract={ok:baseContract.ok&&datasetMatch,reasons:[...baseContract.reasons,...(datasetMatch?[]:['live_dataset_model_mismatch'])]};
   const rawForecast=contract.ok&&lastEvent?forecastL2Event(lastEvent,events,l2Model):null;
   const etaMs=Number(rawForecast?.eta_seconds)*1000;
   const lat=rawForecast?.latency||{};
@@ -98,7 +101,7 @@ function l2Snapshot(symbol){
   if(relayAgeMs>Math.min(250,dynamicBudget))timingReasons.push('relay_stale');
   const timingOk=timingReasons.length===0;
   return {
-    provider:'databento',dataset:'XNAS.ITCH',schema:'mbp-10',
+    provider:'databento',dataset:L2_DATASET,schema:'mbp-10',
     configured:!!L2_INGEST_TOKEN,event_count:events.length,last_at:lastEvent?.at||null,
     fresh:timingOk,
     model_status:l2Model?.status||'unavailable',model_id:l2Model?.model_id||null,
@@ -167,7 +170,7 @@ const server=http.createServer((req,res)=>{
   const u=new URL(req.url,'http://localhost');
   if(u.pathname==='/health'){
     return json(res,200,{ok:true,configured:!!(KEY&&SECRET),feed:FEED,symbols:SYMBOLS,upstream_fresh:Date.now()-lastUpstreamAt<15000,edge_status:edgeModel?.status||'unavailable',
-      l2:{configured:!!L2_INGEST_TOKEN,fresh:Date.now()-lastL2At<5000,model_status:l2Model?.status||'unavailable'}});
+      l2:{configured:!!L2_INGEST_TOKEN,dataset:L2_DATASET,fresh:Date.now()-lastL2At<5000,model_status:l2Model?.status||'unavailable'}});
   }
   if(u.pathname==='/internal/l2-events'){
     if(req.method!=='POST')return json(res,405,{error:'method_not_allowed'});
@@ -203,4 +206,4 @@ const server=http.createServer((req,res)=>{
 });
 await loadEdge();await loadL2Model();setInterval(loadEdge,60000).unref();setInterval(loadL2Model,60000).unref();setInterval(broadcast,1000).unref();setInterval(()=>{if(KEY&&SECRET&&Date.now()-lastUpstreamAt>15000)connect();},15000).unref();
 connect();
-server.listen(PORT,'0.0.0.0',()=>console.log(JSON.stringify({service:'alantu-market-relay',port:PORT,configured:!!(KEY&&SECRET),feed:FEED,symbols:SYMBOLS})));
+server.listen(PORT,'0.0.0.0',()=>console.log(JSON.stringify({service:'alantu-market-relay',port:PORT,configured:!!(KEY&&SECRET),feed:FEED,symbols:SYMBOLS,l2_dataset:L2_DATASET})));
