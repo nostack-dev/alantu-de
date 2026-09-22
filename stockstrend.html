@@ -231,6 +231,10 @@
   .chart-panel.collapsed .chart-panel-body{display:none}
   .chart-panel.collapsed .chart-head{margin-bottom:0!important}
 
+  .sentiment-relation{font-size:11px;line-height:1.25;color:#151517;margin:3px 0 2px;font-variant-numeric:tabular-nums;min-height:14px}
+  .sentiment-relation:empty{display:none}
+  @media(max-width:700px){.sentiment-relation{font-size:10px}}
+
   /* TR-density main surface */
   header{padding-top:12px!important;padding-bottom:4px!important}
   header h1{font-size:13px!important;font-weight:700!important;letter-spacing:-.01em!important}
@@ -368,6 +372,7 @@
     <div class="chart-head"><div class="label">Oracle · Stimmung <a class="info-link info-inline" href="methodik.html#sentiment" aria-label="Quellen und Berechnung der Stimmung erklären" title="Quellen und Berechnung der Stimmung">i</a></div><button type="button" class="chart-collapse" data-chart-collapse="sentiment" aria-expanded="true" aria-label="Stimmungs-Chart einklappen">▴</button></div>
     <div class="chart-panel-body">
     <div class="sentiment-source" id="sentimentSource">Quellen werden geladen …</div>
+    <div class="sentiment-relation" id="sentimentRelation"></div>
     <div class="chart-sub"><span id="hypeCoverage"></span></div>
     <div class="chart-wrap chart-wrap-lg"><canvas id="hypeChart"></canvas></div>
     <div class="mini-range" id="sentimentRange" aria-label="Zeitraum Stimmung">
@@ -664,9 +669,14 @@ function tipBase(kind){
         if(v==null||isNaN(v)) return null;
         var name=ctx.dataset.label||'';
         if(kind==='hype'){
+          var hdr=ctx.raw&&ctx.raw.hdr;
+          if(name==='Struktur'&&hdr){
+            var hz=(hdr.z>=0?'+':'')+hdr.z.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})+'σ';
+            return '  '+hdr.label+' · P'+hdr.percentile+' · '+hz+' · '+Math.round(hdr.impact*100)+'% Spanne · '+hdr.agree+'/'+hdr.neighbors+' Nachbarn';
+          }
           if(name.indexOf('Bear')>=0) return '  Bearisch: '+v+' %';
           if(name.indexOf('Bull')>=0) return '  Bullisch: '+v+' %';
-          if(name.indexOf('Stimmung')>=0) return '  Stimmung: '+v+' / 100 (50 = neutral)';
+          if(name.indexOf('Stimmung')>=0) return '  Stimmung: '+Math.round(v)+' / 100 (50 = neutral)';
           return '  '+name+': '+v;
         }
         if(kind==='iv') return '  '+name+': '+euro(v,2);
@@ -1089,16 +1099,88 @@ function renderOverview(){
   syncRangeButtons();
   var it=document.getElementById('intrinsicToggle');if(it){it.classList.toggle('active',showIntrinsic);it.setAttribute('aria-pressed',showIntrinsic?'true':'false');}
 }
+function percentileNum(sorted,p){
+  if(!sorted||!sorted.length)return null;
+  var a=sorted.slice().sort(function(x,y){return x-y;}),i=(a.length-1)*Math.max(0,Math.min(1,p)),lo=Math.floor(i),hi=Math.ceil(i);
+  return lo===hi?a[lo]:a[lo]+(a[hi]-a[lo])*(i-lo);
+}
+function hdrDailySentiment(rows){
+  var by={};
+  (rows||[]).forEach(function(h){
+    var t=new Date(h&&h.at||0).getTime(),y=stimmungNorm(h);
+    if(!isFinite(t)||y==null||!isFinite(Number(y)))return;
+    var key=berlinDayKey(t);
+    if(!key)return;
+    var prev=by[key];
+    if(!prev||t>=prev.t)by[key]={at:new Date(t).toISOString(),t:t,value:Number(y),price:isFinite(Number(h.price))?Number(h.price):null};
+  });
+  return Object.keys(by).map(function(k){return by[k];}).sort(function(a,b){return a.t-b.t;});
+}
+function hdrRelationSeries(rows){
+  var daily=hdrDailySentiment(rows),out=[];
+  for(var i=0;i<daily.length;i++){
+    var cur=daily[i],prior=daily.slice(0,i).filter(function(p){return cur.t-p.t<=366*864e5;});
+    if(prior.length<6){out.push(Object.assign({},cur,{hdr:null}));continue;}
+    var globalVals=prior.map(function(p){return p.value;}).filter(isFinite);
+    var pct=globalVals.length?Math.round(100*globalVals.filter(function(v){return v<=cur.value;}).length/globalVals.length):null;
+    var q10=percentileNum(globalVals,.10),q90=percentileNum(globalVals,.90),span=Math.max(8,(q90==null||q10==null)?20:q90-q10);
+    var local=prior.slice(-5),step=[];
+    for(var d=1;d<local.length;d++)step.push(Math.max(1,local[d].t-local[d-1].t));
+    var half=Math.max(864e5,(medianNum(step)||864e5)*2.5),ws=0,mean=0;
+    local.forEach(function(p){var w=Math.exp(-Math.LN2*(cur.t-p.t)/half);ws+=w;mean+=w*p.value;});
+    mean=ws?mean/ws:local[local.length-1].value;
+    var variance=0;
+    local.forEach(function(p){var w=Math.exp(-Math.LN2*(cur.t-p.t)/half);variance+=w*Math.pow(p.value-mean,2);});
+    var sd=Math.max(3,Math.sqrt(ws?variance/ws:0)),z=(cur.value-mean)/sd,dir=z>0?1:z<0?-1:0;
+    var deltas=[];
+    for(var j=Math.max(1,prior.length-5);j<prior.length;j++){
+      var dd=prior[j].value-prior[j-1].value;if(Math.abs(dd)>=1)deltas.push(dd>0?1:-1);
+    }
+    var agree=dir?deltas.filter(function(v){return v===dir;}).length:0;
+    var impact=Math.abs(cur.value-mean)/span;
+    var extremeHigh=pct!=null&&pct>=80,extremeLow=pct!=null&&pct<=20,label='',kind='';
+    if(extremeHigh&&z<=-1.05){kind='reversal-down';label='Global hoch · lokal dreht ab';}
+    else if(extremeLow&&z>=1.05){kind='reversal-up';label='Global niedrig · lokal dreht auf';}
+    else if(extremeHigh&&z>=1.15&&agree>=Math.max(2,Math.ceil(deltas.length*.6))){kind='continuation-up';label='Global hoch · lokal beschleunigt';}
+    else if(extremeLow&&z<=-1.15&&agree>=Math.max(2,Math.ceil(deltas.length*.6))){kind='continuation-down';label='Global niedrig · lokal fällt weiter';}
+    else if(Math.abs(z)>=1.55&&impact>=.10){kind=z>0?'break-up':'break-down';label='Lokaler Strukturbruch '+(z>0?'↑':'↓');}
+    var hdr={percentile:pct,z:z,impact:impact,agree:agree,neighbors:deltas.length,kind:kind,label:label};
+    out.push(Object.assign({},cur,{hdr:hdr}));
+  }
+  return out;
+}
+function hdrCurrentText(rel){
+  if(!rel||!rel.hdr)return '';
+  var h=rel.hdr,z=(h.z>=0?'+':'')+h.z.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})+'σ',parts=[];
+  if(h.label)parts.push(h.label);
+  parts.push('P'+h.percentile,'lokal '+z);
+  if(h.neighbors)parts.push(h.agree+'/'+h.neighbors+' Nachbarn '+(h.z>=0?'↑':'↓'));
+  return parts.join(' · ');
+}
+function hdrVisibleMarkers(relations,range){
+  var visible=filterByAt(relations||[],function(r){return r.at;},range).filter(function(r){return r.hdr&&r.hdr.kind;});
+  if(visible.length>8){
+    visible=visible.slice().sort(function(a,b){
+      var sa=Math.abs(a.hdr.z)*(1+a.hdr.impact),sb=Math.abs(b.hdr.z)*(1+b.hdr.impact);return sb-sa;
+    }).slice(0,8).sort(function(a,b){return a.t-b.t;});
+  }
+  return visible.map(function(r){return {x:r.t,y:r.value,hdr:r.hdr};});
+}
 function renderSentimentChart(){
-  var x=currentContext(),hist=filterByAt(mergedSentimentHistory(x.orcl.history||[]),function(h){return h.at;},sentimentRange);
+  var x=currentContext(),all=mergedSentimentHistory(x.orcl.history||[]);
+  var hist=filterByAt(all,function(h){return h.at;},sentimentRange);
   var agg=aggregateForRange(hist,function(h){return h.at;},function(h){return stimmungNorm(h);},sentimentRange);
+  var relations=hdrRelationSeries(all),latestRel=relations.length?relations[relations.length-1]:null;
+  var relEl=document.getElementById('sentimentRelation');if(relEl)relEl.textContent=hdrCurrentText(latestRel);
+  var markers=hdrVisibleMarkers(relations,sentimentRange);
   var cov=document.getElementById('hypeCoverage');if(cov){var ct=compactCoverage(agg,function(h){return h.at;},sentimentRange);cov.textContent=ct;cov.parentElement.style.display=ct?'block':'none';}
   var pts=agg.map(function(h){return {x:new Date(h.at).getTime(),y:Number(h.value)};});
-  var ds={label:'Stimmung',data:pts,parsing:false,spanGaps:false,borderColor:'#8e8e93',backgroundColor:'#8e8e93',fill:false,tension:.12,pointRadius:agg.length<=12?2:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:function(ctx){return sentimentColor(ctx.raw&&ctx.raw.y);},borderWidth:2,segment:{borderColor:function(ctx){return sentimentSegmentGradient(ctx);}},pointBackgroundColor:function(ctx){return sentimentColor(ctx.raw&&ctx.raw.y);}};
+  var line={label:'Stimmung',data:pts,parsing:false,spanGaps:false,borderColor:'#151517',backgroundColor:'#151517',fill:false,tension:.12,pointRadius:agg.length<=12?2:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:function(ctx){return sentimentColor(ctx.raw&&ctx.raw.y);},borderWidth:2,segment:{borderColor:function(ctx){return sentimentSegmentGradient(ctx);}},pointBackgroundColor:function(ctx){return sentimentColor(ctx.raw&&ctx.raw.y);}};
+  var structure={label:'Struktur',data:markers,parsing:false,showLine:false,pointRadius:4,pointHoverRadius:6,pointBorderWidth:1.8,pointBackgroundColor:'#fff',pointBorderColor:function(ctx){return sentimentColor(ctx.raw&&ctx.raw.y);},order:0};
   if(!hypeChart){
-    hypeChart=new Chart(document.getElementById('hypeChart'),{type:'line',data:{datasets:[ds]},options:{animation:false,events:chartEvents(),responsive:true,maintainAspectRatio:false,layout:{padding:{top:6,bottom:2,left:4,right:4}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('hype')},scales:{x:axisX(agg,function(h){return h.at;},sentimentRange),y:{min:-4,max:104,afterBuildTicks:function(scale){scale.ticks=[{value:0},{value:50},{value:100}];},ticks:{color:'#6b6b76',font:{size:11},callback:function(v){return v===0||v===50||v===100?v:'';}},grid:{color:'#f2f2f4'},border:{display:false}}}}});
+    hypeChart=new Chart(document.getElementById('hypeChart'),{type:'line',data:{datasets:[line,structure]},options:{animation:false,events:chartEvents(),responsive:true,maintainAspectRatio:false,layout:{padding:{top:6,bottom:2,left:4,right:4}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('hype')},scales:{x:axisX(agg,function(h){return h.at;},sentimentRange),y:{min:-4,max:104,afterBuildTicks:function(scale){scale.ticks=[{value:0},{value:50},{value:100}];},ticks:{color:'#6b6b76',font:{size:11},callback:function(v){return v===0||v===50||v===100?v:'';}},grid:{color:'#f2f2f4'},border:{display:false}}}}});
   }else{
-    hypeChart.data.datasets[0]=ds;
+    hypeChart.data.datasets[0]=line;hypeChart.data.datasets[1]=structure;
     hypeChart.options.scales.x=axisX(agg,function(h){return h.at;},sentimentRange);
     hypeChart.update('none');
   }

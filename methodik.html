@@ -92,6 +92,29 @@ early_signal = |net| ≥ 12</div>
 <p class="small"><b>Negativ:</b> debt, risk, risks, fall, falls, drop, drops, decline, declines, downgrade, downgraded, concern, concerns, lawsuit, probe, headwind, headwinds, cost, costs, capex, stress, stressed, junk bond, layoff, layoffs, slump, miss, misses, bearish, sell rating</p>
 </details>
 
+<h3>Relationale HDR-Auswertung</h3>
+<p>Zusätzlich zum absoluten Stimmungswert wird jeder Tageszustand relativ zu seiner eigenen Historie ausgewertet. Daraus entsteht <b>kein neuer Gesamtscore</b>, sondern drei getrennte Beziehungen:</p>
+<div class="formula">Gesamt:
+Perzentil des aktuellen Tageszustands
+gegenüber den ausschließlich vorherigen Tageszuständen
+der letzten 366 Tage.
+
+Lokal:
+Abweichung des aktuellen Tageszustands
+vom zeitlich gewichteten Mittel der letzten 5 vorherigen Tage.
+Nähere Nachbarn erhalten exponentiell höheres Gewicht.
+Ausgabe als lokale Standardabweichung (σ).
+
+Proportion:
+|aktueller Wert - lokales Mittel|
+÷ robuste Gesamtspanne (P90 - P10)
+
+Zusätzlich:
+Anzahl der letzten Nachbarbewegungen,
+die dieselbe Richtung bestätigen.</div>
+<p>Die Berechnung ist <b>look-ahead-frei</b>: Für einen historischen Punkt werden nur Daten mit älterem Zeitstempel verwendet. Unterschiedliche Live-Abtastraten werden vor der Relation auf genau <b>einen letzten Tageszustand pro Europe/Berlin-Tag</b> normalisiert, damit häufige aktuelle Messungen historische Tage nicht übergewichten.</p>
+<p>Kleine Marker im Stimmungs-Chart erscheinen nur bei deutlich ausgeprägten Relationen, zum Beispiel bei einem lokalen Strukturbruch oder wenn ein global extremes Niveau lokal in die Gegenrichtung dreht. Maximal acht Marker werden gleichzeitig dargestellt. Die Marker beschreiben Datenstruktur und sind keine Kursprognose.</p>
+
 <h3>Historischer Stimmungsverlauf</h3>
 <p>Jeder Zeitreihen-Chart hat seinen <b>eigenen</b> Zeitraum: Kurs/Wert, Stimmung und Stimmungsstärke können unabhängig auf <b>1T, 1W, 1M, 1J, 5J oder MAX</b> gestellt werden. Angezeigt werden ausschließlich tatsächlich gespeicherte Messpunkte; fehlende Vergangenheit wird nicht künstlich ergänzt.</p>
 <ul>
