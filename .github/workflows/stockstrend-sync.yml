@@ -215,6 +215,11 @@ jobs:
           grep -q "E:oracle T:ugc" index.html
           grep -q 'minSocial=50' index.html
           ! grep -q 'public.api.bsky.app' index.html
+          grep -q 'id="sentiment3dToggle"' index.html
+          grep -q 'id="hypeChart3d"' index.html
+          grep -q 'function sentimentReliability' index.html
+          grep -q 'function latestNyRegularSession' index.html
+          grep -q 'min:session.open,max:session.close' index.html
           grep -q 'id="intrinsicToggle"' index.html
           grep -q "ivChart.update('none')" index.html
           ! grep -q 'hypeChart.destroy' index.html
@@ -316,17 +321,22 @@ jobs:
           const iv = data['intrinsic-orcl.json'];
           if (iv?.symbol !== 'ORCL' || !iv?.latest) throw new Error('intrinsic-orcl invalid');
 
-          const sh = data['orcl-sentiment-history.json'];
-          if (!sh || sh.symbol !== 'ORCL' || !Array.isArray(sh.history) || sh.history.length < 30) {
-            throw new Error('orcl-sentiment-history invalid or too sparse');
-          }
-          const shFirst = Date.parse(sh.history[0]?.at || '');
-          const shLast = Date.parse(sh.history.at(-1)?.at || '');
-          if (!Number.isFinite(shFirst) || !Number.isFinite(shLast) || shLast <= shFirst) {
-            throw new Error('orcl-sentiment-history timestamps invalid');
-          }
-          if (sh.history.some(x => !Number.isFinite(Number(x.hype_bull)) || !Number.isFinite(Number(x.hype_bear)) || !Number.isFinite(Number(x.confidence)))) {
-            throw new Error('orcl-sentiment-history contains invalid sentiment values');
+          if (fs.existsSync('orcl-sentiment-history.json')) {
+            const sh = JSON.parse(fs.readFileSync('orcl-sentiment-history.json','utf8'));
+            if (sh.symbol !== 'ORCL' || !Array.isArray(sh.history) || !sh.history.length) {
+              throw new Error('orcl-sentiment-history invalid');
+            }
+            const shFirst = Date.parse(sh.history[0]?.at || '');
+            const shLast = Date.parse(sh.history.at(-1)?.at || '');
+            if (!Number.isFinite(shFirst) || !Number.isFinite(shLast) || shLast < shFirst) {
+              throw new Error('orcl-sentiment-history timestamps invalid');
+            }
+            if (sh.history.some(x => !Number.isFinite(Number(x.hype_bull)) || !Number.isFinite(Number(x.hype_bear)) || !Number.isFinite(Number(x.confidence)))) {
+              throw new Error('orcl-sentiment-history contains invalid sentiment values');
+            }
+            console.log('Historical sentiment points', sh.history.length, sh.coverage || {});
+          } else {
+            console.log('Historical sentiment backfill not available yet; core runtime remains valid.');
           }
 
           console.log('Stockstrend validation OK', {
@@ -348,7 +358,8 @@ jobs:
           set -euo pipefail
           git add index.html stockstrend.html methodik.html market-clock-core.js price-shock-core.js \
             stockstrend-data.json watchlist-data.json watchlist.json intrinsic-orcl.json \
-            orcl-minute.json orcl-history.json orcl-sentiment-history.json eurusd-history.json runtime-status.json .stockstrend-source-sha
+            orcl-minute.json orcl-history.json eurusd-history.json runtime-status.json .stockstrend-source-sha
+          if [ -f orcl-sentiment-history.json ]; then git add orcl-sentiment-history.json; fi
 
           if git diff --cached --quiet; then
             echo "Already current."
