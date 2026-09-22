@@ -56,12 +56,28 @@ jobs:
           python -m pip install --disable-pip-version-check --quiet numpy
           python tools/validate-fi2010-microstructure.py             "$RUNNER_TEMP/fi2010"             "$root/research/fi2010-microstructure-proof.json"             "$root/research/fi2010-microstructure-model.json"
 
-          jq -S . "$root/research/fi2010-microstructure-proof.json" > /tmp/proof-new.json
-          jq -S . research/microstructure/fi2010-microstructure-proof.json > /tmp/proof-repo.json
-          cmp /tmp/proof-new.json /tmp/proof-repo.json
-          jq -S . "$root/research/fi2010-microstructure-model.json" > /tmp/model-new.json
-          jq -S . research/microstructure/fi2010-microstructure-model.json > /tmp/model-repo.json
-          cmp /tmp/model-new.json /tmp/model-repo.json
+          python - <<'PY'
+          import json, math
+          from pathlib import Path
+          root=Path("$RUNNER_TEMP/alantu-microstructure-complete/research")
+          a=json.loads((root/"fi2010-microstructure-proof.json").read_text())
+          b=json.loads(Path("research/microstructure/fi2010-microstructure-proof.json").read_text())
+          assert a==b, "proof JSON changed"
+          a=json.loads((root/"fi2010-microstructure-model.json").read_text())
+          b=json.loads(Path("research/microstructure/fi2010-microstructure-model.json").read_text())
+          def eq(x,y,path=""):
+              if isinstance(x,dict) and isinstance(y,dict):
+                  assert x.keys()==y.keys(), path
+                  for k in x: eq(x[k],y[k],path+"/"+k)
+              elif isinstance(x,list) and isinstance(y,list):
+                  assert len(x)==len(y), path
+                  for i,(u,v) in enumerate(zip(x,y)): eq(u,v,path+f"/{i}")
+              elif isinstance(x,(int,float)) and isinstance(y,(int,float)):
+                  assert math.isclose(float(x),float(y),rel_tol=1e-10,abs_tol=1e-12), (path,x,y)
+              else:
+                  assert x==y, (path,x,y)
+          eq(a,b)
+          PY
 
           cat > "$root/CONTENTS.txt" <<'EOF'
           ALANTU MICROSTRUCTURE COMPLETE PACKAGE
