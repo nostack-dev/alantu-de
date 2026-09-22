@@ -7,6 +7,8 @@ on:
       - "tools/databento-orcl-mbp10-backfill.py"
       - "tools/train-orcl-l2-100.py"
       - "tools/l2-event-signal.mjs"
+      - "tools/test-l2-event-signal.mjs"
+      - "tools/databento-orcl-mbp10-live.py"
       - "tools/finalize-l2-model.mjs"
       - ".github/workflows/orcl-l2-proof.yml"
   workflow_dispatch:
@@ -57,7 +59,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          jq -e '.symbol=="ORCL" and .dataset=="XNAS.ITCH" and .schema=="mbp-10" and .horizon_events==100' orcl-l2-model.json >/dev/null
+          jq -e '.symbol=="ORCL" and .dataset=="XNAS.ITCH" and .schema=="mbp-10" and .feature_version=="hdr-dt-v1" and .horizon_events==100 and (.feature_names|length==24)' orcl-l2-model.json >/dev/null
           if [ "$(jq -r '.status' orcl-l2-model.json)" = "validated" ]; then
             jq -e '
               (.evidence.usable_days>=252)
