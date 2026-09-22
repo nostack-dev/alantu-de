@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-09-22T21:36:48+02:00",
+  "updated_at": "2026-09-22T21:37:00+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-22T21:36:48+02:00",
-    "scraped_at": "2026-09-22T21:36:48+02:00",
+    "tick_id": "2026-09-22T21:37:00+02:00",
+    "scraped_at": "2026-09-22T21:37:00+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "PublicReddit": {
@@ -11,7 +11,7 @@
         "items": 9,
         "provider": "apewisdom.io",
         "window": "24h aggregate snapshot",
-        "freshest": "2026-09-22T21:36:48+02:00",
+        "freshest": "2026-09-22T21:37:00+02:00",
         "sentiment_pct_bullish": 86,
         "upvotes_24h": 20
       },
@@ -20,7 +20,7 @@
         "items": 20,
         "provider": "news.google.com",
         "window": "last 36h, fetched now",
-        "freshest": "2026-09-22T21:36:48+02:00",
+        "freshest": "2026-09-22T21:37:00+02:00",
         "notes": [
           "Revealed: the Oracle Cloud Roles Hit Hard by Layoffs",
           "Prediction: Oracle Could Have 50% Upside From Here",
@@ -31,9 +31,9 @@
         "status": "ok",
         "items": 1,
         "prices": {
-          "ORCL": 149.90499877929688
+          "ORCL": 149.92999267578125
         },
-        "price_at": "2026-09-22T19:36:40.000Z",
+        "price_at": "2026-09-22T19:36:58.000Z",
         "note": "Yahoo chart 5d/1m fallback feed"
       }
     },
@@ -49,20 +49,20 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-22T21:36:48+02:00",
+      "freshest_absolute": "2026-09-22T21:37:00+02:00",
       "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
       "quality": "medium-high public sources",
-      "scrape_berlin": "2026-09-22T21:36:48+02:00",
+      "scrape_berlin": "2026-09-22T21:37:00+02:00",
       "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
       "freshest_item_age": "snapshot fetched now",
       "oldest_usable_signal": "Oracle Investors Weigh Fresh Wipro Deal Against Layoffs, Project Jupiter Debt Stress"
     },
     "vector": {
       "direction": "leicht_bullish_risk_on",
-      "magnitude": 42,
+      "magnitude": 40,
       "confidence": 76,
       "early_signal": true,
-      "early_signal_note": "Reddit 86% positiv bei 9 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $149.90."
+      "early_signal_note": "Reddit 86% positiv bei 9 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $149.93."
     },
     "top_themes": [
       {
@@ -480,13 +480,13 @@
         "symbol": "ORCL",
         "name": "Oracle",
         "hype_state": "bullish",
-        "signal": "buy",
+        "signal": "hold",
         "confidence": 76,
-        "social_impulse": 5,
+        "social_impulse": 4,
         "hype_bull": 44,
-        "hype_bear": 19,
-        "hype_net": 25,
-        "why": "Reddit 86% positiv bei 9 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $149.90.",
+        "hype_bear": 23,
+        "hype_net": 21,
+        "why": "Reddit 86% positiv bei 9 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $149.93.",
         "evidence": {
           "x_posts": 0,
           "reddit_posts": 9,
@@ -502,7 +502,7 @@
           "tradingview": "https://www.tradingview.com/symbols/ORCL/",
           "yahoo": "https://finance.yahoo.com/quote/ORCL"
         },
-        "price": 149.90499877929688
+        "price": 149.92999267578125
       }
     ],
     "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
@@ -511,10 +511,10 @@
   "signals_disclaimer": "",
   "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
   "freshness": {
-    "freshest_absolute": "2026-09-22T21:36:48+02:00",
+    "freshest_absolute": "2026-09-22T21:37:00+02:00",
     "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
     "quality": "medium-high public sources",
-    "scrape_berlin": "2026-09-22T21:36:48+02:00",
+    "scrape_berlin": "2026-09-22T21:37:00+02:00",
     "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
     "freshest_item_age": "snapshot fetched now",
     "oldest_usable_signal": "Oracle Investors Weigh Fresh Wipro Deal Against Layoffs, Project Jupiter Debt Stress"
@@ -2139,6 +2139,15 @@
       "tick_id": "2026-09-22T21:36:48+02:00",
       "scraped_at": "2026-09-22T21:36:48+02:00",
       "magnitude": 42,
+      "confidence": 76,
+      "direction": "leicht_bullish_risk_on",
+      "items": 21,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-22T21:37:00+02:00",
+      "scraped_at": "2026-09-22T21:37:00+02:00",
+      "magnitude": 40,
       "confidence": 76,
       "direction": "leicht_bullish_risk_on",
       "items": 21,
