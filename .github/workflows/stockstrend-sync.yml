@@ -43,10 +43,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          SHA="$(curl -fsSL --retry 3 --connect-timeout 10 --max-time 30 \
-            https://api.github.com/repos/nostack-dev/kurzlernen-de/commits/main | jq -r '.sha')"
+          SHA="$(git ls-remote https://github.com/nostack-dev/kurzlernen-de.git refs/heads/main | awk '{print $1}')"
           test -n "$SHA"
-          test "$SHA" != "null"
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
 
       - name: Mirror exact Stockstrend UI source
