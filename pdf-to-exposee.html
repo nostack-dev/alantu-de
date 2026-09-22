@@ -539,6 +539,8 @@
     }
 
     function updateUI(state){
+      if(pageBlock)pageBlock.visible=state.currentLeaf<totalLeaves;
+
       if(!totalPages){
         pageCount.textContent="— / —";
         fullscreenBtn.disabled=true;
