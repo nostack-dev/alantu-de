@@ -289,6 +289,26 @@
     body{min-height:calc(100dvh + 1px);overscroll-behavior-y:auto;-webkit-overflow-scrolling:touch}
   }
 
+  /* Subtle desktop edge elasticity */
+  @media (hover:hover) and (pointer:fine){
+    body.edge-bounce > header,
+    body.edge-bounce > .wrap,
+    body.edge-bounce > footer{
+      transform:translate3d(0,var(--edge-bounce-y,0px),0);
+      will-change:transform;
+    }
+    body.edge-bounce.edge-bounce-return > header,
+    body.edge-bounce.edge-bounce-return > .wrap,
+    body.edge-bounce.edge-bounce-return > footer{
+      transition:transform 220ms cubic-bezier(.2,.85,.25,1);
+    }
+  }
+  @media (prefers-reduced-motion:reduce){
+    body.edge-bounce > header,
+    body.edge-bounce > .wrap,
+    body.edge-bounce > footer{transform:none!important;transition:none!important}
+  }
+
 </style>
 </head>
 <body>
@@ -453,7 +473,7 @@ function initChartPanels(){
     };
   });
 }
-var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null, orclHistoryPayload=null;
+var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null, orclHistoryPayload=null, sentimentBackfillData=null;
 var hypeChart=null, magChart=null, ivChart=null, pieChart=null;
 var fxBars=[], orclMinuteBars=[], orclDailyBars=[];
 var liveMarket={orclUsd:null,eurusd:null,prevOrclUsd:null,prevEurusd:null,at:null,connected:false,lastRenderedEur:null};
@@ -483,7 +503,8 @@ function saveLocalSentimentPoint(p){
   }catch(e){}
 }
 function mergedSentimentHistory(serverRows){
-  var all=(serverRows||[]).concat(loadLocalSentimentHistory()),by={};
+  var backfill=(sentimentBackfillData&&Array.isArray(sentimentBackfillData.history))?sentimentBackfillData.history:[];
+  var all=backfill.concat(serverRows||[],loadLocalSentimentHistory()),by={};
   all.forEach(function(x){
     var t=new Date(x&&x.at||0).getTime();
     if(!isFinite(t)||t<=0)return;
@@ -779,9 +800,9 @@ function mixRgb(a,b,t){
 }
 function sentimentColor(v){
   v=Math.max(0,Math.min(100,Number(v)));
-  var red=[233,64,53],gray=[142,142,147],green=[93,203,91];
-  if(!isFinite(v))return 'rgb(142,142,147)';
-  return v<=50?mixRgb(red,gray,v/50):mixRgb(gray,green,(v-50)/50);
+  var red=[233,64,53],neutral=[21,21,23],green=[93,203,91];
+  if(!isFinite(v))return 'rgb(21,21,23)';
+  return v<=50?mixRgb(red,neutral,v/50):mixRgb(neutral,green,(v-50)/50);
 }
 function sentimentSegmentGradient(ctx){
   var y0=Number(ctx.p0&&ctx.p0.parsed&&ctx.p0.parsed.y),y1=Number(ctx.p1&&ctx.p1.parsed&&ctx.p1.parsed.y);
@@ -1312,7 +1333,8 @@ async function load(){
     var d=await fetchJson('eurusd-history.json',true);
     var m=await fetchJson('orcl-minute.json',true);
     var h=await fetchJson('orcl-history.json',true);
-    tickData=a; wlData=b; ivData=c; fxData=d||fxData; orclMinutePayload=m||orclMinutePayload; orclHistoryPayload=h||orclHistoryPayload;
+    var sb=await fetchJson('orcl-sentiment-history.json',true);
+    tickData=a; wlData=b; ivData=c; fxData=d||fxData; orclMinutePayload=m||orclMinutePayload; orclHistoryPayload=h||orclHistoryPayload; sentimentBackfillData=sb||sentimentBackfillData;
     fallbackMarket();
     syncRangeButtons();
     renderAll();
@@ -1445,6 +1467,39 @@ document.getElementById('shockNotify').onclick=async function(){
   try{localStorage.setItem(SHOCK_NOTIFY_LS,shockNotifyEnabled()?'0':'1');}catch(e){}
   setShockNotifyButton();
 };
+function initDesktopEdgeBounce(){
+  if(!window.matchMedia||!window.matchMedia('(hover:hover) and (pointer:fine)').matches)return;
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var body=document.body,offset=0,returnTimer=null,lastWheelAt=0;
+  body.classList.add('edge-bounce');
+  function apply(y,returning){
+    offset=y;
+    body.classList.toggle('edge-bounce-return',!!returning);
+    body.style.setProperty('--edge-bounce-y',y.toFixed(2)+'px');
+  }
+  function spring(){
+    clearTimeout(returnTimer);
+    body.classList.add('edge-bounce-return');
+    requestAnimationFrame(function(){apply(0,true);});
+    returnTimer=setTimeout(function(){body.classList.remove('edge-bounce-return');},240);
+  }
+  window.addEventListener('wheel',function(e){
+    var doc=document.documentElement,max=Math.max(0,doc.scrollHeight-window.innerHeight);
+    var y=window.scrollY||doc.scrollTop||0;
+    var atTop=y<=0.5,atBottom=y>=max-0.5;
+    var outward=(atTop&&e.deltaY<0)||(atBottom&&e.deltaY>0);
+    if(!outward){if(Math.abs(offset)>.1)spring();return;}
+    var now=performance.now(),dt=Math.max(8,Math.min(40,now-lastWheelAt||16));lastWheelAt=now;
+    var raw=Math.max(-70,Math.min(70,e.deltaY));
+    var impulse=-raw*0.055*(dt/16);
+    var next=Math.max(-12,Math.min(12,offset+impulse));
+    apply(next,false);
+    clearTimeout(returnTimer);
+    returnTimer=setTimeout(spring,55);
+  },{passive:true});
+}
+
+initDesktopEdgeBounce();
 initChartPanels();
 renderShockEvents(); setShockNotifyButton(); pollShock();
 renderMarketClock();
