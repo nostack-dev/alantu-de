@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 
 const FEATURE_VERSION='hdr-dt-v1';
+const ALLOWED_DATASETS=new Set(['MEMX.MEMOIR','XNAS.ITCH']);
 const BASE_FEATURE_NAMES=[
   'imbalance_l1','imbalance_l3','imbalance_l5','imbalance_l10',
   'microprice_bias','near_far_imbalance','depth_ratio_l5'
@@ -178,6 +179,7 @@ export function validateL2ModelContract(model){
   if(!model||model.status!=='validated')reasons.push('model_not_validated');
   if(model?.symbol!=='ORCL')reasons.push('wrong_symbol');
   if(model?.schema!=='mbp-10')reasons.push('wrong_schema');
+  if(!ALLOWED_DATASETS.has(model?.dataset))reasons.push('unsupported_dataset');
   if(model?.feature_version!==FEATURE_VERSION)reasons.push('wrong_feature_version');
   if(Number(model?.horizon_events)!==100)reasons.push('wrong_horizon');
   if(JSON.stringify(model?.feature_names)!==JSON.stringify(FEATURE_NAMES))reasons.push('wrong_features');
@@ -219,4 +221,4 @@ export function forecastL2Event(event,eventHistory,model){
   };
 }
 
-export {BASE_FEATURE_NAMES,FEATURE_NAMES,FEATURE_VERSION};
+export {BASE_FEATURE_NAMES,FEATURE_NAMES,FEATURE_VERSION,ALLOWED_DATASETS};
