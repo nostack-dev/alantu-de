@@ -281,7 +281,7 @@ jobs:
           grep -q 'class="flow-scale"' index.html
           grep -q 'class="flow-link-layer"' index.html
           grep -q "else if(counter)" index.html
-          grep -q "phase='KEIN SIGNAL'" index.html
+          grep -q "var phase='NEUTRAL / WARTEN'" index.html
           grep -q 'impulse.reliable' index.html
           grep -q "label='Welle baut sich auf'" index.html
           grep -q "label='Welle bestätigt'" index.html
