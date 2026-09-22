@@ -163,7 +163,8 @@ export function microstructureQuality(minutes, meta = {}) {
   const medianQuoteAge=median(quoteAges);
   const freshTradeQuoteShare=(freshQuoteTrades+staleQuoteTrades)>0?freshQuoteTrades/(freshQuoteTrades+staleQuoteTrades):0;
   const reasons=[];
-  if(rows.length<30)reasons.push('too_few_minutes');
+  const minMinutes=Math.max(1,Number(meta.minMinutes||30));
+  if(rows.length<minMinutes)reasons.push('too_few_minutes');
   if(trades<100)reasons.push('too_few_trades');
   if(!(volume>0))reasons.push('no_trade_volume');
   if(quoteCoverage<.8)reasons.push('low_quote_coverage');
