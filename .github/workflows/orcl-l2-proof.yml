@@ -22,7 +22,7 @@ on:
       dataset:
         description: "Depth dataset"
         required: true
-        default: "MEMX.MEMOIR"
+        default: "XNAS.ITCH"
         type: choice
         options:
           - MEMX.MEMOIR
@@ -68,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABENTO_API_KEY: ${{ secrets.DATABENTO_API_KEY }}
-      L2_DATASET: ${{ github.event_name == 'workflow_dispatch' && inputs.dataset || 'MEMX.MEMOIR' }}
+      L2_DATASET: ${{ github.event_name == 'workflow_dispatch' && inputs.dataset || 'XNAS.ITCH' }}
       L2_OUT_DIR: orcl-l2-days
       L2_COST_OUT: orcl-l2-cost.json
       L2_MAX_COST_USD: "125"
