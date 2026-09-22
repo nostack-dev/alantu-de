@@ -9,6 +9,7 @@ const KEY=process.env.APCA_API_KEY_ID||'',SECRET=process.env.APCA_API_SECRET_KEY
 const FEED=process.env.ALANTU_MARKET_FEED||'sip';
 const SYMBOLS=(process.env.MICRO_SYMBOLS||'ORCL').split(',').map(x=>x.trim().toUpperCase()).filter(Boolean);
 const EDGE_PATH=process.env.EDGE_STATUS_PATH||'/app/microstructure-edge-status.json';
+const EDGE_URL=process.env.EDGE_STATUS_URL||'https://www.alantu.de/microstructure-edge-status.json';
 const ALLOWED=new Set((process.env.ALLOWED_ORIGINS||'https://www.alantu.de,https://alantu.de').split(',').map(x=>x.trim()).filter(Boolean));
 const raw=Object.fromEntries(SYMBOLS.map(s=>[s,{trades:[],quotes:[]}]));
 const clients=new Set();
@@ -27,6 +28,10 @@ function prune(){
   }
 }
 async function loadEdge(){
+  try{
+    const r=await fetch(EDGE_URL,{cache:'no-store'});
+    if(r.ok){edgeModel=await r.json();return;}
+  }catch{}
   try{edgeModel=JSON.parse(await fs.readFile(EDGE_PATH,'utf8'));}catch{edgeModel=null;}
 }
 function snapshot(symbol){
