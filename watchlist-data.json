@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-22T13:22:27+02:00",
+  "updated_at": "2026-09-22T13:28:51+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,12 +9,12 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-22T13:22:27+02:00",
+        "at": "2026-09-22T13:28:51+02:00",
         "signal": "buy",
-        "social_impulse": 8,
-        "hype_bull": 52,
+        "social_impulse": 7,
+        "hype_bull": 48,
         "hype_bear": 13,
-        "hype_net": 39,
+        "hype_net": 35,
         "confidence": 78
       },
       "history": [
@@ -1106,6 +1106,20 @@
           "voice_bear": 2,
           "voice_mixed": 10,
           "price": 150.35
+        },
+        {
+          "at": "2026-09-22T13:28:51+02:00",
+          "hype_bull": 48,
+          "hype_bear": 13,
+          "hype_net": 35,
+          "social_impulse": 7,
+          "signal": "buy",
+          "confidence": 78,
+          "hype_mixed": 39,
+          "voice_bull": 9,
+          "voice_bear": 2,
+          "voice_mixed": 11,
+          "price": 151.3912
         }
       ],
       "voices_archive": [
@@ -1421,15 +1435,15 @@
         }
       ],
       "signal": "buy",
-      "social_impulse": 8,
-      "impulse": 8,
-      "hype_bull": 52,
+      "social_impulse": 7,
+      "impulse": 7,
+      "hype_bull": 48,
       "hype_bear": 13,
-      "hype_net": 39,
+      "hype_net": 35,
       "confidence": 78,
       "hype_state": "bullish",
-      "updated_at": "2026-09-22T13:22:27+02:00",
-      "why": "Reddit 78% positiv bei 11 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $150.35.",
+      "updated_at": "2026-09-22T13:28:51+02:00",
+      "why": "Reddit 78% positiv bei 11 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $151.39.",
       "evidence": {
         "x_posts": 0,
         "reddit_posts": 11,
@@ -1442,14 +1456,14 @@
         ]
       },
       "voices": {
-        "bull": 10,
+        "bull": 9,
         "bear": 2,
-        "mixed": 10,
-        "updated_at": "2026-09-22T13:22:27+02:00"
+        "mixed": 11,
+        "updated_at": "2026-09-22T13:28:51+02:00"
       },
-      "hype_mixed": 35,
+      "hype_mixed": 39,
       "sentiment_unit": "percent_all_classified",
-      "price": 150.35
+      "price": 151.3912
     }
   }
 }
