@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-22T15:59:57+02:00",
+  "updated_at": "2026-09-22T16:03:38+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,12 +9,12 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-22T15:59:57+02:00",
+        "at": "2026-09-22T16:03:38+02:00",
         "signal": "buy",
-        "social_impulse": 5,
-        "hype_bull": 44,
-        "hype_bear": 19,
-        "hype_net": 25,
+        "social_impulse": 7,
+        "hype_bull": 51,
+        "hype_bear": 15,
+        "hype_net": 36,
         "confidence": 79
       },
       "history": [
@@ -1680,6 +1680,20 @@
           "voice_bear": 3,
           "voice_mixed": 11,
           "price": 151.61000061035156
+        },
+        {
+          "at": "2026-09-22T16:03:38+02:00",
+          "hype_bull": 51,
+          "hype_bear": 15,
+          "hype_net": 36,
+          "social_impulse": 7,
+          "signal": "buy",
+          "confidence": 79,
+          "hype_mixed": 34,
+          "voice_bull": 10,
+          "voice_bear": 2,
+          "voice_mixed": 10,
+          "price": 150.8000030517578
         }
       ],
       "voices_archive": [
@@ -1995,35 +2009,35 @@
         }
       ],
       "signal": "buy",
-      "social_impulse": 5,
-      "impulse": 5,
-      "hype_bull": 44,
-      "hype_bear": 19,
-      "hype_net": 25,
+      "social_impulse": 7,
+      "impulse": 7,
+      "hype_bull": 51,
+      "hype_bear": 15,
+      "hype_net": 36,
       "confidence": 79,
       "hype_state": "bullish",
-      "updated_at": "2026-09-22T15:59:57+02:00",
-      "why": "Reddit 70% positiv bei 13 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $151.61.",
+      "updated_at": "2026-09-22T16:03:38+02:00",
+      "why": "Reddit 70% positiv bei 13 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $150.80.",
       "evidence": {
         "x_posts": 0,
         "reddit_posts": 13,
         "news": 20,
         "snippets": [
           "ApeWisdom: 13 Mentions/24h, Sentiment 70%",
+          "ORCL Stock Snaps 3-Day Losing Streak: What’s Making Retail Traders ‘Extremely Bullish’?",
           "Jim Cramer sends strong signal to Oracle stock investors",
-          "Prediction: Oracle Could Have 50% Upside From Here",
-          "Oracle's health data includes more than 122 million de-identified patient records."
+          "Prediction: Oracle Could Have 50% Upside From Here"
         ]
       },
       "voices": {
-        "bull": 8,
-        "bear": 3,
-        "mixed": 11,
-        "updated_at": "2026-09-22T15:59:57+02:00"
+        "bull": 10,
+        "bear": 2,
+        "mixed": 10,
+        "updated_at": "2026-09-22T16:03:38+02:00"
       },
-      "hype_mixed": 37,
+      "hype_mixed": 34,
       "sentiment_unit": "percent_all_classified",
-      "price": 151.61000061035156
+      "price": 150.8000030517578
     }
   }
 }
