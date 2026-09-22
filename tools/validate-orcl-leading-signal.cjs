@@ -91,8 +91,41 @@ function signalAt(hist,b,bench,base,thr){
 function future(dayBars,t,h){const target=t+h*60000;for(const b of dayBars)if(b.t>=target)return b.t-target<=8*60000?b:null;return null;}
 function wilson(k,n){if(!n)return [null,null];const z=1.96,p=k/n,d=1+z*z/n,c=(p+z*z/(2*n))/d,m=z*Math.sqrt((p*(1-p)+z*z/(4*n))/n)/d;return [c-m,c+m];}
 function stats(events,sess,h){const vals=[];for(const e of events){const f=future(sess[e.day],e.t,h);if(f)vals.push(e.dir*(f.close/e.price-1));}const n=vals.length,k=vals.filter(x=>x>0).length,ci=wilson(k,n);return {n,hit:n?k/n:null,hit95:ci,mean:n?vals.reduce((a,b)=>a+b,0)/n:null,median:n?[...vals].sort((a,b)=>a-b)[Math.floor(n/2)]:null};}
-function eventsFor(sess,benchByDay,days,baseline,thr){
-  const out=[];for(const day of days){const a=sess[day]||[],bench={QQQ:benchByDay.QQQ[day]||[],IGV:benchByDay.IGV[day]||[]};let prev=0,last=0;for(let i=0;i<a.length;i++){const h=a.slice(0,i+1),b=a[i];if(h.length<24)continue;const s=signalAt(h,b,bench,baseline,thr),dir=s?.dir||0;if(dir&&dir!==prev&&b.t-last>=30*60000){out.push({day,t:b.t,price:b.close,dir,...s});last=b.t;}prev=dir;}}return out;
+function featureRowsFor(sess,benchByDay,days,baseline){
+  const out={};
+  for(const day of days){
+    const a=sess[day]||[],bench={QQQ:benchByDay.QQQ[day]||[],IGV:benchByDay.IGV[day]||[]},rows=[];
+    for(let i=0;i<a.length;i++){
+      const h=a.slice(0,i+1),b=a[i];if(h.length<24)continue;
+      const p=priceWave(h),v=volumeState(h),imp=rawImpulse(p,v);
+      if(!imp.reliable||p.dir||!p.short)continue;
+      const noise=recentNoise(h);if(!(noise>0))continue;
+      const snr=Math.abs(p.short.net)/(noise*Math.sqrt(Math.max(1,p.short.count-1)));
+      const pressureDelta=v.short&&v.long?Math.abs(v.short.pressure-v.long.pressure):0;
+      const rv=rvolAt(b,baseline);
+      const past=h.findLast(x=>x.t<=b.t-15*60000),r15=past&&past.close>0?Math.log(b.close/past.close):null;
+      const q15=logReturnTo(bench.QQQ,b.t,15),i15=logReturnTo(bench.IGV,b.t,15);
+      if(!Number.isFinite(q15)||!Number.isFinite(i15)||!Number.isFinite(rv)||!Number.isFinite(r15))continue;
+      const rs=imp.dir*(r15-(.5*q15+.5*i15)),dirOk=imp.dir*Math.sign(p.short.net||0)>0;
+      if(!dirOk)continue;
+      rows.push({day,t:b.t,price:b.close,dir:imp.dir,snr,pressureDelta,rvol:rv,rs,pi:Math.abs(imp.pv)});
+    }
+    out[day]=rows;
+  }
+  return out;
+}
+function eventsFromFeatures(features,days,thr){
+  const out=[];
+  for(const day of days){
+    const rows=features[day]||[];let prev=0,last=0;
+    for(const r of rows){
+      const ok=r.snr>=thr.snr&&r.pressureDelta>=thr.pd&&r.rvol>=thr.rvol&&r.rs>=thr.rs&&r.pi>=thr.pi;
+      const dir=ok?r.dir:0;
+      if(dir&&dir!==prev&&r.t-last>=30*60000){out.push(r);last=r.t;}
+      prev=dir;
+    }
+  }
+  return out;
 }
 function summary(e,sess){return {events:e.length,eventDays:new Set(e.map(x=>x.day)).size,m15:stats(e,sess,15),m30:stats(e,sess,30),m60:stats(e,sess,60)};}
 function trainScore(s){
@@ -105,15 +138,15 @@ function trainScore(s){
   const sess=Object.fromEntries(SYMBOLS.map(s=>[s,sessions(bars[s])]));
   const days=Object.keys(sess.ORCL).filter(d=>sess.QQQ[d]?.length&&sess.IGV[d]?.length).sort();
   const cut=Math.floor(days.length*2/3),train=days.slice(0,cut),test=days.slice(cut),baseline=buildRvolBaseline(sess.ORCL,train);
-  const grid=[];
+  const features=featureRowsFor(sess.ORCL,{QQQ:sess.QQQ,IGV:sess.IGV},days,baseline),grid=[];
   for(const snr of [.7,.9,1.1,1.3])for(const pd of [.05,.08,.12,.16])for(const rvol of [.9,1.1,1.3,1.6])for(const rs of [0,.0004,.0008,.0012])for(const pi of [.12,.2,.3]){
-    const thr={snr,pd,rvol,rs,pi},ev=eventsFor(sess.ORCL,{QQQ:sess.QQQ,IGV:sess.IGV},train,baseline,thr),sm=summary(ev,sess.ORCL),score=trainScore(sm);
+    const thr={snr,pd,rvol,rs,pi},ev=eventsFromFeatures(features,train,thr),sm=summary(ev,sess.ORCL),score=trainScore(sm);
     if(Number.isFinite(score))grid.push({thr,sm,score});
   }
   grid.sort((a,b)=>b.score-a.score);
   const best=grid[0];if(!best)throw new Error('No train candidate met minimum sample');
-  const testEvents=eventsFor(sess.ORCL,{QQQ:sess.QQQ,IGV:sess.IGV},test,baseline,best.thr),testSm=summary(testEvents,sess.ORCL);
-  const thirds=[test.slice(0,Math.floor(test.length/2)),test.slice(Math.floor(test.length/2))].map(ds=>summary(eventsFor(sess.ORCL,{QQQ:sess.QQQ,IGV:sess.IGV},ds,baseline,best.thr),sess.ORCL));
-  const out={bars:Object.fromEntries(SYMBOLS.map(s=>[s,bars[s].length])),days:days.length,trainDays:train.length,testDays:test.length,bestTrain:{thresholds:best.thr,summary:best.sm},heldOut:testSm,heldOutHalves:thirds,top5:grid.slice(0,5).map(x=>({thresholds:x.thr,summary:x.sm,score:x.score}))};
+  const testEvents=eventsFromFeatures(features,test,best.thr),testSm=summary(testEvents,sess.ORCL);
+  const halves=[test.slice(0,Math.floor(test.length/2)),test.slice(Math.floor(test.length/2))].map(ds=>summary(eventsFromFeatures(features,ds,best.thr),sess.ORCL));
+  const out={bars:Object.fromEntries(SYMBOLS.map(s=>[s,bars[s].length])),days:days.length,trainDays:train.length,testDays:test.length,bestTrain:{thresholds:best.thr,summary:best.sm},heldOut:testSm,heldOutHalves:halves,top5:grid.slice(0,5).map(x=>({thresholds:x.thr,summary:x.sm,score:x.score}))};
   console.log('SIGNAL_VALIDATION_JSON '+JSON.stringify(out));
 })().catch(e=>{console.error(e);process.exit(1);});
