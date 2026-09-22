@@ -174,12 +174,17 @@ jobs:
             exit 1
           fi
 
-          bsky='https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=%24ORCL&sort=latest&limit=10'
-          if ! cors_ok "$bsky" /tmp/bluesky || ! jq -e '(.posts // []) | type=="array"' /tmp/bluesky.body >/dev/null; then
-            echo 'Bluesky browser CORS/social endpoint unavailable' >&2
+          ugc1='https://api.tickertick.com/feed?q=%28and%20tt%3Aorcl%20T%3Augc%29&n=200'
+          ugc2='https://api.tickertick.com/feed?q=%28and%20E%3Aoracle%20T%3Augc%29&n=200'
+          if ! cors_ok "$ugc1" /tmp/ugc1 || ! jq -e '(.stories // []) | type=="array"' /tmp/ugc1.body >/dev/null; then
+            echo 'TickerTick ORCL UGC browser CORS unavailable' >&2
             exit 1
           fi
-          echo 'Bluesky browser CORS: OK'
+          if ! cors_ok "$ugc2" /tmp/ugc2 || ! jq -e '(.stories // []) | type=="array"' /tmp/ugc2.body >/dev/null; then
+            echo 'TickerTick Oracle Entity UGC browser CORS unavailable' >&2
+            exit 1
+          fi
+          echo "TickerTick social browser CORS: OK · ORCL $(jq '(.stories // [])|length' /tmp/ugc1.body) · entity $(jq '(.stories // [])|length' /tmp/ugc2.body)"
 
       - name: Fail-closed validation
         shell: bash
@@ -198,8 +203,10 @@ jobs:
           grep -q 'refreshFreshSignals' index.html
           grep -q 'lastBrowserSyncAt=s.at' index.html
           grep -q 'TickerTick UGC' index.html
-          grep -q 'public.api.bsky.app/xrpc/app.bsky.feed.searchPosts' index.html
+          grep -q "T:ugc)',200" index.html
+          grep -q "E:oracle T:ugc" index.html
           grep -q 'minSocial=50' index.html
+          ! grep -q 'public.api.bsky.app' index.html
           grep -q 'id="intrinsicToggle"' index.html
           grep -q "ivChart.update('none')" index.html
           ! grep -q 'hypeChart.destroy' index.html
