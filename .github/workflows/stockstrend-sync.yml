@@ -226,6 +226,11 @@ jobs:
           grep -q 'function runHdrFreshAsync' index.html
           grep -q 'function microstructureShadowUsable' index.html
           grep -q 'function validatedMicrostructureSignal' index.html
+          grep -q 'function connectMicrostructureRelay' index.html
+          grep -q "fetchJson('microstructure-live-config.json',true)" index.html
+          grep -q "cfg.transport!=='sse'" index.html
+          grep -q "typeof EventSource==='undefined'" index.html
+          grep -q 'streamer.finance.yahoo.com' index.html
           grep -q "fetchJson('microstructure-edge-status.json',true)" index.html
           grep -q "phase='SIP EDGE'" index.html
           grep -q 'd.edge_model_id!==e.model_id' index.html
