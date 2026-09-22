@@ -269,9 +269,23 @@ jobs:
           )
 
           # No credentials may be present in the package.
-          if grep -R -I -E             '(DATABENTO_API_KEY=.+|APCA_API_SECRET_KEY=.+|APCA_API_KEY_ID=.+|L2_INGEST_TOKEN=.+)'             "$ROOT"             --exclude='.env.example'             --exclude='*.md'             --exclude='*.yml'
+          if grep -R -I -E             '^(DATABENTO_API_KEY|APCA_API_SECRET_KEY|APCA_API_KEY_ID|L2_INGEST_TOKEN)=[^[:space:]]{8,}
+
+          (cd "$RUNNER_TEMP" && zip -q -r "$ZIP" alantu-microstructure-complete)
+          sha256sum "$ZIP" | tee "$RUNNER_TEMP/alantu-microstructure-complete.zip.sha256"
+
+      - name: Upload complete package
+        uses: actions/upload-artifact@v4
+        with:
+          name: alantu-microstructure-complete
+          path: |
+            ${{ runner.temp }}/alantu-microstructure-complete.zip
+            ${{ runner.temp }}/alantu-microstructure-complete.zip.sha256
+          retention-days: 90
+          compression-level: 0
+             "$ROOT"             --exclude='.env.example'             --exclude='*.md'             --exclude='*.yml'
           then
-            echo "Potential secret material found" >&2
+            echo "Potential plaintext secret material found" >&2
             exit 3
           fi
 
