@@ -50,7 +50,7 @@ jobs:
 
       - name: Mirror exact Stockstrend UI source
         env:
-          UPSTREAM_SHA: ${{ steps.upstream.outputs.sha }}
+          UPSTREAM_SHA: \${{ steps.upstream.outputs.sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -68,20 +68,17 @@ jobs:
           get intrinsic-orcl.json intrinsic-orcl.json
           printf '%s\n' "$UPSTREAM_SHA" > .stockstrend-source-sha
 
-      - name: Prefer raw main runtime data with local fallback
+      - name: Prefer raw main fallback snapshot
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          for name in ("index.html","stockstrend.html"):
-              p=Path(name)
-              s=p.read_text()
-              old="""async function fetchJson(url,optional){
+          old="""async function fetchJson(url,optional){
             try{var r=await fetch(url+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json();}
             catch(e){if(optional)return null;throw e;}
           }"""
-              new="""async function fetchJson(url,optional){
+          new="""async function fetchJson(url,optional){
             var remote='https://raw.githubusercontent.com/nostack-dev/alantu-de/main/'+url+'?t='+Date.now();
             var local=url+'?t='+Date.now();
             var candidates=[remote,local];
@@ -96,6 +93,9 @@ jobs:
             if(optional)return null;
             throw lastErr||new Error('Daten nicht verfügbar');
           }"""
+          for name in ("index.html","stockstrend.html"):
+              p=Path(name)
+              s=p.read_text()
               if old not in s:
                   raise SystemExit(f"fetchJson contract not found in {name}")
               p.write_text(s.replace(old,new))
@@ -125,7 +125,7 @@ jobs:
             'https://query2.finance.yahoo.com/v8/finance/chart/EURUSD=X?range=10y&interval=1d&includePrePost=false&events=div%2Csplits' \
             eurusd-history.json
 
-      - name: Build fresh runtime signal snapshot
+      - name: Build fresh fallback signal snapshot
         shell: bash
         run: |
           set -euo pipefail
@@ -141,118 +141,9 @@ jobs:
             local url="$1" out="$2"
             curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 \
               -H 'Origin: https://www.alantu.de' \
-              -D "$out.headers" "$url" -o "$out.body" || return 1
-            grep -Eiq '^access-control-allow-origin:[[:space:]]*(\*|https://www\.alantu\.de)[[:space:]]*
-          set -euo pipefail
-
-          grep -q 'id="livePrice"' index.html
-          grep -q 'id="marketClock"' index.html
-          grep -q 'id="syncFooter"' index.html
-          grep -q 'raw.githubusercontent.com/nostack-dev/alantu-de/main/' index.html
-          grep -q "fetchJson('stockstrend-data.json'" index.html
-          grep -q "fetchJson('watchlist-data.json'" index.html
-          grep -q "fetchJson('intrinsic-orcl.json'" index.html
-          grep -q "fetchJson('eurusd-history.json'" index.html
-          cmp -s index.html stockstrend.html
-
-          node --check market-clock-core.js
-          node --check price-shock-core.js
-
-          grep -q "fetchTickerTick" index.html
-          grep -q "refreshFreshSignals" index.html
-          grep -q "lastBrowserSyncAt=s.at" index.html
-          grep -q "TickerTick UGC" index.html
-
-          python3 - <<'PY'
-          import re
-          from pathlib import Path
-          html=Path('index.html').read_text()
-          scripts=re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>([\\s\\S]*?)</script>',html,re.I)
-          if not scripts:
-              raise SystemExit('no inline script found')
-          Path('/tmp/stockstrend-inline.js').write_text('\n;\n'.join(scripts))
-          PY
-          node --check /tmp/stockstrend-inline.js
-
-          node - <<'NODE'
-          const fs = require('fs');
-          const names = [
-            'stockstrend-data.json',
-            'watchlist-data.json',
-            'watchlist.json',
-            'intrinsic-orcl.json',
-            'orcl-minute.json',
-            'eurusd-history.json',
-            'runtime-status.json'
-          ];
-          const data = Object.fromEntries(names.map(n => [n, JSON.parse(fs.readFileSync(n, 'utf8'))]));
-
-          const watch = data['watchlist-data.json'];
-          if (!watch?.stocks?.ORCL) throw new Error('watchlist-data: ORCL missing');
-          const trend = data['stockstrend-data.json'];
-          const status = data['runtime-status.json'];
-          const fresh = Date.parse(status?.updated_at || '');
-          if (!Number.isFinite(fresh)) throw new Error('runtime-status timestamp invalid');
-          const ageMs = Date.now() - fresh;
-          if (ageMs < -5*60*1000 || ageMs > 15*60*1000) {
-            throw new Error('runtime snapshot not fresh: ageMs='+ageMs);
-          }
-          if (watch.updated_at !== status.updated_at) throw new Error('watchlist/runtime timestamp mismatch');
-          if (trend?.tick?.freshness?.freshest_absolute !== status.updated_at) throw new Error('trend/runtime freshness mismatch');
-          if (!Number.isFinite(Number(watch?.stocks?.ORCL?.price)) || Number(watch.stocks.ORCL.price)<=0) throw new Error('ORCL runtime price invalid');
-
-          const minute = data['orcl-minute.json'];
-          const mr = minute?.chart?.result?.[0];
-          const mts = mr?.timestamp || [];
-          const mq = mr?.indicators?.quote?.[0] || {};
-          const mgood = mts.filter((_, i) => Number.isFinite(Number(mq.close?.[i])) && Number(mq.close[i]) > 0);
-          if (minute?.chart?.error || mgood.length < 25) throw new Error('ORCL minute feed invalid/fewer than 25 valid bars');
-
-          const fx = data['eurusd-history.json'];
-          const fr = fx?.chart?.result?.[0];
-          const fts = fr?.timestamp || [];
-          const fq = fr?.indicators?.quote?.[0] || {};
-          const fgood = fts.filter((_, i) => Number.isFinite(Number(fq.close?.[i])) && Number(fq.close[i]) > 0);
-          if (fx?.chart?.error || fgood.length < 500) throw new Error('EURUSD history invalid/fewer than 500 valid bars');
-
-          const iv = data['intrinsic-orcl.json'];
-          if (iv?.symbol !== 'ORCL' || !iv?.latest) throw new Error('intrinsic-orcl invalid');
-          console.log('Stockstrend runtime validation OK', {
-            updatedAt: status.updated_at,
-            signal: status.derived?.signal,
-            reddit: status.sources?.reddit,
-            news: status.sources?.news,
-            minuteBars: mgood.length,
-            fxBars: fgood.length
-          });
-          NODE
-
-      - name: Commit only complete validated snapshot
-        env:
-          UPSTREAM_SHA: ${{ steps.upstream.outputs.sha }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          git add index.html stockstrend.html market-clock-core.js price-shock-core.js \
-            stockstrend-data.json watchlist-data.json watchlist.json intrinsic-orcl.json \
-            orcl-minute.json eurusd-history.json runtime-status.json .stockstrend-source-sha
-
-          if git diff --cached --quiet; then
-            echo "Already current."
-            exit 0
-          fi
-
-          git fetch origin main
-          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
-            echo "main advanced during this run; refusing to overwrite newer state"
-            exit 0
-          fi
-
-          git config user.name "stockstrend-runtime"
-          git config user.email "stockstrend-runtime@users.noreply.github.com"
-          git commit -m "Refresh Stockstrend runtime data ${UPSTREAM_SHA:0:12}"
-          git push origin HEAD:main
- "$out.headers"
+              -D "\${out}.headers" "$url" -o "\${out}.body" || return 1
+            tr -d '\r' < "\${out}.headers" | \
+              grep -Eiq '^access-control-allow-origin:[[:space:]]*(\*|https://www\.alantu\.de)[[:space:]]*$'
           }
 
           primary=0
@@ -261,11 +152,12 @@ jobs:
             echo 'TickerTick browser CORS: OK'
             primary=1
           else
-            echo 'TickerTick browser CORS unavailable; checking documented browser fallback'
+            echo 'TickerTick browser CORS unavailable; testing RSS fallback'
           fi
 
           feed='https://news.google.com/rss/search?q=Oracle%20ORCL%20stock%20when%3A1d&hl=en-US&gl=US&ceid=US%3Aen'
-          rss="https://api.rss2json.com/v1/api.json?rss_url=$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=""))' "$feed")"
+          encoded="$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=""))' "$feed")"
+          rss="https://api.rss2json.com/v1/api.json?rss_url=$encoded"
           fallback=0
           if cors_ok "$rss" /tmp/rss2json && jq -e '.status=="ok" and ((.items // []) | length > 0)' /tmp/rss2json.body >/dev/null; then
             echo 'RSS2JSON browser CORS fallback: OK'
@@ -290,21 +182,20 @@ jobs:
           grep -q "fetchJson('watchlist-data.json'" index.html
           grep -q "fetchJson('intrinsic-orcl.json'" index.html
           grep -q "fetchJson('eurusd-history.json'" index.html
+          grep -q 'fetchTickerTick' index.html
+          grep -q 'refreshFreshSignals' index.html
+          grep -q 'lastBrowserSyncAt=s.at' index.html
+          grep -q 'TickerTick UGC' index.html
           cmp -s index.html stockstrend.html
 
           node --check market-clock-core.js
           node --check price-shock-core.js
 
-          grep -q "fetchTickerTick" index.html
-          grep -q "refreshFreshSignals" index.html
-          grep -q "lastBrowserSyncAt=s.at" index.html
-          grep -q "TickerTick UGC" index.html
-
           python3 - <<'PY'
           import re
           from pathlib import Path
           html=Path('index.html').read_text()
-          scripts=re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>([\\s\\S]*?)</script>',html,re.I)
+          scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',html,re.I)
           if not scripts:
               raise SystemExit('no inline script found')
           Path('/tmp/stockstrend-inline.js').write_text('\n;\n'.join(scripts))
@@ -325,9 +216,10 @@ jobs:
           const data = Object.fromEntries(names.map(n => [n, JSON.parse(fs.readFileSync(n, 'utf8'))]));
 
           const watch = data['watchlist-data.json'];
-          if (!watch?.stocks?.ORCL) throw new Error('watchlist-data: ORCL missing');
           const trend = data['stockstrend-data.json'];
           const status = data['runtime-status.json'];
+          if (!watch?.stocks?.ORCL) throw new Error('watchlist-data: ORCL missing');
+
           const fresh = Date.parse(status?.updated_at || '');
           if (!Number.isFinite(fresh)) throw new Error('runtime-status timestamp invalid');
           const ageMs = Date.now() - fresh;
@@ -336,25 +228,32 @@ jobs:
           }
           if (watch.updated_at !== status.updated_at) throw new Error('watchlist/runtime timestamp mismatch');
           if (trend?.tick?.freshness?.freshest_absolute !== status.updated_at) throw new Error('trend/runtime freshness mismatch');
-          if (!Number.isFinite(Number(watch?.stocks?.ORCL?.price)) || Number(watch.stocks.ORCL.price)<=0) throw new Error('ORCL runtime price invalid');
+          if (!Number.isFinite(Number(watch?.stocks?.ORCL?.price)) || Number(watch.stocks.ORCL.price)<=0) {
+            throw new Error('ORCL runtime price invalid');
+          }
 
           const minute = data['orcl-minute.json'];
           const mr = minute?.chart?.result?.[0];
           const mts = mr?.timestamp || [];
           const mq = mr?.indicators?.quote?.[0] || {};
           const mgood = mts.filter((_, i) => Number.isFinite(Number(mq.close?.[i])) && Number(mq.close[i]) > 0);
-          if (minute?.chart?.error || mgood.length < 25) throw new Error('ORCL minute feed invalid/fewer than 25 valid bars');
+          if (minute?.chart?.error || mgood.length < 25) {
+            throw new Error('ORCL minute feed invalid/fewer than 25 valid bars');
+          }
 
           const fx = data['eurusd-history.json'];
           const fr = fx?.chart?.result?.[0];
           const fts = fr?.timestamp || [];
           const fq = fr?.indicators?.quote?.[0] || {};
           const fgood = fts.filter((_, i) => Number.isFinite(Number(fq.close?.[i])) && Number(fq.close[i]) > 0);
-          if (fx?.chart?.error || fgood.length < 500) throw new Error('EURUSD history invalid/fewer than 500 valid bars');
+          if (fx?.chart?.error || fgood.length < 500) {
+            throw new Error('EURUSD history invalid/fewer than 500 valid bars');
+          }
 
           const iv = data['intrinsic-orcl.json'];
           if (iv?.symbol !== 'ORCL' || !iv?.latest) throw new Error('intrinsic-orcl invalid');
-          console.log('Stockstrend runtime validation OK', {
+
+          console.log('Stockstrend validation OK', {
             updatedAt: status.updated_at,
             signal: status.derived?.signal,
             reddit: status.sources?.reddit,
@@ -364,9 +263,9 @@ jobs:
           });
           NODE
 
-      - name: Commit only complete validated snapshot
+      - name: Commit only complete validated fallback snapshot
         env:
-          UPSTREAM_SHA: ${{ steps.upstream.outputs.sha }}
+          UPSTREAM_SHA: \${{ steps.upstream.outputs.sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -387,5 +286,5 @@ jobs:
 
           git config user.name "stockstrend-runtime"
           git config user.email "stockstrend-runtime@users.noreply.github.com"
-          git commit -m "Refresh Stockstrend runtime data ${UPSTREAM_SHA:0:12}"
+          git commit -m "Refresh Stockstrend runtime data \${UPSTREAM_SHA:0:12}"
           git push origin HEAD:main
