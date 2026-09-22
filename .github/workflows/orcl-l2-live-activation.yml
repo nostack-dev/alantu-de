@@ -39,7 +39,7 @@ jobs:
 
           if [ "$model_status" = "validated" ] && [ -n "$model_id" ]; then
             reason="relay_unreachable"
-            if curl -fsS --connect-timeout 3 --max-time 8 https://market.alantu.de/health -o /tmp/relay-health.json; then
+            if curl -fsS --connect-timeout 3 --max-time 8 https://alantu-market-production.up.railway.app/health -o /tmp/relay-health.json; then
               if jq -e                 --arg id "$model_id"                 --arg dataset "$dataset"                 '.ok==true
                  and .l2.configured==true
                  and .l2.model_status=="validated"
@@ -55,7 +55,7 @@ jobs:
           fi
 
           jq             --argjson enabled "$desired"             --arg reason "$reason"             --arg model_id "$model_id"             --arg dataset "$dataset"             '.enabled=$enabled
-             | .endpoint="https://market.alantu.de/v1/stream?symbol=ORCL"
+             | .endpoint="https://alantu-market-production.up.railway.app/v1/stream?symbol=ORCL"
              | .transport="sse"
              | .provider="databento"
              | .feed="mbp-10"
