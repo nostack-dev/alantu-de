@@ -85,6 +85,7 @@ early_signal = |net| ≥ 12</div>
 <h2>2 · Last-Known-Good-Fallback</h2>
 <p>Falls Browser-Livequellen nicht erreichbar sind, bleibt der letzte validierte Snapshot sichtbar. Er wird nicht als erfolgreicher manueller Sync ausgegeben.</p>
 <div id="fallbackStatus" class="grid"></div>
+<details><summary>Aktueller Fallback-Datensatz (raw)</summary><pre class="formula" id="fallbackRaw">lädt …</pre></details>
 <h3>Fallback-Quellen</h3>
 <ul>
 <li><b>Public Reddit:</b> ApeWisdom ORCL-Seite, bei Bedarf deren API. Verwendet werden Mentions/24h, Sentiment und Upvotes, sofern vorhanden.</li>
@@ -205,7 +206,28 @@ async function ticker(q,n){
   const u='https://api.tickertick.com/feed?q='+encodeURIComponent(q)+'&n='+n+'&_='+Date.now();
   const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error('TickerTick HTTP '+r.status);
   const j=await r.json(),cut=Date.now()-36*3600e3;
-  return (j.stories||[]).map(x=>({title:String(x.title||''),url:String(x.url||''),site:String(x.site||''),time:Number(x.time)})).filter(x=>x.title&&x.time>=cut)
+  const rows=(j.stories||[]).map(x=>({title:String(x.title||''),url:String(x.url||''),site:String(x.site||''),time:Number(x.time)})).filter(x=>x.title&&x.time>=cut);
+  if(!rows.length)throw new Error('TickerTick ohne frische Treffer');
+  return rows
+}
+async function googleFallback(q){
+  const feed='https://news.google.com/rss/search?q='+encodeURIComponent(q+' when:1d')+'&hl=en-US&gl=US&ceid=US:en';
+  const u='https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(feed)+'&_='+Date.now();
+  const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error('RSS-Fallback HTTP '+r.status);
+  const j=await r.json(),cut=Date.now()-36*3600e3;
+  if(!j||j.status!=='ok'||!Array.isArray(j.items))throw new Error('RSS-Fallback ungültig');
+  const rows=j.items.map(x=>({title:String(x.title||''),url:String(x.link||''),site:'Google News RSS',time:Date.parse(x.pubDate||'')})).filter(x=>x.title&&isFinite(x.time)&&x.time>=cut);
+  if(!rows.length)throw new Error('RSS-Fallback ohne frische Treffer');
+  return rows
+}
+async function exactLiveSources(){
+  let news,social;const providers=[];
+  try{news=await ticker('(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))',40);providers.push('TickerTick News')}
+  catch(e){news=await googleFallback('Oracle ORCL stock');providers.push('Google News RSS')}
+  try{social=await ticker('(and tt:orcl T:ugc)',30);providers.push('TickerTick UGC')}
+  catch(e){try{social=await googleFallback('site:reddit.com Oracle ORCL stock');providers.push('Google News Reddit-Fallback')}catch(_e){social=[]}}
+  if((!news||news.length<3)&&(!social||social.length<1))throw new Error('Keine belastbaren frischen Signalquellen');
+  return {news:news||[],social:social||[],providers}
 }
 function liveCalc(news,social){
   const v={bull:0,bear:0,mixed:0};
@@ -223,12 +245,9 @@ function storyHtml(x,type){
 async function renderLive(){
   const stat=document.getElementById('liveStatus'),stories=document.getElementById('liveStories'),k=document.getElementById('liveKpis');
   try{
-    const [news,social]=await Promise.all([
-      ticker('(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))',40),
-      ticker('(and tt:orcl T:ugc)',30)
-    ]);
+    const src=await exactLiveSources(),news=src.news,social=src.social;
     const x=liveCalc(news,social);
-    stat.innerHTML='<span class="status ok">live erfolgreich</span> · exakt jetzt geladene TickerTick-Datensätze';
+    stat.innerHTML='<span class="status ok">live erfolgreich</span> · exakt jetzt geladene Datensätze · '+esc(src.providers.join(' + '));
     k.innerHTML='<div class="kpi"><span>News</span><b>'+news.length+'</b></div><div class="kpi"><span>UGC/Social</span><b>'+social.length+'</b></div><div class="kpi"><span>Ergebnis</span><b>'+x.signal+' · '+x.net+'</b><small>'+x.bull+'% bull / '+x.bear+'% bear / '+x.mixed+'% mixed · Sicherheit '+x.confidence+'</small></div>';
     stories.innerHTML='<h3>News-Datensätze</h3>'+news.map(x=>storyHtml(x,'News')).join('')+'<h3>UGC/Social-Datensätze</h3>'+social.map(x=>storyHtml(x,'UGC')).join('');
   }catch(e){
@@ -272,7 +291,8 @@ function renderIntrinsic(j){
 }
 async function renderFallback(){
   const [status,trend]=await Promise.all([getJson('runtime-status.json',true),getJson('stockstrend-data.json',true)]);
-  const el=document.getElementById('fallbackStatus');
+  const el=document.getElementById('fallbackStatus'),raw=document.getElementById('fallbackRaw');
+  if(raw)raw.textContent=JSON.stringify({runtime_status:status,trend_sources:trend?.tick?.sources||null,trend_freshness:trend?.tick?.freshness||null},null,2);
   if(status){
     el.innerHTML='<div class="kpi"><span>Snapshot</span><b>'+esc(new Date(status.updated_at).toLocaleString('de-DE',{timeZone:'Europe/Berlin'}))+'</b></div>'+
       '<div class="kpi"><span>Reddit</span><b>'+esc(status.sources?.reddit?.mentions??'—')+'</b><small>'+esc(status.sources?.reddit?.sentiment??'—')+'% · '+esc(status.sources?.reddit?.provider||'')+'</small></div>'+
