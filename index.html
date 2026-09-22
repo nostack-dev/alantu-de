@@ -1407,7 +1407,7 @@ function connectMicrostructureRelay(){
   es.addEventListener('l2',function(ev){
     try{
       var d=JSON.parse(ev.data||'{}'),l2=d&&d.l2;
-      if(d&&d.symbol==='ORCL'&&l2&&l2.provider==='databento'&&l2.dataset==='XNAS.ITCH'&&l2.schema==='mbp-10'){
+      if(d&&d.symbol==='ORCL'&&l2&&l2.provider==='databento'&&['MEMX.MEMOIR','XNAS.ITCH'].indexOf(l2.dataset)>=0&&l2.schema==='mbp-10'){
         microstructureData=Object.assign({},microstructureData||{},{l2:l2});
         lastFlowRenderAt=0;
         try{renderMarketFlowVisual(getMarketWaveVector());}catch(e){}
@@ -1418,6 +1418,7 @@ function connectMicrostructureRelay(){
 function validatedL2Forecast(){
   var d=microstructureData||{},l2=d.l2||{},s=l2.forecast||null,m=orclL2Model||{};
   if(m.status!=='validated'||l2.model_status!=='validated'||l2.contract!=='valid'||!s)return null;
+  if(l2.dataset!==m.dataset)return null;
   if(!m.model_id||l2.model_id!==m.model_id||s.model_id!==m.model_id)return null;
   var at=Date.parse(s.asof||'');if(!isFinite(at)||Math.abs(Date.now()-at)>5000)return null;
   var dir=Number(s.dir);if(dir!==1&&dir!==-1||Number(s.horizon_events)!==100)return null;
