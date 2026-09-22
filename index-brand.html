@@ -599,33 +599,45 @@
 
     const pageRoots=[];
     const totalPages=6;
-    const paperGeom=new THREE.PlaneGeometry(3.52,4.80,18,1);
-    paperGeom.translate(1.76,0,0);
+    const PAGE_W=3.52;
+    const PAGE_H=4.80;
+    const rightZ=i=>.17-i*.012;
+    const leftZ=i=>.17+i*.012;
+    const basePageGeom=new THREE.PlaneGeometry(PAGE_W,PAGE_H,24,1);
+    basePageGeom.translate(PAGE_W/2,0,0);
+
     for(let i=0;i<totalPages;i++){
       const pivot=new THREE.Group();
-      pivot.position.set(-1.76,0,.17-i*.012);
-      const material=new THREE.MeshStandardMaterial({
+      pivot.position.set(-PAGE_W/2,0,rightZ(i));
+
+      const geometry=basePageGeom.clone();
+      geometry.userData.basePosition=geometry.attributes.position.array.slice();
+
+      const frontMaterial=new THREE.MeshStandardMaterial({
         map:textureFor(i),
         roughness:.88,
         metalness:0,
-        side:THREE.DoubleSide
+        side:THREE.FrontSide
       });
-      const page=new THREE.Mesh(paperGeom,material);
-      page.castShadow=true;
-      page.receiveShadow=true;
-      pivot.add(page);
+      const backMaterial=new THREE.MeshStandardMaterial({
+        color:0xeee7db,
+        roughness:.95,
+        metalness:0,
+        side:THREE.BackSide
+      });
+
+      const front=new THREE.Mesh(geometry,frontMaterial);
+      front.castShadow=true;
+      front.receiveShadow=true;
+
+      const back=new THREE.Mesh(geometry,backMaterial);
+      back.receiveShadow=true;
+
+      pivot.add(front,back);
+      pivot.userData.geometry=geometry;
       root.add(pivot);
       pageRoots.push(pivot);
     }
-
-    const frontCoverPivot=new THREE.Group();
-    frontCoverPivot.position.set(-1.90,0,.24);
-    const frontCover=new THREE.Mesh(new THREE.BoxGeometry(3.85,5.15,.11),coverMat);
-    frontCover.position.x=1.90;
-    frontCover.castShadow=true;
-    frontCoverPivot.add(frontCover);
-    root.add(frontCoverPivot);
-    frontCoverPivot.visible=false;
 
     let current=0;
     let animating=false;
@@ -640,22 +652,54 @@
     }
 
     function ease(t){return 1-Math.pow(1-t,3)}
+
+    function bendPage(pivot,t){
+      const geometry=pivot.userData.geometry;
+      const pos=geometry.attributes.position;
+      const base=geometry.userData.basePosition;
+      const amount=Math.sin(Math.PI*t)*.22;
+      for(let i=0;i<pos.count;i++){
+        const x=base[i*3];
+        const u=Math.max(0,Math.min(1,x/PAGE_W));
+        pos.array[i*3]=x;
+        pos.array[i*3+1]=base[i*3+1];
+        pos.array[i*3+2]=base[i*3+2]+Math.sin(Math.PI*u)*amount;
+      }
+      pos.needsUpdate=true;
+      geometry.computeVertexNormals();
+    }
+
     function animatePage(index,toFlipped,onDone){
-      if(index<0 || index>=totalPages)return;
-      animating=true;updateUI();
+      if(index<0 || index>=totalPages || animating)return;
+      animating=true;
+      updateUI();
+
       const pivot=pageRoots[index];
-      const from=pivot.rotation.y;
-      const to=toFlipped ? -Math.PI : 0;
+      const fromAngle=pivot.rotation.y;
+      const toAngle=toFlipped?-Math.PI:0;
+      const fromZ=pivot.position.z;
+      const toZ=toFlipped?leftZ(index):rightZ(index);
       const start=performance.now();
-      const dur=prefersReduced ? 1 : 760;
+      const dur=prefersReduced?1:780;
+
       function frame(now){
         const t=Math.min(1,(now-start)/dur);
         const e=ease(t);
-        pivot.rotation.y=from+(to-from)*e;
-        const bend=Math.sin(Math.PI*t)*0.055;
-        pivot.rotation.z=(toFlipped?-1:1)*bend;
-        if(t<1){requestAnimationFrame(frame)}else{
-          pivot.rotation.y=to;pivot.rotation.z=0;pivot.position.z=toZ;animating=false;updateUI();if(onDone)onDone();
+        pivot.rotation.y=fromAngle+(toAngle-fromAngle)*e;
+        pivot.position.z=fromZ+(toZ-fromZ)*e;
+        pivot.rotation.z=(toFlipped?-1:1)*Math.sin(Math.PI*t)*.022;
+        bendPage(pivot,t);
+
+        if(t<1){
+          requestAnimationFrame(frame);
+        }else{
+          pivot.rotation.y=toAngle;
+          pivot.rotation.z=0;
+          pivot.position.z=toZ;
+          bendPage(pivot,0);
+          animating=false;
+          if(onDone)onDone();
+          updateUI();
         }
       }
       requestAnimationFrame(frame);
