@@ -11,7 +11,7 @@ KEY=os.environ.get("DATABENTO_API_KEY","")
 TOKEN=os.environ.get("L2_INGEST_TOKEN","")
 URL=os.environ.get("L2_RELAY_INGEST_URL","http://127.0.0.1:8080/internal/l2-events")
 SYMBOL=os.environ.get("L2_SYMBOL","ORCL").upper()
-DATASET=os.environ.get("L2_DATASET","XNAS.ITCH")
+DATASET=os.environ.get("L2_DATASET","MEMX.MEMOIR")
 if not KEY or not TOKEN:
     raise SystemExit("DATABENTO_API_KEY and L2_INGEST_TOKEN required; no fake fallback")
 
