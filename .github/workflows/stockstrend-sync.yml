@@ -8,6 +8,7 @@ on:
       - "watchlist-data.json"
       - "watchlist.json"
       - "orcl-minute.json"
+      - "orcl-history.json"
       - "eurusd-history.json"
       - "runtime-status.json"
       - ".stockstrend-source-sha"
@@ -126,6 +127,11 @@ jobs:
             'https://query2.finance.yahoo.com/v8/finance/chart/EURUSD=X?range=10y&interval=1d&includePrePost=false&events=div%2Csplits' \
             eurusd-history.json
 
+          fetch_pair \
+            'https://query1.finance.yahoo.com/v8/finance/chart/ORCL?range=10y&interval=1d&includePrePost=false&events=div%2Csplits' \
+            'https://query2.finance.yahoo.com/v8/finance/chart/ORCL?range=10y&interval=1d&includePrePost=false&events=div%2Csplits' \
+            orcl-history.json
+
       - name: Build fresh fallback signal snapshot
         shell: bash
         run: |
@@ -227,6 +233,7 @@ jobs:
             'intrinsic-orcl.json',
             'orcl-minute.json',
             'eurusd-history.json',
+            'orcl-history.json',
             'runtime-status.json'
           ];
           const data = Object.fromEntries(names.map(n => [n, JSON.parse(fs.readFileSync(n, 'utf8'))]));
@@ -266,6 +273,19 @@ jobs:
             throw new Error('EURUSD history invalid/fewer than 500 valid bars');
           }
 
+          const hist = data['orcl-history.json'];
+          const hr = hist?.chart?.result?.[0];
+          const hts = hr?.timestamp || [];
+          const hq = hr?.indicators?.quote?.[0] || {};
+          const hgood = hts.filter((_, i) => Number.isFinite(Number(hq.close?.[i])) && Number(hq.close[i]) > 0);
+          if (hist?.chart?.error || hgood.length < 500) {
+            throw new Error('ORCL daily history invalid/fewer than 500 valid bars');
+          }
+          const latestDailyTs = hts.length ? Math.max(...hts.map(Number).filter(Number.isFinite)) * 1000 : 0;
+          if (!latestDailyTs || Date.now() - latestDailyTs > 7*864e5) {
+            throw new Error('ORCL daily history stale');
+          }
+
           const iv = data['intrinsic-orcl.json'];
           if (iv?.symbol !== 'ORCL' || !iv?.latest) throw new Error('intrinsic-orcl invalid');
 
@@ -275,6 +295,7 @@ jobs:
             reddit: status.sources?.reddit,
             news: status.sources?.news,
             minuteBars: mgood.length,
+            dailyBars: hgood.length,
             fxBars: fgood.length
           });
           NODE
@@ -287,7 +308,7 @@ jobs:
           set -euo pipefail
           git add index.html stockstrend.html methodik.html market-clock-core.js price-shock-core.js \
             stockstrend-data.json watchlist-data.json watchlist.json intrinsic-orcl.json \
-            orcl-minute.json eurusd-history.json runtime-status.json .stockstrend-source-sha
+            orcl-minute.json orcl-history.json eurusd-history.json runtime-status.json .stockstrend-source-sha
 
           if git diff --cached --quiet; then
             echo "Already current."
