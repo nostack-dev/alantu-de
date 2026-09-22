@@ -87,7 +87,7 @@ def on_record(r):
         print("L2 ingest queue overflow; terminating",flush=True)
         raise SystemExit(2)
 
-client=db.Live(key=KEY)
+client=db.Live(key=KEY, ts_out=True)
 client.subscribe(dataset=DATASET,schema="mbp-10",symbols=SYMBOL,snapshot=True)
 client.add_callback(on_record)
 print(json.dumps({"service":"databento-orcl-mbp10-live","dataset":DATASET,"schema":"mbp-10","symbol":SYMBOL}),flush=True)
