@@ -2,6 +2,10 @@
   "enabled": false,
   "endpoint": "https://market.alantu.de/v1/stream?symbol=ORCL",
   "transport": "sse",
-  "provider": "alpaca",
-  "feed": "sip"
+  "provider": "databento",
+  "feed": "mbp-10",
+  "dataset": "MEMX.MEMOIR",
+  "model_id": null,
+  "activation_reason": "model_not_validated",
+  "checked_at": "2026-09-22T19:00:32Z"
 }
