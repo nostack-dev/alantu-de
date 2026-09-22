@@ -590,29 +590,91 @@
       resize();
     }
 
-    function bendLeaf(pivot,t){
+    function smoothstep(a,b,x){
+      const t=Math.max(0,Math.min(1,(x-a)/(b-a)));
+      return t*t*(3-2*t);
+    }
+
+    function deformLeaf(index,progress){
+      const pivot=leafRoots[index];
+      if(!pivot)return;
+
       const geometry=pivot.userData.geometry;
       const pos=geometry.attributes.position;
       const base=geometry.userData.basePosition;
-      const amount=Math.sin(Math.PI*t)*.24;
-      for(let i=0;i<pos.count;i++){
-        const x=base[i*3];
-        const u=Math.max(0,Math.min(1,x/PAGE_W));
-        pos.array[i*3]=x;
-        pos.array[i*3+1]=base[i*3+1];
-        pos.array[i*3+2]=base[i*3+2]+Math.sin(Math.PI*u)*amount;
+      const segments=30;
+      const ds=PAGE_W/segments;
+
+      // Physically motivated inextensible strip:
+      // integrate unit-length segments so the paper never stretches.
+      const theta=Math.PI*progress;
+      const lag=.58*Math.sin(Math.PI*progress);
+      const spineBlend=smoothstep(.35,.92,progress);
+      const spineZ=rightZ(index)+(leftZ(index)-rightZ(index))*spineBlend;
+
+      const curveX=new Float32Array(segments+1);
+      const curveZ=new Float32Array(segments+1);
+      curveX[0]=0;
+      curveZ[0]=spineZ;
+
+      for(let j=1;j<=segments;j++){
+        const u=(j-.5)/segments;
+
+        // Outer parts of the sheet lag behind the spine.
+        // Keeping the tangent angle inside [0, PI] prevents the sheet
+        // from folding underneath either stack.
+        const localAngle=Math.max(
+          0,
+          Math.min(Math.PI,theta-lag*Math.sin(Math.PI*u))
+        );
+
+        curveX[j]=curveX[j-1]+ds*Math.cos(localAngle);
+        curveZ[j]=curveZ[j-1]+ds*Math.sin(localAngle);
       }
+
+      const leftStackTop=index>0?leftZ(index-1):.16;
+      const rightStackTop=rightZ(index);
+      const safety=.006;
+
+      for(let i=0;i<pos.count;i++){
+        const bx=base[i*3];
+        const by=base[i*3+1];
+        const u=Math.max(0,Math.min(1,bx/PAGE_W));
+        const seg=Math.max(0,Math.min(segments,Math.round(u*segments)));
+
+        let x=curveX[seg];
+        let z=curveZ[seg];
+
+        // Collision constraints against the actual page stacks.
+        // The turning sheet can touch its destination stack, but never
+        // pass through already-settled leaves.
+        if(x<0){
+          const landing=smoothstep(.72,1,progress);
+          const floor=leftStackTop+safety*(1-landing);
+          z=Math.max(z,floor);
+        }else{
+          const leaving=smoothstep(0,.28,progress);
+          const floor=rightStackTop-safety*leaving;
+          z=Math.max(z,floor);
+        }
+
+        pos.array[i*3]=x;
+        pos.array[i*3+1]=by;
+        pos.array[i*3+2]=z;
+      }
+
       pos.needsUpdate=true;
       geometry.computeVertexNormals();
+
+      // The sheet itself now performs the turn.
+      // The pivot stays rigid at the spine so transforms cannot force
+      // the curled geometry through a stack near the end of the animation.
+      pivot.rotation.set(0,0,0);
+      pivot.position.set(-PAGE_W/2,0,0);
     }
 
     function setLeafState(index,flipped){
-      const pivot=leafRoots[index];
-      if(!pivot)return;
-      pivot.rotation.y=flipped?-Math.PI:0;
-      pivot.rotation.z=0;
-      pivot.position.z=flipped?leftZ(index):rightZ(index);
-      bendLeaf(pivot,0);
+      deformLeaf(index,flipped?1:0);
     }
 
     function normalizeBookState(){
@@ -646,34 +708,25 @@
 
     function animateLeaf(index,toFlipped,onDone){
       if(animating||index<0||index>=totalLeaves)return;
-      animating=true;updateUI();
+      animating=true;
+      updateUI();
 
-      const pivot=leafRoots[index];
-      const fromAngle=pivot.rotation.y;
-      const toAngle=toFlipped?-Math.PI:0;
-      const fromZ=pivot.position.z;
-      const toZ=toFlipped?leftZ(index):rightZ(index);
       const start=performance.now();
-      const duration=prefersReduced?1:820;
+      const duration=prefersReduced?1:860;
+      const from=toFlipped?0:1;
+      const to=toFlipped?1:0;
 
       function frame(now){
         const t=Math.min(1,(now-start)/duration);
         const e=ease(t);
-        pivot.rotation.y=fromAngle+(toAngle-fromAngle)*e;
+        const progress=from+(to-from)*e;
 
-        // Turning leaf stays above both stacks while crossing the spine.
-        const stackLift=Math.sin(Math.PI*t)*.075;
-        pivot.position.z=fromZ+(toZ-fromZ)*e+stackLift;
-        pivot.rotation.z=(toFlipped?-1:1)*Math.sin(Math.PI*t)*.018;
-        bendLeaf(pivot,t);
+        deformLeaf(index,progress);
 
         if(t<1){
           requestAnimationFrame(frame);
         }else{
-          pivot.rotation.y=toAngle;
-          pivot.rotation.z=0;
-          pivot.position.z=toZ;
-          bendLeaf(pivot,0);
+          deformLeaf(index,to);
           animating=false;
           if(onDone)onDone();
           updateUI();
