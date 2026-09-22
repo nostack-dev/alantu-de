@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-22T20:23:30+02:00",
+  "updated_at": "2026-09-22T20:24:38+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,12 +9,12 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-22T20:23:30+02:00",
+        "at": "2026-09-22T20:24:38+02:00",
         "signal": "buy",
-        "social_impulse": 5,
-        "hype_bull": 48,
-        "hype_bear": 23,
-        "hype_net": 25,
+        "social_impulse": 7,
+        "hype_bull": 53,
+        "hype_bear": 19,
+        "hype_net": 34,
         "confidence": 76
       },
       "history": [
@@ -2800,6 +2800,20 @@
           "voice_bear": 5,
           "voice_mixed": 8,
           "price": 149.75
+        },
+        {
+          "at": "2026-09-22T20:24:38+02:00",
+          "hype_bull": 53,
+          "hype_bear": 19,
+          "hype_net": 34,
+          "social_impulse": 7,
+          "signal": "buy",
+          "confidence": 76,
+          "hype_mixed": 28,
+          "voice_bull": 10,
+          "voice_bear": 4,
+          "voice_mixed": 8,
+          "price": 149.77999877929688
         }
       ],
       "voices_archive": [
@@ -3115,15 +3129,15 @@
         }
       ],
       "signal": "buy",
-      "social_impulse": 5,
-      "impulse": 5,
-      "hype_bull": 48,
-      "hype_bear": 23,
-      "hype_net": 25,
+      "social_impulse": 7,
+      "impulse": 7,
+      "hype_bull": 53,
+      "hype_bear": 19,
+      "hype_net": 34,
       "confidence": 76,
       "hype_state": "bullish",
-      "updated_at": "2026-09-22T20:23:30+02:00",
-      "why": "Reddit 86% positiv bei 9 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $149.75.",
+      "updated_at": "2026-09-22T20:24:38+02:00",
+      "why": "Reddit 86% positiv bei 9 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $149.78.",
       "evidence": {
         "x_posts": 0,
         "reddit_posts": 9,
@@ -3132,18 +3146,18 @@
           "ApeWisdom: 9 Mentions/24h, Sentiment 86%",
           "Prediction: Oracle Could Have 50% Upside From Here",
           "Revealed: Some of the Oracle Cloud Roles Hit Hardest in Layoffs",
-          "ORCL Stock Snaps 3-Day Losing Streak: What’s Making Retail Traders ‘Extremely Bullish’?"
+          "Oracle Investors Weigh Fresh Wipro Deal Against Layoffs, Project Jupiter Debt Stress"
         ]
       },
       "voices": {
-        "bull": 9,
-        "bear": 5,
+        "bull": 10,
+        "bear": 4,
         "mixed": 8,
-        "updated_at": "2026-09-22T20:23:30+02:00"
+        "updated_at": "2026-09-22T20:24:38+02:00"
       },
-      "hype_mixed": 29,
+      "hype_mixed": 28,
       "sentiment_unit": "percent_all_classified",
-      "price": 149.75
+      "price": 149.77999877929688
     }
   }
 }
