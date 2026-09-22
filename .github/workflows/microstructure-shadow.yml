@@ -1,6 +1,12 @@
 name: Microstructure shadow
 
 on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/microstructure-core.mjs"
+      - "tools/alpaca-microstructure-backfill.mjs"
+      - ".github/workflows/microstructure-shadow.yml"
   schedule:
     - cron: "*/5 12-22 * * 1-5"
   workflow_dispatch:
