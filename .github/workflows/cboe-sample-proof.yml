@@ -1,0 +1,47 @@
+name: Inspect public Cboe TAQ sample
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/cboe-sample-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download official Cboe Equity & ETF Trades sample
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 4 --connect-timeout 15 --max-time 180             'https://datashop.cboe.com/download/sample/213' -o /tmp/cboe-sample
+          ls -lh /tmp/cboe-sample
+          file /tmp/cboe-sample
+          sha256sum /tmp/cboe-sample
+          mkdir -p /tmp/cboe-unpack
+          if unzip -t /tmp/cboe-sample >/dev/null 2>&1; then
+            unzip -q /tmp/cboe-sample -d /tmp/cboe-unpack
+          elif tar -tf /tmp/cboe-sample >/dev/null 2>&1; then
+            tar -xf /tmp/cboe-sample -C /tmp/cboe-unpack
+          else
+            cp /tmp/cboe-sample /tmp/cboe-unpack/sample.dat
+          fi
+          find /tmp/cboe-unpack -type f -maxdepth 3 -printf '%p %s bytes\n' | head -50
+          python3 - <<'PY'
+          from pathlib import Path
+          for p in list(Path('/tmp/cboe-unpack').rglob('*')):
+              if not p.is_file(): continue
+              print('\nFILE',p,p.stat().st_size)
+              try:
+                  with p.open('rb') as f:
+                      b=f.read(12000)
+                  s=b.decode('utf-8','replace')
+                  print(s[:8000])
+              except Exception as e:
+                  print('ERR',e)
+          PY
