@@ -23,4 +23,4 @@ services:
       L2_INGEST_TOKEN: "${L2_INGEST_TOKEN}"
       L2_RELAY_INGEST_URL: "http://relay:8080/internal/l2-events"
       L2_SYMBOL: "ORCL"
-      L2_DATASET: "XNAS.ITCH"
+      L2_DATASET: "MEMX.MEMOIR"
