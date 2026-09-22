@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-09-22T13:43:20+02:00",
+  "updated_at": "2026-09-22T13:49:56+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-22T13:43:20+02:00",
-    "scraped_at": "2026-09-22T13:43:20+02:00",
+    "tick_id": "2026-09-22T13:49:56+02:00",
+    "scraped_at": "2026-09-22T13:49:56+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "PublicReddit": {
@@ -11,7 +11,7 @@
         "items": 11,
         "provider": "apewisdom.io",
         "window": "24h aggregate snapshot",
-        "freshest": "2026-09-22T13:43:20+02:00",
+        "freshest": "2026-09-22T13:49:56+02:00",
         "sentiment_pct_bullish": 78,
         "upvotes_24h": 23
       },
@@ -20,7 +20,7 @@
         "items": 20,
         "provider": "news.google.com",
         "window": "last 36h, fetched now",
-        "freshest": "2026-09-22T13:43:20+02:00",
+        "freshest": "2026-09-22T13:49:56+02:00",
         "notes": [
           "Jim Cramer sends strong signal to Oracle stock investors",
           "Oracle’s Co-CEOs Deliver Explosive Growth, but Stock Plunges 50% in Their First Year",
@@ -31,9 +31,9 @@
         "status": "ok",
         "items": 1,
         "prices": {
-          "ORCL": 150.95
+          "ORCL": 151
         },
-        "price_at": "2026-09-22T11:42:58.000Z",
+        "price_at": "2026-09-22T11:49:50.000Z",
         "note": "Yahoo chart 5d/1m fallback feed"
       }
     },
@@ -49,20 +49,20 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-22T13:43:20+02:00",
+      "freshest_absolute": "2026-09-22T13:49:56+02:00",
       "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
       "quality": "medium-high public sources",
-      "scrape_berlin": "2026-09-22T13:43:20+02:00",
+      "scrape_berlin": "2026-09-22T13:49:56+02:00",
       "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
       "freshest_item_age": "snapshot fetched now",
       "oldest_usable_signal": "Can Oracle (ORCL) Still Look Cheap If Cash Flow Takes Time?"
     },
     "vector": {
       "direction": "leicht_bullish_risk_on",
-      "magnitude": 49,
+      "magnitude": 47,
       "confidence": 78,
       "early_signal": true,
-      "early_signal_note": "Reddit 78% positiv bei 11 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $150.95."
+      "early_signal_note": "Reddit 78% positiv bei 11 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $151.00."
     },
     "top_themes": [
       {
@@ -482,11 +482,11 @@
         "hype_state": "bullish",
         "signal": "buy",
         "confidence": 78,
-        "social_impulse": 8,
-        "hype_bull": 52,
+        "social_impulse": 7,
+        "hype_bull": 48,
         "hype_bear": 13,
-        "hype_net": 39,
-        "why": "Reddit 78% positiv bei 11 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $150.95.",
+        "hype_net": 35,
+        "why": "Reddit 78% positiv bei 11 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $151.00.",
         "evidence": {
           "x_posts": 0,
           "reddit_posts": 11,
@@ -502,7 +502,7 @@
           "tradingview": "https://www.tradingview.com/symbols/ORCL/",
           "yahoo": "https://finance.yahoo.com/quote/ORCL"
         },
-        "price": 150.95
+        "price": 151
       }
     ],
     "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
@@ -511,10 +511,10 @@
   "signals_disclaimer": "",
   "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
   "freshness": {
-    "freshest_absolute": "2026-09-22T13:43:20+02:00",
+    "freshest_absolute": "2026-09-22T13:49:56+02:00",
     "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
     "quality": "medium-high public sources",
-    "scrape_berlin": "2026-09-22T13:43:20+02:00",
+    "scrape_berlin": "2026-09-22T13:49:56+02:00",
     "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
     "freshest_item_age": "snapshot fetched now",
     "oldest_usable_signal": "Can Oracle (ORCL) Still Look Cheap If Cash Flow Takes Time?"
@@ -969,6 +969,15 @@
       "tick_id": "2026-09-22T13:43:20+02:00",
       "scraped_at": "2026-09-22T13:43:20+02:00",
       "magnitude": 49,
+      "confidence": 78,
+      "direction": "leicht_bullish_risk_on",
+      "items": 21,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-22T13:49:56+02:00",
+      "scraped_at": "2026-09-22T13:49:56+02:00",
+      "magnitude": 47,
       "confidence": 78,
       "direction": "leicht_bullish_risk_on",
       "items": 21,
