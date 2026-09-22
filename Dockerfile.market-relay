@@ -5,6 +5,7 @@ RUN cd market-relay && npm install --omit=dev
 COPY tools ./tools
 COPY market-relay/server.mjs ./market-relay/server.mjs
 COPY microstructure-edge-status.json ./microstructure-edge-status.json
+COPY orcl-l2-model.json ./orcl-l2-model.json
 ENV PORT=8080
 EXPOSE 8080
 CMD ["node","market-relay/server.mjs"]
