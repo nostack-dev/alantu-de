@@ -1,3 +1,21 @@
+export function configureAlantuPageTexture(texture,{
+  renderer,
+  linearFilter,
+  colorSpace
+}){
+  texture.colorSpace=colorSpace;
+  texture.anisotropy=renderer.capabilities.getMaxAnisotropy();
+
+  // Document text must stay on the full-resolution base level.
+  // Mipmaps are great for generic 3D surfaces, but on a slightly tilted
+  // PDF page they can select a much softer level and make small type muddy.
+  texture.minFilter=linearFilter;
+  texture.magFilter=linearFilter;
+  texture.generateMipmaps=false;
+  texture.needsUpdate=true;
+  return texture;
+}
+
 export function computeAlantuBookSupportZ({
   totalLeaves,
   rightZ,
