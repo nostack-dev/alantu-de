@@ -16,6 +16,15 @@ on:
       - "microstructure-status.json"
       - "microstructure-edge-status.json"
       - "microstructure-live-config.json"
+      - "orcl-l2-model.json"
+      - "tools/l2-event-signal.mjs"
+      - "tools/test-l2-event-signal.mjs"
+      - "tools/databento-orcl-mbp10-backfill.py"
+      - "tools/databento-orcl-mbp10-live.py"
+      - "tools/train-orcl-l2-100.py"
+      - "tools/finalize-l2-model.mjs"
+      - "Dockerfile.l2-collector"
+      - ".github/workflows/orcl-l2-proof.yml"
       - "market-relay/**"
       - "tools/microstructure-core.mjs"
       - "tools/microstructure-signal.mjs"
@@ -241,6 +250,10 @@ jobs:
           grep -q 'function runHdrFreshAsync' index.html
           grep -q 'function microstructureShadowUsable' index.html
           grep -q 'function validatedMicrostructureSignal' index.html
+          grep -q 'function validatedL2Forecast' index.html
+          grep -q "fetchJson('orcl-l2-model.json',true)" index.html
+          grep -q "phase='100E FORECAST'" index.html
+          grep -q 'Number(s.horizon_events)!==100' index.html
           grep -q 'function connectMicrostructureRelay' index.html
           grep -q "fetchJson('microstructure-live-config.json',true)" index.html
           grep -q "cfg.transport!=='sse'" index.html
