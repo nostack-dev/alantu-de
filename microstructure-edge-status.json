@@ -4,5 +4,7 @@
   "symbol": "ORCL",
   "status": "unavailable",
   "configured": false,
-  "reasons": ["missing_credentials"]
+  "reasons": [
+    "missing_credentials"
+  ]
 }
