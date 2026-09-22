@@ -18,7 +18,7 @@ START=os.environ.get("L2_START", sys.argv[1] if len(sys.argv)>1 else "")
 END=os.environ.get("L2_END", sys.argv[2] if len(sys.argv)>2 else "")
 OUT=Path(os.environ.get("L2_OUT_DIR", sys.argv[3] if len(sys.argv)>3 else "orcl-l2-days"))
 SYMBOL=os.environ.get("L2_SYMBOL","ORCL").upper()
-DATASET=os.environ.get("L2_DATASET","MEMX.MEMOIR")
+DATASET=os.environ.get("L2_DATASET","XNAS.ITCH")
 SCHEMA="mbp-10"
 if not START or not END:
     raise SystemExit("L2_START/L2_END required (YYYY-MM-DD)")
