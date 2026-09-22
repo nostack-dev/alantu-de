@@ -218,8 +218,10 @@ jobs:
           grep -q 'id="sentiment3dToggle"' index.html
           grep -q 'id="hypeChart3d"' index.html
           grep -q 'function sentimentReliability' index.html
-          grep -q 'function latestNyRegularSession' index.html
+          grep -q 'function latestBerlinTradingWindow' index.html
           grep -q 'min:session.open,max:session.close' index.html
+          grep -q 'open:berlinZonedMs(p.year,p.month,p.day,8,0)' index.html
+          grep -q 'close:berlinZonedMs(p.year,p.month,p.day,22,0)' index.html
           grep -q 'id="intrinsicToggle"' index.html
           grep -q "ivChart.update('none')" index.html
           ! grep -q 'hypeChart.destroy' index.html
