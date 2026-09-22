@@ -436,7 +436,7 @@
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture } from "./alantu-book-core.js?v=d7158e87";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas } from "./alantu-book-core.js?v=33ff1ad2";
 
     const canvas = document.getElementById("bookCanvas");
     const stage = document.getElementById("stage");
@@ -480,13 +480,34 @@
     const paperEdgeMat = new THREE.MeshStandardMaterial({color:0xece5d8,roughness:.92});
     const goldMat = new THREE.MeshStandardMaterial({color:0xb89a63,roughness:.4,metalness:.35});
 
+    function hardcoverMaterials(title){
+      const canvas=createAlantuCoverCanvas({title});
+      const texture=configureAlantuPageTexture(new THREE.CanvasTexture(canvas),{
+        renderer,
+        linearFilter:THREE.LinearFilter,
+        colorSpace:THREE.SRGBColorSpace
+      });
+
+      const side=()=>coverMat.clone();
+      const face=coverMat.clone();
+      face.map=texture;
+      face.color.set(0xffffff);
+      face.needsUpdate=true;
+
+      // BoxGeometry material order: +X, -X, +Y, -Y, +Z, -Z.
+      return [side(),side(),side(),side(),face,side()];
+    }
+
     const backCover = new THREE.Mesh(new THREE.BoxGeometry(3.85,5.15,.16),coverMat);
     backCover.position.set(0,0,-.25);
     backCover.castShadow = true;
     backCover.receiveShadow = true;
     root.add(backCover);
 
-    const frontCover = new THREE.Mesh(new THREE.BoxGeometry(3.85,5.15,.16),coverMat.clone());
+    const frontCover = new THREE.Mesh(
+      new THREE.BoxGeometry(3.85,5.15,.16),
+      hardcoverMaterials("Villa am See")
+    );
     frontCover.castShadow = true;
     frontCover.receiveShadow = true;
 
