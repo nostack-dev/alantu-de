@@ -50,7 +50,7 @@ jobs:
 
       - name: Mirror exact Stockstrend UI source
         env:
-          UPSTREAM_SHA: \${{ steps.upstream.outputs.sha }}
+          UPSTREAM_SHA: ${{ steps.upstream.outputs.sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -141,8 +141,8 @@ jobs:
             local url="$1" out="$2"
             curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 \
               -H 'Origin: https://www.alantu.de' \
-              -D "\${out}.headers" "$url" -o "\${out}.body" || return 1
-            tr -d '\r' < "\${out}.headers" | \
+              -D "${out}.headers" "$url" -o "${out}.body" || return 1
+            tr -d '\r' < "${out}.headers" | \
               grep -Eiq '^access-control-allow-origin:[[:space:]]*(\*|https://www\.alantu\.de)[[:space:]]*$'
           }
 
@@ -265,7 +265,7 @@ jobs:
 
       - name: Commit only complete validated fallback snapshot
         env:
-          UPSTREAM_SHA: \${{ steps.upstream.outputs.sha }}
+          UPSTREAM_SHA: ${{ steps.upstream.outputs.sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -286,5 +286,5 @@ jobs:
 
           git config user.name "stockstrend-runtime"
           git config user.email "stockstrend-runtime@users.noreply.github.com"
-          git commit -m "Refresh Stockstrend runtime data \${UPSTREAM_SHA:0:12}"
+          git commit -m "Refresh Stockstrend runtime data ${UPSTREAM_SHA:0:12}"
           git push origin HEAD:main
