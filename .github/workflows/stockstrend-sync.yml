@@ -202,7 +202,7 @@ jobs:
           grep -q 'fetchTickerTick' index.html
           grep -q 'refreshFreshSignals' index.html
           grep -q 'lastBrowserSyncAt=s.at' index.html
-          grep -q 'TickerTick UGC' index.html
+          grep -q 'TickerTick ORCL UGC' index.html
           grep -q "T:ugc)',200" index.html
           grep -q "E:oracle T:ugc" index.html
           grep -q 'minSocial=50' index.html
