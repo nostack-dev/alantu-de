@@ -1,0 +1,18 @@
+{
+  "status": "unavailable",
+  "symbol": "ORCL",
+  "dataset": "XNAS.ITCH",
+  "schema": "mbp-10",
+  "horizon_events": 100,
+  "feature_names": [
+    "imbalance_l1",
+    "imbalance_l3",
+    "imbalance_l5",
+    "imbalance_l10",
+    "microprice_bias",
+    "near_far_imbalance",
+    "depth_ratio_l5"
+  ],
+  "model_id": null,
+  "reason": "No validated ORCL MBP-10 model has passed the long-form holdout gate."
+}
