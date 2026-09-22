@@ -8,7 +8,7 @@ except Exception as e:
 key=os.environ.get("DATABENTO_API_KEY","")
 if not key:
     raise SystemExit("DATABENTO_API_KEY missing")
-dataset=os.environ.get("L2_DATASET","MEMX.MEMOIR")
+dataset=os.environ.get("L2_DATASET","XNAS.ITCH")
 symbol=os.environ.get("L2_SYMBOL","ORCL")
 start=os.environ.get("L2_START","")
 end=os.environ.get("L2_END","")
