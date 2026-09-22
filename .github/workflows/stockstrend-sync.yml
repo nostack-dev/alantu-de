@@ -218,6 +218,16 @@ jobs:
           grep -q 'function latestBerlinTradingWindow' index.html
           grep -q 'var end=isFinite(lastRow)?lastRow:session.open+60000' index.html
           grep -q 'function updateLivePriceChart1d' index.html
+          grep -q 'id="marketFlow"' index.html
+          grep -q 'function marketWaveVector' index.html
+          grep -q "label='Welle baut sich auf'" index.html
+          grep -q "label='Welle bestätigt'" index.html
+          grep -q "label='Welle dreht'" index.html
+          grep -q "label='Welle läuft aus'" index.html
+          grep -q 'if(evidence<2)' index.html
+          grep -q 'lastFlowRenderAt>=15000' index.html
+          ! grep -q 'function livePricePace' index.html
+          ! grep -q 'function marketFlowVector' index.html
           ! grep -q 'void p.offsetWidth' index.html
           grep -q 'open:berlinZonedMs(p.year,p.month,p.day,8,0)' index.html
           grep -q 'close:berlinZonedMs(p.year,p.month,p.day,22,0)' index.html
