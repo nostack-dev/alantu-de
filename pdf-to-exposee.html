@@ -330,13 +330,13 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
-    import { createAlantuBookCore, computeAlantuBookSupportZ } from "./alantu-book-core.js";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture } from "./alantu-book-core.js";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
     const MAX_PAGES=40;
-    const MAX_TEXTURE_EDGE=2048;
-    const MIN_TEXTURE_EDGE=1400;
+    const MAX_TEXTURE_EDGE_DESKTOP=2560;
+    const MAX_TEXTURE_EDGE_MOBILE=2048;
 
     const stage=document.getElementById("stage");
     const canvas=document.getElementById("bookCanvas");
@@ -457,27 +457,31 @@
       if(bookCore)bookCore.reset(0);
     }
 
+    function preferredTextureEdge(){
+      const mobile=window.matchMedia("(max-width:700px)").matches;
+      const requested=mobile?MAX_TEXTURE_EDGE_MOBILE:MAX_TEXTURE_EDGE_DESKTOP;
+      return Math.min(requested,renderer.capabilities.maxTextureSize||requested);
+    }
+
     function createTexture(renderedCanvas){
       const texture=new THREE.CanvasTexture(renderedCanvas);
-      texture.colorSpace=THREE.SRGBColorSpace;
-      texture.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),16);
-      texture.minFilter=THREE.LinearMipmapLinearFilter;
-      texture.magFilter=THREE.LinearFilter;
-      texture.generateMipmaps=true;
-      return texture;
+      return configureAlantuPageTexture(texture,{
+        renderer,
+        linearFilter:THREE.LinearFilter,
+        colorSpace:THREE.SRGBColorSpace
+      });
     }
 
     function mirroredTexture(sourceCanvas){
       const texture=new THREE.CanvasTexture(sourceCanvas);
-      texture.colorSpace=THREE.SRGBColorSpace;
       texture.wrapS=THREE.RepeatWrapping;
       texture.repeat.x=-1;
       texture.offset.x=1;
-      texture.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),16);
-      texture.minFilter=THREE.LinearMipmapLinearFilter;
-      texture.magFilter=THREE.LinearFilter;
-      texture.generateMipmaps=true;
-      return texture;
+      return configureAlantuPageTexture(texture,{
+        renderer,
+        linearFilter:THREE.LinearFilter,
+        colorSpace:THREE.SRGBColorSpace
+      });
     }
 
     async function renderPdfPage(pdf,pageNumber,token){
@@ -486,7 +490,7 @@
 
       const base=page.getViewport({scale:1});
       const longest=Math.max(base.width,base.height);
-      const target=Math.max(MIN_TEXTURE_EDGE,Math.min(MAX_TEXTURE_EDGE,longest*2.2));
+      const target=preferredTextureEdge();
       const scale=target/longest;
       const viewport=page.getViewport({scale});
 
@@ -591,7 +595,9 @@
       PAGE_H=4.80;
       PAGE_W=Math.max(2.65,Math.min(4.45,PAGE_H*bookAspect));
 
-      const targetLong=MAX_TEXTURE_EDGE;
+      // Match the native raster of the first PDF page. This deliberately
+      // avoids the old second upscaling pass that softened small type.
+      const targetLong=Math.max(first.canvas.width,first.canvas.height);
       let targetW,targetH;
       if(bookAspect<=1){
         targetH=targetLong;
@@ -804,7 +810,7 @@
       const r=stage.getBoundingClientRect();
       const w=Math.max(1,Math.round(r.width));
       const h=Math.max(1,Math.round(r.height));
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2.5));
+      renderer.setPixelRatio(Math.min(Math.max(window.devicePixelRatio||1,1.5),2.5));
       renderer.setSize(w,h,false);
       camera.aspect=w/h;
 
