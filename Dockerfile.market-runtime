@@ -1,0 +1,29 @@
+FROM node:22-bookworm-slim
+
+WORKDIR /app
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3 python3-venv ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && python3 -m venv /venv \
+ && /venv/bin/pip install --no-cache-dir databento
+
+ENV PATH="/venv/bin:$PATH"
+ENV PORT="8080"
+ENV L2_DATASET="XNAS.ITCH"
+ENV L2_SYMBOL="ORCL"
+ENV L2_RELAY_INGEST_URL="http://127.0.0.1:8080/internal/l2-events"
+
+COPY market-relay/server.mjs ./market-relay/server.mjs
+COPY tools/microstructure-core.mjs ./tools/microstructure-core.mjs
+COPY tools/microstructure-signal.mjs ./tools/microstructure-signal.mjs
+COPY tools/l2-event-signal.mjs ./tools/l2-event-signal.mjs
+COPY tools/databento-orcl-mbp10-live.py ./tools/databento-orcl-mbp10-live.py
+COPY orcl-l2-model.json ./orcl-l2-model.json
+COPY deploy/start-market-runtime.sh ./start-market-runtime.sh
+
+RUN chmod +x ./start-market-runtime.sh
+
+EXPOSE 8080
+
+CMD ["./start-market-runtime.sh"]
