@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0d0d0b">
+  <meta name="description" content="ALANTU – Premium-Exposés für Immobilienmakler. Interaktiv, dreidimensional und auf jedem Gerät ein Erlebnis.">
+  <title>ALANTU — Premium-Exposés für Immobilienmakler</title>
+  <style>
+    :root{
+      --ink:#0d0d0b;
+      --paper:#f4f0e8;
+      --paper-2:#ece6dc;
+      --white:#fff;
+      --muted:#77736c;
+      --line:rgba(13,13,11,.13);
+      --champagne:#b89a63;
+      --max:1240px;
+      --ease:cubic-bezier(.22,.61,.36,1);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth;background:var(--paper)}
+    body{
+      margin:0;
+      color:var(--ink);
+      background:var(--paper);
+      font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      -webkit-font-smoothing:antialiased;
+      text-rendering:optimizeLegibility;
+    }
+    button,a{font:inherit}
+    button{cursor:pointer}
+    a{color:inherit;text-decoration:none}
+    .shell{width:min(var(--max),calc(100% - 48px));margin:0 auto}
+    .topbar{
+      min-height:82px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:24px;
+      border-bottom:1px solid var(--line);
+    }
+    .brand{
+      display:inline-flex;
+      align-items:center;
+      gap:13px;
+      font-size:14px;
+      line-height:1;
+      letter-spacing:.34em;
+      font-weight:650;
+    }
+    .mark{width:23px;height:23px;position:relative;display:inline-block}
+    .mark:before,.mark:after{
+      content:"";
+      position:absolute;
+      left:2px;
+      right:2px;
+      height:1.5px;
+      background:var(--ink);
+      transform-origin:left center;
+    }
+    .mark:before{top:17px;transform:rotate(-58deg)}
+    .mark:after{top:5px;transform:rotate(58deg)}
+    .mark i{position:absolute;left:7px;right:7px;top:13px;height:1.5px;background:var(--champagne)}
+    .nav{display:flex;align-items:center;gap:8px}
+    .nav a{font-size:13px;color:#45413b;padding:10px 12px;border-radius:999px}
+    .nav .cta-small{border:1px solid var(--ink);color:var(--ink);padding:10px 16px}
+    .hero{
+      display:grid;
+      grid-template-columns:minmax(0,.86fr) minmax(520px,1.14fr);
+      gap:56px;
+      align-items:center;
+      padding:74px 0 64px;
+    }
+    .eyebrow{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color:#625c53;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      font-size:11px;
+      font-weight:700;
+      margin-bottom:24px;
+    }
+    .eyebrow:before{content:"";width:28px;height:1px;background:var(--champagne)}
+    h1{
+      margin:0;
+      font-family:Georgia,"Times New Roman",serif;
+      font-size:clamp(54px,6.2vw,92px);
+      font-weight:400;
+      line-height:.94;
+      letter-spacing:-.055em;
+      max-width:760px;
+    }
+    .lede{
+      margin:27px 0 30px;
+      max-width:580px;
+      color:#504b43;
+      font-size:18px;
+      line-height:1.62;
+    }
+    .actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    .btn{
+      appearance:none;
+      border:1px solid transparent;
+      min-height:50px;
+      padding:0 22px;
+      border-radius:999px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      transition:transform .2s ease,background .2s ease,border-color .2s ease;
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn-dark{background:var(--ink);color:var(--paper)}
+    .btn-ghost{border-color:var(--line);background:rgba(255,255,255,.22)}
+    .btn svg{width:16px;height:16px}
+    .micro{margin-top:18px;font-size:12px;color:#777066;display:flex;gap:14px;flex-wrap:wrap}
+    .micro span:before{content:"✓";margin-right:6px;color:#5c6b58}
+    .stage-wrap{position:relative;min-width:0}
+    .stage{
+      position:relative;
+      aspect-ratio:1.15/1;
+      min-height:520px;
+      overflow:hidden;
+      border-radius:30px;
+      background:
+        radial-gradient(circle at 68% 25%,rgba(255,255,255,.88),transparent 30%),
+        linear-gradient(145deg,#ddd3c5 0%,#cfc4b4 50%,#b8ad9e 100%);
+      border:1px solid rgba(13,13,11,.08);
+      isolation:isolate;
+    }
+    .stage:after{
+      content:"";
+      position:absolute;
+      inset:auto 12% 6% 12%;
+      height:16%;
+      background:rgba(30,24,17,.20);
+      filter:blur(28px);
+      border-radius:50%;
+      transform:perspective(400px) rotateX(72deg);
+      z-index:0;
+    }
+    #bookCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:1}
+    .stage-ui{position:absolute;inset:0;z-index:2;pointer-events:none}
+    .stage-top{
+      position:absolute;
+      left:18px;right:18px;top:18px;
+      display:flex;justify-content:space-between;align-items:center;gap:10px;
+    }
+    .badge{
+      border:1px solid rgba(13,13,11,.12);
+      background:rgba(244,240,232,.66);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      padding:9px 12px;
+      border-radius:999px;
+      font-size:11px;
+      letter-spacing:.06em;
+      color:#474139;
+    }
+    .stage-control{
+      pointer-events:auto;
+      width:46px;height:46px;border-radius:50%;
+      border:1px solid rgba(13,13,11,.12);
+      background:rgba(244,240,232,.80);
+      display:grid;place-items:center;color:var(--ink);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      transition:transform .2s ease,background .2s ease;
+    }
+    .stage-control:hover{transform:scale(1.035);background:rgba(255,255,255,.9)}
+    .stage-control:disabled{opacity:.35;cursor:default;transform:none}
+    .stage-control svg{width:19px;height:19px}
+    .stage-bottom{
+      position:absolute;
+      left:18px;right:18px;bottom:18px;
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+    }
+    .stage-arrows{display:flex;gap:8px;pointer-events:auto}
+    .pagecount{
+      pointer-events:none;
+      min-width:84px;
+      text-align:center;
+      background:rgba(244,240,232,.74);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      border:1px solid rgba(13,13,11,.12);
+      border-radius:999px;
+      padding:10px 13px;
+      font-size:11px;
+      font-variant-numeric:tabular-nums;
+      color:#4d473f;
+    }
+    .hint{
+      pointer-events:none;
+      position:absolute;
+      right:18px;top:50%;
+      transform:translateY(-50%) rotate(-90deg);
+      transform-origin:center;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      color:rgba(13,13,11,.45);
+    }
+    .interaction-zone{
+      position:absolute;z-index:3;top:70px;bottom:70px;width:42%;
+      border:0;background:transparent;padding:0;
+    }
+    .interaction-zone.prev{left:0;cursor:w-resize}
+    .interaction-zone.next{right:0;cursor:e-resize}
+    .proof{
+      border-top:1px solid var(--line);
+      border-bottom:1px solid var(--line);
+      padding:24px 0;
+    }
+    .proof-row{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+    .proof-item{display:flex;align-items:center;gap:14px;min-width:0}
+    .proof-no{
+      font-family:Georgia,"Times New Roman",serif;
+      font-size:26px;
+      letter-spacing:-.04em;
+      min-width:34px;
+    }
+    .proof-txt{font-size:12px;line-height:1.45;color:#625d55}
+    .section{padding:112px 0}
+    .section-grid{
+      display:grid;
+      grid-template-columns:minmax(0,.78fr) minmax(0,1.22fr);
+      gap:80px;
+      align-items:start;
+    }
+    .kicker{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:#746d63;margin-bottom:18px}
+    h2{
+      margin:0;
+      font-family:Georgia,"Times New Roman",serif;
+      font-size:clamp(40px,5vw,70px);
+      font-weight:400;
+      line-height:1.02;
+      letter-spacing:-.04em;
+    }
+    .feature-list{border-top:1px solid var(--line)}
+    .feature{
+      display:grid;
+      grid-template-columns:42px minmax(0,1fr);
+      gap:18px;
+      padding:27px 0;
+      border-bottom:1px solid var(--line);
+    }
+    .feature-no{font-size:11px;color:#8c8479;padding-top:5px}
+    .feature h3{margin:0 0 7px;font-size:18px;font-weight:650;letter-spacing:-.02em}
+    .feature p{margin:0;color:#625d55;line-height:1.6;font-size:14px;max-width:640px}
+    .dark{
+      background:var(--ink);
+      color:var(--paper);
+      padding:104px 0;
+    }
+    .dark .shell{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
+    .dark p{color:#bdb5a8;line-height:1.7;max-width:540px}
+    .dark .kicker{color:#a89f91}
+    .quote{
+      border-left:1px solid rgba(244,240,232,.22);
+      padding-left:34px;
+      font-family:Georgia,"Times New Roman",serif;
+      font-size:clamp(30px,4vw,52px);
+      line-height:1.08;
+      letter-spacing:-.03em;
+    }
+    footer{padding:30px 0 42px;border-top:1px solid var(--line)}
+    .footer-row{display:flex;justify-content:space-between;gap:24px;align-items:center;color:#777066;font-size:11px}
+    .footer-row .brand{color:var(--ink);font-size:11px}
+    .reduced{display:none}
+    @media(max-width:980px){
+      .shell{width:min(100% - 32px,var(--max))}
+      .hero{grid-template-columns:1fr;gap:46px;padding-top:56px}
+      .hero-copy{max-width:760px}
+      .stage{min-height:560px}
+      .section-grid,.dark .shell{grid-template-columns:1fr;gap:48px}
+      .section{padding:84px 0}
+    }
+    @media(max-width:640px){
+      .shell{width:min(100% - 24px,var(--max))}
+      .topbar{min-height:68px}
+      .nav a:not(.cta-small){display:none}
+      .brand{font-size:12px;letter-spacing:.28em}
+      .hero{padding:42px 0 46px;gap:32px}
+      h1{font-size:clamp(50px,17vw,72px)}
+      .lede{font-size:16px;margin:20px 0 24px}
+      .actions .btn{flex:1 1 100%}
+      .stage{min-height:430px;border-radius:22px;aspect-ratio:.9/1}
+      .hint{display:none}
+      .stage-top{left:12px;right:12px;top:12px}
+      .stage-bottom{left:12px;right:12px;bottom:12px}
+      .stage-control{width:44px;height:44px}
+      .proof-row{grid-template-columns:1fr;gap:0}
+      .proof-item{padding:13px 0}
+      .section{padding:72px 0}
+      .dark{padding:72px 0}
+      .footer-row{align-items:flex-start;flex-direction:column}
+    }
+    @media(prefers-reduced-motion:reduce){
+      html{scroll-behavior:auto}
+      *,*:before,*:after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+      .reduced{display:inline}
+    }
+  </style>
+</head>
+<body>
+  <header class="shell topbar">
+    <a class="brand" href="#" aria-label="ALANTU Startseite">
+      <span class="mark" aria-hidden="true"><i></i></span>
+      <span>ALANTU</span>
+    </a>
+    <nav class="nav" aria-label="Hauptnavigation">
+      <a href="#produkt">Produkt</a>
+      <a href="#makler">Für Makler</a>
+      <a class="cta-small" href="mailto:hallo@alantu.de?subject=ALANTU%20Demo">Demo anfragen</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="shell hero">
+      <div class="hero-copy">
+        <div class="eyebrow">Premium-Exposés für Immobilienmakler</div>
+        <h1>Immobilien verdienen mehr als ein PDF.</h1>
+        <p class="lede">ALANTU macht aus einem Exposé ein Erlebnis: hochwertig gestaltet, dreidimensional und so direkt, dass Interessenten auf Desktop und Smartphone wirklich darin blättern.</p>
+        <div class="actions">
+          <button class="btn btn-dark" id="experienceBtn" type="button">
+            Exposé erleben
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <a class="btn btn-ghost" href="mailto:hallo@alantu.de?subject=ALANTU%20für%20mein%20Objekt">Für mein Objekt</a>
+        </div>
+        <div class="micro" aria-label="Produktvorteile">
+          <span>Keine App</span><span>Desktop & Mobile</span><span>Ihr Branding</span>
+        </div>
+      </div>
+
+      <div class="stage-wrap" id="demo">
+        <div class="stage" id="stage" aria-label="Interaktives ALANTU 3D-Exposé">
+          <canvas id="bookCanvas"></canvas>
+          <button class="interaction-zone prev" id="tapPrev" type="button" aria-label="Vorherige Seite"></button>
+          <button class="interaction-zone next" id="tapNext" type="button" aria-label="Nächste Seite"></button>
+          <div class="stage-ui">
+            <div class="stage-top">
+              <span class="badge">LIVE · 3D EXPOSÉ</span>
+              <span class="badge">VILLA AM SEE</span>
+            </div>
+            <div class="hint">Tippen oder wischen</div>
+            <div class="stage-bottom">
+              <div class="stage-arrows">
+                <button class="stage-control" id="prevBtn" type="button" aria-label="Vorherige Seite">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button class="stage-control" id="nextBtn" type="button" aria-label="Nächste Seite">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+              <div class="pagecount" id="pageCount" aria-live="polite">01 / 06</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="proof">
+      <div class="shell proof-row">
+        <div class="proof-item"><div class="proof-no">3D</div><div class="proof-txt">Echtes Blättergefühl statt PDF-Scrollen.</div></div>
+        <div class="proof-item"><div class="proof-no">1×</div><div class="proof-txt">Ein Link für Smartphone, Tablet und Desktop.</div></div>
+        <div class="proof-item"><div class="proof-no">100%</div><div class="proof-txt">Ihr Objekt, Ihr Auftritt, Ihr Ansprechpartner.</div></div>
+      </div>
+    </section>
+
+    <section class="shell section" id="produkt">
+      <div class="section-grid">
+        <div>
+          <div class="kicker">Das Produkt</div>
+          <h2>Ein Exposé, das sich wie Wert anfühlt.</h2>
+        </div>
+        <div class="feature-list">
+          <article class="feature">
+            <div class="feature-no">01</div>
+            <div><h3>Blättern statt scrollen</h3><p>Das Exposé reagiert unmittelbar auf Klick, Tap und Wischgeste. Seiten bewegen sich räumlich und vermitteln das Gefühl eines hochwertigen Magazins.</p></div>
+          </article>
+          <article class="feature">
+            <div class="feature-no">02</div>
+            <div><h3>Für das Objekt gebaut</h3><p>Große Bilder, ruhige Typografie, Grundrisse, Lage, Kennzahlen und Maklerkontakt werden zu einer einzigen klaren Präsentation statt zu einer PDF-Sammlung.</p></div>
+          </article>
+          <article class="feature">
+            <div class="feature-no">03</div>
+            <div><h3>Auf jedem Gerät elegant</h3><p>Desktop zeigt das Exposé wie ein aufgeschlagenes Buch. Auf dem Smartphone wird daraus eine natürliche, einhändig bedienbare Einzelblatt-Erfahrung.</p></div>
+          </article>
+          <article class="feature">
+            <div class="feature-no">04</div>
+            <div><h3>Der Makler bleibt die Marke</h3><p>Logo, Farben und Ansprechpartner des Maklers stehen im Vordergrund. ALANTU liefert die Präsentationsschicht, ohne sich zwischen Makler und Kunde zu drängen.</p></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="dark" id="makler">
+      <div class="shell">
+        <div>
+          <div class="kicker">Für hochwertige Vermarktung</div>
+          <h2>Der erste Eindruck beginnt vor der Besichtigung.</h2>
+          <p>Wenn ein Objekt hochwertig ist, sollte sich auch der Link dazu hochwertig anfühlen. ALANTU macht genau diesen Moment zum Teil der Vermarktung.</p>
+          <a class="btn" style="background:var(--paper);color:var(--ink);margin-top:10px" href="mailto:hallo@alantu.de?subject=ALANTU%20Demo">Demo für ein Objekt anfragen</a>
+        </div>
+        <div class="quote">„Nicht noch ein Immobilien-Tool. Sondern die schönste Art, ein Objekt zu zeigen.“</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-row">
+      <div class="brand"><span class="mark" aria-hidden="true"><i></i></span><span>ALANTU</span></div>
+      <div>Premium-Exposés für Immobilienmakler · Deutschland</div>
+      <div>© 2026 ALANTU</div>
+    </div>
+  </footer>
+
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+
+    const canvas = document.getElementById("bookCanvas");
+    const stage = document.getElementById("stage");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const tapPrev = document.getElementById("tapPrev");
+    const tapNext = document.getElementById("tapNext");
+    const pageCount = document.getElementById("pageCount");
+    const experienceBtn = document.getElementById("experienceBtn");
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const renderer = new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:"high-performance"});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(29,1,.1,100);
+    camera.position.set(0.1,1.35,10.8);
+    camera.lookAt(0,0,0);
+
+    scene.add(new THREE.HemisphereLight(0xfffbf3,0x66594b,2.35));
+    const key = new THREE.DirectionalLight(0xffffff,4.4);
+    key.position.set(-3.5,7,7);
+    key.castShadow = true;
+    key.shadow.mapSize.set(1024,1024);
+    scene.add(key);
+    const rim = new THREE.DirectionalLight(0xcdb88e,2.1);
+    rim.position.set(5,2,-3);
+    scene.add(rim);
+
+    const root = new THREE.Group();
+    root.rotation.x = -0.13;
+    root.rotation.y = -0.24;
+    root.rotation.z = -0.018;
+    scene.add(root);
+
+    const coverMat = new THREE.MeshStandardMaterial({color:0x171713,roughness:.68,metalness:.06});
+    const paperEdgeMat = new THREE.MeshStandardMaterial({color:0xece5d8,roughness:.92});
+    const goldMat = new THREE.MeshStandardMaterial({color:0xb89a63,roughness:.4,metalness:.35});
+
+    const backCover = new THREE.Mesh(new THREE.BoxGeometry(3.85,5.15,.16),coverMat);
+    backCover.position.set(0,0,-.25);
+    backCover.castShadow = true;
+    backCover.receiveShadow = true;
+    root.add(backCover);
+
+    const pageBlock = new THREE.Mesh(new THREE.BoxGeometry(3.58,4.88,.26),paperEdgeMat);
+    pageBlock.position.set(.07,0,-.06);
+    pageBlock.castShadow = true;
+    root.add(pageBlock);
+
+    const spine = new THREE.Mesh(new THREE.BoxGeometry(.12,5.10,.37),goldMat);
+    spine.position.set(-1.90,0,-.07);
+    spine.castShadow = true;
+    root.add(spine);
+
+    function roundedRect(ctx,x,y,w,h,r){
+      const rr=Math.min(r,w/2,h/2);
+      ctx.beginPath();
+      ctx.moveTo(x+rr,y);
+      ctx.arcTo(x+w,y,x+w,y+h,rr);
+      ctx.arcTo(x+w,y+h,x,y+h,rr);
+      ctx.arcTo(x,y+h,x,y,rr);
+      ctx.arcTo(x,y,x+w,y,rr);
+      ctx.closePath();
+    }
+
+    function textureFor(index){
+      const c=document.createElement("canvas");
+      c.width=900;c.height=1220;
+      const ctx=c.getContext("2d");
+      ctx.fillStyle="#f4f0e8";ctx.fillRect(0,0,c.width,c.height);
+
+      if(index===0){
+        const g=ctx.createLinearGradient(0,0,900,1220);
+        g.addColorStop(0,"#1c211e");g.addColorStop(.55,"#2c332e");g.addColorStop(1,"#10120f");
+        ctx.fillStyle=g;ctx.fillRect(0,0,900,1220);
+        ctx.fillStyle="rgba(255,255,255,.055)";
+        for(let i=0;i<18;i++){ctx.fillRect(0,70+i*68,900,1)}
+        ctx.fillStyle="#c4a66d";ctx.font="600 27px Arial";ctx.letterSpacing="7px";ctx.fillText("ALANTU",70,88);
+        ctx.fillStyle="#f5f0e6";ctx.font="56px Georgia";ctx.fillText("Villa am See",70,825);
+        ctx.font="28px Arial";ctx.fillStyle="#d7cfc1";ctx.fillText("Starnberger See · Bayern",72,875);
+        ctx.fillStyle="#c4a66d";ctx.fillRect(72,930,74,3);
+        ctx.font="600 18px Arial";ctx.fillStyle="#e8e0d2";ctx.fillText("PRIVATE RESIDENCE",72,987);
+      }else if(index===1){
+        ctx.fillStyle="#161814";ctx.fillRect(48,48,804,610);
+        const g=ctx.createLinearGradient(48,48,852,658);
+        g.addColorStop(0,"#585f58");g.addColorStop(.55,"#242b28");g.addColorStop(1,"#0c1010");
+        ctx.fillStyle=g;ctx.fillRect(48,48,804,610);
+        ctx.fillStyle="#9aa697";ctx.fillRect(92,155,712,240);
+        ctx.fillStyle="#202623";ctx.fillRect(152,215,590,240);
+        ctx.fillStyle="#b9a980";ctx.fillRect(190,237,170,198);
+        ctx.fillStyle="#596560";ctx.fillRect(380,237,330,198);
+        ctx.fillStyle="#7d8a7d";ctx.fillRect(92,522,712,136);
+        ctx.fillStyle="#f4f0e8";ctx.fillRect(48,658,804,514);
+        ctx.fillStyle="#151512";ctx.font="52px Georgia";ctx.fillText("Architektur mit Ruhe.",76,755);
+        ctx.font="24px Arial";ctx.fillStyle="#686159";wrap(ctx,"Eine moderne Villa, eingebettet zwischen See, Wald und Garten. Großzügige Verglasung verbindet Innen und Außen.",76,824,690,38);
+        metric(ctx,"245 m²","Wohnfläche",76,1010);
+        metric(ctx,"1.480 m²","Grundstück",335,1010);
+        metric(ctx,"5","Zimmer",646,1010);
+      }else if(index===2){
+        ctx.fillStyle="#f4f0e8";ctx.fillRect(0,0,900,1220);
+        ctx.fillStyle="#1a1a17";ctx.font="44px Georgia";ctx.fillText("Wohnen",64,92);
+        ctx.fillStyle="#777066";ctx.font="20px Arial";ctx.fillText("Licht, Material, Blickachsen",64,132);
+        const g=ctx.createLinearGradient(64,180,836,790);
+        g.addColorStop(0,"#d7d0c3");g.addColorStop(.45,"#9e9488");g.addColorStop(1,"#625b55");
+        ctx.fillStyle=g;roundedRect(ctx,64,180,772,610,10);ctx.fill();
+        ctx.fillStyle="#ece5d7";ctx.fillRect(110,595,305,90);
+        ctx.fillStyle="#6b625b";ctx.fillRect(455,575,250,110);
+        ctx.fillStyle="#c4a66d";ctx.fillRect(725,575,52,110);
+        ctx.fillStyle="#1c1c19";ctx.font="28px Georgia";ctx.fillText("Offen. Warm. Unaufgeregt.",64,858);
+        ctx.font="21px Arial";ctx.fillStyle="#6a635b";wrap(ctx,"Naturstein, Holz und matte Oberflächen geben dem offenen Wohnbereich eine ruhige, dauerhafte Wertigkeit.",64,915,730,34);
+      }else if(index===3){
+        ctx.fillStyle="#20231f";ctx.fillRect(0,0,900,1220);
+        ctx.fillStyle="#c4a66d";ctx.font="600 18px Arial";ctx.fillText("LAGE",62,72);
+        ctx.fillStyle="#f4f0e8";ctx.font="50px Georgia";ctx.fillText("Nah genug. Weit genug.",62,142);
+        ctx.fillStyle="#434a43";ctx.beginPath();ctx.arc(450,590,310,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle="#a58f68";ctx.lineWidth=2;
+        for(let i=0;i<5;i++){ctx.beginPath();ctx.arc(450,590,85+i*52,0,Math.PI*2);ctx.stroke()}
+        ctx.fillStyle="#f3ecdf";ctx.beginPath();ctx.arc(450,590,10,0,Math.PI*2);ctx.fill();
+        ctx.font="600 21px Arial";ctx.fillText("VILLA",474,597);
+        ctx.font="20px Arial";ctx.fillStyle="#d1c8ba";
+        ctx.fillText("12 min  ·  Seeufer",74,1032);
+        ctx.fillText("38 min  ·  München",74,1074);
+        ctx.fillText("46 min  ·  Flughafen",74,1116);
+      }else if(index===4){
+        ctx.fillStyle="#f4f0e8";ctx.fillRect(0,0,900,1220);
+        ctx.fillStyle="#1b1b18";ctx.font="50px Georgia";ctx.fillText("Grundriss",64,94);
+        ctx.strokeStyle="#2d2c28";ctx.lineWidth=4;
+        ctx.strokeRect(86,210,728,690);
+        ctx.beginPath();
+        ctx.moveTo(365,210);ctx.lineTo(365,900);
+        ctx.moveTo(365,520);ctx.lineTo(814,520);
+        ctx.moveTo(580,520);ctx.lineTo(580,900);
+        ctx.stroke();
+        ctx.font="18px Arial";ctx.fillStyle="#6f685f";
+        ctx.fillText("WOHNEN / ESSEN",118,365);
+        ctx.fillText("KÜCHE",585,365);
+        ctx.fillText("MASTER",405,700);
+        ctx.fillText("BAD",642,700);
+        ctx.fillStyle="#b89a63";ctx.fillRect(86,935,728,2);
+        ctx.font="22px Arial";ctx.fillStyle="#49443e";ctx.fillText("Erdgeschoss · 132 m²",86,985);
+      }else{
+        const g=ctx.createLinearGradient(0,0,900,1220);
+        g.addColorStop(0,"#d8d0c3");g.addColorStop(1,"#aaa092");
+        ctx.fillStyle=g;ctx.fillRect(0,0,900,1220);
+        ctx.fillStyle="rgba(13,13,11,.84)";ctx.fillRect(48,720,804,452);
+        ctx.fillStyle="#c4a66d";ctx.font="600 18px Arial";ctx.fillText("PERSÖNLICH FÜR SIE",86,790);
+        ctx.fillStyle="#f4f0e8";ctx.font="48px Georgia";ctx.fillText("Besichtigung vereinbaren.",86,870);
+        ctx.font="23px Arial";ctx.fillStyle="#d8d0c4";wrap(ctx,"Ihr Ansprechpartner begleitet Sie persönlich vom ersten Eindruck bis zur Schlüsselübergabe.",86,930,670,36);
+        ctx.fillStyle="#f4f0e8";ctx.font="600 24px Arial";ctx.fillText("Maximilian Berger",86,1060);
+        ctx.font="19px Arial";ctx.fillStyle="#bfb6aa";ctx.fillText("+49 89 123 45 67 · berger@beispiel-immobilien.de",86,1100);
+      }
+      const tex=new THREE.CanvasTexture(c);
+      tex.colorSpace=THREE.SRGBColorSpace;
+      tex.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);
+      return tex;
+    }
+
+    function wrap(ctx,text,x,y,maxWidth,lineHeight){
+      const words=text.split(" ");let line="";
+      for(let n=0;n<words.length;n++){
+        const test=line+words[n]+" ";
+        if(ctx.measureText(test).width>maxWidth && n>0){ctx.fillText(line,x,y);line=words[n]+" ";y+=lineHeight}else{line=test}
+      }
+      ctx.fillText(line,x,y);
+    }
+    function metric(ctx,big,small,x,y){
+      ctx.fillStyle="#171714";ctx.font="38px Georgia";ctx.fillText(big,x,y);
+      ctx.fillStyle="#756f66";ctx.font="17px Arial";ctx.fillText(small,x,y+34);
+    }
+
+    const pageRoots=[];
+    const totalPages=6;
+    const paperGeom=new THREE.PlaneGeometry(3.52,4.80,18,1);
+    paperGeom.translate(1.76,0,0);
+    for(let i=0;i<totalPages;i++){
+      const pivot=new THREE.Group();
+      pivot.position.set(-1.76,0,.11+i*.006);
+      const material=new THREE.MeshStandardMaterial({
+        map:textureFor(i),
+        roughness:.88,
+        metalness:0,
+        side:THREE.DoubleSide
+      });
+      const page=new THREE.Mesh(paperGeom,material);
+      page.castShadow=true;
+      page.receiveShadow=true;
+      pivot.add(page);
+      root.add(pivot);
+      pageRoots.push(pivot);
+    }
+
+    const frontCoverPivot=new THREE.Group();
+    frontCoverPivot.position.set(-1.90,0,.24);
+    const frontCover=new THREE.Mesh(new THREE.BoxGeometry(3.85,5.15,.11),coverMat);
+    frontCover.position.x=1.90;
+    frontCover.castShadow=true;
+    frontCoverPivot.add(frontCover);
+    root.add(frontCoverPivot);
+    frontCoverPivot.visible=false;
+
+    let current=0;
+    let animating=false;
+    let pointerStart=null;
+
+    function updateUI(){
+      pageCount.textContent=String(current+1).padStart(2,"0")+" / "+String(totalPages).padStart(2,"0");
+      prevBtn.disabled=current===0 || animating;
+      tapPrev.disabled=current===0 || animating;
+      nextBtn.disabled=current===totalPages-1 || animating;
+      tapNext.disabled=current===totalPages-1 || animating;
+    }
+
+    function ease(t){return 1-Math.pow(1-t,3)}
+    function animatePage(index,toFlipped,onDone){
+      if(index<0 || index>=totalPages)return;
+      animating=true;updateUI();
+      const pivot=pageRoots[index];
+      const from=pivot.rotation.y;
+      const to=toFlipped ? -Math.PI : 0;
+      const start=performance.now();
+      const dur=prefersReduced ? 1 : 760;
+      function frame(now){
+        const t=Math.min(1,(now-start)/dur);
+        const e=ease(t);
+        pivot.rotation.y=from+(to-from)*e;
+        const bend=Math.sin(Math.PI*t)*0.055;
+        pivot.rotation.z=(toFlipped?-1:1)*bend;
+        if(t<1){requestAnimationFrame(frame)}else{
+          pivot.rotation.y=to;pivot.rotation.z=0;animating=false;updateUI();if(onDone)onDone();
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function next(){
+      if(animating || current>=totalPages-1)return;
+      animatePage(current,true,()=>{current++;updateUI()});
+    }
+    function prev(){
+      if(animating || current<=0)return;
+      const target=current-1;
+      animatePage(target,false,()=>{current=target;updateUI()});
+    }
+
+    prevBtn.addEventListener("click",prev);
+    nextBtn.addEventListener("click",next);
+    tapPrev.addEventListener("click",prev);
+    tapNext.addEventListener("click",next);
+    experienceBtn.addEventListener("click",()=>{
+      document.getElementById("demo").scrollIntoView({behavior:prefersReduced?"auto":"smooth",block:"center"});
+      setTimeout(()=>{if(current===0)next()},prefersReduced?0:420);
+    });
+
+    stage.addEventListener("pointerdown",e=>{pointerStart={x:e.clientX,y:e.clientY,id:e.pointerId}});
+    stage.addEventListener("pointerup",e=>{
+      if(!pointerStart || pointerStart.id!==e.pointerId)return;
+      const dx=e.clientX-pointerStart.x,dy=e.clientY-pointerStart.y;
+      pointerStart=null;
+      if(Math.abs(dx)>44 && Math.abs(dx)>Math.abs(dy)*1.2){dx<0?next():prev()}
+    });
+    stage.addEventListener("pointercancel",()=>{pointerStart=null});
+
+    function resize(){
+      const r=stage.getBoundingClientRect();
+      const w=Math.max(1,r.width),h=Math.max(1,r.height);
+      renderer.setSize(w,h,false);
+      camera.aspect=w/h;
+      camera.updateProjectionMatrix();
+      if(w<560){
+        root.scale.setScalar(.78);
+        root.position.set(.18,.10,0);
+        root.rotation.y=-.18;
+      }else{
+        root.scale.setScalar(.91);
+        root.position.set(.26,.02,0);
+        root.rotation.y=-.24;
+      }
+    }
+    const ro=new ResizeObserver(resize);ro.observe(stage);resize();
+
+    function render(){
+      renderer.render(scene,camera);
+      requestAnimationFrame(render);
+    }
+    updateUI();render();
+  </script>
+</body>
+</html>
