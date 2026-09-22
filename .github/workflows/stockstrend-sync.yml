@@ -227,6 +227,12 @@ jobs:
           grep -q 'BERLIN_DAY_FMT' index.html
           grep -q "label='Vorimpuls'" index.html
           grep -q 'function flowPointStyle' index.html
+          grep -q 'function renderMarketFlowVisual' index.html
+          grep -q 'function flowComponentValue' index.html
+          grep -q 'class="flow-scale"' index.html
+          grep -q 'class="flow-link-layer"' index.html
+          grep -q "phase='GEGENIMPULS'" index.html
+          grep -q "phase='VORIMPULS'" index.html
           grep -q 'impulse.reliable' index.html
           grep -q "label='Welle baut sich auf'" index.html
           grep -q "label='Welle bestätigt'" index.html
