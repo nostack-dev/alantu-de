@@ -67,7 +67,8 @@ export function aggregateMicrostructure(trades, quotes) {
     if (!buckets.has(k)) buckets.set(k, {
       at:k, tradeCount:0, tradeVolume:0, buyVolume:0, sellVolume:0, unknownVolume:0,
       signedVolume:0, signedDollar:0, notional:0, priceFirst:null, priceLast:null,
-      quoteUpdates:0, ofi:0, spreads:[], quoteImbalances:[], microEdges:[],
+      quoteUpdates:0, ofi:0, spreads:[], quoteImbalances:[], microEdges:[], quoteAges:[],
+      staleQuoteTrades:0, freshQuoteTrades:0,
       bid:null, ask:null, bidSize:null, askSize:null
     });
     return buckets.get(k);
@@ -79,7 +80,9 @@ export function aggregateMicrostructure(trades, quotes) {
     if (!qm) continue;
     const b = get(q._ms);
     b.quoteUpdates++;
-    if (prevQ) b.ofi += ofiDelta(prevQ, q);
+    // OFI is only meaningful across contiguous quote updates. Never bridge
+    // long gaps, outages or overnight sessions.
+    if (prevQ && q._ms-prevQ._ms<=5000) b.ofi += ofiDelta(prevQ, q);
     b.spreads.push(qm.spreadBps);
     b.quoteImbalances.push(qm.quoteImbalance);
     b.microEdges.push(qm.micropriceEdgeBps);
@@ -92,8 +95,14 @@ export function aggregateMicrostructure(trades, quotes) {
     while (qi < qq.length && qq[qi]._ms <= t._ms) { lastQ = qq[qi++]; }
     const p = Number(t.p ?? t.price), size = Number(t.s ?? t.size);
     if (!(p > 0 && size > 0)) continue;
-    const side = classifyTrade(t, lastQ, prevTradePrice);
+    const quoteAge=lastQ?Math.max(0,t._ms-lastQ._ms):Infinity;
+    // SIP quote classification must be contemporaneous. If the latest NBBO is
+    // stale, fall back to the tick rule rather than pretending an old quote is current.
+    const freshQ=lastQ&&quoteAge<=2000?lastQ:null;
+    const side = classifyTrade(t, freshQ, prevTradePrice);
     const b = get(t._ms);
+    if(freshQ){b.freshQuoteTrades++;b.quoteAges.push(quoteAge);}
+    else b.staleQuoteTrades++;
     b.tradeCount++; b.tradeVolume += size; b.notional += p*size;
     b.signedVolume += side*size; b.signedDollar += side*p*size;
     if (side > 0) b.buyVolume += size; else if (side < 0) b.sellVolume += size; else b.unknownVolume += size;
@@ -121,6 +130,9 @@ export function aggregateMicrostructure(trades, quotes) {
       return_1m:b.priceFirst&&b.priceLast ? b.priceLast/b.priceFirst-1 : null,
       quote_updates:b.quoteUpdates,
       ofi:b.ofi,
+      fresh_quote_trades:b.freshQuoteTrades,
+      stale_quote_trades:b.staleQuoteTrades,
+      quote_age_ms_median:median(b.quoteAges),
       spread_bps_median:median(b.spreads),
       quote_imbalance_median:median(b.quoteImbalances),
       microprice_edge_bps_median:median(b.microEdges),
@@ -140,16 +152,22 @@ export function microstructureQuality(minutes, meta = {}) {
   const known=rows.reduce((s,x)=>s+Number(x.buy_volume||0)+Number(x.sell_volume||0),0);
   const unknown=rows.reduce((s,x)=>s+Number(x.unknown_volume||0),0);
   const quoted=rows.filter(x=>Number(x.quote_updates||0)>0).length;
+  const freshQuoteTrades=rows.reduce((s,x)=>s+Number(x.fresh_quote_trades||0),0);
+  const staleQuoteTrades=rows.reduce((s,x)=>s+Number(x.stale_quote_trades||0),0);
   const spreads=rows.map(x=>Number(x.spread_bps_median)).filter(Number.isFinite);
+  const quoteAges=rows.map(x=>Number(x.quote_age_ms_median)).filter(Number.isFinite);
   const freshMs=rows.length?Date.parse(rows[rows.length-1].at):NaN;
   const unknownShare=(known+unknown)>0?unknown/(known+unknown):1;
   const quoteCoverage=rows.length?quoted/rows.length:0;
   const medianSpread=median(spreads);
+  const medianQuoteAge=median(quoteAges);
+  const freshTradeQuoteShare=(freshQuoteTrades+staleQuoteTrades)>0?freshQuoteTrades/(freshQuoteTrades+staleQuoteTrades):0;
   const reasons=[];
   if(rows.length<30)reasons.push('too_few_minutes');
   if(trades<100)reasons.push('too_few_trades');
   if(!(volume>0))reasons.push('no_trade_volume');
   if(quoteCoverage<.8)reasons.push('low_quote_coverage');
+  if(freshTradeQuoteShare<.8)reasons.push('stale_trade_quotes');
   if(unknownShare>.2)reasons.push('high_unknown_aggressor_share');
   if(!Number.isFinite(medianSpread)||medianSpread<=0)reasons.push('invalid_spread');
   return {
@@ -159,6 +177,8 @@ export function microstructureQuality(minutes, meta = {}) {
     trades,
     volume,
     quote_coverage:quoteCoverage,
+    fresh_trade_quote_share:freshTradeQuoteShare,
+    median_quote_age_ms:medianQuoteAge,
     unknown_aggressor_share:unknownShare,
     median_spread_bps:medianSpread,
     first_at:rows[0]?.at||null,
