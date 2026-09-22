@@ -230,6 +230,13 @@ jobs:
           grep -q "label='Welle läuft aus'" index.html
           grep -q 'if(evidence<2)' index.html
           grep -q 'lastFlowRenderAt>=15000' index.html
+          grep -q 'lastLiveTickPruneAt' index.html
+          grep -q 'tickNow-lastLiveTickPruneAt>=15000' index.html
+          grep -q 'function priceRangeColor()' index.html
+          grep -q "return '#151517'" index.html
+          grep -q '!shockNotifyEnabled()||liveShockTimer' index.html
+          grep -q 'devicePixelRatio:Math.min(2,window.devicePixelRatio||1)' index.html
+          grep -q "priceRange==='1d'?250" index.html
           ! grep -q 'function livePricePace' index.html
           ! grep -q 'function marketFlowVector' index.html
           ! grep -q 'void p.offsetWidth' index.html
