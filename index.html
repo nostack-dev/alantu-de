@@ -197,10 +197,13 @@
   .sentiment-key{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
   .sentiment-key .swatch{display:inline-block;width:7px;height:7px;border-radius:50%;vertical-align:1px}
   .sentiment-key .pos{background:#00a94f}.sentiment-key .neu{background:#8e8e93}.sentiment-key .neg{background:#e94035}
+  .chart-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+  .chart-head .label{margin:0;min-width:0}
+  .mini-range{display:inline-flex;flex:0 0 auto;gap:1px;background:#f5f5f7;border-radius:999px;padding:2px}
+  .mini-range button{border:0;background:transparent;color:#74747c;font:inherit;font-size:9px;font-weight:750;line-height:1;padding:4px 5px;border-radius:999px;cursor:pointer;min-width:0}
+  .mini-range button.active{background:#151517;color:#fff}
+  @media(max-width:700px){.chart-head{align-items:flex-start}.mini-range button{font-size:8px;padding:4px 4px}}
   .sentiment-source{font-size:12px;line-height:1.4;color:#74747c;margin:6px 0 9px;font-variant-numeric:tabular-nums}
-  .sentiment-range{margin:8px 0 10px;padding:2px;background:#f5f5f7;border-radius:999px}
-  .sentiment-range button{padding:6px 9px!important;font-size:11px!important}
-  .sentiment-range button.active{background:#151517!important;color:#fff!important;border-radius:999px!important}
 
   .sync-footer{display:flex!important;align-items:center;justify-content:space-between;gap:10px;max-width:760px;margin:0 auto;padding:11px 18px 18px;color:#8a8a92;font-size:11px;line-height:1.2;font-variant-numeric:tabular-nums}
   .sync-footer.stale #syncStatus,.sync-footer.error #syncStatus{color:#e94035;font-weight:700}
@@ -270,20 +273,10 @@
     <div class="shock-events" id="shockEvents"></div>
   </div>
 
-  <div class="range-shell">
-    <div class="label">Zeitraum</div>
-    <div class="range" id="rangeBar">
-      <button type="button" data-range="1d" class="active">1T</button>
-      <button type="button" data-range="1w">1W</button>
-      <button type="button" data-range="1m">1M</button>
-      <button type="button" data-range="year">1J</button>
-      <button type="button" data-range="5y">5J</button>
-      <button type="button" data-range="all">MAX</button>
-    </div>
-  </div>
-
   <div class="card chart-card-lg">
-    <div class="label">Oracle · Kurs & Wert <a class="info-link info-inline" href="methodik.html#intrinsic" aria-label="Berechnung des inneren Werts erklären" title="Berechnung des inneren Werts">i</a></div>
+    <div class="chart-head"><div class="label">Oracle · Kurs & Wert <a class="info-link info-inline" href="methodik.html#intrinsic" aria-label="Berechnung des inneren Werts erklären" title="Berechnung des inneren Werts">i</a></div><div class="mini-range" id="priceRange">
+      <button type="button" data-price-range="1d">1T</button><button type="button" data-price-range="1w">1W</button><button type="button" data-price-range="1m">1M</button><button type="button" data-price-range="year">1J</button><button type="button" data-price-range="5y">5J</button><button type="button" data-price-range="all">MAX</button>
+    </div></div>
     <div class="value-summary" id="ivNow"></div>
     <div class="value-status flat" id="ivStatus"></div>
     <div class="chart-sub"><span id="ivCoverage"></span></div>
@@ -291,21 +284,17 @@
   </div>
 
   <div class="card chart-card-lg">
-    <div class="label">Oracle · Stimmung <a class="info-link info-inline" href="methodik.html#sentiment" aria-label="Quellen und Berechnung der Stimmung erklären" title="Quellen und Berechnung der Stimmung">i</a></div>
+    <div class="chart-head"><div class="label">Oracle · Stimmung <a class="info-link info-inline" href="methodik.html#sentiment" aria-label="Quellen und Berechnung der Stimmung erklären" title="Quellen und Berechnung der Stimmung">i</a></div><div class="mini-range" id="sentimentRange">
+      <button type="button" data-sentiment-range="1d">1T</button><button type="button" data-sentiment-range="1w">1W</button><button type="button" data-sentiment-range="1m">1M</button><button type="button" data-sentiment-range="year">1J</button><button type="button" data-sentiment-range="5y">5J</button><button type="button" data-sentiment-range="all">MAX</button>
+    </div></div>
     <div class="sentiment-source" id="sentimentSource">Quellen werden geladen …</div>
     <div class="chart-sub"><span class="sentiment-key"><span class="swatch pos"></span>positiv <span class="swatch neu"></span>neutral <span class="swatch neg"></span>negativ</span> <span id="hypeCoverage"></span></div>
-    <div class="range sentiment-range" id="sentimentRange" aria-label="Zeitraum Stimmung">
-      <button type="button" data-sentiment-range="1d">1T</button>
-      <button type="button" data-sentiment-range="1w">1W</button>
-      <button type="button" data-sentiment-range="1m">1M</button>
-      <button type="button" data-sentiment-range="year">1J</button>
-      <button type="button" data-sentiment-range="5y">5J</button>
-      <button type="button" data-sentiment-range="all">MAX</button>
-    </div>
     <div class="chart-wrap chart-wrap-lg"><canvas id="hypeChart"></canvas></div>
   </div>
   <div class="card chart-card-sm secondary-section">
-    <div class="label">Markt · Stimmungsstärke (0–100) <span class="meta" id="magNow"></span></div>
+    <div class="chart-head"><div class="label">Markt · Stimmungsstärke (0–100) <span class="meta" id="magNow"></span></div><div class="mini-range" id="magnitudeRange">
+      <button type="button" data-magnitude-range="1d">1T</button><button type="button" data-magnitude-range="1w">1W</button><button type="button" data-magnitude-range="1m">1M</button><button type="button" data-magnitude-range="year">1J</button><button type="button" data-magnitude-range="5y">5J</button><button type="button" data-magnitude-range="all">MAX</button>
+    </div></div>
     <div class="meta" style="margin:0 0 10px">Aktueller Social-Druck am Markt — nicht der Kurs. <span id="magCoverage"></span></div>
     <div class="chart-wrap chart-wrap-sm"><canvas id="magChart"></canvas></div>
   </div>
@@ -327,20 +316,23 @@
 <script src="market-clock-core.js"></script>
 <script src="price-shock-core.js"></script>
 <script>
-var LS_RANGE='botbot_wl_range', LS_ACC='botbot_acc_open', SENTIMENT_HISTORY_LS='alantu_orcl_sentiment_history_v1';
-var wlRange=(function(){
+var LS_ACC='botbot_acc_open', SENTIMENT_HISTORY_LS='alantu_orcl_sentiment_history_v1';
+var RANGE_KEYS={price:'alantu_price_range_v1',sentiment:'alantu_sentiment_range_v1',magnitude:'alantu_magnitude_range_v1'};
+function loadChartRange(key,def){
   try{
-    var r=localStorage.getItem(LS_RANGE)||'1d';
-    if(r==='today')r='1d'; if(r==='5m')r='1m';
-    return ['1d','1w','1m','year','5y','all'].indexOf(r)>=0?r:'1d';
-  }catch(e){ return '1d'; }
-})();
+    var r=localStorage.getItem(RANGE_KEYS[key])||def||'1d';
+    return ['1d','1w','1m','year','5y','all'].indexOf(r)>=0?r:(def||'1d');
+  }catch(e){return def||'1d';}
+}
+function saveChartRange(key,r){try{localStorage.setItem(RANGE_KEYS[key],r);}catch(e){}}
+var priceRange=loadChartRange('price','1d');
+var sentimentRange=loadChartRange('sentiment','1m');
+var magnitudeRange=loadChartRange('magnitude','1m');
 var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null, orclHistoryPayload=null;
 var hypeChart=null, magChart=null, ivChart=null, pieChart=null;
 var fxBars=[], orclMinuteBars=[], orclDailyBars=[];
 var liveMarket={orclUsd:null,eurusd:null,prevOrclUsd:null,prevEurusd:null,at:null,connected:false,lastRenderedEur:null};
 var liveWs=null,liveHeartbeat=null,liveReconnect=null,liveShockTimer=null;
-function saveRange(r){ try{ localStorage.setItem(LS_RANGE, r); }catch(e){} }
 function loadAccOpen(){ try{ return JSON.parse(localStorage.getItem(LS_ACC)||'{}'); }catch(e){ return {}; } }
 function saveAccOpen(map){ try{ localStorage.setItem(LS_ACC, JSON.stringify(map)); }catch(e){} }
 function loadLocalSentimentHistory(){
@@ -397,31 +389,31 @@ function rangeCutoffMs(range){
   if(range==='5y') return now-Math.round(5*365.25*864e5);
   return 0;
 }
-function filterByAt(arr, getAt){
-  if(!arr||!arr.length) return [];
-  if(!wlRange||wlRange==='all') return arr.slice();
-  var cut=rangeCutoffMs(wlRange);
-  var out=arr.filter(function(x){var t=new Date(getAt(x)||0).getTime(); return !isNaN(t)&&t>=cut;});
-  return out;
+function filterByAt(arr,getAt,range){
+  if(!arr||!arr.length)return [];
+  range=range||'all';
+  if(range==='all')return arr.slice();
+  var cut=rangeCutoffMs(range);
+  return arr.filter(function(x){var t=new Date(getAt(x)||0).getTime();return !isNaN(t)&&t>=cut;});
 }
 function fmtBerlin(iso){
   try{return new Date(iso).toLocaleString('de-DE',{timeZone:'Europe/Berlin',day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});}catch(e){return iso||'—';}
 }
-function fmtAxisValue(ms){
+function fmtAxisValue(ms,range){
   try{
-    var d=new Date(Number(ms));
-    var opts={timeZone:'Europe/Berlin'};
-    if(wlRange==='1d'){opts.hour='2-digit';opts.minute='2-digit';}
-    else if(wlRange==='1w'){opts.weekday='short';opts.day='2-digit';opts.month='2-digit';}
-    else if(wlRange==='1m'||wlRange==='year'){opts.day='2-digit';opts.month='2-digit';}
-    else if(wlRange==='5y'){opts.month='2-digit';opts.year='2-digit';}
-    else {opts.month='2-digit';opts.year='2-digit';}
+    var d=new Date(Number(ms)),opts={timeZone:'Europe/Berlin'};
+    range=range||'all';
+    if(range==='1d'){opts.hour='2-digit';opts.minute='2-digit';}
+    else if(range==='1w'){opts.weekday='short';opts.day='2-digit';opts.month='2-digit';}
+    else if(range==='1m'||range==='year'){opts.day='2-digit';opts.month='2-digit';}
+    else{opts.month='2-digit';opts.year='2-digit';}
     return d.toLocaleString('de-DE',opts);
   }catch(e){return '—';}
 }
 function syncRangeButtons(){
-  Array.prototype.forEach.call(document.querySelectorAll('#rangeBar button'),function(b){b.classList.toggle('active',b.getAttribute('data-range')===wlRange);});
-  Array.prototype.forEach.call(document.querySelectorAll('#sentimentRange button'),function(b){b.classList.toggle('active',b.getAttribute('data-sentiment-range')===wlRange);});
+  Array.prototype.forEach.call(document.querySelectorAll('#priceRange button'),function(b){b.classList.toggle('active',b.getAttribute('data-price-range')===priceRange);});
+  Array.prototype.forEach.call(document.querySelectorAll('#sentimentRange button'),function(b){b.classList.toggle('active',b.getAttribute('data-sentiment-range')===sentimentRange);});
+  Array.prototype.forEach.call(document.querySelectorAll('#magnitudeRange button'),function(b){b.classList.toggle('active',b.getAttribute('data-magnitude-range')===magnitudeRange);});
 }
 function sentimentSourceText(t){
   t=t||{};
@@ -534,75 +526,64 @@ function seriesWithGaps(rows,getAt,getY){
   });
   return out;
 }
-function rangeLabel(){
-  return {'1d':'1T','1w':'1W','1m':'1M',year:'1J','5y':'5J',all:'MAX'}[wlRange]||wlRange||'';
+function rangeLabel(range){
+  return {'1d':'1T','1w':'1W','1m':'1M',year:'1J','5y':'5J',all:'MAX'}[range]||range||'';
 }
-function rangeBounds(rows,getAt){
-  var now=Date.now(), stats=timeStats(rows,getAt);
-  if(!stats.xs.length) return {min:now-864e5,max:now,adaptive:false};
-  var first=stats.xs[0], last=stats.xs[stats.xs.length-1];
-  var requestedMin=(wlRange&&wlRange!=='all')?rangeCutoffMs(wlRange):first;
-  if(!isFinite(requestedMin)||requestedMin>=now) requestedMin=first;
-  var requestedSpan=Math.max(1,now-requestedMin);
-  var actualSpan=Math.max(1,last-first);
-  var startsLate=(first-requestedMin)>requestedSpan*0.12;
-  var endsEarly=(now-last)>requestedSpan*0.12;
-  var coverage=actualSpan/requestedSpan;
-  var adaptive=(wlRange&&wlRange!=='all'&&(coverage<0.72||startsLate||endsEarly));
-  if(!adaptive) return {min:requestedMin,max:now,adaptive:false};
-  var pad=Math.max(actualSpan*0.08, stats.median?stats.median*2:30*60*1000);
+function rangeBounds(rows,getAt,range){
+  var now=Date.now(),stats=timeStats(rows,getAt);
+  range=range||'all';
+  if(!stats.xs.length)return {min:now-864e5,max:now,adaptive:false};
+  var first=stats.xs[0],last=stats.xs[stats.xs.length-1];
+  var requestedMin=range!=='all'?rangeCutoffMs(range):first;
+  if(!isFinite(requestedMin)||requestedMin>=now)requestedMin=first;
+  var requestedSpan=Math.max(1,now-requestedMin),actualSpan=Math.max(1,last-first);
+  var startsLate=(first-requestedMin)>requestedSpan*0.12,endsEarly=(now-last)>requestedSpan*0.12,coverage=actualSpan/requestedSpan;
+  var adaptive=range!=='all'&&(coverage<0.72||startsLate||endsEarly);
+  if(!adaptive)return {min:requestedMin,max:now,adaptive:false};
+  var pad=Math.max(actualSpan*0.08,stats.median?stats.median*2:30*60*1000);
   return {min:Math.max(0,first-pad),max:Math.min(now,last+pad),adaptive:true};
 }
-function axisX(rows,getAt){
-  var mob=window.matchMedia&&window.matchMedia('(max-width:700px)').matches,b=rangeBounds(rows,getAt);
-  return {type:'linear',min:b.min,max:b.max,offset:false,bounds:'ticks',ticks:{color:'#6b6b76',maxRotation:0,autoSkip:true,maxTicksLimit:mob?4:6,font:{size:mob?12:11},callback:function(v){return fmtAxisValue(v);}},grid:{display:false},border:{display:false}};
+function axisX(rows,getAt,range){
+  var mob=window.matchMedia&&window.matchMedia('(max-width:700px)').matches,b=rangeBounds(rows,getAt,range);
+  return {type:'linear',min:b.min,max:b.max,offset:false,bounds:'ticks',ticks:{color:'#6b6b76',maxRotation:0,autoSkip:true,maxTicksLimit:mob?4:6,font:{size:mob?12:11},callback:function(v){return fmtAxisValue(v,range);}},grid:{display:false},border:{display:false}};
 }
 function chartInteract(){return {mode:'nearest',intersect:false,axis:'x'};}
 function chartEvents(){return isTouchChart()?[]:['mousemove','mouseout','click'];}
-function coverageText(rows,getAt){
-  if(!rows||!rows.length) return 'Keine Messwerte im Zeitraum.';
-  var stats=timeStats(rows,getAt), b=rangeBounds(rows,getAt), parts=[];
-  if(b.adaptive){
-    parts.push(rangeLabel()+' gewählt');
-    parts.push('Daten verfügbar '+fmtAxisValue(stats.xs[0])+'–'+fmtAxisValue(stats.xs[stats.xs.length-1]));
-  }
-  if(stats.gaps) parts.push(stats.gaps+' '+(stats.gaps===1?'Datenlücke':'Datenlücken')+' nicht verbunden');
+function coverageText(rows,getAt,range){
+  if(!rows||!rows.length)return 'Keine Messwerte im Zeitraum.';
+  var stats=timeStats(rows,getAt),b=rangeBounds(rows,getAt,range),parts=[];
+  if(b.adaptive){parts.push(rangeLabel(range)+' gewählt');parts.push('Daten verfügbar '+fmtAxisValue(stats.xs[0],range)+'–'+fmtAxisValue(stats.xs[stats.xs.length-1],range));}
+  if(stats.gaps)parts.push(stats.gaps+' '+(stats.gaps===1?'Datenlücke':'Datenlücken')+' nicht verbunden');
   return parts.length?'· '+parts.join(' · '):'';
 }
-function aggregateForRange(rows,getAt,getY){
-  var groups={}, mode='raw';
-  if(wlRange==='1w'||wlRange==='1m') mode='day';
-  else if(wlRange==='year') mode='week';
-  else if(wlRange==='5y'||wlRange==='all') mode='month';
+function aggregateForRange(rows,getAt,getY,range){
+  var groups={},mode='raw'; range=range||'all';
+  if(range==='1w'||range==='1m')mode='day';
+  else if(range==='year')mode='week';
+  else if(range==='5y'||range==='all')mode='month';
   var raw=[];
   (rows||[]).forEach(function(r){
-    var x=new Date(getAt(r)||0).getTime(), y=Number(getY(r));
-    if(!isFinite(x)||!isFinite(y)) return;
+    var x=new Date(getAt(r)||0).getTime(),y=Number(getY(r));
+    if(!isFinite(x)||!isFinite(y))return;
     if(mode==='raw'){raw.push({at:new Date(x).toISOString(),value:y});return;}
     var key;
-    if(mode==='day'){
-      key=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(x));
-    }else if(mode==='month'){
-      key=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit'}).format(new Date(x));
-    }else{
-      key=String(Math.floor(x/(7*864e5)));
-    }
-    if(!groups[key]) groups[key]={sum:0,n:0,xsum:0};
-    groups[key].sum+=y; groups[key].n++; groups[key].xsum+=x;
+    if(mode==='day')key=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(x));
+    else if(mode==='month')key=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit'}).format(new Date(x));
+    else key=String(Math.floor(x/(7*864e5)));
+    if(!groups[key])groups[key]={sum:0,n:0,xsum:0};
+    groups[key].sum+=y;groups[key].n++;groups[key].xsum+=x;
   });
-  if(mode==='raw') return raw.sort(function(a,b){return new Date(a.at)-new Date(b.at);});
-  return Object.keys(groups).map(function(k){
-    var g=groups[k];
-    return {at:new Date(g.xsum/g.n).toISOString(),value:g.sum/g.n};
-  }).sort(function(a,b){return new Date(a.at)-new Date(b.at);});
+  if(mode==='raw')return raw.sort(function(a,b){return new Date(a.at)-new Date(b.at);});
+  return Object.keys(groups).map(function(k){var g=groups[k];return {at:new Date(g.xsum/g.n).toISOString(),value:g.sum/g.n};}).sort(function(a,b){return new Date(a.at)-new Date(b.at);});
 }
-function compactCoverage(rows,getAt){
-  if(!rows||!rows.length) return 'Keine Daten im Zeitraum';
+function compactCoverage(rows,getAt,range){
+  if(!rows||!rows.length)return 'Keine Daten im Zeitraum';
   var xs=rows.map(function(r){return new Date(getAt(r)||0).getTime();}).filter(isFinite).sort(function(a,b){return a-b;});
-  if(!xs.length) return 'Keine Daten im Zeitraum';
-  var first=xs[0], last=xs[xs.length-1], requested=(wlRange&&wlRange!=='all')?rangeCutoffMs(wlRange):first;
+  if(!xs.length)return 'Keine Daten im Zeitraum';
+  range=range||'all';
+  var first=xs[0],last=xs[xs.length-1],requested=range!=='all'?rangeCutoffMs(range):first;
   var late=requested&&first>requested+Math.max(864e5,(Date.now()-requested)*.12);
-  return late?('Daten seit '+fmtAxisValue(first)+(last-first>864e5?' · bis '+fmtAxisValue(last):'')):'';
+  return late?('Daten seit '+fmtAxisValue(first,range)+(last-first>864e5?' · bis '+fmtAxisValue(last,range):'')):'';
 }
 function euro(v,digits){
   var n=Number(v); if(!isFinite(n))return '—';
@@ -794,7 +775,7 @@ function connectLiveMarket(){
 var liveChartTimer=null;
 function scheduleLiveChartUpdate(){
   if(liveChartTimer)return;
-  var delay=(wlRange==='1d'||wlRange==='1w')?1200:5000;
+  var delay=(priceRange==='1d'||priceRange==='1w')?1200:5000;
   liveChartTimer=setTimeout(function(){liveChartTimer=null;renderAll();},delay);
 }
 function scheduleLiveShock(){
@@ -858,38 +839,38 @@ function renderAll(){
   var sentimentMeta=document.getElementById('sentimentSource'); if(sentimentMeta) sentimentMeta.textContent=sentimentSourceText(t);
   syncRangeButtons();
 
-  var hist=filterByAt(mergedSentimentHistory(orcl.history||[]), function(h){return h.at;});
-  var hypeAgg=aggregateForRange(hist,function(h){return h.at;},function(h){return stimmungNorm(h);});
-  var hypeCov=document.getElementById('hypeCoverage'); if(hypeCov) hypeCov.textContent=compactCoverage(hypeAgg,function(h){return h.at;});
+  var hist=filterByAt(mergedSentimentHistory(orcl.history||[]),function(h){return h.at;},sentimentRange);
+  var hypeAgg=aggregateForRange(hist,function(h){return h.at;},function(h){return stimmungNorm(h);},sentimentRange);
+  var hypeCov=document.getElementById('hypeCoverage'); if(hypeCov) hypeCov.textContent=compactCoverage(hypeAgg,function(h){return h.at;},sentimentRange);
   if(hypeChart) hypeChart.destroy();
   var hypePts=hypeAgg.map(function(h){return {x:new Date(h.at).getTime(),y:Number(h.value)};});
   hypeChart=new Chart(document.getElementById('hypeChart'),{type:'line',data:{datasets:[
     {label:'Stimmung',data:hypePts,parsing:false,spanGaps:false,borderColor:'#8e8e93',backgroundColor:'#8e8e93',fill:false,tension:.12,pointRadius:hypeAgg.length<=12?2:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:function(ctx){return sentimentColor(ctx.raw&&ctx.raw.y);},borderWidth:2,segment:{borderColor:function(ctx){return sentimentColor((Number(ctx.p0.parsed.y)+Number(ctx.p1.parsed.y))/2);}},pointBackgroundColor:function(ctx){return sentimentColor(ctx.raw&&ctx.raw.y);}}
-  ]},options:{events:chartEvents(),responsive:true,maintainAspectRatio:false,layout:{padding:{top:6,bottom:2,left:4,right:4}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('hype')},scales:{x:axisX(hypeAgg,function(h){return h.at;}),y:{min:0,max:100,ticks:{color:'#6b6b76',font:{size:11},stepSize:50},grid:{color:'#f2f2f4'},border:{display:false}}}}});
+  ]},options:{events:chartEvents(),responsive:true,maintainAspectRatio:false,layout:{padding:{top:6,bottom:2,left:4,right:4}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('hype')},scales:{x:axisX(hypeAgg,function(h){return h.at;},sentimentRange),y:{min:0,max:100,ticks:{color:'#6b6b76',font:{size:11},stepSize:50},grid:{color:'#f2f2f4'},border:{display:false}}}}});
 
-  var mhist=filterByAt(tickData.history||[], function(h){return h.scraped_at||h.tick_id||h.at;});
+  var mhist=filterByAt(tickData.history||[],function(h){return h.scraped_at||h.tick_id||h.at;},magnitudeRange);
   if(!mhist.length && (t.mini_series||[]).length){
-    mhist=filterByAt((t.mini_series||[]).map(function(m){return {scraped_at:m.at||m.tick_id,magnitude:m.magnitude};}), function(h){return h.scraped_at;});
+    mhist=filterByAt((t.mini_series||[]).map(function(m){return {scraped_at:m.at||m.tick_id,magnitude:m.magnitude};}),function(h){return h.scraped_at;},magnitudeRange);
   }
-  var magCov=document.getElementById('magCoverage'); if(magCov) magCov.textContent=coverageText(mhist,function(h){return h.scraped_at||h.tick_id||h.at;});
+  var magCov=document.getElementById('magCoverage'); if(magCov) magCov.textContent=coverageText(mhist,function(h){return h.scraped_at||h.tick_id||h.at;},magnitudeRange);
   if(magChart) magChart.destroy();
   var magVals=mhist.map(function(h){return h.magnitude;}).filter(function(x){return x!=null;});
   var magIst=magVals.length?magVals[magVals.length-1]:(v.magnitude!=null?v.magnitude:null);
   var magNowEl=document.getElementById('magNow'); if(magNowEl) magNowEl.textContent=magIst!=null?('· jetzt '+magIst):'';
   magChart=new Chart(document.getElementById('magChart'),{type:'line',data:{datasets:[
     {label:'Stimmungsstärke',data:seriesWithGaps(mhist,function(h){return h.scraped_at||h.tick_id||h.at;},function(h){return h.magnitude;}),parsing:false,spanGaps:false,borderColor:'#00c761',backgroundColor:'rgba(0,199,97,.12)',fill:true,tension:.18,pointRadius:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:'#00a94f',borderWidth:2.5}
-  ]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:10,bottom:6,left:8,right:8}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('mag')},scales:{x:axisX(mhist,function(h){return h.scraped_at||h.tick_id||h.at;}),y:{min:0,max:100,grace:'4%',ticks:{color:'#6b6b76',font:{size:11}},grid:{color:'#f0f0f3'},border:{display:false}}}}});
+  ]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:10,bottom:6,left:8,right:8}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('mag')},scales:{x:axisX(mhist,function(h){return h.scraped_at||h.tick_id||h.at;},magnitudeRange),y:{min:0,max:100,grace:'4%',ticks:{color:'#6b6b76',font:{size:11}},grid:{color:'#f0f0f3'},border:{display:false}}}}});
 
   if(ivChart) ivChart.destroy();
-  var ivHist=filterByAt((ivData&&ivData.history)||[], function(h){return h.at;});
-  var ivCov=document.getElementById('ivCoverage'); if(ivCov) ivCov.textContent=compactCoverage(ivHist,function(h){return h.at;});
+  var ivHist=filterByAt((ivData&&ivData.history)||[],function(h){return h.at;},priceRange);
+  var ivCov=document.getElementById('ivCoverage'); if(ivCov) ivCov.textContent=compactCoverage(ivHist,function(h){return h.at;},priceRange);
   updateValueSummary();
 
   var priceRows;
-  if((wlRange==='1d'||wlRange==='1w')&&orclMinuteBars.length){
-    priceRows=filterByAt(orclMinuteBars,function(h){return h.at;}).map(function(h){return {at:h.at,value:usdToEur(h.close,h.at)};}).filter(function(h){return isFinite(h.value);});
+  if((priceRange==='1d'||priceRange==='1w')&&orclMinuteBars.length){
+    priceRows=filterByAt(orclMinuteBars,function(h){return h.at;},priceRange).map(function(h){return {at:h.at,value:usdToEur(h.close,h.at)};}).filter(function(h){return isFinite(h.value);});
   }else if(orclDailyBars.length){
-    priceRows=filterByAt(orclDailyBars,function(h){return h.at;}).map(function(h){return {at:h.at,value:usdToEur(h.close,h.at)};}).filter(function(h){return isFinite(h.value);});
+    priceRows=filterByAt(orclDailyBars,function(h){return h.at;},priceRange).map(function(h){return {at:h.at,value:usdToEur(h.close,h.at)};}).filter(function(h){return isFinite(h.value);});
   }else{
     priceRows=ivHist.map(function(h){return {at:h.at,value:ivEur(h,'price')};}).filter(function(h){return isFinite(h.value);});
   }
@@ -904,7 +885,7 @@ function renderAll(){
   }
   var pricePts=priceRows.map(function(h){return {x:new Date(h.at).getTime(),y:Number(h.value)};});
   var fairPts;
-  if(wlRange==='1d'||wlRange==='1w'){
+  if(priceRange==='1d'||priceRange==='1w'){
     var fairNow=ivData&&ivData.latest?usdToEur(ivData.latest.intrinsic_base_usd||ivData.latest.intrinsic_usd,Date.now()):null;
     fairPts=priceRows.length&&isFinite(fairNow)?[{x:new Date(priceRows[0].at).getTime(),y:fairNow},{x:new Date(priceRows[priceRows.length-1].at).getTime(),y:fairNow}]:[];
   }else{
@@ -920,17 +901,17 @@ function renderAll(){
   ivChart=new Chart(document.getElementById('ivChart'),{type:'line',data:{datasets:[
     {label:'Kurs',data:pricePts,parsing:false,spanGaps:false,borderColor:pColor,backgroundColor:pColor,fill:false,tension:.10,pointRadius:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:pColor,borderWidth:2.4},
     {label:'Innerer Wert',data:fairPts,parsing:false,spanGaps:false,borderColor:'#151517',backgroundColor:'#151517',stepped:true,pointRadius:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:'#151517',borderWidth:1.7,borderDash:[5,4]}
-  ]},options:{events:chartEvents(),responsive:true,maintainAspectRatio:false,layout:{padding:{top:6,bottom:2,left:4,right:4}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('iv')},scales:{x:axisX(priceRows,function(h){return h.at;}),y:{grace:'8%',ticks:{color:'#6b6b76',callback:function(v){var n=Number(v);return isFinite(n)?n.toLocaleString('de-DE',{maximumFractionDigits:0})+' €':'—';},font:{size:11}},grid:{color:'#f2f2f4'},border:{display:false}}}}});
+  ]},options:{events:chartEvents(),responsive:true,maintainAspectRatio:false,layout:{padding:{top:6,bottom:2,left:4,right:4}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('iv')},scales:{x:axisX(priceRows,function(h){return h.at;},priceRange),y:{grace:'8%',ticks:{color:'#6b6b76',callback:function(v){var n=Number(v);return isFinite(n)?n.toLocaleString('de-DE',{maximumFractionDigits:0})+' €':'—';},font:{size:11}},grid:{color:'#f2f2f4'},border:{display:false}}}}});
 
 
-  var voices=filterByAt(ev.voices||orcl.voices_archive||[], function(v){return v.at;});
+  var voices=filterByAt(ev.voices||orcl.voices_archive||[],function(v){return v.at;},sentimentRange);
   var counts={bull:0,mixed:0,bear:0};
   voices.forEach(function(v){var l=String(v.lean||'mixed').toLowerCase(); if(l!=='bull'&&l!=='bear')l='mixed'; counts[l]++;});
   var total=counts.bull+counts.mixed+counts.bear;
   if(pieChart) pieChart.destroy();
   pieChart=new Chart(document.getElementById('pie'),{type:'doughnut',data:{labels:['Bullisch','Unklar','Bearisch'],datasets:[{data:[counts.bull,counts.mixed,counts.bear],backgroundColor:['#00c761','#ff9500','#ff3b30'],borderWidth:0}]},options:{plugins:{legend:{display:false}},cutout:'64%'}});
   document.getElementById('pieLeg').textContent=total?('Bullisch '+counts.bull+' · Unklar '+counts.mixed+' · Bearisch '+counts.bear):'Keine Meinungen';
-  var rn={'1d':'1T','1w':'1W','1m':'1M',year:'1J','5y':'5J',all:'MAX'}[wlRange]||wlRange;
+  var rn=rangeLabel(sentimentRange);
   document.getElementById('stimmenRange').textContent='('+rn+')';
   var groups={bull:[],mixed:[],bear:[]};
   voices.slice().sort(function(a,b){return new Date(b.at||0)-new Date(a.at||0);}).forEach(function(v){
@@ -1184,20 +1165,19 @@ document.getElementById('syncNow').onclick=async function(){
 };
 setInterval(function(){renderSyncFooter();},30000);
 
-function setRange(r){
-  wlRange=r;
-  saveRange(wlRange);
+function setChartRange(kind,r){
+  if(['1d','1w','1m','year','5y','all'].indexOf(r)<0)return;
+  if(kind==='price')priceRange=r;
+  else if(kind==='sentiment')sentimentRange=r;
+  else if(kind==='magnitude')magnitudeRange=r;
+  else return;
+  saveChartRange(kind,r);
   syncRangeButtons();
   renderAll();
 }
-document.getElementById('rangeBar').onclick=function(e){
-  var btn=e.target.closest('button[data-range]'); if(!btn)return;
-  setRange(btn.getAttribute('data-range'));
-};
-document.getElementById('sentimentRange').onclick=function(e){
-  var btn=e.target.closest('button[data-sentiment-range]'); if(!btn)return;
-  setRange(btn.getAttribute('data-sentiment-range'));
-};
+document.getElementById('priceRange').onclick=function(e){var b=e.target.closest('button[data-price-range]');if(b)setChartRange('price',b.getAttribute('data-price-range'));};
+document.getElementById('sentimentRange').onclick=function(e){var b=e.target.closest('button[data-sentiment-range]');if(b)setChartRange('sentiment',b.getAttribute('data-sentiment-range'));};
+document.getElementById('magnitudeRange').onclick=function(e){var b=e.target.closest('button[data-magnitude-range]');if(b)setChartRange('magnitude',b.getAttribute('data-magnitude-range'));};
 var SHOCK_LS='botbot_orcl_price_shocks_v1', SHOCK_NOTIFY_LS='botbot_orcl_shock_notify_v1';
 var shockLastKey='', shockPollBusy=false;
 function shockEventsLoad(){try{return JSON.parse(localStorage.getItem(SHOCK_LS)||'[]');}catch(e){return [];}}
