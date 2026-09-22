@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-09-22T18:34:10+02:00",
+  "updated_at": "2026-09-22T18:34:45+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-22T18:34:10+02:00",
-    "scraped_at": "2026-09-22T18:34:10+02:00",
+    "tick_id": "2026-09-22T18:34:45+02:00",
+    "scraped_at": "2026-09-22T18:34:45+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "PublicReddit": {
@@ -11,7 +11,7 @@
         "items": 10,
         "provider": "apewisdom.io",
         "window": "24h aggregate snapshot",
-        "freshest": "2026-09-22T18:34:10+02:00",
+        "freshest": "2026-09-22T18:34:45+02:00",
         "sentiment_pct_bullish": 86,
         "upvotes_24h": 22
       },
@@ -20,7 +20,7 @@
         "items": 20,
         "provider": "news.google.com",
         "window": "last 36h, fetched now",
-        "freshest": "2026-09-22T18:34:10+02:00",
+        "freshest": "2026-09-22T18:34:45+02:00",
         "notes": [
           "Prediction: Oracle Could Have 50% Upside From Here",
           "ORCL Stock Snaps 3-Day Losing Streak: What’s Making Retail Traders ‘Extremely Bullish’?",
@@ -31,9 +31,9 @@
         "status": "ok",
         "items": 1,
         "prices": {
-          "ORCL": 148.86500549316406
+          "ORCL": 148.87010192871094
         },
-        "price_at": "2026-09-22T16:34:09.000Z",
+        "price_at": "2026-09-22T16:34:41.000Z",
         "note": "Yahoo chart 5d/1m fallback feed"
       }
     },
@@ -49,10 +49,10 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-22T18:34:10+02:00",
+      "freshest_absolute": "2026-09-22T18:34:45+02:00",
       "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
       "quality": "medium-high public sources",
-      "scrape_berlin": "2026-09-22T18:34:10+02:00",
+      "scrape_berlin": "2026-09-22T18:34:45+02:00",
       "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
       "freshest_item_age": "snapshot fetched now",
       "oldest_usable_signal": "$3.4M Oracle (NYSE: ORCL) stock sale follows recent vesting"
@@ -502,7 +502,7 @@
           "tradingview": "https://www.tradingview.com/symbols/ORCL/",
           "yahoo": "https://finance.yahoo.com/quote/ORCL"
         },
-        "price": 148.86500549316406
+        "price": 148.87010192871094
       }
     ],
     "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
@@ -511,10 +511,10 @@
   "signals_disclaimer": "",
   "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
   "freshness": {
-    "freshest_absolute": "2026-09-22T18:34:10+02:00",
+    "freshest_absolute": "2026-09-22T18:34:45+02:00",
     "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
     "quality": "medium-high public sources",
-    "scrape_berlin": "2026-09-22T18:34:10+02:00",
+    "scrape_berlin": "2026-09-22T18:34:45+02:00",
     "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
     "freshest_item_age": "snapshot fetched now",
     "oldest_usable_signal": "$3.4M Oracle (NYSE: ORCL) stock sale follows recent vesting"
@@ -1589,6 +1589,15 @@
     {
       "tick_id": "2026-09-22T18:34:10+02:00",
       "scraped_at": "2026-09-22T18:34:10+02:00",
+      "magnitude": 49,
+      "confidence": 77,
+      "direction": "leicht_bullish_risk_on",
+      "items": 21,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-22T18:34:45+02:00",
+      "scraped_at": "2026-09-22T18:34:45+02:00",
       "magnitude": 49,
       "confidence": 77,
       "direction": "leicht_bullish_risk_on",
