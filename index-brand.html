@@ -619,7 +619,7 @@
     const PAGE_H=4.80;
     const rightZ=i=>.17-i*.018;
     const leftZ=i=>.17+i*.018;
-    const basePageGeom=new THREE.PlaneGeometry(PAGE_W,PAGE_H,28,1);
+    const basePageGeom=new THREE.PlaneGeometry(PAGE_W,PAGE_H,30,1);
     basePageGeom.translate(PAGE_W/2,0,0);
 
     function backTextureFor(pageIndex){
@@ -695,28 +695,85 @@
 
     function ease(t){return 1-Math.pow(1-t,3)}
 
-    function bendPage(pivot,t){
+    function smoothstep(a,b,x){
+      const t=Math.max(0,Math.min(1,(x-a)/(b-a)));
+      return t*t*(3-2*t);
+    }
+
+    function deformLeaf(index,progress){
+      const pivot=pageRoots[index];
+      if(!pivot)return;
+
       const geometry=pivot.userData.geometry;
       const pos=geometry.attributes.position;
       const base=geometry.userData.basePosition;
-      const amount=Math.sin(Math.PI*t)*.24;
-      for(let i=0;i<pos.count;i++){
-        const x=base[i*3];
-        const u=Math.max(0,Math.min(1,x/PAGE_W));
-        pos.array[i*3]=x;
-        pos.array[i*3+1]=base[i*3+1];
-        pos.array[i*3+2]=base[i*3+2]+Math.sin(Math.PI*u)*amount;
+      const segments=30;
+      const ds=PAGE_W/segments;
+
+      // Inextensible paper strip: integrate equal-length segments.
+      // The sheet bends; it never stretches and never rotates as one rigid plane.
+      const theta=Math.PI*progress;
+      const lag=.58*Math.sin(Math.PI*progress);
+      const spineBlend=smoothstep(.35,.92,progress);
+      const spineZ=rightZ(index)+(leftZ(index)-rightZ(index))*spineBlend;
+
+      const curveX=new Float32Array(segments+1);
+      const curveZ=new Float32Array(segments+1);
+      curveX[0]=0;
+      curveZ[0]=spineZ;
+
+      for(let j=1;j<=segments;j++){
+        const u=(j-.5)/segments;
+        const localAngle=Math.max(
+          0,
+          Math.min(Math.PI,theta-lag*Math.sin(Math.PI*u))
+        );
+
+        curveX[j]=curveX[j-1]+ds*Math.cos(localAngle);
+        curveZ[j]=curveZ[j-1]+ds*Math.sin(localAngle);
       }
+
+      const leftStackTop=index>0?leftZ(index-1):.15;
+      const rightStackTop=rightZ(index);
+      const safety=.007;
+
+      for(let i=0;i<pos.count;i++){
+        const bx=base[i*3];
+        const by=base[i*3+1];
+        const u=Math.max(0,Math.min(1,bx/PAGE_W));
+        const seg=Math.max(0,Math.min(segments,Math.round(u*segments)));
+
+        let x=curveX[seg];
+        let z=curveZ[seg];
+
+        // Collision constraint: while any part of the moving sheet is over the
+        // settled left stack it may approach the stack, but never pass through it.
+        if(x<0){
+          const landing=smoothstep(.72,1,progress);
+          const floor=leftStackTop+safety*(1-landing);
+          z=Math.max(z,floor);
+        }else{
+          const leaving=smoothstep(0,.28,progress);
+          const floor=rightStackTop-safety*leaving;
+          z=Math.max(z,floor);
+        }
+
+        pos.array[i*3]=x;
+        pos.array[i*3+1]=by;
+        pos.array[i*3+2]=z;
+      }
+
       pos.needsUpdate=true;
       geometry.computeVertexNormals();
+
+      // The geometry performs the whole turn. Keeping the pivot fixed removes
+      // the late-animation stack crossing visible as a vertical strip.
+      pivot.rotation.set(0,0,0);
+      pivot.position.set(-PAGE_W/2,0,0);
     }
 
     function setLeafState(index,flipped){
-      const pivot=pageRoots[index];
-      pivot.rotation.y=flipped?-Math.PI:0;
-      pivot.rotation.z=0;
-      pivot.position.z=flipped?leftZ(index):rightZ(index);
-      bendPage(pivot,0);
+      deformLeaf(index,flipped?1:0);
     }
 
     function normalizeBookState(){
@@ -728,33 +785,22 @@
       animating=true;
       updateUI();
 
-      const pivot=pageRoots[index];
-      const fromAngle=pivot.rotation.y;
-      const toAngle=toFlipped?-Math.PI:0;
-      const fromZ=pivot.position.z;
-      const toZ=toFlipped?leftZ(index):rightZ(index);
       const start=performance.now();
-      const dur=prefersReduced?1:820;
+      const dur=prefersReduced?1:860;
+      const from=toFlipped?0:1;
+      const to=toFlipped?1:0;
 
       function frame(now){
         const t=Math.min(1,(now-start)/dur);
         const e=ease(t);
-        pivot.rotation.y=fromAngle+(toAngle-fromAngle)*e;
-        // Keep the turning leaf slightly in front of both stacks while it crosses
-        // the spine. The lift returns to exactly zero at t=0 and t=1, so there
-        // is no visible snap when the leaf settles.
-        const stackLift=Math.sin(Math.PI*t)*.065;
-        pivot.position.z=fromZ+(toZ-fromZ)*e+stackLift;
-        pivot.rotation.z=(toFlipped?-1:1)*Math.sin(Math.PI*t)*.018;
-        bendPage(pivot,t);
+        const progress=from+(to-from)*e;
+
+        deformLeaf(index,progress);
 
         if(t<1){
           requestAnimationFrame(frame);
         }else{
-          pivot.rotation.y=toAngle;
-          pivot.rotation.z=0;
-          pivot.position.z=toZ;
-          bendPage(pivot,0);
+          deformLeaf(index,to);
           animating=false;
           if(onDone)onDone();
           updateUI();
