@@ -35,8 +35,11 @@ jobs:
           cp research/microstructure/README.md "$root/README.md"
           cp research/microstructure/DATA_MANIFEST.json "$root/research/"
           cp research/microstructure/reproduce.sh "$root/research/"
+          cp research/microstructure/orcl-external-evidence.json "$root/research/"
+          cp research/microstructure/ORCL_PROOF_VERDICT.md "$root/research/"
           cp tools/validate-fi2010-microstructure.py "$root/research/"
           cp .github/workflows/fi2010-proof.yml "$root/workflow/"
+          cp .github/workflows/microstructure-edge.yml "$root/workflow/"
 
           cp tools/microstructure-core.mjs "$root/production/"
           cp tools/microstructure-signal.mjs "$root/production/"
@@ -107,8 +110,17 @@ jobs:
           research/fi2010-microstructure-proof.json
             Exact corrected holdout results.
 
+          research/orcl-external-evidence.json
+            Published ORCL-specific 2017-2019 LOBSTER evidence and transaction-level metrics.
+
+          research/ORCL_PROOF_VERDICT.md
+            Final current research verdict and hard promotion criteria.
+
           workflow/fi2010-proof.yml
-            CI proof workflow.
+            Independent public-data proof workflow.
+
+          workflow/microstructure-edge.yml
+            Current ORCL long-form 252+ day production promotion gate.
 
           production/*
             Current ALANTU SIP aggregation, signal, backfill, validation,
