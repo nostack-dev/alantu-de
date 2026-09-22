@@ -740,7 +740,11 @@
         const t=Math.min(1,(now-start)/dur);
         const e=ease(t);
         pivot.rotation.y=fromAngle+(toAngle-fromAngle)*e;
-        pivot.position.z=fromZ+(toZ-fromZ)*e;
+        // Keep the turning leaf slightly in front of both stacks while it crosses
+        // the spine. The lift returns to exactly zero at t=0 and t=1, so there
+        // is no visible snap when the leaf settles.
+        const stackLift=Math.sin(Math.PI*t)*.065;
+        pivot.position.z=fromZ+(toZ-fromZ)*e+stackLift;
         pivot.rotation.z=(toFlipped?-1:1)*Math.sin(Math.PI*t)*.018;
         bendPage(pivot,t);
 
