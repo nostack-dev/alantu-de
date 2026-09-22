@@ -412,7 +412,6 @@
     let backCover=null;
     let endCoverPivot=null;
     let coverSupport=null;
-    let pageBlock=null;
     let bookCore=null;
     let totalPages=0;
     let totalLeaves=0;
@@ -470,7 +469,6 @@
         endCoverPivot=null;
       }
       coverSupport=null;
-      if(pageBlock){pageBlock.geometry.dispose();disposeMaterial(pageBlock.material);root.remove(pageBlock);pageBlock=null}
       totalPages=0;totalLeaves=0;
       if(bookCore)bookCore.reset(0);
     }
@@ -557,8 +555,6 @@
     }
 
     function updateUI(state){
-      if(pageBlock)pageBlock.visible=state.currentLeaf<totalLeaves;
-
       if(!totalPages){
         pageCount.textContent="— / —";
         fullscreenBtn.disabled=true;
@@ -636,7 +632,8 @@
       const support=computeAlantuBookSupportZ({
         totalLeaves,
         rightZ,
-        pageBlockThickness:.22,
+        // The real leaves are the paper stack. No synthetic white slab.
+        pageBlockThickness:0,
         coverThickness:.16
       });
 
@@ -677,14 +674,6 @@
       };
       setStartCoverProgress(0);
       setEndCoverProgress(0);
-
-      pageBlock=new THREE.Mesh(
-        new THREE.BoxGeometry(PAGE_W+.05,PAGE_H+.08,.22),
-        edgeMaterial.clone()
-      );
-      pageBlock.position.set(.05,0,support.pageBlockCenterZ);
-      pageBlock.castShadow=true;
-      root.add(pageBlock);
 
       const baseGeometry=new THREE.PlaneGeometry(PAGE_W,PAGE_H,30,1);
       baseGeometry.translate(PAGE_W/2,0,0);
