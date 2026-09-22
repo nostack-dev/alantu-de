@@ -1,6 +1,13 @@
 name: Microstructure data audit
 
 on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/microstructure-core.mjs"
+      - "tools/alpaca-microstructure-backfill.mjs"
+      - "tools/alpaca-microstructure-live.mjs"
+      - ".github/workflows/microstructure-data.yml"
   workflow_dispatch:
     inputs:
       symbol:
@@ -32,6 +39,11 @@ jobs:
       MICRO_OUT: microstructure-report.json
     steps:
       - uses: actions/checkout@v4
+      - name: Syntax check
+        run: |
+          node --check tools/microstructure-core.mjs
+          node --check tools/alpaca-microstructure-backfill.mjs
+          node --check tools/alpaca-microstructure-live.mjs
       - name: Resolve scheduled window
         if: ${{ github.event_name == 'schedule' }}
         run: |
