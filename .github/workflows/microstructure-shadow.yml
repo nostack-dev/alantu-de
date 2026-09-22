@@ -1,0 +1,82 @@
+name: Microstructure shadow
+
+on:
+  schedule:
+    - cron: "*/5 12-22 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: microstructure-shadow
+  cancel-in-progress: true
+
+jobs:
+  shadow:
+    runs-on: ubuntu-latest
+    env:
+      APCA_API_KEY_ID: ${{ secrets.APCA_API_KEY_ID }}
+      APCA_API_SECRET_KEY: ${{ secrets.APCA_API_SECRET_KEY }}
+      ALANTU_MARKET_FEED: sip
+      MICRO_SYMBOL: ORCL
+      MICRO_OUT: microstructure-current.json
+      MICRO_STATUS_OUT: microstructure-status.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Define rolling window
+        shell: bash
+        run: |
+          echo "MICRO_START=$(date -u -d '50 minutes ago' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+          echo "MICRO_END=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+      - name: Syntax check
+        run: |
+          node --check tools/microstructure-core.mjs
+          node --check tools/alpaca-microstructure-backfill.mjs
+      - name: Pull exact SIP tape in shadow mode
+        id: pull
+        shell: bash
+        run: |
+          set +e
+          node tools/alpaca-microstructure-backfill.mjs
+          code=$?
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Validate no client secrets and usable feed
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f microstructure-status.json ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          configured="$(jq -r '.configured // false' microstructure-status.json)"
+          quality="$(jq -r '.quality.status // "unavailable"' microstructure-status.json)"
+          if [ "$configured" != "true" ] || [ "$quality" != "usable" ] || [ ! -s microstructure-current.json ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          jq -e '.feed=="sip" and .quality.status=="usable" and ((.minutes // [])|length>=30)' microstructure-current.json >/dev/null
+          ! grep -R -E 'APCA_API_(KEY_ID|SECRET_KEY)' microstructure-current.json microstructure-status.json
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+      - name: Publish shadow snapshot atomically
+        if: ${{ steps.gate.outputs.publish == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
+          # Rebuild against current main so we never overwrite a newer app state.
+          export MICRO_START="$(date -u -d '50 minutes ago' +%Y-%m-%dT%H:%M:%SZ)"
+          export MICRO_END="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          node tools/alpaca-microstructure-backfill.mjs
+          jq -e '.feed=="sip" and .quality.status=="usable"' microstructure-current.json >/dev/null
+          git add microstructure-current.json microstructure-status.json
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name "microstructure-shadow"
+          git config user.email "microstructure-shadow@users.noreply.github.com"
+          git commit -m "Refresh SIP microstructure shadow"
+          git push origin HEAD:main
