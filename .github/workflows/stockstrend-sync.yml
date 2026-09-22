@@ -12,6 +12,8 @@ on:
       - "orcl-sentiment-history.json"
       - "eurusd-history.json"
       - "runtime-status.json"
+      - "microstructure-current.json"
+      - "microstructure-status.json"
       - ".stockstrend-source-sha"
   schedule:
     - cron: "*/5 * * * *"
@@ -222,6 +224,9 @@ jobs:
           grep -q 'function marketWaveVector' index.html
           grep -q 'function hdrImpulseVector' index.html
           grep -q 'function runHdrFreshAsync' index.html
+          grep -q 'function microstructureShadowUsable' index.html
+          ! grep -q 'APCA_API_SECRET_KEY' index.html
+          ! grep -q 'APCA_API_KEY_ID' index.html
           grep -q 'new Worker(url)' index.html
           ! grep -q 'waveCache' index.html
           grep -q 'BERLIN_DAY_FMT' index.html
