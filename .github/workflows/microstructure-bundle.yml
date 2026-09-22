@@ -15,12 +15,6 @@ on:
       - "microstructure-status.json"
       - "microstructure-edge-status.json"
       - "index.html"
-      - ".github/workflows/fi2010-proof.yml"
-      - ".github/workflows/fi2010-long-horizons.yml"
-      - ".github/workflows/fi2010-horizon-sweep.yml"
-      - ".github/workflows/orcl-l2-proof.yml"
-      - ".github/workflows/market-relay-image.yml"
-      - ".github/workflows/l2-collector-image.yml"
       - ".github/workflows/microstructure-bundle.yml"
   workflow_dispatch:
 
@@ -43,14 +37,11 @@ jobs:
           ZIP="$RUNNER_TEMP/alantu-microstructure-complete.zip"
 
           rm -rf "$ROOT" "$FI" "$ZIP"
-          mkdir -p "$ROOT"/{data,trained,validation,research,production,deploy,workflow,frontend,examples,meta}
+          mkdir -p "$ROOT/data" "$ROOT/trained" "$ROOT/validation" "$ROOT/research" "$ROOT/production" "$ROOT/deploy" "$ROOT/workflow" "$ROOT/frontend" "$ROOT/examples" "$ROOT/meta"
           mkdir -p "$FI"
 
           python -m pip install --disable-pip-version-check --quiet numpy
 
-          # ------------------------------------------------------------------
-          # 1) Documentation / exact research record
-          # ------------------------------------------------------------------
           cp research/microstructure/COMPLETE_MODEL_GUIDE.md "$ROOT/START_HERE.md"
           cp research/microstructure/README.md "$ROOT/research/"
           cp research/microstructure/DATA_MANIFEST.json "$ROOT/research/"
@@ -61,17 +52,10 @@ jobs:
           cp research/microstructure/requirements-research.txt "$ROOT/research/"
           cp research/microstructure/requirements-live.txt "$ROOT/research/"
 
-          # ------------------------------------------------------------------
-          # 2) The actually trained model + executable use example
-          # ------------------------------------------------------------------
           cp research/microstructure/fi2010-microstructure-model.json "$ROOT/trained/"
           cp research/microstructure/fi2010-microstructure-proof.json "$ROOT/trained/"
           cp research/microstructure/fi2010_inference_example.py "$ROOT/examples/"
-          cp tools/validate-fi2010-microstructure.py "$ROOT/research/"
 
-          # ------------------------------------------------------------------
-          # 3) Pinned original FI-2010 bytes
-          # ------------------------------------------------------------------
           FI_URL='https://raw.githubusercontent.com/zcakhaa/DeepLOB-Deep-Convolutional-Neural-Networks-for-Limit-Order-Books/ff14d7c2fd38bdfc143389786993d0f0236d4eb8/data/data.zip'
           curl -fL --retry 4 --connect-timeout 15 --max-time 300 "$FI_URL" -o "$ROOT/data/FI-2010-data.zip"
           test "$(stat -c%s "$ROOT/data/FI-2010-data.zip")" = "56278154"
@@ -79,10 +63,7 @@ jobs:
           sha256sum "$ROOT/data/FI-2010-data.zip" > "$ROOT/data/FI-2010-data.zip.sha256"
           unzip -q "$ROOT/data/FI-2010-data.zip" -d "$FI"
 
-          # ------------------------------------------------------------------
-          # 4) Fresh independent reproduction of trained model/proof
-          # ------------------------------------------------------------------
-          python tools/validate-fi2010-microstructure.py             "$FI"             "$ROOT/validation/fi2010-proof-reproduced.json"             "$ROOT/validation/fi2010-model-reproduced.json"
+          python tools/validate-fi2010-microstructure.py "$FI" "$ROOT/validation/fi2010-proof-reproduced.json" "$ROOT/validation/fi2010-model-reproduced.json"
 
           python - <<'PY'
           import json, math, os
@@ -93,54 +74,40 @@ jobs:
           def eq(x,y,path=""):
               if isinstance(x,dict) and isinstance(y,dict):
                   assert x.keys()==y.keys(), path
-                  for k in x: eq(x[k],y[k],path+"/"+k)
+                  for k in x:
+                      eq(x[k],y[k],path+"/"+k)
               elif isinstance(x,list) and isinstance(y,list):
                   assert len(x)==len(y), path
-                  for i,(a,b) in enumerate(zip(x,y)): eq(a,b,path+f"/{i}")
+                  for i,(a,b) in enumerate(zip(x,y)):
+                      eq(a,b,path+f"/{i}")
               elif isinstance(x,(int,float)) and isinstance(y,(int,float)):
                   assert math.isclose(float(x),float(y),rel_tol=1e-7,abs_tol=1e-10), (path,x,y)
               else:
                   assert x==y,(path,x,y)
 
-          committed=json.loads((root/"trained/fi2010-microstructure-model.json").read_text())
-          reproduced=json.loads((root/"validation/fi2010-model-reproduced.json").read_text())
-          eq(committed,reproduced,"model")
-
-          committed=json.loads((root/"trained/fi2010-microstructure-proof.json").read_text())
-          reproduced=json.loads((root/"validation/fi2010-proof-reproduced.json").read_text())
-          eq(committed,reproduced,"proof")
+          eq(
+              json.loads((root/"trained/fi2010-microstructure-model.json").read_text()),
+              json.loads((root/"validation/fi2010-model-reproduced.json").read_text()),
+              "model"
+          )
+          eq(
+              json.loads((root/"trained/fi2010-microstructure-proof.json").read_text()),
+              json.loads((root/"validation/fi2010-proof-reproduced.json").read_text()),
+              "proof"
+          )
           PY
 
-          # ------------------------------------------------------------------
-          # 5) Horizon validations: fresh output, not copied claims
-          # ------------------------------------------------------------------
-          python tools/validate-fi2010-long-horizons.py             "$FI" "$ROOT/validation/fi2010-long-horizons.json"
+          python tools/validate-fi2010-long-horizons.py "$FI" "$ROOT/validation/fi2010-long-horizons.json"
+          python tools/find-fi2010-event-horizon.py "$FI" "$ROOT/validation/fi2010-horizon-sweep.json"
 
-          python tools/find-fi2010-event-horizon.py             "$FI" "$ROOT/validation/fi2010-horizon-sweep.json"
-
+          cp tools/validate-fi2010-microstructure.py "$ROOT/research/"
           cp tools/validate-fi2010-long-horizons.py "$ROOT/research/"
           cp tools/find-fi2010-event-horizon.py "$ROOT/research/"
 
-          # ------------------------------------------------------------------
-          # 6) Production ORCL hdr-dt-v1 source — complete
-          # ------------------------------------------------------------------
-          cp tools/l2-event-signal.mjs "$ROOT/production/"
-          cp tools/l2_temporal_features.py "$ROOT/production/"
-          cp tools/databento-orcl-mbp10-backfill.py "$ROOT/production/"
-          cp tools/databento-orcl-mbp10-live.py "$ROOT/production/"
-          cp tools/train-orcl-l2-100.py "$ROOT/production/"
-          cp tools/finalize-l2-model.mjs "$ROOT/production/"
-          cp tools/test-l2-event-signal.mjs "$ROOT/production/"
-          cp tools/dump-l2-feature-fixture.mjs "$ROOT/production/"
-          cp tools/test_l2_feature_parity.py "$ROOT/production/"
-
-          # Legacy / comparison SIP path is included too.
-          cp tools/microstructure-core.mjs "$ROOT/production/"
-          cp tools/microstructure-signal.mjs "$ROOT/production/"
-          cp tools/alpaca-microstructure-backfill.mjs "$ROOT/production/"
-          cp tools/alpaca-microstructure-live.mjs "$ROOT/production/"
-          cp tools/validate-sip-edge.mjs "$ROOT/production/"
-          cp tools/apply-micro-edge.mjs "$ROOT/production/"
+          for f in             l2-event-signal.mjs             l2_temporal_features.py             databento-orcl-mbp10-backfill.py             databento-orcl-mbp10-live.py             train-orcl-l2-100.py             finalize-l2-model.mjs             test-l2-event-signal.mjs             dump-l2-feature-fixture.mjs             test_l2_feature_parity.py             microstructure-core.mjs             microstructure-signal.mjs             alpaca-microstructure-backfill.mjs             alpaca-microstructure-live.mjs             validate-sip-edge.mjs             apply-micro-edge.mjs
+          do
+            cp "tools/$f" "$ROOT/production/$f"
+          done
 
           cp market-relay/server.mjs "$ROOT/production/"
           cp market-relay/package.json "$ROOT/production/"
@@ -154,20 +121,15 @@ jobs:
           cp microstructure-status.json "$ROOT/production/"
           cp microstructure-edge-status.json "$ROOT/production/"
 
-          # Full currently served frontend, so the UI binding is inspectable.
           cp index.html "$ROOT/frontend/index.html"
 
-          # ------------------------------------------------------------------
-          # 7) Workflows — exact CI/proof/deploy contracts
-          # ------------------------------------------------------------------
           for f in             fi2010-proof.yml             fi2010-long-horizons.yml             fi2010-horizon-sweep.yml             orcl-l2-proof.yml             microstructure-edge.yml             microstructure-shadow.yml             microstructure-data.yml             market-relay-image.yml             l2-collector-image.yml             stockstrend-sync.yml             microstructure-bundle.yml
           do
-            test -f ".github/workflows/$f" && cp ".github/workflows/$f" "$ROOT/workflow/$f"
+            if [ -f ".github/workflows/$f" ]; then
+              cp ".github/workflows/$f" "$ROOT/workflow/$f"
+            fi
           done
 
-          # ------------------------------------------------------------------
-          # 8) Exact Python <-> JS feature parity + JS model smoke
-          # ------------------------------------------------------------------
           python -m py_compile             tools/l2_temporal_features.py             tools/databento-orcl-mbp10-backfill.py             tools/databento-orcl-mbp10-live.py             tools/train-orcl-l2-100.py             tools/test_l2_feature_parity.py             research/microstructure/fi2010_inference_example.py
 
           node --check tools/l2-event-signal.mjs
@@ -176,83 +138,76 @@ jobs:
 
           node tools/test-l2-event-signal.mjs | tee "$ROOT/validation/l2-js-unit-test.json"
           node tools/dump-l2-feature-fixture.mjs > "$RUNNER_TEMP/l2-js-feature.json"
-          python tools/test_l2_feature_parity.py "$RUNNER_TEMP/l2-js-feature.json"             | tee "$ROOT/validation/l2-python-js-parity.json"
+          python tools/test_l2_feature_parity.py "$RUNNER_TEMP/l2-js-feature.json" | tee "$ROOT/validation/l2-python-js-parity.json"
 
-          python research/microstructure/fi2010_inference_example.py             research/microstructure/fi2010-microstructure-model.json 100             | tee "$ROOT/validation/trained-fi2010-model-smoke.json"
+          python research/microstructure/fi2010_inference_example.py research/microstructure/fi2010-microstructure-model.json 100 | tee "$ROOT/validation/trained-fi2010-model-smoke.json"
 
-          # ------------------------------------------------------------------
-          # 9) Status: explicitly distinguish trained proof model vs ORCL model
-          # ------------------------------------------------------------------
           python - <<'PY'
           import json, os
           from pathlib import Path
+
           root=Path(os.environ["RUNNER_TEMP"])/"alantu-microstructure-complete"
           fi=json.loads((root/"trained/fi2010-microstructure-model.json").read_text())
           orcl=json.loads((root/"production/orcl-l2-model.json").read_text())
+
           status={
-            "package_version":"2026-09-22-hdr-dt-v1",
-            "trained_model":{
-              "file":"trained/fi2010-microstructure-model.json",
-              "dataset":fi.get("dataset"),
-              "trained":True,
-              "production_ORCL_model":False,
-              "reason":"Independent proof model; no ORCL substitution."
-            },
-            "orcl_hdr_dt_model":{
-              "file":"production/orcl-l2-model.json",
-              "feature_version":orcl.get("feature_version"),
-              "horizon_events":orcl.get("horizon_events"),
-              "status":orcl.get("status"),
-              "trained":orcl.get("status") in ("validated","unproven"),
-              "live_directional_claim_allowed":orcl.get("status")=="validated"
-            }
+              "package_version":"2026-09-22-hdr-dt-v1",
+              "trained_model":{
+                  "file":"trained/fi2010-microstructure-model.json",
+                  "dataset":fi.get("dataset"),
+                  "trained":True,
+                  "production_ORCL_model":False,
+                  "reason":"Independent proof model; no ORCL substitution."
+              },
+              "orcl_hdr_dt_model":{
+                  "file":"production/orcl-l2-model.json",
+                  "feature_version":orcl.get("feature_version"),
+                  "horizon_events":orcl.get("horizon_events"),
+                  "status":orcl.get("status"),
+                  "trained":orcl.get("status") in ("validated","unproven"),
+                  "live_directional_claim_allowed":orcl.get("status")=="validated"
+              }
           }
           (root/"MODEL_STATUS.json").write_text(json.dumps(status,indent=2)+"\n")
           PY
 
-          # ------------------------------------------------------------------
-          # 10) Navigation / provenance
-          # ------------------------------------------------------------------
           cat > "$ROOT/CONTENTS.txt" <<'EOF'
           ALANTU MICROSTRUCTURE — COMPLETE PACKAGE
 
           START_HERE.md
-            Full explanation: idea, equations, data, training, inference,
-            delta-t, XY, HDR self/local/global, latency gates and deployment.
+            Complete explanation of data, formulas, trained model, hdr-dt-v1,
+            integration, training, inference, deployment and latency gates.
 
           MODEL_STATUS.json
-            Machine-readable truth about which model is actually trained.
+            Machine-readable truth about trained vs. untrained model status.
 
           data/
-            Exact original FI-2010 ZIP used for the public proof + SHA256.
+            Exact FI-2010 source ZIP + SHA256.
 
           trained/
-            The actually trained FI-2010 Ridge model and committed proof JSON.
+            Actually trained FI-2010 Ridge model + committed proof.
 
           validation/
-            Freshly regenerated holdout proof, model reproduction, long-horizon
-            sweep, development-only horizon sweep, JS unit test, Python↔JS
-            feature parity and trained-model smoke inference.
+            Fresh model reproduction, holdout proof, long-horizon test,
+            horizon sweep, JS unit test, Python/JS parity and model smoke test.
 
           research/
-            Data provenance, external ORCL evidence, current no-go verdict,
-            reproduction scripts and all research scripts.
+            Provenance, reproduction scripts, ORCL external evidence and verdict.
 
           production/
-            Complete ORCL hdr-dt-v1 implementation plus comparison SIP path,
-            relay source, model contract and current fail-closed status.
+            Full ORCL hdr-dt-v1 code, relay, training, live collector and SIP comparison path.
 
           deploy/
             Dockerfiles, compose stack and environment template.
 
           workflow/
-            CI, proof, image-build, shadow and promotion contracts.
+            Exact CI/proof/build workflows.
 
           frontend/
-            Full current ALANTU frontend binding.
+            Current ALANTU frontend integration.
 
           examples/
-            Executable inference example for the actually trained FI-2010 model.
+            Executable trained-model inference example.
           EOF
 
           {
@@ -262,32 +217,36 @@ jobs:
             echo "built_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           } > "$ROOT/meta/BUILD.txt"
 
-          # Hash every package file before zipping.
+          python - <<'PY'
+          import os, re
+          from pathlib import Path
+
+          root=Path(os.environ["RUNNER_TEMP"])/"alantu-microstructure-complete"
+          names=("DATABENTO_API_KEY","APCA_API_SECRET_KEY","APCA_API_KEY_ID","L2_INGEST_TOKEN")
+          bad=[]
+          for p in root.rglob("*"):
+              if not p.is_file() or p.name==".env.example":
+                  continue
+              try:
+                  text=p.read_text(errors="ignore")
+              except Exception:
+                  continue
+              for line in text.splitlines():
+                  s=line.strip()
+                  for name in names:
+                      prefix=name+"="
+                      if s.startswith(prefix):
+                          value=s[len(prefix):].strip()
+                          if len(value)>=8 and not value.startswith("$") and "process.env" not in value:
+                              bad.append((str(p),name))
+          if bad:
+              raise SystemExit("Potential plaintext secrets: "+repr(bad))
+          PY
+
           (
             cd "$ROOT"
-            find . -type f ! -name SHA256SUMS.txt -print0               | sort -z               | xargs -0 sha256sum > SHA256SUMS.txt
+            find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
           )
-
-          # No credentials may be present in the package.
-          if grep -R -I -E             '^(DATABENTO_API_KEY|APCA_API_SECRET_KEY|APCA_API_KEY_ID|L2_INGEST_TOKEN)=[^[:space:]]{8,}
-
-          (cd "$RUNNER_TEMP" && zip -q -r "$ZIP" alantu-microstructure-complete)
-          sha256sum "$ZIP" | tee "$RUNNER_TEMP/alantu-microstructure-complete.zip.sha256"
-
-      - name: Upload complete package
-        uses: actions/upload-artifact@v4
-        with:
-          name: alantu-microstructure-complete
-          path: |
-            ${{ runner.temp }}/alantu-microstructure-complete.zip
-            ${{ runner.temp }}/alantu-microstructure-complete.zip.sha256
-          retention-days: 90
-          compression-level: 0
-             "$ROOT"             --exclude='.env.example'             --exclude='*.md'             --exclude='*.yml'
-          then
-            echo "Potential plaintext secret material found" >&2
-            exit 3
-          fi
 
           (cd "$RUNNER_TEMP" && zip -q -r "$ZIP" alantu-microstructure-complete)
           sha256sum "$ZIP" | tee "$RUNNER_TEMP/alantu-microstructure-complete.zip.sha256"
