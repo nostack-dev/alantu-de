@@ -235,7 +235,7 @@
   .sentiment-relation:empty{display:none}
   @media(max-width:700px){.sentiment-relation{font-size:10px}}
 
-  .market-flow{font-size:11px;line-height:1.25;color:#151517;margin:3px 0 2px;font-variant-numeric:tabular-nums;min-height:14px}
+  .market-flow{font-size:12px;line-height:1.25;color:#151517;margin:5px 0 3px;font-weight:650;font-variant-numeric:tabular-nums;min-height:15px}
   .market-flow:empty{display:none}
   @media(max-width:700px){.market-flow{font-size:10px}}
 
@@ -364,7 +364,7 @@
     <div class="chart-head chart-head-min"><div class="value-summary"><span id="ivNow"></span> <a class="info-link info-inline" href="methodik.html#intrinsic" aria-label="Berechnung des inneren Werts erklären" title="Berechnung des inneren Werts">i</a></div><div class="chart-actions"><button type="button" class="line-toggle active" id="intrinsicToggle" aria-pressed="true">Wert</button><button type="button" class="chart-collapse" data-chart-collapse="price" aria-expanded="true" aria-label="Kurschart einklappen">▴</button></div></div>
     <div class="chart-panel-body">
     <div class="value-status flat" id="ivStatus"></div>
-    <div class="market-flow" id="marketFlow"></div>
+    <div class="market-flow" id="marketFlow">Impuls/Welle · wird berechnet …</div>
     <div class="chart-sub"><span id="ivCoverage"></span></div>
     <div class="chart-wrap chart-wrap-lg"><canvas id="ivChart"></canvas></div>
     <div class="mini-range" id="priceRange" aria-label="Zeitraum Kurs und Wert">
@@ -1200,7 +1200,7 @@ function getMarketWaveVector(){
   return waveCache;
 }
 function marketFlowText(f){
-  if(!f||!f.label)return '';
+  if(!f||!f.label)return '→ Kein gekoppelter Impuls';
   var arrow=f.dir>0?'↗':f.dir<0?'↘':'→',parts=[arrow+' '+f.label];
   if(f.kind==='impulse'&&f.impulse&&f.impulse.agree&&f.impulse.agree.length){
     parts.push(f.impulse.agree.join('+'));
@@ -1472,7 +1472,7 @@ function renderValueChart(){
   var pc=priceRangeColor(s.pricePts);
   var d0={label:'Kurs',data:s.pricePts,parsing:false,spanGaps:false,borderColor:pc,backgroundColor:pc,fill:false,tension:.10,pointRadius:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:pc,borderWidth:2.4};
   var d1={label:'Innerer Wert',data:s.fairPts,parsing:false,spanGaps:false,borderColor:'#151517',backgroundColor:'#151517',stepped:true,pointRadius:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:'#151517',borderWidth:1.7,borderDash:[5,4],hidden:!showIntrinsic};
-  var flowVisible=priceRange==='1d'||priceRange==='1w',flow=flowVisible?getMarketWaveVector():{label:'',dir:0},flowEl=document.getElementById('marketFlow');if(flowEl)flowEl.textContent=flowVisible?marketFlowText(flow):'';
+  var flowVisible=priceRange==='1d'||priceRange==='1w',flow=flowVisible?getMarketWaveVector():{label:'',dir:0},flowEl=document.getElementById('marketFlow');if(flowEl)flowEl.textContent=flowVisible?marketFlowText(flow):'Impuls/Welle · nur in 1T/1W';
   var d2={label:'Welle',data:flowVisible?flowPoint(s.pricePts,flow):[],parsing:false,showLine:false,pointStyle:flowPointStyle(flow),pointRotation:flow.kind==='impulse'?0:(flow.dir<0?180:0),pointRadius:flow.kind==='impulse'?5:6,pointHoverRadius:8,pointBorderWidth:1.5,pointBackgroundColor:'#fff',pointBorderColor:flow.dir>0?'#5dcb5b':flow.dir<0?'#e94035':'#151517'};
   if(!ivChart){
     ivChart=new Chart(document.getElementById('ivChart'),{type:'line',data:{datasets:[d0,d1,d2]},options:{animation:false,events:chartEvents(),responsive:true,maintainAspectRatio:false,layout:{padding:{top:6,bottom:2,left:4,right:4}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('iv')},scales:{x:priceAxisX(s.priceRows,s.session),y:{grace:'8%',ticks:{color:'#6b6b76',callback:function(v){var n=Number(v);return isFinite(n)?n.toLocaleString('de-DE',{maximumFractionDigits:0})+' €':'—';},font:{size:11}},grid:{color:'#f2f2f4'},border:{display:false}}}}});
