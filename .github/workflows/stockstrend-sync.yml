@@ -208,11 +208,13 @@ jobs:
           grep -q "E:oracle T:ugc" index.html
           grep -q 'minSocial=50' index.html
           ! grep -q 'public.api.bsky.app' index.html
-          grep -q 'id="sentiment3dToggle"' index.html
-          grep -q 'id="hypeChart3d"' index.html
-          grep -q 'function sentimentReliability' index.html
+          ! grep -q 'id="sentiment3dToggle"' index.html
+          ! grep -q 'id="hypeChart3d"' index.html
+          ! grep -q 'function sentimentReliability' index.html
           grep -q 'function latestBerlinTradingWindow' index.html
-          grep -q 'min:session.open,max:session.close' index.html
+          grep -q 'var end=isFinite(lastRow)?lastRow:session.open+60000' index.html
+          grep -q 'function updateLivePriceChart1d' index.html
+          ! grep -q 'void p.offsetWidth' index.html
           grep -q 'open:berlinZonedMs(p.year,p.month,p.day,8,0)' index.html
           grep -q 'close:berlinZonedMs(p.year,p.month,p.day,22,0)' index.html
           grep -q 'id="intrinsicToggle"' index.html
