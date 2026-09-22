@@ -235,9 +235,29 @@
   .sentiment-relation:empty{display:none}
   @media(max-width:700px){.sentiment-relation{font-size:10px}}
 
-  .market-flow{font-size:12px;line-height:1.25;color:#151517;margin:5px 0 3px;font-weight:650;font-variant-numeric:tabular-nums;min-height:15px}
-  .market-flow:empty{display:none}
-  @media(max-width:700px){.market-flow{font-size:10px}}
+  .market-flow{margin:7px 0 5px;font-variant-numeric:tabular-nums}
+  .flow-head{display:flex;align-items:baseline;gap:7px;min-height:21px}
+  .flow-phase{font-size:15px;font-weight:820;letter-spacing:-.015em;color:#151517}
+  .flow-phase.up{color:#45a944}.flow-phase.down{color:#d93a31}.flow-phase.flat{color:#777780}
+  .flow-sub{font-size:10px;font-weight:650;color:#8d8d95}
+  .flow-geometry{margin-top:4px}
+  .flow-scale{height:54px;position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:linear-gradient(to bottom,transparent calc(50% - .5px),#d9d9de calc(50% - .5px),#d9d9de calc(50% + .5px),transparent calc(50% + .5px))}
+  .flow-link-layer{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+  .flow-link{fill:none;stroke:#8e8e93;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .flow-col{position:relative;z-index:1}
+  .flow-col:after{content:"";position:absolute;left:50%;top:5px;bottom:5px;border-left:1px solid #ededf0}
+  .flow-node{position:absolute;left:50%;width:10px;height:10px;border-radius:50%;transform:translate(-50%,-50%);background:#fff;border:2.4px solid #8e8e93;z-index:2}
+  .flow-node.up{border-color:#45a944}.flow-node.down{border-color:#d93a31}.flow-node.flat{border-color:#8e8e93}
+  .flow-labels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:0}
+  .flow-label{text-align:center;font-size:10px;font-weight:720;color:#777780;white-space:nowrap}
+  .flow-label.up{color:#3f9d3e}.flow-label.down{color:#c9362e}.flow-label.flat{color:#777780}
+  @media(max-width:700px){
+    .market-flow{margin-top:6px}
+    .flow-phase{font-size:14px}
+    .flow-sub{font-size:9px}
+    .flow-scale{height:50px}
+    .flow-label{font-size:9px}
+  }
 
   /* TR-density main surface */
   header{padding-top:12px!important;padding-bottom:4px!important}
@@ -364,7 +384,7 @@
     <div class="chart-head chart-head-min"><div class="value-summary"><span id="ivNow"></span> <a class="info-link info-inline" href="methodik.html#intrinsic" aria-label="Berechnung des inneren Werts erklären" title="Berechnung des inneren Werts">i</a></div><div class="chart-actions"><button type="button" class="line-toggle active" id="intrinsicToggle" aria-pressed="true">Wert</button><button type="button" class="chart-collapse" data-chart-collapse="price" aria-expanded="true" aria-label="Kurschart einklappen">▴</button></div></div>
     <div class="chart-panel-body">
     <div class="value-status flat" id="ivStatus"></div>
-    <div class="market-flow" id="marketFlow">Impuls/Welle · wird berechnet …</div>
+    <div class="market-flow" id="marketFlow" aria-live="polite"><div class="flow-head"><span class="flow-phase flat">WIRD BERECHNET</span></div></div>
     <div class="chart-sub"><span id="ivCoverage"></span></div>
     <div class="chart-wrap chart-wrap-lg"><canvas id="ivChart"></canvas></div>
     <div class="mini-range" id="priceRange" aria-label="Zeitraum Kurs und Wert">
@@ -1228,6 +1248,50 @@ function marketFlowText(f){
   }
   return parts.join(' · ');
 }
+function flowArrow(d){return d>.08?'↑':d<-.08?'↓':'—';}
+function flowClass(d){return d>.08?'up':d<-.08?'down':'flat';}
+function flowComponentValue(f,name,fallbackDir){
+  var a=f&&f.impulse&&f.impulse.components||[];
+  for(var i=0;i<a.length;i++){
+    if(a[i].name===name&&isFinite(Number(a[i].value)))return liveClamp(Number(a[i].value),-1,1);
+  }
+  return (fallbackDir||0)*.5;
+}
+function renderMarketFlowVisual(f){
+  var el=document.getElementById('marketFlow');if(!el)return;
+  f=f||{};
+  var counter=!!(f.label&&f.impulse&&f.impulse.reliable&&f.impulse.dir&&f.dir&&f.impulse.dir!==f.dir);
+  var phase='KEIN GEKOPPELTER IMPULS',dir=0,sub='';
+  if(counter){phase='GEGENIMPULS';dir=f.impulse.dir;sub='gegen laufende Welle '+flowArrow(f.dir);}
+  else if(f.kind==='impulse'){phase='VORIMPULS';dir=f.dir;sub='Bewegung baut sich auf';}
+  else if(f.kind==='build'||f.kind==='lead'){phase='WELLE BAUT SICH AUF';dir=f.dir;}
+  else if(f.kind==='confirm'){phase='WELLE BESTÄTIGT';dir=f.dir;}
+  else if(f.kind==='turn'){phase='WELLE DREHT';dir=f.dir;}
+  else if(f.kind==='exhaust'){phase='WELLE LÄUFT AUS';dir=f.dir;sub='Unterstützung bricht weg';}
+
+  var vals=[
+    {name:'Crowd',v:flowComponentValue(f,'Crowd',f.crowdDir)},
+    {name:'Volumen',v:flowComponentValue(f,'Volumen',f.volumeDir)},
+    {name:'Kurs',v:flowComponentValue(f,'Kurs',f.priceDir)}
+  ];
+  var xs=[50,150,250],yp=vals.map(function(x){return 50-35*x.v;});
+  var points=xs.map(function(x,i){return x+','+yp[i].toFixed(2);}).join(' ');
+  var nodes=vals.map(function(x,i){
+    return '<div class="flow-col"><span class="flow-node '+flowClass(x.v)+'" style="top:'+yp[i].toFixed(2)+'%"></span></div>';
+  }).join('');
+  var labels=vals.map(function(x){
+    return '<div class="flow-label '+flowClass(x.v)+'">'+x.name+' '+flowArrow(x.v)+'</div>';
+  }).join('');
+  el.innerHTML=
+    '<div class="flow-head"><span class="flow-phase '+flowClass(dir)+'">'+(dir?flowArrow(dir)+' ':'')+phase+'</span>'+(sub?'<span class="flow-sub">'+sub+'</span>':'')+'</div>'+
+    '<div class="flow-geometry" role="img" aria-label="'+phase+'. Crowd '+flowArrow(vals[0].v)+', Volumen '+flowArrow(vals[1].v)+', Kurs '+flowArrow(vals[2].v)+'.">'+
+      '<div class="flow-scale">'+
+        '<svg class="flow-link-layer" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"><polyline class="flow-link" points="'+points+'"/></svg>'+
+        nodes+
+      '</div>'+
+      '<div class="flow-labels">'+labels+'</div>'+
+    '</div>';
+}
 function flowPointStyle(f){
   return f&&f.kind==='impulse'?'rectRot':'triangle';
 }
@@ -1256,8 +1320,8 @@ function updateLivePriceChart1d(){
   if(fair&&fair.data&&fair.data.length>=2){fair.data[0].x=session.open;fair.data[fair.data.length-1].x=end;}
   if(ms-lastFlowRenderAt>=15000){
     lastFlowRenderAt=ms;
-    var flow=getMarketWaveVector(),flowDs=ivChart.data.datasets[2],flowEl=document.getElementById('marketFlow');
-    if(flowEl)flowEl.textContent=marketFlowText(flow);
+    var flow=getMarketWaveVector(),flowDs=ivChart.data.datasets[2];
+    renderMarketFlowVisual(flow);
     if(flowDs){
       flowDs.data=flowPoint(pts,flow);flowDs.pointStyle=flowPointStyle(flow);flowDs.pointRotation=flow.kind==='impulse'?0:(flow.dir<0?180:0);
       flowDs.pointBorderColor=flow.dir>0?'#5dcb5b':flow.dir<0?'#e94035':'#151517';
@@ -1589,7 +1653,7 @@ function renderValueChart(){
   updateValueSummary();
   var d0={label:'Kurs',data:s.pricePts,parsing:false,spanGaps:false,borderColor:'#151517',backgroundColor:'#151517',fill:false,tension:.10,pointRadius:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:'#151517',borderWidth:2.4,segment:{borderColor:priceSegmentColor}};
   var d1={label:'Innerer Wert',data:s.fairPts,parsing:false,spanGaps:false,borderColor:'#151517',backgroundColor:'#151517',stepped:true,pointRadius:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:'#151517',borderWidth:1.7,borderDash:[5,4],hidden:!showIntrinsic};
-  var flowVisible=priceRange==='1d'||priceRange==='1w',flow=flowVisible?getMarketWaveVector():{label:'',dir:0},flowEl=document.getElementById('marketFlow');if(flowEl)flowEl.textContent=flowVisible?marketFlowText(flow):'Impuls/Welle · nur in 1T/1W';
+  var flowVisible=priceRange==='1d'||priceRange==='1w',flow=getMarketWaveVector();renderMarketFlowVisual(flow);
   var d2={label:'Welle',data:flowVisible?flowPoint(s.pricePts,flow):[],parsing:false,showLine:false,pointStyle:flowPointStyle(flow),pointRotation:flow.kind==='impulse'?0:(flow.dir<0?180:0),pointRadius:flow.kind==='impulse'?5:6,pointHoverRadius:8,pointBorderWidth:1.5,pointBackgroundColor:'#fff',pointBorderColor:flow.dir>0?'#5dcb5b':flow.dir<0?'#e94035':'#151517'};
   if(!ivChart){
     ivChart=new Chart(document.getElementById('ivChart'),{type:'line',data:{datasets:[d0,d1,d2]},options:{animation:false,normalized:true,devicePixelRatio:Math.min(2,window.devicePixelRatio||1),events:chartEvents(),responsive:true,maintainAspectRatio:false,layout:{padding:{top:6,bottom:2,left:4,right:4}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('iv')},scales:{x:priceAxisX(s.priceRows,s.session),y:{grace:'8%',ticks:{color:'#6b6b76',callback:function(v){var n=Number(v);return isFinite(n)?n.toLocaleString('de-DE',{maximumFractionDigits:0})+' €':'—';},font:{size:11}},grid:{color:'#f2f2f4'},border:{display:false}}}}});
