@@ -1,0 +1,30 @@
+name: Inspect public Databento L2 sample
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/databento-l2-sample.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect official Nasdaq TotalView MBP-10 sample
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://hist.databento.com/v0/dataset/sample/download/xnas.itch/mbp-10?sample_type=equities'
+          set +o pipefail
+          curl -fL --retry 3 --connect-timeout 15 --max-time 90 "$url" 2>/tmp/curl.err | head -n 40 > /tmp/sample-head.csv
+          rc=$?
+          set -o pipefail
+          test -s /tmp/sample-head.csv
+          echo "curl/head rc=$rc"
+          wc -c /tmp/sample-head.csv
+          sed -n '1,40p' /tmp/sample-head.csv
