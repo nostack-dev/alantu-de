@@ -3,6 +3,14 @@ name: Keep Stockstrend current
 on:
   push:
     branches: ["main"]
+    paths-ignore:
+      - "stockstrend-data.json"
+      - "watchlist-data.json"
+      - "watchlist.json"
+      - "orcl-minute.json"
+      - "eurusd-history.json"
+      - "runtime-status.json"
+      - ".stockstrend-source-sha"
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
@@ -11,7 +19,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: stockstrend-mirror
+  group: stockstrend-runtime
   cancel-in-progress: true
 
 jobs:
@@ -22,7 +30,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Resolve pinned upstream
+      - name: Resolve pinned UI upstream
         id: upstream
         shell: bash
         run: |
@@ -33,7 +41,7 @@ jobs:
           test "$SHA" != "null"
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
 
-      - name: Mirror exact Stockstrend source
+      - name: Mirror exact Stockstrend UI source
         env:
           UPSTREAM_SHA: ${{ steps.upstream.outputs.sha }}
         shell: bash
@@ -50,11 +58,42 @@ jobs:
           cp index.html stockstrend.html
           get market-clock-core.js market-clock-core.js
           get price-shock-core.js price-shock-core.js
-          get stockstrend-data.json stockstrend-data.json
-          get watchlist-data.json watchlist-data.json
-          get watchlist.json watchlist.json
           get intrinsic-orcl.json intrinsic-orcl.json
           printf '%s\n' "$UPSTREAM_SHA" > .stockstrend-source-sha
+
+      - name: Prefer raw main runtime data with local fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          for name in ("index.html","stockstrend.html"):
+              p=Path(name)
+              s=p.read_text()
+              old="""async function fetchJson(url,optional){
+            try{var r=await fetch(url+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json();}
+            catch(e){if(optional)return null;throw e;}
+          }"""
+              new="""async function fetchJson(url,optional){
+            var remote='https://raw.githubusercontent.com/nostack-dev/alantu-de/main/'+url+'?t='+Date.now();
+            var local=url+'?t='+Date.now();
+            var candidates=[remote,local];
+            var lastErr=null;
+            for(var i=0;i<candidates.length;i++){
+              try{
+                var r=await fetch(candidates[i],{cache:'no-store'});
+                if(!r.ok)throw new Error('HTTP '+r.status);
+                return await r.json();
+              }catch(e){lastErr=e;}
+            }
+            if(optional)return null;
+            throw lastErr||new Error('Daten nicht verfügbar');
+          }"""
+              if old not in s:
+                  raise SystemExit(f"fetchJson contract not found in {name}")
+              p.write_text(s.replace(old,new))
+          PY
+          cmp -s index.html stockstrend.html
 
       - name: Refresh ORCL minute and EURUSD fallback feeds
         shell: bash
@@ -79,6 +118,13 @@ jobs:
             'https://query2.finance.yahoo.com/v8/finance/chart/EURUSD=X?range=10y&interval=1d&includePrePost=false&events=div%2Csplits' \
             eurusd-history.json
 
+      - name: Build fresh runtime signal snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/refresh-runtime-data.mjs
+          node tools/refresh-runtime-data.mjs
+
       - name: Fail-closed validation
         shell: bash
         run: |
@@ -87,6 +133,7 @@ jobs:
           grep -q 'id="livePrice"' index.html
           grep -q 'id="marketClock"' index.html
           grep -q 'id="syncFooter"' index.html
+          grep -q 'raw.githubusercontent.com/nostack-dev/alantu-de/main/' index.html
           grep -q "fetchJson('stockstrend-data.json'" index.html
           grep -q "fetchJson('watchlist-data.json'" index.html
           grep -q "fetchJson('intrinsic-orcl.json'" index.html
@@ -104,36 +151,46 @@ jobs:
             'watchlist.json',
             'intrinsic-orcl.json',
             'orcl-minute.json',
-            'eurusd-history.json'
+            'eurusd-history.json',
+            'runtime-status.json'
           ];
           const data = Object.fromEntries(names.map(n => [n, JSON.parse(fs.readFileSync(n, 'utf8'))]));
 
           const watch = data['watchlist-data.json'];
           if (!watch?.stocks?.ORCL) throw new Error('watchlist-data: ORCL missing');
-          if (!watch?.updated_at) throw new Error('watchlist-data: updated_at missing');
+          const trend = data['stockstrend-data.json'];
+          const status = data['runtime-status.json'];
+          const fresh = Date.parse(status?.updated_at || '');
+          if (!Number.isFinite(fresh)) throw new Error('runtime-status timestamp invalid');
+          const ageMs = Date.now() - fresh;
+          if (ageMs < -5*60*1000 || ageMs > 15*60*1000) {
+            throw new Error('runtime snapshot not fresh: ageMs='+ageMs);
+          }
+          if (watch.updated_at !== status.updated_at) throw new Error('watchlist/runtime timestamp mismatch');
+          if (trend?.tick?.freshness?.freshest_absolute !== status.updated_at) throw new Error('trend/runtime freshness mismatch');
+          if (!Number.isFinite(Number(watch?.stocks?.ORCL?.price)) || Number(watch.stocks.ORCL.price)<=0) throw new Error('ORCL runtime price invalid');
 
           const minute = data['orcl-minute.json'];
           const mr = minute?.chart?.result?.[0];
           const mts = mr?.timestamp || [];
           const mq = mr?.indicators?.quote?.[0] || {};
           const mgood = mts.filter((_, i) => Number.isFinite(Number(mq.close?.[i])) && Number(mq.close[i]) > 0);
-          if (minute?.chart?.error || mgood.length < 25) {
-            throw new Error('ORCL minute feed invalid/fewer than 25 valid bars');
-          }
+          if (minute?.chart?.error || mgood.length < 25) throw new Error('ORCL minute feed invalid/fewer than 25 valid bars');
 
           const fx = data['eurusd-history.json'];
           const fr = fx?.chart?.result?.[0];
           const fts = fr?.timestamp || [];
           const fq = fr?.indicators?.quote?.[0] || {};
           const fgood = fts.filter((_, i) => Number.isFinite(Number(fq.close?.[i])) && Number(fq.close[i]) > 0);
-          if (fx?.chart?.error || fgood.length < 500) {
-            throw new Error('EURUSD history invalid/fewer than 500 valid bars');
-          }
+          if (fx?.chart?.error || fgood.length < 500) throw new Error('EURUSD history invalid/fewer than 500 valid bars');
 
           const iv = data['intrinsic-orcl.json'];
           if (iv?.symbol !== 'ORCL' || !iv?.latest) throw new Error('intrinsic-orcl invalid');
-          console.log('Stockstrend mirror validation OK', {
-            upstreamDataAt: watch.updated_at,
+          console.log('Stockstrend runtime validation OK', {
+            updatedAt: status.updated_at,
+            signal: status.derived?.signal,
+            reddit: status.sources?.reddit,
+            news: status.sources?.news,
             minuteBars: mgood.length,
             fxBars: fgood.length
           });
@@ -147,15 +204,15 @@ jobs:
           set -euo pipefail
           git add index.html stockstrend.html market-clock-core.js price-shock-core.js \
             stockstrend-data.json watchlist-data.json watchlist.json intrinsic-orcl.json \
-            orcl-minute.json eurusd-history.json .stockstrend-source-sha
+            orcl-minute.json eurusd-history.json runtime-status.json .stockstrend-source-sha
 
           if git diff --cached --quiet; then
             echo "Already current."
             exit 0
           fi
 
-          git config user.name "stockstrend-mirror"
-          git config user.email "stockstrend-mirror@users.noreply.github.com"
-          git commit -m "Sync Stockstrend from kurzlernen-de ${UPSTREAM_SHA:0:12}"
+          git config user.name "stockstrend-runtime"
+          git config user.email "stockstrend-runtime@users.noreply.github.com"
+          git commit -m "Refresh Stockstrend runtime data ${UPSTREAM_SHA:0:12}"
           git pull --rebase origin main
           git push origin HEAD:main
