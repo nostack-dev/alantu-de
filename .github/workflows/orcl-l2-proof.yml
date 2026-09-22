@@ -38,7 +38,11 @@ permissions:
 jobs:
   syntax:
     runs-on: ubuntu-latest
+    env:
+      DATABENTO_API_KEY_PRESENT: ${{ secrets.DATABENTO_API_KEY != '' }}
     steps:
+      - name: Report provider credential state
+        run: echo "DATABENTO_CONFIGURED=$DATABENTO_API_KEY_PRESENT"
       - uses: actions/checkout@v4
       - run: |
           python -m py_compile tools/databento-orcl-mbp10-backfill.py tools/databento-orcl-cost.py tools/train-orcl-l2-100.py tools/databento-orcl-mbp10-live.py tools/l2_temporal_features.py tools/test_l2_feature_parity.py
