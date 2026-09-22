@@ -94,7 +94,6 @@ early_signal = |net| ≥ 12</div>
 
 <h3>Historischer Stimmungsverlauf</h3>
 <p>Jeder Zeitreihen-Chart hat seinen <b>eigenen</b> Zeitraum: Kurs/Wert, Stimmung und Stimmungsstärke können unabhängig auf <b>1T, 1W, 1M, 1J, 5J oder MAX</b> gestellt werden. Angezeigt werden ausschließlich tatsächlich gespeicherte Messpunkte; fehlende Vergangenheit wird nicht künstlich ergänzt.</p>
-<p>Der optionale <b>3D/HDR-Modus</b> des Stimmungs-Charts codiert drei echte Dimensionen: <b>X = Zeit</b>, <b>Y = Stimmung 0–100</b>, <b>Z = Belastbarkeit</b>. Z wird aus <b>65&nbsp;% Confidence + 35&nbsp;% logarithmisch normalisierter Stichprobendichte</b> berechnet. Die Linienfarbe bleibt unabhängig davon der kontinuierliche Verlauf Rot → Schwarz → TR-Grün.</p>
 <ul>
 <li>Serverseitig gespeicherte ORCL-Stimmung: aktuell echte Messhistorie ab <b>18.08.2026</b>.</li>
 <li>Neue Browser-Livechecks werden zusätzlich lokal als echte Messpunkte gespeichert und beim nächsten Laden mit der Serverhistorie zusammengeführt.</li>
@@ -148,7 +147,7 @@ ORCL in EUR = ORCL_USD / EURUSD
 Für historische Punkte:
 Es wird der letzte EURUSD-Tageswert verwendet,
 dessen Zeitstempel ≤ dem Kurs-/Intrinsic-Zeitstempel ist.</div>
-<p><b>Kurs und Bewertung sind getrennte Datenpfade.</b> Für 1T/1W nutzt der Chart <code>orcl-minute.json</code> aus Yahoo Finance (5 Tage, 1-Minuten-Bars). <b>Nur 1T ist auf ein festes deutsches Tagesfenster von 08:00–22:00 Europe/Berlin begrenzt.</b> Es werden ausschließlich Kursdaten dieses Fensters und dieses deutschen Datums gezeigt; außerhalb davon wird nichts in die Tagesansicht angehängt. Falls für den aktuellen Tag noch keine Daten vorliegen, wird das zuletzt verfügbare 08:00–22:00-Tagesfenster verwendet. 1W und alle längeren Zeiträume bleiben unverändert. Für 1M/1J/5J/MAX nutzt der Chart <code>orcl-history.json</code> aus Yahoo Finance (10 Jahre, Tages-Bars). <code>intrinsic-orcl.json</code> liefert nur noch den SEC/DCF-Wertverlauf und ist nicht die Kursquelle.</p>
+<p><b>Kurs und Bewertung sind getrennte Datenpfade.</b> Für 1T/1W nutzt der Chart <code>orcl-minute.json</code> aus Yahoo Finance (5 Tage, 1-Minuten-Bars). <b>Nur 1T beginnt fest um 08:00 Europe/Berlin und wächst rechts dynamisch bis zum letzten tatsächlich vorhandenen Kurs-/Realtime-Zeitstempel; 22:00 ist die harte Tagesobergrenze.</b> Dadurch wird kein leerer Rest des Tages vorweg angezeigt. Es werden ausschließlich Kursdaten dieses deutschen Tagesfensters gezeigt; falls für heute noch keine Daten vorliegen, wird das zuletzt verfügbare 08:00–22:00-Tagesfenster verwendet. 1W und alle längeren Zeiträume bleiben unverändert. Für 1M/1J/5J/MAX nutzt der Chart <code>orcl-history.json</code> aus Yahoo Finance (10 Jahre, Tages-Bars). <code>intrinsic-orcl.json</code> liefert nur noch den SEC/DCF-Wertverlauf und ist nicht die Kursquelle.</p>
 </section>
 
 <section id="intrinsic">

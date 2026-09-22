@@ -231,12 +231,6 @@
   .chart-panel.collapsed .chart-panel-body{display:none}
   .chart-panel.collapsed .chart-head{margin-bottom:0!important}
 
-  .sentiment-chart-wrap{position:relative}
-  #hypeChart3d{display:none;position:absolute;inset:0;width:100%!important;height:100%!important}
-  .sentiment-chart-wrap.is-3d #hypeChart{display:none!important}
-  .sentiment-chart-wrap.is-3d #hypeChart3d{display:block!important}
-  #sentiment3dToggle.active{color:#151517}
-
   /* TR-density main surface */
   header{padding-top:12px!important;padding-bottom:4px!important}
   header h1{font-size:13px!important;font-weight:700!important;letter-spacing:-.01em!important}
@@ -371,11 +365,11 @@
   </div>
 
   <div class="card chart-card-lg chart-panel" data-chart-panel="sentiment">
-    <div class="chart-head"><div class="label">Oracle · Stimmung <a class="info-link info-inline" href="methodik.html#sentiment" aria-label="Quellen und Berechnung der Stimmung erklären" title="Quellen und Berechnung der Stimmung">i</a></div><div class="chart-actions"><button type="button" class="line-toggle" id="sentiment3dToggle" aria-pressed="false">3D</button><button type="button" class="chart-collapse" data-chart-collapse="sentiment" aria-expanded="true" aria-label="Stimmungs-Chart einklappen">▴</button></div></div>
+    <div class="chart-head"><div class="label">Oracle · Stimmung <a class="info-link info-inline" href="methodik.html#sentiment" aria-label="Quellen und Berechnung der Stimmung erklären" title="Quellen und Berechnung der Stimmung">i</a></div><button type="button" class="chart-collapse" data-chart-collapse="sentiment" aria-expanded="true" aria-label="Stimmungs-Chart einklappen">▴</button></div>
     <div class="chart-panel-body">
     <div class="sentiment-source" id="sentimentSource">Quellen werden geladen …</div>
     <div class="chart-sub"><span id="hypeCoverage"></span></div>
-    <div class="chart-wrap chart-wrap-lg sentiment-chart-wrap"><canvas id="hypeChart"></canvas><canvas id="hypeChart3d" aria-label="3D-Stimmungsverlauf: Zeit, Stimmung und Belastbarkeit"></canvas></div>
+    <div class="chart-wrap chart-wrap-lg"><canvas id="hypeChart"></canvas></div>
     <div class="mini-range" id="sentimentRange" aria-label="Zeitraum Stimmung">
       <button type="button" data-sentiment-range="1d">1T</button><button type="button" data-sentiment-range="1w">1W</button><button type="button" data-sentiment-range="1m">1M</button><button type="button" data-sentiment-range="year">1J</button><button type="button" data-sentiment-range="5y">5J</button><button type="button" data-sentiment-range="all">MAX</button>
     </div>
@@ -412,7 +406,7 @@
 <script src="price-shock-core.js"></script>
 <script>
 var LS_ACC='botbot_acc_open', SENTIMENT_HISTORY_LS='alantu_orcl_sentiment_history_v1';
-var RANGE_KEYS={price:'alantu_price_range_v1',sentiment:'alantu_sentiment_range_v1',magnitude:'alantu_magnitude_range_v1'}, INTRINSIC_VISIBLE_LS='alantu_intrinsic_visible_v1', CHART_OPEN_LS='alantu_chart_open_v1', SENTIMENT_3D_LS='alantu_sentiment_3d_v1';
+var RANGE_KEYS={price:'alantu_price_range_v1',sentiment:'alantu_sentiment_range_v1',magnitude:'alantu_magnitude_range_v1'}, INTRINSIC_VISIBLE_LS='alantu_intrinsic_visible_v1', CHART_OPEN_LS='alantu_chart_open_v1';
 function loadChartRange(key,def){
   try{
     var r=localStorage.getItem(RANGE_KEYS[key])||def||'1d';
@@ -424,7 +418,6 @@ var priceRange=loadChartRange('price','1d');
 var sentimentRange=loadChartRange('sentiment','1m');
 var magnitudeRange=loadChartRange('magnitude','1m');
 var showIntrinsic=(function(){try{return localStorage.getItem(INTRINSIC_VISIBLE_LS)!=='0';}catch(e){return true;}})();
-var sentiment3d=(function(){try{return localStorage.getItem(SENTIMENT_3D_LS)==='1';}catch(e){return false;}})();
 function loadChartOpenState(){
   try{
     var v=JSON.parse(localStorage.getItem(CHART_OPEN_LS)||'{}');
@@ -438,7 +431,6 @@ function resizeChartForPanel(key){
   setTimeout(function(){
     var ch=key==='price'?ivChart:key==='sentiment'?hypeChart:key==='magnitude'?magChart:key==='opinions'?pieChart:null;
     if(ch&&typeof ch.resize==='function')ch.resize();
-    if(key==='sentiment'&&sentiment3d)renderSentimentChart();
   },0);
 }
 function applyChartPanelState(panel,key,open){
@@ -564,7 +556,13 @@ function latestBerlinTradingWindow(arr,getAt){
 function priceAxisX(rows,session){
   if(priceRange==='1d'&&session&&isFinite(session.open)&&isFinite(session.close)){
     var mob=window.matchMedia&&window.matchMedia('(max-width:700px)').matches;
-    return {type:'linear',min:session.open,max:session.close,offset:false,bounds:'ticks',ticks:{color:'#6b6b76',maxRotation:0,autoSkip:true,maxTicksLimit:mob?4:6,font:{size:mob?12:11},callback:function(v){return fmtAxisValue(v,'1d');}},grid:{display:false},border:{display:false}};
+    var lastRow=rows&&rows.length?new Date(rows[rows.length-1].at||0).getTime():NaN;
+    var liveAt=new Date(liveMarket.at||0).getTime();
+    var liveWindow=isFinite(liveAt)?berlinTradingWindowFor(liveAt):null;
+    var end=isFinite(lastRow)?lastRow:session.open+60000;
+    if(liveWindow&&liveWindow.key===session.key&&liveAt>=session.open&&liveAt<=session.close)end=Math.max(end,liveAt);
+    end=Math.min(session.close,Math.max(session.open+60000,end));
+    return {type:'linear',min:session.open,max:end,offset:false,bounds:'ticks',ticks:{color:'#6b6b76',maxRotation:0,autoSkip:true,maxTicksLimit:mob?4:6,font:{size:mob?12:11},callback:function(v){return fmtAxisValue(v,'1d');}},grid:{display:false},border:{display:false}};
   }
   return axisX(rows,function(h){return h.at;},priceRange);
 }
@@ -886,10 +884,9 @@ function renderLiveMarket(isLive){
   var prevEur=(liveMarket.prevOrclUsd&&prevFx)?liveMarket.prevOrclUsd/prevFx:null;
   var delta=prevEur?eur-prevEur:null,pct=prevEur?(delta/prevEur*100):null;
   var old=liveMarket.lastRenderedEur;
-  if(old!=null&&Math.abs(eur-old)>=0.0001){
-    p.classList.remove('price-flash-up','price-flash-down');
-    void p.offsetWidth;
-    p.classList.add(eur>old?'price-flash-up':'price-flash-down');
+  if(old!=null&&Math.abs(eur-old)>=0.01){
+    p.classList.toggle('price-up',eur>old);
+    p.classList.toggle('price-down',eur<old);
   }
   liveMarket.lastRenderedEur=eur;
   p.textContent=euro(eur,2);
@@ -997,11 +994,35 @@ function connectLiveMarket(){
     };
   }catch(e){liveReconnect=setTimeout(connectLiveMarket,5000);}
 }
+var activePriceSessionKey=null;
+function updateLivePriceChart1d(){
+  if(priceRange!=='1d'||!ivChart||!liveMarket.orclUsd||!liveMarket.at)return false;
+  var ms=new Date(liveMarket.at).getTime(),session=berlinTradingWindowFor(ms);
+  if(!session||ms<session.open||ms>session.close)return true;
+  if(activePriceSessionKey&&activePriceSessionKey!==session.key){renderValueChart();return true;}
+  var eur=usdToEur(liveMarket.orclUsd,ms);if(!isFinite(eur))return false;
+  var ds=ivChart.data&&ivChart.data.datasets&&ivChart.data.datasets[0];if(!ds)return false;
+  var pts=ds.data||[],last=pts.length?pts[pts.length-1]:null;
+  if(last&&Math.abs(Number(last.x)-ms)<60000){last.x=ms;last.y=eur;}
+  else pts.push({x:ms,y:eur});
+  ds.data=pts;
+  var pc=priceRangeColor(pts);ds.borderColor=pc;ds.backgroundColor=pc;ds.pointHoverBackgroundColor=pc;
+  var end=Math.min(session.close,Math.max(session.open+60000,ms));
+  ivChart.options.scales.x.min=session.open;ivChart.options.scales.x.max=end;
+  var fair=ivChart.data.datasets[1];
+  if(fair&&fair.data&&fair.data.length>=2){fair.data[0].x=session.open;fair.data[fair.data.length-1].x=end;}
+  ivChart.update('none');
+  return true;
+}
 var liveChartTimer=null;
 function scheduleLiveChartUpdate(){
   if(liveChartTimer)return;
-  var delay=(priceRange==='1d'||priceRange==='1w')?1200:5000;
-  liveChartTimer=setTimeout(function(){liveChartTimer=null;renderValueChart();},delay);
+  var delay=priceRange==='1d'?180:(priceRange==='1w'?1200:5000);
+  liveChartTimer=setTimeout(function(){
+    liveChartTimer=null;
+    if(priceRange==='1d'&&updateLivePriceChart1d())return;
+    renderValueChart();
+  },delay);
 }
 function scheduleLiveShock(){
   if(liveShockTimer)return;
@@ -1068,104 +1089,9 @@ function renderOverview(){
   syncRangeButtons();
   var it=document.getElementById('intrinsicToggle');if(it){it.classList.toggle('active',showIntrinsic);it.setAttribute('aria-pressed',showIntrinsic?'true':'false');}
 }
-function sentimentSampleCount(h){
-  if(!h)return 0;
-  var direct=Number(h.social_count||0)+Number(h.news_count||0);
-  if(direct>0)return direct;
-  var ev=h.evidence||{};
-  return Math.max(0,Number(ev.reddit_posts||0)+Number(ev.news||0)+Number(ev.x_posts||0));
-}
-function sentimentReliability(h){
-  var conf=Number(h&&h.confidence),sample=sentimentSampleCount(h);
-  var sampleScore=sample>0?Math.min(100,100*Math.log(1+sample)/Math.log(201)):null;
-  if(isFinite(conf)&&sampleScore!=null)return Math.round(.65*conf+.35*sampleScore);
-  if(isFinite(conf))return Math.max(0,Math.min(100,conf));
-  if(sampleScore!=null)return Math.round(sampleScore);
-  return 50;
-}
-function sentiment3dRows(rows,range){
-  var groups={},mode='raw';range=range||'all';
-  if(range==='1w'||range==='1m')mode='day';
-  else if(range==='year')mode='week';
-  else if(range==='5y'||range==='all')mode='month';
-  var raw=[];
-  (rows||[]).forEach(function(h){
-    var x=new Date(h&&h.at||0).getTime(),y=stimmungNorm(h),z=sentimentReliability(h),sample=sentimentSampleCount(h);
-    if(!isFinite(x)||y==null||!isFinite(Number(y)))return;
-    if(mode==='raw'){raw.push({at:new Date(x).toISOString(),value:Number(y),z:z,sample:sample,confidence:Number(h.confidence)||null});return;}
-    var key;
-    if(mode==='day')key=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(x));
-    else if(mode==='month')key=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit'}).format(new Date(x));
-    else key=String(Math.floor(x/(7*864e5)));
-    if(!groups[key])groups[key]={x:0,y:0,z:0,s:0,n:0};
-    groups[key].x+=x;groups[key].y+=Number(y);groups[key].z+=z;groups[key].s+=sample;groups[key].n++;
-  });
-  if(mode==='raw')return raw.sort(function(a,b){return new Date(a.at)-new Date(b.at);});
-  return Object.keys(groups).map(function(k){var g=groups[k];return {at:new Date(g.x/g.n).toISOString(),value:g.y/g.n,z:g.z/g.n,sample:g.s};}).sort(function(a,b){return new Date(a.at)-new Date(b.at);});
-}
-function fitCanvas(canvas){
-  var r=canvas.getBoundingClientRect(),dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
-  var w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));
-  if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
-  var ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
-  return {ctx:ctx,w:r.width,h:r.height,dpr:dpr};
-}
-function renderSentiment3d(rows){
-  var canvas=document.getElementById('hypeChart3d');if(!canvas)return;
-  var fit=fitCanvas(canvas),ctx=fit.ctx,w=fit.w,h=fit.h;
-  ctx.clearRect(0,0,w,h);
-  if(!rows||rows.length<2){ctx.fillStyle='#8e8e93';ctx.font='12px system-ui';ctx.fillText('Zu wenig Daten für 3D',14,24);return;}
-  var left=42,right=18,top=18,bottom=28,depthX=Math.min(34,w*.06),depthY=Math.min(22,h*.10);
-  var minT=Math.min.apply(null,rows.map(function(p){return new Date(p.at).getTime();}));
-  var maxT=Math.max.apply(null,rows.map(function(p){return new Date(p.at).getTime();}));
-  var pw=Math.max(1,w-left-right-depthX),ph=Math.max(1,h-top-bottom-depthY);
-  function project(p,zOverride){
-    var tx=(new Date(p.at).getTime()-minT)/Math.max(1,maxT-minT),yy=Math.max(0,Math.min(100,Number(p.value)))/100;
-    var zz=Math.max(0,Math.min(100,zOverride==null?p.z:zOverride))/100;
-    return {x:left+tx*pw+zz*depthX,y:top+(1-yy)*ph-zz*depthY,z:zz};
-  }
-  // 3D frame / depth guides.
-  ctx.lineWidth=1;ctx.strokeStyle='rgba(21,21,23,.08)';
-  [0,50,100].forEach(function(v){
-    var a=project({at:new Date(minT).toISOString(),value:v,z:0},0),b=project({at:new Date(maxT).toISOString(),value:v,z:0},0);
-    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
-  });
-  var first=rows[0],last=rows[rows.length-1];
-  [first,last].forEach(function(p){
-    var a=project(p,0),b=project(p,100);
-    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
-  });
-  // Depth stems show Z explicitly.
-  rows.forEach(function(p,i){
-    if(rows.length>70&&i%Math.ceil(rows.length/70))return;
-    var a=project(p,0),b=project(p);
-    ctx.strokeStyle='rgba(21,21,23,.08)';ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
-  });
-  // Main HDR line: XY color + Z geometry, sample density controls weight/alpha.
-  for(var i=1;i<rows.length;i++){
-    var p0=rows[i-1],p1=rows[i],a=project(p0),b=project(p1);
-    var g=ctx.createLinearGradient(a.x,a.y,b.x,b.y);
-    g.addColorStop(0,sentimentColor(p0.value));g.addColorStop(1,sentimentColor(p1.value));
-    var density=Math.min(1,Math.log(1+Math.max(p0.sample||0,p1.sample||0))/Math.log(201));
-    ctx.globalAlpha=.62+.34*density;ctx.strokeStyle=g;ctx.lineWidth=1.7+1.5*density;ctx.lineCap='round';ctx.lineJoin='round';
-    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
-  }
-  ctx.globalAlpha=1;
-  var lp=rows[rows.length-1],q=project(lp);
-  ctx.fillStyle=sentimentColor(lp.value);ctx.beginPath();ctx.arc(q.x,q.y,3.5,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#8e8e93';ctx.font='10px system-ui';
-  ctx.fillText('0',8,top+ph+2);ctx.fillText('50',8,top+ph/2+2);ctx.fillText('100',8,top+4);
-  ctx.fillText('Z = Belastbarkeit',Math.max(left,w-108),h-7);
-}
-function syncSentiment3dUi(){
-  var wrap=document.querySelector('.sentiment-chart-wrap'),b=document.getElementById('sentiment3dToggle');
-  if(wrap)wrap.classList.toggle('is-3d',sentiment3d);
-  if(b){b.classList.toggle('active',sentiment3d);b.setAttribute('aria-pressed',sentiment3d?'true':'false');}
-}
 function renderSentimentChart(){
   var x=currentContext(),hist=filterByAt(mergedSentimentHistory(x.orcl.history||[]),function(h){return h.at;},sentimentRange);
   var agg=aggregateForRange(hist,function(h){return h.at;},function(h){return stimmungNorm(h);},sentimentRange);
-  var rows3d=sentiment3dRows(hist,sentimentRange);
   var cov=document.getElementById('hypeCoverage');if(cov){var ct=compactCoverage(agg,function(h){return h.at;},sentimentRange);cov.textContent=ct;cov.parentElement.style.display=ct?'block':'none';}
   var pts=agg.map(function(h){return {x:new Date(h.at).getTime(),y:Number(h.value)};});
   var ds={label:'Stimmung',data:pts,parsing:false,spanGaps:false,borderColor:'#8e8e93',backgroundColor:'#8e8e93',fill:false,tension:.12,pointRadius:agg.length<=12?2:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:function(ctx){return sentimentColor(ctx.raw&&ctx.raw.y);},borderWidth:2,segment:{borderColor:function(ctx){return sentimentSegmentGradient(ctx);}},pointBackgroundColor:function(ctx){return sentimentColor(ctx.raw&&ctx.raw.y);}};
@@ -1176,8 +1102,6 @@ function renderSentimentChart(){
     hypeChart.options.scales.x=axisX(agg,function(h){return h.at;},sentimentRange);
     hypeChart.update('none');
   }
-  syncSentiment3dUi();
-  if(sentiment3d)requestAnimationFrame(function(){renderSentiment3d(rows3d);});
 }
 function renderMagnitudeChart(){
   var x=currentContext(),t=x.t,v=x.v;
@@ -1219,7 +1143,7 @@ function valueSeries(){
   var pricePts=priceRows.map(function(h){return {x:new Date(h.at).getTime(),y:Number(h.value)}}),fairPts;
   if(priceRange==='1d'||priceRange==='1w'){
     var fn=ivData&&ivData.latest?usdToEur(ivData.latest.intrinsic_base_usd||ivData.latest.intrinsic_usd,Date.now()):null;
-    if(priceRange==='1d'&&session&&isFinite(fn))fairPts=[{x:session.open,y:fn},{x:session.close,y:fn}];
+    if(priceRange==='1d'&&session&&isFinite(fn)){var lastVisible=priceRows.length?new Date(priceRows[priceRows.length-1].at).getTime():session.open+60000;fairPts=[{x:session.open,y:fn},{x:Math.min(session.close,Math.max(session.open+60000,lastVisible)),y:fn}];}
     else fairPts=priceRows.length&&isFinite(fn)?[{x:new Date(priceRows[0].at).getTime(),y:fn},{x:new Date(priceRows[priceRows.length-1].at).getTime(),y:fn}]:[];
   }else{
     fairPts=ivHist.map(function(h){return {x:new Date(h.at).getTime(),y:ivEur(h,'intrinsic_base')}}).filter(function(p){return isFinite(p.y)});
@@ -1229,7 +1153,8 @@ function valueSeries(){
   return {ivHist:ivHist,priceRows:priceRows,pricePts:pricePts,fairPts:fairPts,session:session};
 }
 function renderValueChart(){
-  var s=valueSeries(),cov=document.getElementById('ivCoverage');if(cov){var ct=compactCoverage(s.ivHist,function(h){return h.at;},priceRange);cov.textContent=ct;cov.parentElement.style.display=ct?'block':'none';}
+  var s=valueSeries(),cov=document.getElementById('ivCoverage');
+  activePriceSessionKey=s.session&&s.session.key?s.session.key:null;if(cov){var ct=compactCoverage(s.ivHist,function(h){return h.at;},priceRange);cov.textContent=ct;cov.parentElement.style.display=ct?'block':'none';}
   updateValueSummary();
   var pc=priceRangeColor(s.pricePts);
   var d0={label:'Kurs',data:s.pricePts,parsing:false,spanGaps:false,borderColor:pc,backgroundColor:pc,fill:false,tension:.10,pointRadius:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:pc,borderWidth:2.4};
@@ -1507,12 +1432,6 @@ function setChartRange(kind,r){
 }
 document.getElementById('priceRange').onclick=function(e){var b=e.target.closest('button[data-price-range]');if(b)setChartRange('price',b.getAttribute('data-price-range'));};
 document.getElementById('sentimentRange').onclick=function(e){var b=e.target.closest('button[data-sentiment-range]');if(b)setChartRange('sentiment',b.getAttribute('data-sentiment-range'));};
-document.getElementById('sentiment3dToggle').onclick=function(){
-  sentiment3d=!sentiment3d;
-  try{localStorage.setItem(SENTIMENT_3D_LS,sentiment3d?'1':'0');}catch(e){}
-  syncSentiment3dUi();
-  renderSentimentChart();
-};
 document.getElementById('magnitudeRange').onclick=function(e){var b=e.target.closest('button[data-magnitude-range]');if(b)setChartRange('magnitude',b.getAttribute('data-magnitude-range'));};
 document.getElementById('intrinsicToggle').onclick=function(){
   showIntrinsic=!showIntrinsic;
@@ -1605,7 +1524,6 @@ document.getElementById('shockNotify').onclick=async function(){
   try{localStorage.setItem(SHOCK_NOTIFY_LS,shockNotifyEnabled()?'0':'1');}catch(e){}
   setShockNotifyButton();
 };
-window.addEventListener('resize',function(){if(sentiment3d)renderSentimentChart();},{passive:true});
 
 initChartPanels();
 renderShockEvents(); setShockNotifyButton(); pollShock();
