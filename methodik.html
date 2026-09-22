@@ -36,7 +36,7 @@ ul{padding-left:18px}.exact{border-left:3px solid #151517;padding-left:12px}
 
 <h3>Primäre Live-Datensätze</h3>
 <ul>
-<li><b>News:</b> TickerTick API, Query <code>(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))</code>, maximal 40 Treffer.</li>
+<li><b>News:</b> TickerTick API, Query <code>(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))</code>, bis zu 100 Treffer.</li>
 <li><b>UGC/Social:</b> TickerTick API, Query <code>(and tt:orcl T:ugc)</code>, bis zu 200 Treffer pro Abruf.</li>
 <li><b>Zusätzlicher Social-Abruf:</b> zweiter TickerTick-UGC-Lauf über die Entity <code>E:oracle</code>, ebenfalls bis zu 200 Treffer. Danach werden nur ORCL-/aktienrelevante Treffer behalten und mit dem tickergebundenen Feed dedupliziert.</li>
 <li><b>Mindeststichprobe:</b> mindestens 50 deduplizierte Social-/UGC-Beiträge im 36-Stunden-Fenster. Darunter wird der Live-Sentiment-Sync verworfen statt eine scheinpräzise Stimmung anzuzeigen.</li>
@@ -76,8 +76,8 @@ mixed_pct = 100 - bull_pct - bear_pct
 net       = bull_pct - bear_pct
 
 confidence = clamp(
-  round(48 + 1.1 × min(18, news_count) + 1.4 × min(12, social_count)),
-  45, 82
+  round(42 + 0,55 × min(30, news_count) + 0,28 × min(120, social_count)),
+  50, 90
 )
 
 BUY  wenn net ≥ 25 und confidence ≥ 60
@@ -94,6 +94,7 @@ early_signal = |net| ≥ 12</div>
 
 <h3>Historischer Stimmungsverlauf</h3>
 <p>Jeder Zeitreihen-Chart hat seinen <b>eigenen</b> Zeitraum: Kurs/Wert, Stimmung und Stimmungsstärke können unabhängig auf <b>1T, 1W, 1M, 1J, 5J oder MAX</b> gestellt werden. Angezeigt werden ausschließlich tatsächlich gespeicherte Messpunkte; fehlende Vergangenheit wird nicht künstlich ergänzt.</p>
+<p>Der optionale <b>3D/HDR-Modus</b> des Stimmungs-Charts codiert drei echte Dimensionen: <b>X = Zeit</b>, <b>Y = Stimmung 0–100</b>, <b>Z = Belastbarkeit</b>. Z wird aus <b>65&nbsp;% Confidence + 35&nbsp;% logarithmisch normalisierter Stichprobendichte</b> berechnet. Die Linienfarbe bleibt unabhängig davon der kontinuierliche Verlauf Rot → Schwarz → TR-Grün.</p>
 <ul>
 <li>Serverseitig gespeicherte ORCL-Stimmung: aktuell echte Messhistorie ab <b>18.08.2026</b>.</li>
 <li>Neue Browser-Livechecks werden zusätzlich lokal als echte Messpunkte gespeichert und beim nächsten Laden mit der Serverhistorie zusammengeführt.</li>
@@ -147,7 +148,7 @@ ORCL in EUR = ORCL_USD / EURUSD
 Für historische Punkte:
 Es wird der letzte EURUSD-Tageswert verwendet,
 dessen Zeitstempel ≤ dem Kurs-/Intrinsic-Zeitstempel ist.</div>
-<p><b>Kurs und Bewertung sind getrennte Datenpfade.</b> Für 1T/1W nutzt der Chart <code>orcl-minute.json</code> aus Yahoo Finance (5 Tage, 1-Minuten-Bars). Für 1M/1J/5J/MAX nutzt er <code>orcl-history.json</code> aus Yahoo Finance (10 Jahre, Tages-Bars). <code>intrinsic-orcl.json</code> liefert nur noch den SEC/DCF-Wertverlauf und ist nicht die Kursquelle. Der jeweils neueste Live-WebSocket-Kurs wird zusätzlich an die Kursreihe angehängt.</p>
+<p><b>Kurs und Bewertung sind getrennte Datenpfade.</b> Für 1T/1W nutzt der Chart <code>orcl-minute.json</code> aus Yahoo Finance (5 Tage, 1-Minuten-Bars). <b>Nur 1T ist auf ein festes deutsches Tagesfenster von 08:00–22:00 Europe/Berlin begrenzt.</b> Es werden ausschließlich Kursdaten dieses Fensters und dieses deutschen Datums gezeigt; außerhalb davon wird nichts in die Tagesansicht angehängt. Falls für den aktuellen Tag noch keine Daten vorliegen, wird das zuletzt verfügbare 08:00–22:00-Tagesfenster verwendet. 1W und alle längeren Zeiträume bleiben unverändert. Für 1M/1J/5J/MAX nutzt der Chart <code>orcl-history.json</code> aus Yahoo Finance (10 Jahre, Tages-Bars). <code>intrinsic-orcl.json</code> liefert nur noch den SEC/DCF-Wertverlauf und ist nicht die Kursquelle.</p>
 </section>
 
 <section id="intrinsic">

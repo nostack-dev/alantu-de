@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-22T15:11:08+02:00",
+  "updated_at": "2026-09-22T15:34:20+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,12 +9,12 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-22T15:11:08+02:00",
+        "at": "2026-09-22T15:34:20+02:00",
         "signal": "buy",
-        "social_impulse": 7,
-        "hype_bull": 49,
+        "social_impulse": 8,
+        "hype_bull": 53,
         "hype_bear": 13,
-        "hype_net": 36,
+        "hype_net": 40,
         "confidence": 78
       },
       "history": [
@@ -1610,6 +1610,20 @@
           "voice_bear": 2,
           "voice_mixed": 11,
           "price": 151.34
+        },
+        {
+          "at": "2026-09-22T15:34:20+02:00",
+          "hype_bull": 53,
+          "hype_bear": 13,
+          "hype_net": 40,
+          "social_impulse": 8,
+          "signal": "buy",
+          "confidence": 78,
+          "hype_mixed": 34,
+          "voice_bull": 10,
+          "voice_bear": 2,
+          "voice_mixed": 10,
+          "price": 150.875
         }
       ],
       "voices_archive": [
@@ -1925,35 +1939,35 @@
         }
       ],
       "signal": "buy",
-      "social_impulse": 7,
-      "impulse": 7,
-      "hype_bull": 49,
+      "social_impulse": 8,
+      "impulse": 8,
+      "hype_bull": 53,
       "hype_bear": 13,
-      "hype_net": 36,
+      "hype_net": 40,
       "confidence": 78,
       "hype_state": "bullish",
-      "updated_at": "2026-09-22T15:11:08+02:00",
-      "why": "Reddit 78% positiv bei 12 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $151.34.",
+      "updated_at": "2026-09-22T15:34:20+02:00",
+      "why": "Reddit 78% positiv bei 12 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $150.88.",
       "evidence": {
         "x_posts": 0,
         "reddit_posts": 12,
         "news": 20,
         "snippets": [
           "ApeWisdom: 12 Mentions/24h, Sentiment 78%",
+          "Oracle Stock Tops S&P 500 Winners Today: PLTR, CRM, PANW Also Rally As Analyst Sees ‘Anthropic Fear Trade’ Unwinding",
           "Jim Cramer sends strong signal to Oracle stock investors",
-          "Oracle's health data includes more than 122 million de-identified patient records.",
-          "Can Oracle (ORCL) Still Look Cheap If Cash Flow Takes Time?"
+          "Oracle's health data includes more than 122 million de-identified patient records."
         ]
       },
       "voices": {
-        "bull": 9,
+        "bull": 10,
         "bear": 2,
-        "mixed": 11,
-        "updated_at": "2026-09-22T15:11:08+02:00"
+        "mixed": 10,
+        "updated_at": "2026-09-22T15:34:20+02:00"
       },
-      "hype_mixed": 38,
+      "hype_mixed": 34,
       "sentiment_unit": "percent_all_classified",
-      "price": 151.34
+      "price": 150.875
     }
   }
 }
