@@ -1,0 +1,31 @@
+name: Test FI-2010 long event horizons
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/validate-fi2010-long-horizons.py"
+      - ".github/workflows/fi2010-long-horizons.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download pinned FI-2010
+        run: |
+          curl -fL --retry 4 --connect-timeout 15 --max-time 300             'https://raw.githubusercontent.com/zcakhaa/DeepLOB-Deep-Convolutional-Neural-Networks-for-Limit-Order-Books/ff14d7c2fd38bdfc143389786993d0f0236d4eb8/data/data.zip'             -o /tmp/fi2010.zip
+          test "$(git hash-object /tmp/fi2010.zip)" = '2d8d7749caf622dd07e0df954413dc698129c766'
+          mkdir -p /tmp/fi2010 && unzip -q /tmp/fi2010.zip -d /tmp/fi2010
+      - run: python -m pip install --disable-pip-version-check --quiet numpy
+      - name: Test 200 through 1,000,000 event horizons
+        run: python tools/validate-fi2010-long-horizons.py /tmp/fi2010 fi2010-long-horizons.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fi2010-long-horizons-${{ github.run_id }}
+          path: fi2010-long-horizons.json
+          retention-days: 90
