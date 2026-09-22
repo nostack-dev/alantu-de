@@ -330,7 +330,7 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
-    import { createAlantuBookCore } from "./alantu-book-core.js";
+    import { createAlantuBookCore, computeAlantuBookSupportZ } from "./alantu-book-core.js";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
@@ -569,11 +569,18 @@
 
       pageTextures=normalized.map(createTexture);
 
+      const support=computeAlantuBookSupportZ({
+        totalLeaves,
+        rightZ,
+        pageBlockThickness:.22,
+        coverThickness:.16
+      });
+
       backCover=new THREE.Mesh(
         new THREE.BoxGeometry(PAGE_W+.30,PAGE_H+.30,.16),
         coverMaterial.clone()
       );
-      backCover.position.set(0,0,-.24);
+      backCover.position.set(0,0,support.backCoverCenterZ);
       backCover.castShadow=true;
       backCover.receiveShadow=true;
       root.add(backCover);
@@ -582,7 +589,7 @@
         new THREE.BoxGeometry(PAGE_W+.05,PAGE_H+.08,.22),
         edgeMaterial.clone()
       );
-      pageBlock.position.set(.05,0,-.055);
+      pageBlock.position.set(.05,0,support.pageBlockCenterZ);
       pageBlock.castShadow=true;
       root.add(pageBlock);
 
