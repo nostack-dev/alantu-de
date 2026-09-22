@@ -63,6 +63,7 @@ jobs:
 
           get stockstrend.html index.html
           cp index.html stockstrend.html
+          get methodik.html methodik.html
           get market-clock-core.js market-clock-core.js
           get price-shock-core.js price-shock-core.js
           get intrinsic-orcl.json intrinsic-orcl.json
@@ -186,6 +187,10 @@ jobs:
           grep -q 'refreshFreshSignals' index.html
           grep -q 'lastBrowserSyncAt=s.at' index.html
           grep -q 'TickerTick UGC' index.html
+          grep -q 'Innerer Wert: exakte Berechnung' methodik.html
+          grep -q 'Exakte SEC-Inputdatensätze' methodik.html
+          grep -q 'TickerTick API' methodik.html
+          grep -q 'ApeWisdom' methodik.html
           cmp -s index.html stockstrend.html
 
           node --check market-clock-core.js
@@ -269,7 +274,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git add index.html stockstrend.html market-clock-core.js price-shock-core.js \
+          git add index.html stockstrend.html methodik.html market-clock-core.js price-shock-core.js \
             stockstrend-data.json watchlist-data.json watchlist.json intrinsic-orcl.json \
             orcl-minute.json eurusd-history.json runtime-status.json .stockstrend-source-sha
 
