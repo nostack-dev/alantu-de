@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<title>alantu.de · Methodik</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+<style>
+:root{--bg:#fff;--soft:#f5f5f7;--line:#e8e8ed;--text:#1b1b1f;--muted:#6b6b76;--green:#00a94f;--red:#e94035;--amber:#a05b00}
+*{box-sizing:border-box}body{margin:0;background:#fff;color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{max-width:900px;margin:auto;padding:22px 18px 12px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+h1{font-size:20px;margin:0;letter-spacing:-.02em}a{color:inherit}.back{font-size:13px;color:var(--muted);text-decoration:none}.wrap{max-width:900px;margin:auto;padding:0 18px 50px}
+.intro{font-size:15px;line-height:1.55;color:#3d3d43;max-width:760px;margin:8px 0 22px}
+section{padding:24px 0;border-top:1px solid var(--line)}h2{font-size:18px;margin:0 0 12px;letter-spacing:-.015em}h3{font-size:14px;margin:20px 0 8px}
+p,li{font-size:14px;line-height:1.55}.muted{color:var(--muted)}.small{font-size:12px;color:var(--muted)}
+code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;background:var(--soft);padding:2px 5px;border-radius:5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:var(--soft);border-radius:10px;padding:12px 14px;font-size:12px;line-height:1.65;overflow:auto;white-space:pre-wrap}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.kpi{background:var(--soft);border-radius:10px;padding:12px}.kpi b{display:block;font-size:18px;margin-top:4px}.kpi span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;min-width:720px;font-size:12px}th,td{text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}th:first-child,td:first-child{text-align:left}th{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:#fafafa}tr:last-child td{border-bottom:0}
+.status{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--soft);font-size:11px;font-weight:700}.ok{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--amber)}
+.story{padding:10px 0;border-bottom:1px solid var(--line)}.story:last-child{border-bottom:0}.story a{text-decoration:none}.story-meta{font-size:11px;color:var(--muted);margin-top:4px}
+details{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}summary{cursor:pointer;font-weight:700;font-size:13px}
+ul{padding-left:18px}.exact{border-left:3px solid #151517;padding-left:12px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.wrap,header{padding-left:14px;padding-right:14px}}
+</style>
+</head>
+<body>
+<header><h1>alantu.de · Methodik</h1><a class="back" href="/">← Aktienansicht</a></header>
+<main class="wrap">
+<p class="intro">Diese Seite ist die technische Rechen- und Quellenbeschreibung der Aktienansicht. Sie trennt bewusst <b>Live-Daten im Browser</b>, <b>GitHub-Fallbackdaten</b> und die <b>Intrinsic-Value-Berechnung</b>. Die angezeigten SEC-Werte und Zwischenrechnungen werden direkt aus den produktiven JSON-Daten geladen.</p>
+
+<section id="live">
+<h2>1 · Live-Sync: was beim Klick auf „Sync“ wirklich passiert</h2>
+<p>Der Browser lädt nicht nur eine vorhandene Datei neu. Er fragt frische Signalquellen ab, berechnet daraus den aktuellen Stimmungsstand neu und setzt <code>Sync xx:xx</code> erst nach erfolgreichem Abschluss.</p>
+
+<h3>Primäre Live-Datensätze</h3>
+<ul>
+<li><b>News:</b> TickerTick API, Query <code>(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))</code>, maximal 40 Treffer.</li>
+<li><b>UGC/Social:</b> TickerTick API, Query <code>(and tt:orcl T:ugc)</code>, maximal 30 Treffer.</li>
+<li><b>Freshness-Gate:</b> nur Datensätze mit Zeitstempel innerhalb der letzten 36 Stunden.</li>
+<li><b>News-Fallback:</b> Google News RSS für <code>Oracle ORCL stock when:1d</code>, browserseitig über RSS2JSON gelesen.</li>
+<li><b>Kurs:</b> Yahoo Finance WebSocket <code>wss://streamer.finance.yahoo.com/?version=2</code>, Subscription <code>ORCL</code> und <code>EURUSD=X</code>.</li>
+</ul>
+
+<h3>Exakte Browser-Heuristik</h3>
+<div class="formula">Headline-Klassifikation:
+bull = positive Schlüsselwörter überwiegen
+bear = negative Schlüsselwörter überwiegen
+mixed = Gleichstand / kein Treffer
+
+Gewichtung:
+News = 1 Stimme pro Treffer
+UGC/Social = 2 Stimmen pro Treffer
+
+bull_pct  = round(100 × bull_votes / all_votes)
+bear_pct  = round(100 × bear_votes / all_votes)
+mixed_pct = 100 - bull_pct - bear_pct
+net       = bull_pct - bear_pct
+
+confidence = clamp(
+  round(48 + 1.1 × min(18, news_count) + 1.4 × min(12, social_count)),
+  45, 82
+)
+
+BUY  wenn net ≥ 25 und confidence ≥ 60
+SELL wenn net ≤ -25 und confidence ≥ 60
+sonst HOLD
+
+magnitude = clamp(round(28 + 0.55 × |net|), 25, 75)
+early_signal = |net| ≥ 12</div>
+
+<details><summary>Exakte Schlüsselwortlisten</summary>
+<p class="small"><b>Positiv:</b> beat, beats, growth, surge, surges, rally, rallies, rise, rises, gain, gains, upgrade, upgraded, outperform, strong, record, backlog, contract, deal, boost, expands, expansion, demand, wins, win, bullish, buy rating</p>
+<p class="small"><b>Negativ:</b> debt, risk, risks, fall, falls, drop, drops, decline, declines, downgrade, downgraded, concern, concerns, lawsuit, probe, headwind, headwinds, cost, costs, capex, stress, stressed, junk bond, layoff, layoffs, slump, miss, misses, bearish, sell rating</p>
+</details>
+
+<h3>Aktuell live abgefragte Datensätze</h3>
+<div id="liveStatus" class="small">Live-Abfrage läuft …</div>
+<div id="liveKpis" class="grid" style="margin:10px 0"></div>
+<div id="liveStories"></div>
+</section>
+
+<section id="fallback">
+<h2>2 · Last-Known-Good-Fallback</h2>
+<p>Falls Browser-Livequellen nicht erreichbar sind, bleibt der letzte validierte Snapshot sichtbar. Er wird nicht als erfolgreicher manueller Sync ausgegeben.</p>
+<div id="fallbackStatus" class="grid"></div>
+<h3>Fallback-Quellen</h3>
+<ul>
+<li><b>Public Reddit:</b> ApeWisdom ORCL-Seite, bei Bedarf deren API. Verwendet werden Mentions/24h, Sentiment und Upvotes, sofern vorhanden.</li>
+<li><b>News:</b> Google News RSS, gleiche Tagesnähe; der Runner speichert bis zu 20 aktuelle Headlines.</li>
+<li><b>ORCL-Kursfallback:</b> Yahoo Finance Chart API, <code>range=5d</code>, <code>interval=1m</code>, inkl. Pre-/Postmarket.</li>
+<li><b>EUR/USD-Historie:</b> Yahoo Finance Chart API, <code>range=10y</code>, <code>interval=1d</code>.</li>
+</ul>
+<div class="formula">Fallback-Gewichtung:
+news_bull / news_bear / news_mixed werden aus Headlines gezählt.
+Jede News-Stimme erhält Gewicht 2.
+
+Wenn ApeWisdom-Sentiment verfügbar:
+reddit_weight = clamp(mentions_24h, 4, 40)
+bull += reddit_weight × sentiment
+bear += reddit_weight × (1 - sentiment)
+
+confidence = clamp(
+  round(48 + 1.5 × min(12, news_count)
+           + 0.6 × min(20, reddit_mentions)
+           + 5 falls Reddit-Sentiment vorhanden),
+  45, 80
+)</div>
+<p class="small">Wichtig: Live-Browserpfad und Fallbackpfad sind absichtlich getrennt. Der Fallback ist ein robuster Snapshot, nicht die Quelle des manuellen Sync-Zeitstempels.</p>
+</section>
+
+<section id="price">
+<h2>3 · Kurs und EUR-Umrechnung</h2>
+<div class="formula">Live ORCL USD = Yahoo WebSocket ORCL
+Live EURUSD   = Yahoo WebSocket EURUSD=X
+
+ORCL in EUR = ORCL_USD / EURUSD
+
+Für historische Punkte:
+Es wird der letzte EURUSD-Tageswert verwendet,
+dessen Zeitstempel ≤ dem Kurs-/Intrinsic-Zeitstempel ist.</div>
+<p>Die historische ORCL-Preisreihe in <code>intrinsic-orcl.json</code> dient nur zum Vergleich „Kurs vs. innerer Wert“. Sie verändert den berechneten inneren Wert nicht. Die ursprüngliche Provider-Provenienz dieser älteren gespeicherten Preisreihe ist im aktuellen Input-Datensatz nicht codiert; deshalb wird hier dafür bewusst kein Provider behauptet.</p>
+</section>
+
+<section id="intrinsic">
+<h2>4 · Innerer Wert: exakte Berechnung</h2>
+<p>Der innere Wert wird ausschließlich aus veröffentlichten Cashflow-/Aktien-Daten der Oracle-SEC-Filings abgeleitet. Kein EBITDA und kein „Adjusted EPS“ fließen als Bewertungsbasis ein.</p>
+<div id="modelKpis" class="grid"></div>
+
+<h3>Schritt 1 · Owner Earnings je Filing</h3>
+<div class="formula">Owner Earnings =
+Operating Cash Flow
+- finanzierungsähnliche Kunden-Vorauszahlungen
+- Stock-Based Compensation
+- geschätzter Maintenance CapEx
+- Preferred Dividends
+
+Maintenance CapEx:
+konservativ = 1,2 × Abschreibung
+Basis        = 1,0 × Abschreibung
+oberer Wert  = 0,8 × Abschreibung
+
+Owner Earnings je Aktie = Owner Earnings / diluted shares</div>
+
+<h3>Schritt 2 · Normalisierung</h3>
+<p>Für jede der drei CapEx-Varianten wird der Mittelwert der letzten <b>3</b> verfügbaren Owner-Earnings-je-Aktie-Werte gebildet. Dadurch hängt die Bewertung nicht nur an einem einzelnen Quartal/Jahr.</p>
+
+<h3>Schritt 3 · DCF</h3>
+<div class="formula">Startwert = normalisierte Owner Earnings je Aktie
+
+Für Jahr t = 1 … 10:
+E_t = Startwert × (1 + 4%)^t
+PV_t = E_t / (1 + 10%)^t
+
+Terminal Value am Ende von Jahr 10:
+TV = E_10 × (1 + 2%) / (10% - 2%)
+
+Innerer Wert je Aktie =
+Σ PV_1…PV_10 + TV / (1 + 10%)^10</div>
+
+<h3>Aktuell verwendete Bewertungsperiode</h3>
+<div id="latestCalc"></div>
+
+<h3>DCF-Zwischenrechnung Basisfall</h3>
+<div class="table-wrap"><table><thead><tr><th>Jahr</th><th>Owner Earnings/Aktie</th><th>Barwert</th></tr></thead><tbody id="dcfRows"></tbody></table></div>
+<div id="dcfTerminal" class="exact" style="margin-top:12px"></div>
+
+<h3>Exakte SEC-Inputdatensätze</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Periode</th><th>OCF $m</th><th>Vorausz. $m</th><th>SBC $m</th><th>Abschr. $m</th><th>Pref. Div. $m</th><th>Shares m</th><th>wirksam ab</th><th>SEC</th></tr></thead>
+<tbody id="filingRows"></tbody>
+</table></div>
+
+<h3>Look-ahead-Schutz</h3>
+<p>Ein Filing wird historisch erst ab dem Zeitpunkt verwendet, an dem es tatsächlich verfügbar war. Nach Börsenschluss akzeptierte SEC-Filings wirken erst ab dem nächsten Handelstag. Beispiel: das Q1-FY2027-10-Q wurde am 11.09.2026 nach US-Börsenschluss akzeptiert und wird deshalb ab Montag, 14.09.2026 verwendet.</p>
+</section>
+
+<section>
+<h2>5 · Grenzen</h2>
+<ul>
+<li>„Innerer Wert“ ist ein Modellwert, kein beobachtbarer Marktpreis.</li>
+<li>Oracle weist Maintenance CapEx nicht separat aus. Genau deshalb wird 0,8× / 1,0× / 1,2× Abschreibung als sichtbarer Korridor gerechnet.</li>
+<li>Headline-Sentiment ist eine transparente Heuristik. Es ist keine fundamentale Unternehmensbewertung und kein Sprachmodell-Score.</li>
+<li>Der Live-Signalwert kann sich beim nächsten Abruf ändern, weil sich die tatsächlich verfügbaren News-/UGC-Datensätze ändern.</li>
+</ul>
+</section>
+</main>
+
+<script>
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function money(n,d=2){n=Number(n);return isFinite(n)?'$'+n.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d}):'—'}
+function num(n,d=1){n=Number(n);return isFinite(n)?n.toLocaleString('de-DE',{maximumFractionDigits:d}):'—'}
+function pct(n){return num(100*Number(n),1)+' %'}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+async function getJson(url,opt){try{const r=await fetch(url+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}catch(e){if(opt)return null;throw e}}
+function lean(title){
+  const s=String(title||'').toLowerCase();
+  const pos=['beat','beats','growth','surge','surges','rally','rallies','rise','rises','gain','gains','upgrade','upgraded','outperform','strong','record','backlog','contract','deal','boost','expands','expansion','demand','wins','win','bullish','buy rating'];
+  const neg=['debt','risk','risks','fall','falls','drop','drops','decline','declines','downgrade','downgraded','concern','concerns','lawsuit','probe','headwind','headwinds','cost','costs','capex','stress','stressed','junk bond','layoff','layoffs','slump','miss','misses','bearish','sell rating'];
+  let p=0,n=0;pos.forEach(k=>{if(s.includes(k))p++});neg.forEach(k=>{if(s.includes(k))n++});
+  return p>n?'bull':n>p?'bear':'mixed'
+}
+async function ticker(q,n){
+  const u='https://api.tickertick.com/feed?q='+encodeURIComponent(q)+'&n='+n+'&_='+Date.now();
+  const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error('TickerTick HTTP '+r.status);
+  const j=await r.json(),cut=Date.now()-36*3600e3;
+  return (j.stories||[]).map(x=>({title:String(x.title||''),url:String(x.url||''),site:String(x.site||''),time:Number(x.time)})).filter(x=>x.title&&x.time>=cut)
+}
+function liveCalc(news,social){
+  const v={bull:0,bear:0,mixed:0};
+  news.forEach(x=>v[lean(x.title)]++);
+  social.forEach(x=>{v[lean(x.title)]+=2});
+  const total=Math.max(1,v.bull+v.bear+v.mixed),bull=Math.round(100*v.bull/total),bear=Math.round(100*v.bear/total),mixed=clamp(100-bull-bear,0,100),net=bull-bear;
+  const confidence=clamp(Math.round(48+Math.min(18,news.length)*1.1+Math.min(12,social.length)*1.4),45,82);
+  const signal=net>=25&&confidence>=60?'BUY':net<=-25&&confidence>=60?'SELL':'HOLD';
+  return {bull,bear,mixed,net,confidence,signal}
+}
+function storyHtml(x,type){
+  const at=new Date(x.time).toLocaleString('de-DE',{timeZone:'Europe/Berlin',dateStyle:'short',timeStyle:'short'});
+  return '<div class="story"><a href="'+esc(x.url)+'" target="_blank" rel="noopener"><b>'+esc(x.title)+'</b></a><div class="story-meta">'+esc(type)+' · '+esc(x.site||'Quelle')+' · '+esc(at)+' · Klassifikation '+lean(x.title)+'</div></div>'
+}
+async function renderLive(){
+  const stat=document.getElementById('liveStatus'),stories=document.getElementById('liveStories'),k=document.getElementById('liveKpis');
+  try{
+    const [news,social]=await Promise.all([
+      ticker('(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))',40),
+      ticker('(and tt:orcl T:ugc)',30)
+    ]);
+    const x=liveCalc(news,social);
+    stat.innerHTML='<span class="status ok">live erfolgreich</span> · exakt jetzt geladene TickerTick-Datensätze';
+    k.innerHTML='<div class="kpi"><span>News</span><b>'+news.length+'</b></div><div class="kpi"><span>UGC/Social</span><b>'+social.length+'</b></div><div class="kpi"><span>Ergebnis</span><b>'+x.signal+' · '+x.net+'</b><small>'+x.bull+'% bull / '+x.bear+'% bear / '+x.mixed+'% mixed · Sicherheit '+x.confidence+'</small></div>';
+    stories.innerHTML='<h3>News-Datensätze</h3>'+news.map(x=>storyHtml(x,'News')).join('')+'<h3>UGC/Social-Datensätze</h3>'+social.map(x=>storyHtml(x,'UGC')).join('');
+  }catch(e){
+    stat.innerHTML='<span class="status bad">Live-Abfrage fehlgeschlagen</span> · '+esc(e.message)+' · Die Aktienseite behält dann den Last-Known-Good-Stand.';
+  }
+}
+function dcfBreakdown(ps,m){
+  let e=Number(ps),pv=0,rows=[];
+  for(let y=1;y<=Number(m.years);y++){e*=1+Number(m.growth_10y);const p=e/Math.pow(1+Number(m.discount_rate),y);pv+=p;rows.push({y,e,p})}
+  const terminal=e*(1+Number(m.terminal_growth))/(Number(m.discount_rate)-Number(m.terminal_growth));
+  const terminalPv=terminal/Math.pow(1+Number(m.discount_rate),Number(m.years));
+  return {rows,pv,terminal,terminalPv,total:pv+terminalPv}
+}
+function renderIntrinsic(j){
+  const m=j.model||{},s=(j.valuation_snapshots||[]).at(-1),latest=j.latest||{};
+  document.getElementById('modelKpis').innerHTML=
+    '<div class="kpi"><span>Diskontsatz</span><b>'+pct(m.discount_rate)+'</b></div>'+
+    '<div class="kpi"><span>Wachstum 10J</span><b>'+pct(m.growth_10y)+'</b></div>'+
+    '<div class="kpi"><span>Terminalwachstum</span><b>'+pct(m.terminal_growth)+'</b></div>';
+  if(s){
+    const base=s.operating_cash_flow_m-s.financing_like_customer_prepayments_m-s.stock_based_compensation_m-s.depreciation_m-s.preferred_dividends_m;
+    document.getElementById('latestCalc').innerHTML=
+      '<div class="formula">'+esc(s.label)+'\n'+
+      'OCF                         '+num(s.operating_cash_flow_m,1)+' Mio. $\n'+
+      '- Kunden-Vorauszahlungen   '+num(s.financing_like_customer_prepayments_m,1)+' Mio. $\n'+
+      '- Stock-Based Compensation '+num(s.stock_based_compensation_m,1)+' Mio. $\n'+
+      '- Maintenance CapEx 1,0×   '+num(s.depreciation_m,1)+' Mio. $\n'+
+      '- Preferred Dividends      '+num(s.preferred_dividends_m,1)+' Mio. $\n'+
+      '= Owner Earnings           '+num(base,1)+' Mio. $\n'+
+      '/ diluted shares           '+num(s.diluted_shares_m,1)+' Mio.\n'+
+      '= Owner Earnings/Aktie     '+money(s.owner_earnings_ps_usd,4)+'\n\n'+
+      '3-Perioden-Normalisierung  '+money(s.normalized_owner_earnings_ps_usd,4)+'\n'+
+      'DCF Basis                  '+money(s.intrinsic_base_usd,2)+'\n'+
+      'Korridor                   '+money(s.intrinsic_low_usd,2)+' – '+money(s.intrinsic_high_usd,2)+'\n'+
+      'No-Growth-Wert             '+money(s.no_growth_value_usd,2)+'</div>';
+    const d=dcfBreakdown(s.normalized_owner_earnings_ps_usd,m);
+    document.getElementById('dcfRows').innerHTML=d.rows.map(r=>'<tr><td>'+r.y+'</td><td>'+money(r.e,4)+'</td><td>'+money(r.p,4)+'</td></tr>').join('');
+    document.getElementById('dcfTerminal').innerHTML='<p><b>Summe Barwerte Jahre 1–10:</b> '+money(d.pv,4)+'</p><p><b>Terminal Value in Jahr 10:</b> '+money(d.terminal,4)+' · abgezinster Terminal Value: '+money(d.terminalPv,4)+'</p><p><b>DCF gesamt:</b> '+money(d.total,4)+' ≈ gespeicherter Basiswert '+money(s.intrinsic_base_usd,2)+'</p>';
+  }
+  document.getElementById('filingRows').innerHTML=(j.filing_inputs||[]).map(f=>'<tr><td>'+esc(f.label)+'</td><td>'+num(f.operating_cash_flow_m)+'</td><td>'+num(f.financing_like_customer_prepayments_m)+'</td><td>'+num(f.stock_based_compensation_m)+'</td><td>'+num(f.depreciation_m)+'</td><td>'+num(f.preferred_dividends_m)+'</td><td>'+num(f.diluted_shares_m)+'</td><td>'+esc(String(f.effective_at||'').slice(0,10))+'</td><td><a href="'+esc(f.source)+'" target="_blank" rel="noopener">SEC</a></td></tr>').join('');
+}
+async function renderFallback(){
+  const [status,trend]=await Promise.all([getJson('runtime-status.json',true),getJson('stockstrend-data.json',true)]);
+  const el=document.getElementById('fallbackStatus');
+  if(status){
+    el.innerHTML='<div class="kpi"><span>Snapshot</span><b>'+esc(new Date(status.updated_at).toLocaleString('de-DE',{timeZone:'Europe/Berlin'}))+'</b></div>'+
+      '<div class="kpi"><span>Reddit</span><b>'+esc(status.sources?.reddit?.mentions??'—')+'</b><small>'+esc(status.sources?.reddit?.sentiment??'—')+'% · '+esc(status.sources?.reddit?.provider||'')+'</small></div>'+
+      '<div class="kpi"><span>News / ORCL</span><b>'+esc(status.sources?.news?.count??'—')+' · $'+esc(status.sources?.yahoo?.price??'—')+'</b><small>'+esc(status.sources?.news?.provider||'')+' · Yahoo</small></div>';
+  }else if(trend){
+    el.innerHTML='<div class="kpi"><span>Snapshot</span><b>'+esc(trend.tick?.freshness?.freshest_absolute||'vorhanden')+'</b></div>';
+  }else el.innerHTML='<div class="small">Kein Runtime-Snapshot auf diesem Host verfügbar.</div>';
+}
+Promise.all([getJson('intrinsic-orcl.json',false).then(renderIntrinsic),renderFallback(),renderLive()]).catch(e=>{
+  document.body.insertAdjacentHTML('beforeend','<p class="small" style="padding:20px">Methodik-Datenfehler: '+esc(e.message)+'</p>')
+});
+</script>
+</body>
+</html>

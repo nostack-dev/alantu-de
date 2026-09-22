@@ -6,8 +6,7 @@
 <meta name="pass2" content="240-de-grid6"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
-<title>BotBot · Aktien</title>
-<link rel="icon" href="/favicon.ico" sizes="any"/>
+<title>alantu.de · Aktien</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
@@ -203,13 +202,16 @@
   .sync-footer.stale #syncStatus,.sync-footer.error #syncStatus{color:#e94035;font-weight:700}
   .sync-footer button{border:0;background:transparent;color:#5d5d64;font:inherit;font-weight:700;padding:5px 0;cursor:pointer;white-space:nowrap}
   .sync-footer button:disabled{opacity:.45;cursor:default}
+  .info-link{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1px solid #d7d7dc;border-radius:50%;color:#5d5d64;text-decoration:none;font-size:11px;font-weight:800;line-height:1;vertical-align:1px;margin-left:6px;text-transform:none;letter-spacing:0}
+  .info-link:hover{border-color:#9a9aa2;color:#151517}
+  .info-inline{width:16px;height:16px;font-size:10px;margin-left:4px;vertical-align:-1px}
   @media(max-width:700px){.sync-footer{padding:10px 18px 16px}}
 
 </style>
 </head>
 <body>
 <header>
-  <h1>BotBot · Aktien</h1>
+  <h1>alantu.de · Aktien <a class="info-link" href="methodik.html" aria-label="Datenquellen und Berechnung erklären" title="Datenquellen und Berechnung">i</a></h1>
 </header>
 <div class="wrap">
   <div class="row3">
@@ -288,7 +290,7 @@
   </div>
 
     <div class="card chart-card-lg">
-    <div class="label">Oracle · Wert</div>
+    <div class="label">Oracle · Wert <a class="info-link info-inline" href="methodik.html#intrinsic" aria-label="Berechnung des inneren Werts erklären" title="Berechnung des inneren Werts">i</a></div>
     <div class="value-summary" id="ivNow"></div>
     <div class="value-status flat" id="ivStatus"></div>
     <div class="chart-sub"><span id="ivCoverage"></span></div>
