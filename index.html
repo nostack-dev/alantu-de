@@ -218,11 +218,44 @@
   .info-inline{width:16px;height:16px;font-size:10px;margin-left:4px;vertical-align:-1px}
   @media(max-width:700px){.sync-footer{padding:10px 18px 16px}}
 
+  /* TR-density main surface */
+  header{padding-top:12px!important;padding-bottom:4px!important}
+  header h1{font-size:13px!important;font-weight:700!important;letter-spacing:-.01em!important}
+  .row3>.card:not(.aux-card){padding-top:10px!important;padding-bottom:12px!important;border-bottom:0!important}
+  .row3>.card:not(.aux-card)>.label{font-size:13px!important;letter-spacing:0!important;text-transform:none!important;color:#151517!important;font-weight:700!important}
+  .market-clock{font-size:11px!important;font-weight:600!important;margin:3px 0 0!important;color:#8a8a92!important}
+  .hero-price{margin:8px 0 4px!important}
+  .hero-change{margin-bottom:2px!important}
+  .oracle-secondary,#orclWhy{display:none!important}
+  .shock-card{display:none!important}
+  .chart-card-lg{padding-top:14px!important;padding-bottom:14px!important}
+  .chart-head-min{margin-bottom:0!important}
+  .value-summary{font-size:12px!important;font-weight:650!important;letter-spacing:0!important;margin:0!important;color:#6f6f76!important}
+  .value-status{display:none!important}
+  .chart-sub{min-height:0!important;margin:2px 0 0!important;font-size:10px!important;color:#9a9aa2!important}
+  .chart-sub:empty{display:none!important}
+  .sentiment-source{font-size:10px!important;line-height:1.2!important;margin:2px 0 0!important;color:#8e8e95!important}
+  .sentiment-key{display:none!important}
+  .chart-head+.sentiment-source{margin-top:1px!important}
+  .chart-wrap-lg{height:218px!important}
+  .chart-wrap-lg canvas{height:218px!important}
+  .mini-range{margin-top:2px!important}
+  .mini-range button{font-size:10px!important;padding:5px 2px!important}
+  .line-toggle{font-size:10px!important}
+  .info-inline{width:14px!important;height:14px!important;font-size:9px!important;margin-left:2px!important}
+  @media(max-width:700px){
+    header{padding:11px 18px 2px!important}
+    .wrap{padding:0 18px 26px!important}
+    .hero-price{font-size:40px!important}
+    .chart-wrap-lg,.chart-wrap-lg canvas{height:205px!important}
+    .chart-card-lg{padding-top:12px!important;padding-bottom:12px!important}
+  }
+
 </style>
 </head>
 <body>
 <header>
-  <h1>alantu.de · Aktien <a class="info-link" href="methodik.html" aria-label="Datenquellen und Berechnung erklären" title="Datenquellen und Berechnung">i</a></h1>
+  <h1>alantu <a class="info-link" href="methodik.html" aria-label="Datenquellen und Berechnung erklären" title="Datenquellen und Berechnung">i</a></h1>
 </header>
 <div class="wrap">
   <div class="row3">
@@ -278,8 +311,7 @@
   </div>
 
   <div class="card chart-card-lg">
-    <div class="chart-head"><div class="label">Oracle · Kurs & Wert <a class="info-link info-inline" href="methodik.html#intrinsic" aria-label="Berechnung des inneren Werts erklären" title="Berechnung des inneren Werts">i</a></div><button type="button" class="line-toggle active" id="intrinsicToggle" aria-pressed="true">Wert</button></div>
-    <div class="value-summary" id="ivNow"></div>
+    <div class="chart-head chart-head-min"><div class="value-summary"><span id="ivNow"></span> <a class="info-link info-inline" href="methodik.html#intrinsic" aria-label="Berechnung des inneren Werts erklären" title="Berechnung des inneren Werts">i</a></div><button type="button" class="line-toggle active" id="intrinsicToggle" aria-pressed="true">Wert</button></div>
     <div class="value-status flat" id="ivStatus"></div>
     <div class="chart-sub"><span id="ivCoverage"></span></div>
     <div class="chart-wrap chart-wrap-lg"><canvas id="ivChart"></canvas></div>
@@ -291,7 +323,7 @@
   <div class="card chart-card-lg">
     <div class="chart-head"><div class="label">Oracle · Stimmung <a class="info-link info-inline" href="methodik.html#sentiment" aria-label="Quellen und Berechnung der Stimmung erklären" title="Quellen und Berechnung der Stimmung">i</a></div></div>
     <div class="sentiment-source" id="sentimentSource">Quellen werden geladen …</div>
-    <div class="chart-sub"><span class="sentiment-key"><span class="swatch pos"></span>positiv <span class="swatch neu"></span>neutral <span class="swatch neg"></span>negativ</span> <span id="hypeCoverage"></span></div>
+    <div class="chart-sub"><span id="hypeCoverage"></span></div>
     <div class="chart-wrap chart-wrap-lg"><canvas id="hypeChart"></canvas></div>
     <div class="mini-range" id="sentimentRange" aria-label="Zeitraum Stimmung">
       <button type="button" data-sentiment-range="1d">1T</button><button type="button" data-sentiment-range="1w">1W</button><button type="button" data-sentiment-range="1m">1M</button><button type="button" data-sentiment-range="year">1J</button><button type="button" data-sentiment-range="5y">5J</button><button type="button" data-sentiment-range="all">MAX</button>
@@ -427,25 +459,18 @@ function sentimentSourceText(t){
   t=t||{};
   var live=t.live_sources||null,fr=t.freshness||{},parts=[];
   if(live){
+    parts.push('TickerTick');
     parts.push(Number(live.social_count||0)+' Social');
-    if(live.social_breakdown){
-      Object.keys(live.social_breakdown).forEach(function(k){var n=Number(live.social_breakdown[k]||0);if(n)parts.push(k+' '+n);});
-    }
     parts.push(Number(live.news_count||0)+' News');
-    if(live.social_min)parts.push('Minimum '+live.social_min);
   }else{
-    var src=t.sources||{};
-    if(src.NewsRSS)parts.push((src.NewsRSS.provider||'News')+' '+Number(src.NewsRSS.items||0)+' News');
-    else if(src.WebSearch)parts.push('Web/News '+Number(src.WebSearch.items||0));
-    if(src.PublicReddit){
-      var rp=src.PublicReddit.provider||(Array.isArray(src.PublicReddit.providers)?src.PublicReddit.providers[0]:'PublicReddit');
-      parts.push((rp||'Reddit')+' '+Number(src.PublicReddit.items||0)+(src.PublicReddit.sentiment_pct_bullish!=null?(' · '+src.PublicReddit.sentiment_pct_bullish+'% positiv'):''));
-    }
-    if(!parts.length&&t.totals&&t.totals.content_items_usable!=null)parts.push(Number(t.totals.content_items_usable)+' Beiträge');
+    var social=0,news=0,src=t.sources||{};
+    if(src.PublicReddit)social=Number(src.PublicReddit.items||0);
+    if(src.NewsRSS)news=Number(src.NewsRSS.items||0); else if(src.WebSearch)news=Number(src.WebSearch.items||0);
+    if(social||news){parts.push('Fallback');if(social)parts.push(social+' Social');if(news)parts.push(news+' News');}
   }
   var at=(live&&live.at)||fr.freshest_absolute||t.scraped_at;
-  if(at)parts.push('Stand '+new Date(at).toLocaleString('de-DE',{timeZone:'Europe/Berlin',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}));
-  return parts.join(' · ')||'Quellen nicht verfügbar';
+  if(at)parts.push(new Date(at).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'}));
+  return parts.join(' · ')||'Keine frischen Quellen';
 }
 function ageLabel(iso){
   try{
@@ -690,7 +715,7 @@ function updateValueSummary(){
   var now=Date.now(),price=usdToEur(liveMarket.orclUsd||lat.price_usd,now);
   var base=usdToEur(lat.intrinsic_base_usd||lat.intrinsic_usd,now);
   var buyAt=base!=null?base*0.75:null;
-  el.textContent='Kurs '+euro(price,2)+' · Wert '+euro(base,0)+' · Kaufen unter '+euro(buyAt,0);
+  el.textContent='Wert '+euro(base,0)+' · Kaufen < '+euro(buyAt,0);
   var pct=base&&price?(price/base-1)*100:null;
   status.className='value-status flat';
   if(price!=null&&buyAt!=null&&base!=null){
@@ -842,7 +867,7 @@ function renderOverview(){
 function renderSentimentChart(){
   var x=currentContext(),hist=filterByAt(mergedSentimentHistory(x.orcl.history||[]),function(h){return h.at;},sentimentRange);
   var agg=aggregateForRange(hist,function(h){return h.at;},function(h){return stimmungNorm(h);},sentimentRange);
-  var cov=document.getElementById('hypeCoverage');if(cov)cov.textContent=compactCoverage(agg,function(h){return h.at;},sentimentRange);
+  var cov=document.getElementById('hypeCoverage');if(cov){var ct=compactCoverage(agg,function(h){return h.at;},sentimentRange);cov.textContent=ct;cov.parentElement.style.display=ct?'block':'none';}
   var pts=agg.map(function(h){return {x:new Date(h.at).getTime(),y:Number(h.value)};});
   var ds={label:'Stimmung',data:pts,parsing:false,spanGaps:false,borderColor:'#8e8e93',backgroundColor:'#8e8e93',fill:false,tension:.12,pointRadius:agg.length<=12?2:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:function(ctx){return sentimentColor(ctx.raw&&ctx.raw.y);},borderWidth:2,segment:{borderColor:function(ctx){return sentimentColor((Number(ctx.p0.parsed.y)+Number(ctx.p1.parsed.y))/2);}},pointBackgroundColor:function(ctx){return sentimentColor(ctx.raw&&ctx.raw.y);}};
   if(!hypeChart){
@@ -890,7 +915,7 @@ function valueSeries(){
   return {ivHist:ivHist,priceRows:priceRows,pricePts:pricePts,fairPts:fairPts};
 }
 function renderValueChart(){
-  var s=valueSeries(),cov=document.getElementById('ivCoverage');if(cov)cov.textContent=compactCoverage(s.ivHist,function(h){return h.at;},priceRange);
+  var s=valueSeries(),cov=document.getElementById('ivCoverage');if(cov){var ct=compactCoverage(s.ivHist,function(h){return h.at;},priceRange);cov.textContent=ct;cov.parentElement.style.display=ct?'block':'none';}
   updateValueSummary();
   var pc=priceRangeColor(s.pricePts);
   var d0={label:'Kurs',data:s.pricePts,parsing:false,spanGaps:false,borderColor:pc,backgroundColor:pc,fill:false,tension:.10,pointRadius:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:pc,borderWidth:2.4};
