@@ -373,8 +373,7 @@
                 </button>
               </div>
             </div>
-            <div class="hint">Tippen oder wischen</div>
-            <div class="stage-bottom">
+<div class="stage-bottom">
               <div class="stage-arrows">
                 <button class="stage-control" id="prevBtn" type="button" aria-label="Vorherige Seite">
                   <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -627,29 +626,44 @@
 
     const pageRoots=[];
     const totalPages=6;
+    const totalLeaves=Math.ceil(totalPages/2);
     const PAGE_W=3.52;
     const PAGE_H=4.80;
-    const rightZ=i=>.17-i*.012;
-    const leftZ=i=>.17+i*.012;
-    const basePageGeom=new THREE.PlaneGeometry(PAGE_W,PAGE_H,24,1);
+    const rightZ=i=>.17-i*.018;
+    const leftZ=i=>.17+i*.018;
+    const basePageGeom=new THREE.PlaneGeometry(PAGE_W,PAGE_H,28,1);
     basePageGeom.translate(PAGE_W/2,0,0);
 
-    for(let i=0;i<totalPages;i++){
+    function backTextureFor(pageIndex){
+      const tex=textureFor(pageIndex);
+      tex.wrapS=THREE.RepeatWrapping;
+      tex.repeat.x=-1;
+      tex.offset.x=1;
+      tex.needsUpdate=true;
+      return tex;
+    }
+
+    for(let i=0;i<totalLeaves;i++){
       const pivot=new THREE.Group();
       pivot.position.set(-PAGE_W/2,0,rightZ(i));
 
       const geometry=basePageGeom.clone();
       geometry.userData.basePosition=geometry.attributes.position.array.slice();
 
+      const frontPage=i*2;
+      const backPage=frontPage+1;
+
       const frontMaterial=new THREE.MeshStandardMaterial({
-        map:textureFor(i),
+        map:textureFor(frontPage),
         roughness:.88,
         metalness:0,
         side:THREE.FrontSide
       });
+
       const backMaterial=new THREE.MeshStandardMaterial({
-        color:0xeee7db,
-        roughness:.95,
+        map:backPage<totalPages?backTextureFor(backPage):null,
+        color:backPage<totalPages?0xffffff:0xeee7db,
+        roughness:.9,
         metalness:0,
         side:THREE.BackSide
       });
@@ -659,24 +673,36 @@
       front.receiveShadow=true;
 
       const back=new THREE.Mesh(geometry,backMaterial);
+      back.castShadow=true;
       back.receiveShadow=true;
 
       pivot.add(front,back);
       pivot.userData.geometry=geometry;
+      pivot.userData.frontPage=frontPage;
+      pivot.userData.backPage=backPage;
       root.add(pivot);
       pageRoots.push(pivot);
     }
 
-    let current=0;
+    let currentLeaf=0;
     let animating=false;
     let pointerStart=null;
 
     function updateUI(){
-      pageCount.textContent=String(current+1).padStart(2,"0")+" / "+String(totalPages).padStart(2,"0");
-      prevBtn.disabled=current===0 || animating;
-      tapPrev.disabled=current===0 || animating;
-      nextBtn.disabled=current===totalPages-1 || animating;
-      tapNext.disabled=current===totalPages-1 || animating;
+      if(currentLeaf===0){
+        pageCount.textContent="01 / "+String(totalPages).padStart(2,"0");
+      }else if(currentLeaf<totalLeaves){
+        const leftPage=currentLeaf*2;
+        const rightPage=leftPage+1;
+        pageCount.textContent=String(leftPage).padStart(2,"0")+"–"+String(rightPage).padStart(2,"0")+" / "+String(totalPages).padStart(2,"0");
+      }else{
+        pageCount.textContent=String(totalPages).padStart(2,"0")+" / "+String(totalPages).padStart(2,"0");
+      }
+
+      prevBtn.disabled=currentLeaf===0 || animating;
+      tapPrev.disabled=currentLeaf===0 || animating;
+      nextBtn.disabled=currentLeaf>=totalLeaves || animating;
+      tapNext.disabled=currentLeaf>=totalLeaves || animating;
     }
 
     function ease(t){return 1-Math.pow(1-t,3)}
@@ -685,7 +711,7 @@
       const geometry=pivot.userData.geometry;
       const pos=geometry.attributes.position;
       const base=geometry.userData.basePosition;
-      const amount=Math.sin(Math.PI*t)*.22;
+      const amount=Math.sin(Math.PI*t)*.24;
       for(let i=0;i<pos.count;i++){
         const x=base[i*3];
         const u=Math.max(0,Math.min(1,x/PAGE_W));
@@ -697,8 +723,20 @@
       geometry.computeVertexNormals();
     }
 
-    function animatePage(index,toFlipped,onDone){
-      if(index<0 || index>=totalPages || animating)return;
+    function setLeafState(index,flipped){
+      const pivot=pageRoots[index];
+      pivot.rotation.y=flipped?-Math.PI:0;
+      pivot.rotation.z=0;
+      pivot.position.z=flipped?leftZ(index):rightZ(index);
+      bendPage(pivot,0);
+    }
+
+    function normalizeBookState(){
+      for(let i=0;i<totalLeaves;i++)setLeafState(i,i<currentLeaf);
+    }
+
+    function animateLeaf(index,toFlipped,onDone){
+      if(index<0 || index>=totalLeaves || animating)return;
       animating=true;
       updateUI();
 
@@ -708,14 +746,14 @@
       const fromZ=pivot.position.z;
       const toZ=toFlipped?leftZ(index):rightZ(index);
       const start=performance.now();
-      const dur=prefersReduced?1:780;
+      const dur=prefersReduced?1:820;
 
       function frame(now){
         const t=Math.min(1,(now-start)/dur);
         const e=ease(t);
         pivot.rotation.y=fromAngle+(toAngle-fromAngle)*e;
         pivot.position.z=fromZ+(toZ-fromZ)*e;
-        pivot.rotation.z=(toFlipped?-1:1)*Math.sin(Math.PI*t)*.022;
+        pivot.rotation.z=(toFlipped?-1:1)*Math.sin(Math.PI*t)*.018;
         bendPage(pivot,t);
 
         if(t<1){
@@ -733,36 +771,34 @@
       requestAnimationFrame(frame);
     }
 
-    function setPageState(index,flipped){
-      const pivot=pageRoots[index];
-      pivot.rotation.y=flipped?-Math.PI:0;
-      pivot.rotation.z=0;
-      pivot.position.z=flipped?leftZ(index):rightZ(index);
-      bendPage(pivot,0);
-    }
-
-    function normalizeBookState(){
-      for(let i=0;i<totalPages;i++)setPageState(i,i<current);
-    }
-
     function next(){
-      if(animating || current>=totalPages-1)return;
-      const turning=current;
-      animatePage(turning,true,()=>{current=turning+1;normalizeBookState();updateUI()});
+      if(animating || currentLeaf>=totalLeaves)return;
+      const turning=currentLeaf;
+      animateLeaf(turning,true,()=>{
+        currentLeaf=turning+1;
+        normalizeBookState();
+        updateUI();
+      });
     }
+
     function prev(){
-      if(animating || current<=0)return;
-      const target=current-1;
-      animatePage(target,false,()=>{current=target;normalizeBookState();updateUI()});
+      if(animating || currentLeaf<=0)return;
+      const target=currentLeaf-1;
+      animateLeaf(target,false,()=>{
+        currentLeaf=target;
+        normalizeBookState();
+        updateUI();
+      });
     }
 
     prevBtn.addEventListener("click",prev);
     nextBtn.addEventListener("click",next);
     tapPrev.addEventListener("click",prev);
     tapNext.addEventListener("click",next);
+
     experienceBtn.addEventListener("click",()=>{
       document.getElementById("demo").scrollIntoView({behavior:prefersReduced?"auto":"smooth",block:"center"});
-      setTimeout(()=>{if(current===0)next()},prefersReduced?0:420);
+      setTimeout(()=>{if(currentLeaf===0)next()},prefersReduced?0:420);
     });
 
     fullscreenBtn.addEventListener("click",async()=>{
