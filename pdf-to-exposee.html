@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0d0d0b">\n  <link rel="icon" href="/favicon.svg" type="image/svg+xml">\n  <link rel="alternate icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0d0d0b">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="/favicon.ico" sizes="any">
   <title>ALANTU — PDF zu Exposé</title>
   <style>
     :root{
@@ -397,12 +399,17 @@
       });
 
       const side=()=>coverMaterial.clone();
-      const face=coverMaterial.clone();
-      face.map=texture;
-      face.color.set(0xffffff);
-      face.needsUpdate=true;
+      const exterior=coverMaterial.clone();
+      exterior.map=texture;
+      exterior.color.set(0xffffff);
+      exterior.needsUpdate=true;
+      const endpaper=new THREE.MeshStandardMaterial({
+        color:0xeee7dc,
+        roughness:.96,
+        metalness:0
+      });
 
-      return [side(),side(),side(),side(),face,side()];
+      return [side(),side(),side(),side(),exterior,endpaper];
     }
 
     let pageTextures=[];
@@ -659,7 +666,11 @@
 
       backCover=new THREE.Mesh(
         new THREE.BoxGeometry(COVER_W,COVER_H,COVER_T),
-        coverMaterial.clone()
+        [
+          coverMaterial.clone(),coverMaterial.clone(),coverMaterial.clone(),coverMaterial.clone(),
+          new THREE.MeshStandardMaterial({color:0xeee7dc,roughness:.96,metalness:0}),
+          coverMaterial.clone()
+        ]
       );
       backCover.position.set(COVER_W/2,0,0);
       backCover.castShadow=true;
