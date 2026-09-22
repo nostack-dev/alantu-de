@@ -5,6 +5,7 @@ on:
     branches: ["main"]
     paths:
       - "tools/databento-orcl-mbp10-backfill.py"
+      - "tools/databento-orcl-cost.py"
       - "tools/train-orcl-l2-100.py"
       - "tools/l2-event-signal.mjs"
       - "tools/test-l2-event-signal.mjs"
@@ -16,6 +17,14 @@ on:
       - ".github/workflows/orcl-l2-proof.yml"
   workflow_dispatch:
     inputs:
+      dataset:
+        description: "Depth dataset"
+        required: true
+        default: "MEMX.MEMOIR"
+        type: choice
+        options:
+          - MEMX.MEMOIR
+          - XNAS.ITCH
       start:
         description: "Historical start YYYY-MM-DD"
         required: true
@@ -32,7 +41,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-          python -m py_compile tools/databento-orcl-mbp10-backfill.py tools/train-orcl-l2-100.py tools/databento-orcl-mbp10-live.py tools/l2_temporal_features.py tools/test_l2_feature_parity.py
+          python -m py_compile tools/databento-orcl-mbp10-backfill.py tools/databento-orcl-cost.py tools/train-orcl-l2-100.py tools/databento-orcl-mbp10-live.py tools/l2_temporal_features.py tools/test_l2_feature_parity.py
           node --check tools/l2-event-signal.mjs
           node --check tools/finalize-l2-model.mjs
           node --check tools/dump-l2-feature-fixture.mjs
@@ -47,15 +56,20 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABENTO_API_KEY: ${{ secrets.DATABENTO_API_KEY }}
+      L2_DATASET: ${{ inputs.dataset }}
       L2_START: ${{ inputs.start }}
       L2_END: ${{ inputs.end }}
       L2_OUT_DIR: orcl-l2-days
+      L2_COST_OUT: orcl-l2-cost.json
+      L2_MAX_COST_USD: "125"
     steps:
       - uses: actions/checkout@v4
       - name: Require real provider credential
         run: test -n "$DATABENTO_API_KEY"
       - name: Install exact data runtime
         run: python -m pip install --disable-pip-version-check --quiet databento pandas numpy
+      - name: Preflight exact historical cost
+        run: python tools/databento-orcl-cost.py
       - name: Download and normalize real ORCL MBP-10
         run: python tools/databento-orcl-mbp10-backfill.py
       - name: Train fixed 100-event model
@@ -66,7 +80,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          jq -e '.symbol=="ORCL" and .dataset=="XNAS.ITCH" and .schema=="mbp-10" and .feature_version=="hdr-dt-v1" and .horizon_events==100 and (.feature_names|length==24)' orcl-l2-model.json >/dev/null
+          jq -e --arg dataset "$L2_DATASET" '.symbol=="ORCL" and .dataset==$dataset and .schema=="mbp-10" and .feature_version=="hdr-dt-v1" and .horizon_events==100 and (.feature_names|length==24)' orcl-l2-model.json >/dev/null
           if [ "$(jq -r '.status' orcl-l2-model.json)" = "validated" ]; then
             jq -e '
               (.evidence.usable_days>=252)
@@ -88,4 +102,5 @@ jobs:
             orcl-l2-model.json
             orcl-l2-proof.json
             orcl-l2-days/manifest.json
+            orcl-l2-cost.json
           retention-days: 90
