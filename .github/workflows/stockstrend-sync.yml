@@ -138,13 +138,6 @@ jobs:
           node --check tools/refresh-runtime-data.mjs
           node tools/refresh-runtime-data.mjs
 
-      - name: Backfill one year of ORCL sentiment when needed
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --check tools/backfill-orcl-sentiment.mjs
-          node tools/backfill-orcl-sentiment.mjs
-
       - name: Verify browser live-source contract
         shell: bash
         run: |
