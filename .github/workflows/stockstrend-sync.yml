@@ -220,6 +220,10 @@ jobs:
           grep -q 'function updateLivePriceChart1d' index.html
           grep -q 'id="marketFlow"' index.html
           grep -q 'function marketWaveVector' index.html
+          grep -q 'function hdrImpulseVector' index.html
+          grep -q "label='Vorimpuls'" index.html
+          grep -q 'function flowPointStyle' index.html
+          grep -q 'impulse.reliable' index.html
           grep -q "label='Welle baut sich auf'" index.html
           grep -q "label='Welle bestätigt'" index.html
           grep -q "label='Welle dreht'" index.html
