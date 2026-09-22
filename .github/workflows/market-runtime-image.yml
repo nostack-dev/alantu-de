@@ -1,0 +1,49 @@
+name: Build market runtime
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "Dockerfile.market-runtime"
+      - "market-relay/server.mjs"
+      - "tools/microstructure-core.mjs"
+      - "tools/microstructure-signal.mjs"
+      - "tools/l2-event-signal.mjs"
+      - "tools/databento-orcl-mbp10-live.py"
+      - "orcl-l2-model.json"
+      - ".github/workflows/market-runtime-image.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax
+        run: |
+          node --check market-relay/server.mjs
+          node --check tools/microstructure-core.mjs
+          node --check tools/microstructure-signal.mjs
+          node --check tools/l2-event-signal.mjs
+          python -m py_compile tools/databento-orcl-mbp10-live.py
+      - name: Build
+        run: docker build -f Dockerfile.market-runtime -t alantu-market-runtime:test .
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/alantu-market-runtime"
+          docker tag alantu-market-runtime:test "$image:${GITHUB_SHA}"
+          docker tag alantu-market-runtime:test "$image:latest"
+          docker push "$image:${GITHUB_SHA}"
+          docker push "$image:latest"
