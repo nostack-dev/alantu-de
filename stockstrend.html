@@ -1266,7 +1266,7 @@ function renderMarketFlowVisual(f){
     phase=dir>0?'BUY-POTENZIAL':'SELL-POTENZIAL';
     var eta=f.microSignal&&Number(f.microSignal.eta_seconds);
     var tr=f.microSignal&&f.microSignal.trajectory||{},lm=f.microSignal&&f.microSignal.latency||{};
-    var dtms=tr.dt_ms==null?NaN:Number(tr.dt_ms),e2e=lm.collector_latency_ms==null?NaN:Number(lm.collector_latency_ms);
+    var dtms=Number(tr.dt_ms),e2e=Number(lm.collector_latency_ms);
     sub='100E-Modell · +100 Events'
       +(isFinite(eta)?' · ≈ '+(eta<10?eta.toLocaleString('de-DE',{maximumFractionDigits:2}):Math.round(eta))+' s':'')
       +(isFinite(dtms)?' · Δt '+dtms.toLocaleString('de-DE',{maximumFractionDigits:3})+' ms':'')
@@ -1277,13 +1277,13 @@ function renderMarketFlowVisual(f){
     sub='Tape + NBBO · validierter Live-Edge';
   }else if(f.kind==='build'||f.kind==='lead'||f.kind==='confirm'||f.kind==='turn'){
     dir=f.dir;
-    phase=dir>0?'WELLE AUFWÄRTS':'WELLE ABWÄRTS';
+    phase=dir>0?'BUY-POTENZIAL':'SELL-POTENZIAL';
     var why=[];
     if(f.priceDir===dir)why.push('Kurs');
     if(f.volumeDir===dir)why.push('Volumen');
     if(f.crowdDir===dir)why.push('Crowd');
     if(f.massDir===dir&&why.indexOf('Crowd')<0)why.push('Teilnahme');
-    sub='Beobachtete Welle · '+(why.length?why.join('+'):'Mehrfach-Bestätigung')
+    sub='Live-Bias · '+(why.length?why.join('+'):'Mehrfach-Bestätigung')
       +' · '+Math.max(2,Number(f.evidence||0))+'/4'
       +(f.kind==='confirm'?' · bestätigt':f.kind==='turn'?' · dreht':' · baut sich auf');
   }else if(f.kind==='exhaust'){
