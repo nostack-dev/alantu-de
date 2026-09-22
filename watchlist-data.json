@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-22T17:05:14+02:00",
+  "updated_at": "2026-09-22T17:17:52+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,13 +9,13 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-22T17:05:14+02:00",
+        "at": "2026-09-22T17:17:52+02:00",
         "signal": "buy",
-        "social_impulse": 6,
-        "hype_bull": 48,
-        "hype_bear": 17,
-        "hype_net": 31,
-        "confidence": 78
+        "social_impulse": 7,
+        "hype_bull": 47,
+        "hype_bear": 13,
+        "hype_net": 34,
+        "confidence": 77
       },
       "history": [
         {
@@ -1904,6 +1904,20 @@
           "voice_bear": 3,
           "voice_mixed": 10,
           "price": 148.77999877929688
+        },
+        {
+          "at": "2026-09-22T17:17:52+02:00",
+          "hype_bull": 47,
+          "hype_bear": 13,
+          "hype_net": 34,
+          "social_impulse": 7,
+          "signal": "buy",
+          "confidence": 77,
+          "hype_mixed": 40,
+          "voice_bull": 9,
+          "voice_bear": 2,
+          "voice_mixed": 11,
+          "price": 149.53500366210938
         }
       ],
       "voices_archive": [
@@ -2219,35 +2233,35 @@
         }
       ],
       "signal": "buy",
-      "social_impulse": 6,
-      "impulse": 6,
-      "hype_bull": 48,
-      "hype_bear": 17,
-      "hype_net": 31,
-      "confidence": 78,
+      "social_impulse": 7,
+      "impulse": 7,
+      "hype_bull": 47,
+      "hype_bear": 13,
+      "hype_net": 34,
+      "confidence": 77,
       "hype_state": "bullish",
-      "updated_at": "2026-09-22T17:05:14+02:00",
-      "why": "Reddit 75% positiv bei 11 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $148.78.",
+      "updated_at": "2026-09-22T17:17:52+02:00",
+      "why": "Reddit 75% positiv bei 10 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $149.54.",
       "evidence": {
         "x_posts": 0,
-        "reddit_posts": 11,
+        "reddit_posts": 10,
         "news": 20,
         "snippets": [
-          "ApeWisdom: 11 Mentions/24h, Sentiment 75%",
+          "ApeWisdom: 10 Mentions/24h, Sentiment 75%",
           "Prediction: Oracle Could Have 50% Upside From Here",
           "ORCL Stock Snaps 3-Day Losing Streak: What’s Making Retail Traders ‘Extremely Bullish’?",
-          "Jim Cramer sends strong signal to Oracle stock investors"
+          "$3.4M Oracle (NYSE: ORCL) stock sale follows recent vesting"
         ]
       },
       "voices": {
         "bull": 9,
-        "bear": 3,
-        "mixed": 10,
-        "updated_at": "2026-09-22T17:05:14+02:00"
+        "bear": 2,
+        "mixed": 11,
+        "updated_at": "2026-09-22T17:17:52+02:00"
       },
-      "hype_mixed": 35,
+      "hype_mixed": 40,
       "sentiment_unit": "percent_all_classified",
-      "price": 148.77999877929688
+      "price": 149.53500366210938
     }
   }
 }

@@ -861,11 +861,11 @@ function sentimentSegmentGradient(ctx){
   g.addColorStop(0,c0);g.addColorStop(1,c1);
   return g;
 }
-function priceRangeColor(){
-  // Keep the history neutral. Direction is already communicated by the live
-  // price/change and by the impulse/wave marker; recoloring the whole series
-  // is noisy and would scan every rendered point on every realtime update.
-  return '#151517';
+function priceSegmentColor(ctx){
+  var y0=Number(ctx&&ctx.p0&&ctx.p0.parsed&&ctx.p0.parsed.y);
+  var y1=Number(ctx&&ctx.p1&&ctx.p1.parsed&&ctx.p1.parsed.y);
+  if(!isFinite(y0)||!isFinite(y1))return '#151517';
+  return y1>=y0?'#5dcb5b':'#e94035';
 }
 function fallbackMarket(){
   var om=chartResult(orclMinutePayload),fm=chartResult(fxData);
@@ -1248,7 +1248,8 @@ function updateLivePriceChart1d(){
   if(last&&Math.abs(Number(last.x)-ms)<60000){last.x=ms;last.y=eur;}
   else pts.push({x:ms,y:eur});
   ds.data=pts;
-  var pc=priceRangeColor(pts);ds.borderColor=pc;ds.backgroundColor=pc;ds.pointHoverBackgroundColor=pc;
+  // Segment colors are local (up/down) and stay attached to the dataset;
+  // do not rescan/recolor the full series on every tick.
   var end=Math.min(session.close,Math.max(session.open+60000,ms));
   ivChart.options.scales.x.min=session.open;ivChart.options.scales.x.max=end;
   var fair=ivChart.data.datasets[1];
@@ -1479,8 +1480,7 @@ function renderValueChart(){
   var s=valueSeries(),cov=document.getElementById('ivCoverage');
   activePriceSessionKey=s.session&&s.session.key?s.session.key:null;if(cov){var ct=compactCoverage(s.ivHist,function(h){return h.at;},priceRange);cov.textContent=ct;cov.parentElement.style.display=ct?'block':'none';}
   updateValueSummary();
-  var pc=priceRangeColor(s.pricePts);
-  var d0={label:'Kurs',data:s.pricePts,parsing:false,spanGaps:false,borderColor:pc,backgroundColor:pc,fill:false,tension:.10,pointRadius:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:pc,borderWidth:2.4};
+  var d0={label:'Kurs',data:s.pricePts,parsing:false,spanGaps:false,borderColor:'#151517',backgroundColor:'#151517',fill:false,tension:.10,pointRadius:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:'#151517',borderWidth:2.4,segment:{borderColor:priceSegmentColor}};
   var d1={label:'Innerer Wert',data:s.fairPts,parsing:false,spanGaps:false,borderColor:'#151517',backgroundColor:'#151517',stepped:true,pointRadius:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:'#151517',borderWidth:1.7,borderDash:[5,4],hidden:!showIntrinsic};
   var flowVisible=priceRange==='1d'||priceRange==='1w',flow=flowVisible?getMarketWaveVector():{label:'',dir:0},flowEl=document.getElementById('marketFlow');if(flowEl)flowEl.textContent=flowVisible?marketFlowText(flow):'Impuls/Welle · nur in 1T/1W';
   var d2={label:'Welle',data:flowVisible?flowPoint(s.pricePts,flow):[],parsing:false,showLine:false,pointStyle:flowPointStyle(flow),pointRotation:flow.kind==='impulse'?0:(flow.dir<0?180:0),pointRadius:flow.kind==='impulse'?5:6,pointHoverRadius:8,pointBorderWidth:1.5,pointBackgroundColor:'#fff',pointBorderColor:flow.dir>0?'#5dcb5b':flow.dir<0?'#e94035':'#151517'};
