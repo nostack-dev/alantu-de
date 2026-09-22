@@ -1,3 +1,33 @@
+export function computeAlantuBookSupportZ({
+  totalLeaves,
+  rightZ,
+  pageBlockThickness,
+  coverThickness=0,
+  gap=.008,
+  coverGap=.008
+}){
+  const count=Math.max(1,Number(totalLeaves)||1);
+  const deepestLeafZ=rightZ(count-1);
+
+  // BoxGeometry is centered on Z. Its FRONT face must sit behind the
+  // deepest real leaf, otherwise it can occlude real pages in deep books.
+  const pageBlockCenterZ=
+    deepestLeafZ-gap-pageBlockThickness/2;
+
+  const pageBlockBackZ=
+    pageBlockCenterZ-pageBlockThickness/2;
+
+  const backCoverCenterZ=coverThickness>0
+    ? pageBlockBackZ-coverGap-coverThickness/2
+    : pageBlockBackZ-coverGap;
+
+  return {
+    deepestLeafZ,
+    pageBlockCenterZ,
+    backCoverCenterZ
+  };
+}
+
 // ALANTU shared book interaction + page physics core.
 // One source of truth for demo and PDF exposé viewer.
 
