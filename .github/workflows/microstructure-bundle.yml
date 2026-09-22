@@ -1,0 +1,106 @@
+name: Build complete microstructure bundle
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "research/microstructure/**"
+      - "tools/validate-fi2010-microstructure.py"
+      - "tools/microstructure-core.mjs"
+      - "tools/microstructure-signal.mjs"
+      - "tools/alpaca-microstructure-backfill.mjs"
+      - "tools/validate-sip-edge.mjs"
+      - "tools/apply-micro-edge.mjs"
+      - "market-relay/server.mjs"
+      - ".github/workflows/fi2010-proof.yml"
+      - ".github/workflows/microstructure-bundle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble exact source bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/alantu-microstructure-complete"
+          mkdir -p "$root"/{data,research,production,workflow}
+
+          cp research/microstructure/README.md "$root/README.md"
+          cp research/microstructure/DATA_MANIFEST.json "$root/research/"
+          cp research/microstructure/reproduce.sh "$root/research/"
+          cp tools/validate-fi2010-microstructure.py "$root/research/"
+          cp .github/workflows/fi2010-proof.yml "$root/workflow/"
+
+          cp tools/microstructure-core.mjs "$root/production/"
+          cp tools/microstructure-signal.mjs "$root/production/"
+          cp tools/alpaca-microstructure-backfill.mjs "$root/production/"
+          cp tools/validate-sip-edge.mjs "$root/production/"
+          cp tools/apply-micro-edge.mjs "$root/production/"
+          cp market-relay/server.mjs "$root/production/"
+
+          url='https://raw.githubusercontent.com/zcakhaa/DeepLOB-Deep-Convolutional-Neural-Networks-for-Limit-Order-Books/ff14d7c2fd38bdfc143389786993d0f0236d4eb8/data/data.zip'
+          curl -fL --retry 4 --connect-timeout 15 --max-time 300 "$url" -o "$root/data/FI-2010-data.zip"
+
+          test "$(git hash-object "$root/data/FI-2010-data.zip")" = '2d8d7749caf622dd07e0df954413dc698129c766'
+          sha256sum "$root/data/FI-2010-data.zip" | tee "$root/data/FI-2010-data.zip.sha256"
+
+          mkdir -p "$RUNNER_TEMP/fi2010"
+          unzip -q "$root/data/FI-2010-data.zip" -d "$RUNNER_TEMP/fi2010"
+          python -m pip install --disable-pip-version-check --quiet numpy
+          python tools/validate-fi2010-microstructure.py             "$RUNNER_TEMP/fi2010"             "$root/research/fi2010-microstructure-proof.json"             "$root/research/fi2010-microstructure-model.json"
+
+          cmp "$root/research/fi2010-microstructure-proof.json" research/microstructure/fi2010-microstructure-proof.json
+          cmp "$root/research/fi2010-microstructure-model.json" research/microstructure/fi2010-microstructure-model.json
+
+          cat > "$root/CONTENTS.txt" <<'EOF'
+          ALANTU MICROSTRUCTURE COMPLETE PACKAGE
+
+          README.md
+            Method, split, features, model, evaluation and limitations.
+
+          data/FI-2010-data.zip
+            Exact original public FI-2010 benchmark bytes used for the proof.
+
+          data/FI-2010-data.zip.sha256
+            SHA256 of the included original ZIP.
+
+          research/DATA_MANIFEST.json
+            Pinned source repository, commit, Git blob hash, size and proof provenance.
+
+          research/reproduce.sh
+            Local reproduction entry point.
+
+          research/validate-fi2010-microstructure.py
+            Exact training + validation + holdout code.
+
+          research/fi2010-microstructure-model.json
+            Standardization, ridge coefficients and thresholds.
+
+          research/fi2010-microstructure-proof.json
+            Exact corrected holdout results.
+
+          workflow/fi2010-proof.yml
+            CI proof workflow.
+
+          production/*
+            Current ALANTU SIP aggregation, signal, backfill, validation,
+            promotion and relay implementation. Production remains fail-closed.
+          EOF
+
+          (cd "$RUNNER_TEMP" && zip -q -r alantu-microstructure-complete.zip alantu-microstructure-complete)
+          sha256sum "$RUNNER_TEMP/alantu-microstructure-complete.zip"
+
+      - name: Upload complete local package
+        uses: actions/upload-artifact@v4
+        with:
+          name: alantu-microstructure-complete
+          path: ${{ runner.temp }}/alantu-microstructure-complete.zip
+          retention-days: 90
+          compression-level: 0
