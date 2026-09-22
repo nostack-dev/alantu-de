@@ -25,24 +25,33 @@ jobs:
           import { chromium } from "playwright";
           const browser=await chromium.launch({headless:true});
           const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const diagnostics=[];
+async function diag(page,label){
+  diagnostics.push({
+    label,
+    count:await page.locator("#pageCount").textContent().catch(()=>null),
+    prevDisabled:await page.locator("#prevBtn").isDisabled().catch(()=>null),
+    nextDisabled:await page.locator("#nextBtn").isDisabled().catch(()=>null)
+  });
+}
 
           async function shotMain(viewport,namePrefix){
             const page=await browser.newPage({viewport});
             await page.goto("http://127.0.0.1:4173/index-brand.html?audit=1",{waitUntil:"networkidle"});
             await wait(1000);
-            await page.screenshot({path:`screenshots/${namePrefix}-open.png`,fullPage:false});
+            await page.screenshot({path:`screenshots/${namePrefix}-open.png`,fullPage:false}); await diag(page,`${namePrefix}-open`);
 
-            await page.locator("#tapPrev").click({position:{x:10,y:10}});
+            await page.evaluate(()=>document.querySelector("#prevBtn")?.click());
             await wait(1200);
-            await page.screenshot({path:`screenshots/${namePrefix}-front-closed.png`,fullPage:false});
+            await page.screenshot({path:`screenshots/${namePrefix}-front-closed.png`,fullPage:false}); await diag(page,`${namePrefix}-front-closed`);
 
-            await page.locator("#tapNext").click({position:{x:10,y:10}});
+            await page.evaluate(()=>document.querySelector("#nextBtn")?.click());
             await wait(1200);
-            for(let i=0;i<3;i++){await page.locator("#tapNext").click({position:{x:10,y:10}});await wait(1100);}
-            await page.screenshot({path:`screenshots/${namePrefix}-last-open.png`,fullPage:false});
-            await page.locator("#tapNext").click({position:{x:10,y:10}});
+            for(let i=0;i<3;i++){await page.evaluate(()=>document.querySelector("#nextBtn")?.click());await wait(1100);}
+            await page.screenshot({path:`screenshots/${namePrefix}-last-open.png`,fullPage:false}); await diag(page,`${namePrefix}-last-open`);
+            await page.evaluate(()=>document.querySelector("#nextBtn")?.click());
             await wait(1200);
-            await page.screenshot({path:`screenshots/${namePrefix}-end-closed.png`,fullPage:false});
+            await page.screenshot({path:`screenshots/${namePrefix}-end-closed.png`,fullPage:false}); await diag(page,`${namePrefix}-end-closed`);
             await page.close();
           }
 
@@ -64,15 +73,15 @@ jobs:
             await wait(700);
             await page.screenshot({path:`screenshots/${namePrefix}-open.png`,fullPage:false});
 
-            await page.locator("#tapPrev").click({position:{x:10,y:10}});
+            await page.evaluate(()=>document.querySelector("#prevBtn")?.click());
             await wait(1200);
             await page.screenshot({path:`screenshots/${namePrefix}-front-closed.png`,fullPage:false});
 
-            await page.locator("#tapNext").click({position:{x:10,y:10}});
+            await page.evaluate(()=>document.querySelector("#nextBtn")?.click());
             await wait(1200);
-            for(let i=0;i<3;i++){await page.locator("#tapNext").click({position:{x:10,y:10}});await wait(1100);}
+            for(let i=0;i<3;i++){await page.evaluate(()=>document.querySelector("#nextBtn")?.click());await wait(1100);}
             await page.screenshot({path:`screenshots/${namePrefix}-last-open.png`,fullPage:false});
-            await page.locator("#tapNext").click({position:{x:10,y:10}});
+            await page.evaluate(()=>document.querySelector("#nextBtn")?.click());
             await wait(1200);
             await page.screenshot({path:`screenshots/${namePrefix}-end-closed.png`,fullPage:false});
             await page.close();
@@ -83,7 +92,8 @@ jobs:
           await shotPdf({width:1600,height:1100},"pdf-desktop");
           await shotMain({width:390,height:844},"main-mobile");
           await shotPdf({width:390,height:844},"pdf-mobile");
-          await browser.close();
+          await import("node:fs").then(fs=>fs.writeFileSync("screenshots/diagnostics.json",JSON.stringify(diagnostics,null,2)));
+await browser.close();
           JS
           mkdir -p screenshots
           node audit.mjs
