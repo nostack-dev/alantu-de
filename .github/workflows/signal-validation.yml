@@ -1,0 +1,22 @@
+name: Validate ORCL leading signal
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/validate-orcl-leading-signal.cjs"
+      - ".github/workflows/signal-validation.yml"
+  schedule:
+    - cron: "30 21 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fresh 60-day ORCL walk-forward validation
+        run: node tools/validate-orcl-leading-signal.cjs
