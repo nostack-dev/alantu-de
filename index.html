@@ -279,6 +279,14 @@
   </div>
 
   <div class="card chart-card-lg">
+    <div class="label">Oracle · Kurs & Wert <a class="info-link info-inline" href="methodik.html#intrinsic" aria-label="Berechnung des inneren Werts erklären" title="Berechnung des inneren Werts">i</a></div>
+    <div class="value-summary" id="ivNow"></div>
+    <div class="value-status flat" id="ivStatus"></div>
+    <div class="chart-sub"><span id="ivCoverage"></span></div>
+    <div class="chart-wrap chart-wrap-lg"><canvas id="ivChart"></canvas></div>
+  </div>
+
+  <div class="card chart-card-lg">
     <div class="label">Oracle · Stimmung</div>
     <div class="chart-sub"><span class="sentiment-key"><span class="swatch pos"></span>positiv <span class="swatch neu"></span>neutral <span class="swatch neg"></span>negativ</span> <span id="hypeCoverage"></span></div>
     <div class="chart-wrap chart-wrap-lg"><canvas id="hypeChart"></canvas></div>
@@ -287,14 +295,6 @@
     <div class="label">Markt · Stimmungsstärke (0–100) <span class="meta" id="magNow"></span></div>
     <div class="meta" style="margin:0 0 10px">Aktueller Social-Druck am Markt — nicht der Kurs. <span id="magCoverage"></span></div>
     <div class="chart-wrap chart-wrap-sm"><canvas id="magChart"></canvas></div>
-  </div>
-
-    <div class="card chart-card-lg">
-    <div class="label">Oracle · Wert <a class="info-link info-inline" href="methodik.html#intrinsic" aria-label="Berechnung des inneren Werts erklären" title="Berechnung des inneren Werts">i</a></div>
-    <div class="value-summary" id="ivNow"></div>
-    <div class="value-status flat" id="ivStatus"></div>
-    <div class="chart-sub"><span id="ivCoverage"></span></div>
-    <div class="chart-wrap chart-wrap-lg"><canvas id="ivChart"></canvas></div>
   </div>
 <div class="card secondary-section">
     <div class="label">Oracle · Meinungen <span class="meta" id="stimmenRange"></span></div>
@@ -626,14 +626,15 @@ function updateValueSummary(){
   var el=document.getElementById('ivNow'),status=document.getElementById('ivStatus'),lat=ivData&&ivData.latest;
   if(!el||!status||!lat)return;
   var now=Date.now(),price=usdToEur(liveMarket.orclUsd||lat.price_usd,now);
-  var lo=usdToEur(lat.intrinsic_low_usd,now),base=usdToEur(lat.intrinsic_base_usd||lat.intrinsic_usd,now),hi=usdToEur(lat.intrinsic_high_usd,now);
-  el.textContent='Kurs '+euro(price,2)+' · Wert '+euro(base,0)+' · Spanne '+euro(lo,0)+'–'+euro(hi,0);
+  var base=usdToEur(lat.intrinsic_base_usd||lat.intrinsic_usd,now);
+  var buyAt=base!=null?base*0.75:null;
+  el.textContent='Kurs '+euro(price,2)+' · Wert '+euro(base,0)+' · Kaufen unter '+euro(buyAt,0);
   var pct=base&&price?(price/base-1)*100:null;
   status.className='value-status flat';
-  if(price!=null&&lo!=null&&hi!=null){
-    if(price>hi){status.className='value-status down';status.textContent=(pct>0?'+':'')+pct.toLocaleString('de-DE',{maximumFractionDigits:0})+' % über Wert';}
-    else if(price<lo){status.className='value-status up';status.textContent=Math.abs(pct).toLocaleString('de-DE',{maximumFractionDigits:0})+' % unter Wert';}
-    else status.textContent='Im Wertkorridor';
+  if(price!=null&&buyAt!=null&&base!=null){
+    if(price<=buyAt){status.className='value-status up';status.textContent='Kaufbereich · 25 % Sicherheitsmarge erreicht';}
+    else if(price<=base){status.className='value-status flat';status.textContent='Unter innerem Wert · Sicherheitsmarge noch nicht erreicht';}
+    else {status.className='value-status down';status.textContent=(pct>0?'+':'')+pct.toLocaleString('de-DE',{maximumFractionDigits:0})+' % über innerem Wert · Kaufen unter '+euro(buyAt,0);}
   }else status.textContent='';
 }
 function appendLiveMinute(price,at){

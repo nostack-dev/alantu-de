@@ -147,6 +147,15 @@ Owner Earnings je Aktie = Owner Earnings / diluted shares</div>
 <h3>Schritt 2 · Normalisierung</h3>
 <p>Für jede der drei CapEx-Varianten wird der Mittelwert der letzten <b>3</b> verfügbaren Owner-Earnings-je-Aktie-Werte gebildet. Dadurch hängt die Bewertung nicht nur an einem einzelnen Quartal/Jahr.</p>
 
+<h3>Kaufpreis · 25 % Sicherheitsmarge</h3>
+<p>Der <b>innere Wert</b> ist nicht automatisch der Kaufpreis. Für den sichtbaren Wert <b>„Kaufen unter“</b> wird auf den Basis-Intrinsic-Value eine feste Sicherheitsmarge von 25 % angewendet.</p>
+<div class="formula">Kaufen unter = Basis-Intrinsic-Value × (1 - 0,25)
+
+Beispiel:
+Innerer Wert 64 €
+Kaufen unter = 64 € × 0,75 = 48 €</div>
+<p class="small">Der 25-%-Abschlag ist eine explizite Modellregel der Oberfläche, keine zusätzliche SEC-Kennzahl. Der konservative/optimistische Maintenance-CapEx-Korridor bleibt intern für die Sensitivitätsprüfung erhalten, wird aber nicht als Kaufbereich dargestellt.</p>
+
 <h3>Schritt 3 · DCF</h3>
 <div class="formula">Startwert = normalisierte Owner Earnings je Aktie
 
