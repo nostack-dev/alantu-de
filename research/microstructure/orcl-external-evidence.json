@@ -1,0 +1,133 @@
+{
+  "subject": "ORCL actionable microstructure forecast",
+  "status": "not_proven",
+  "as_of": "2026-09-22",
+  "external_study": {
+    "title": "Deep limit order book forecasting: a microstructural guide",
+    "authors": [
+      "Antonio Briola",
+      "Silvia Bartolucci",
+      "Tomaso Aste"
+    ],
+    "publication": "Quantitative Finance 25(7), 2025, 1101-1131",
+    "doi": "10.1080/14697688.2025.2522911",
+    "data": {
+      "provider": "LOBSTER",
+      "ticker": "ORCL",
+      "years": [
+        2017,
+        2018,
+        2019
+      ],
+      "depth_levels": 10,
+      "type": "tick-by-tick NASDAQ limit order book",
+      "split": "per-year train/validation/test; test periods held out"
+    },
+    "operational_metric": {
+      "name": "pT",
+      "definition": "probability that a transaction executed from the prediction sequence corresponds to a potential correct transaction in the target sequence",
+      "note": "strategy-oriented, assumption-free operational practicability metric from the paper"
+    },
+    "ORCL": {
+      "H10": {
+        "potential_transactions": 62514,
+        "thresholds": {
+          "0.3": {
+            "pT": 0.12,
+            "MCC": 0.32,
+            "F1": 0.49
+          },
+          "0.5": {
+            "pT": 0.11,
+            "MCC": 0.33,
+            "F1": 0.5
+          },
+          "0.7": {
+            "pT": 0.04,
+            "MCC": 0.4,
+            "F1": 0.56
+          },
+          "0.9": {
+            "pT": 0,
+            "MCC": 0.39,
+            "F1": 0.5
+          }
+        }
+      },
+      "H50": {
+        "potential_transactions": 41516,
+        "thresholds": {
+          "0.3": {
+            "pT": 0.16,
+            "MCC": 0.34,
+            "F1": 0.55
+          },
+          "0.5": {
+            "pT": 0.15,
+            "MCC": 0.37,
+            "F1": 0.57
+          },
+          "0.7": {
+            "pT": 0.08,
+            "MCC": 0.51,
+            "F1": 0.67
+          },
+          "0.9": {
+            "pT": 0,
+            "MCC": 0.65,
+            "F1": 0.71
+          }
+        }
+      },
+      "H100": {
+        "potential_transactions": 31524,
+        "thresholds": {
+          "0.3": {
+            "pT": 0.17,
+            "MCC": 0.25,
+            "F1": 0.48
+          },
+          "0.5": {
+            "pT": 0.16,
+            "MCC": 0.3,
+            "F1": 0.51
+          },
+          "0.7": {
+            "pT": 0.11,
+            "MCC": 0.43,
+            "F1": 0.55
+          },
+          "0.9": {
+            "pT": 0,
+            "MCC": 0.25,
+            "F1": 0.49
+          }
+        }
+      }
+    },
+    "sources": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC12315853/",
+      "https://doi.org/10.1080/14697688.2025.2522911",
+      "https://github.com/FinancialComputingUCL/LOBFrame"
+    ]
+  },
+  "independent_replication": {
+    "dataset": "FI-2010",
+    "result": "not_proven",
+    "note": "Our public-data replication shows directional information conditional on non-stationary outcomes, but did not pass a strict actionable-signal gate."
+  },
+  "current_ORCL_tests": {
+    "source": "Yahoo intraday OHLCV + existing ALANTU sentiment history",
+    "result": "not_proven",
+    "notes": [
+      "Original Vorimpuls was approximately chance on 15/30m and negative by 60m.",
+      "Regime-relative, breakout, reversal, ignition and peer-pooled variants failed held-out robustness."
+    ]
+  },
+  "conclusion": {
+    "directional_information_exists": true,
+    "actionable_edge_proven": false,
+    "production_directional_claim_allowed": false,
+    "reason": "ORCL-specific published LOB evidence shows prediction metrics can improve while pT, the transaction-level correctness metric, remains low and collapses at high confidence; current ALANTU data has not produced stable held-out net edge."
+  }
+}
