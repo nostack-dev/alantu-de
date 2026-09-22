@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-22T14:51:54+02:00",
+  "updated_at": "2026-09-22T14:52:10+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,7 +9,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-22T14:51:54+02:00",
+        "at": "2026-09-22T14:52:10+02:00",
         "signal": "buy",
         "social_impulse": 8,
         "hype_bull": 52,
@@ -1512,6 +1512,20 @@
           "voice_bear": 2,
           "voice_mixed": 10,
           "price": 151.22
+        },
+        {
+          "at": "2026-09-22T14:52:10+02:00",
+          "hype_bull": 52,
+          "hype_bear": 13,
+          "hype_net": 39,
+          "social_impulse": 8,
+          "signal": "buy",
+          "confidence": 78,
+          "hype_mixed": 35,
+          "voice_bull": 10,
+          "voice_bear": 2,
+          "voice_mixed": 10,
+          "price": 151.22
         }
       ],
       "voices_archive": [
@@ -1834,7 +1848,7 @@
       "hype_net": 39,
       "confidence": 78,
       "hype_state": "bullish",
-      "updated_at": "2026-09-22T14:51:54+02:00",
+      "updated_at": "2026-09-22T14:52:10+02:00",
       "why": "Reddit 78% positiv bei 11 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $151.22.",
       "evidence": {
         "x_posts": 0,
@@ -1843,15 +1857,15 @@
         "snippets": [
           "ApeWisdom: 11 Mentions/24h, Sentiment 78%",
           "Jim Cramer sends strong signal to Oracle stock investors",
-          "Oracle’s Co-CEOs Deliver Explosive Growth, but Stock Plunges 50% in Their First Year",
-          "Oracle's health data includes more than 122 million de-identified patient records."
+          "Oracle's health data includes more than 122 million de-identified patient records.",
+          "Oracle’s Co-CEOs Deliver Explosive Growth, but Stock Plunges 50% in Their First Year"
         ]
       },
       "voices": {
         "bull": 10,
         "bear": 2,
         "mixed": 10,
-        "updated_at": "2026-09-22T14:51:54+02:00"
+        "updated_at": "2026-09-22T14:52:10+02:00"
       },
       "hype_mixed": 35,
       "sentiment_unit": "percent_all_classified",
