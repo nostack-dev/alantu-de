@@ -54,19 +54,19 @@ function recentNoise(a){
   for(let i=1;i<x.length;i++)if(x[i-1].close>0&&x[i].close>0)r.push(Math.abs(Math.log(x[i].close/x[i-1].close)));
   return median(r)||0;
 }
-function candidate(a,p,v){
+function candidate(a,p,v,leadOnly){
   const base=rawImpulse(p,v);if(!base.reliable)return {dir:0,reliable:false};
   const noise=recentNoise(a),snr=p.short&&noise>0?Math.abs(p.short.net)/(noise*Math.sqrt(Math.max(1,p.short.count-1))):0;
   const pressureDelta=v.short&&v.long?Math.abs(v.short.pressure-v.long.pressure):0;
   const participation=Number(v.ratio);
-  const reliable=snr>=0.9&&pressureDelta>=0.08&&Number.isFinite(participation)&&participation>=1.05;
+  const reliable=snr>=0.9&&pressureDelta>=0.08&&Number.isFinite(participation)&&participation>=1.05&&(!leadOnly||!p.dir);
   return {dir:reliable?base.dir:0,reliable,snr,pressureDelta,participation};
 }
 function future(dayBars,t,h){const target=t+h*60000;for(const b of dayBars)if(b.t>=target)return b.t-target<=8*60000?b:null;return null;}
 function wilson(k,n){if(!n)return [null,null];const z=1.96,p=k/n,d=1+z*z/n,c=(p+z*z/(2*n))/d,m=z*Math.sqrt((p*(1-p)+z*z/(4*n))/n)/d;return [c-m,c+m];}
 function stats(events,sessions,h){const vals=[];for(const e of events){const f=future(sessions[e.day],e.t,h);if(f)vals.push(e.dir*(f.close/e.price-1));}const n=vals.length,k=vals.filter(x=>x>0).length,ci=wilson(k,n);return {n,hit:n?k/n:null,hit95:ci,mean:n?vals.reduce((a,b)=>a+b,0)/n:null,median:n?[...vals].sort((a,b)=>a-b)[Math.floor(n/2)]:null};}
 function eventsFor(sessions,mode,days){
-  const out=[];for(const day of days){const a=sessions[day]||[];let prev=0,lastT=0;for(let i=0;i<a.length;i++){const hist=a.slice(0,i+1);if(hist.length<12)continue;const p=priceWave(hist),v=volumeWave(hist),s=mode==='candidate'?candidate(hist,p,v):rawImpulse(p,v),b=a[i],dir=s.reliable?s.dir:0;if(dir&&dir!==prev&&b.t-lastT>=20*60000){out.push({day,t:b.t,price:b.close,dir});lastT=b.t;}prev=dir;}}return out;
+  const out=[];for(const day of days){const a=sessions[day]||[];let prev=0,lastT=0;for(let i=0;i<a.length;i++){const hist=a.slice(0,i+1);if(hist.length<12)continue;const p=priceWave(hist),v=volumeWave(hist),s=mode==='lead'?candidate(hist,p,v,true):(mode==='candidate'?candidate(hist,p,v,false):rawImpulse(p,v)),b=a[i],dir=s.reliable?s.dir:0;if(dir&&dir!==prev&&b.t-lastT>=20*60000){out.push({day,t:b.t,price:b.close,dir});lastT=b.t;}prev=dir;}}return out;
 }
 function summarize(events,sessions){return {events:events.length,eventDays:new Set(events.map(e=>e.day)).size,m15:stats(events,sessions,15),m30:stats(events,sessions,30),m60:stats(events,sessions,60),m180:stats(events,sessions,180)};}
 
@@ -77,10 +77,11 @@ function summarize(events,sessions){return {events:events.length,eventDays:new S
   const bars=ts.map((t,i)=>({t:t*1000,close:Number(q.close?.[i]),volume:Number(q.volume?.[i])})).filter(x=>Number.isFinite(x.close)&&x.close>0).sort((a,b)=>a.t-b.t);
   const sessions={};for(const b of bars){const m=hm(b.t);if(m<8*60||m>22*60)continue;(sessions[dayKey(b.t)]??=[]).push(b);}
   const days=Object.keys(sessions).sort(),cut=Math.max(1,Math.floor(days.length*2/3)),train=days.slice(0,cut),test=days.slice(cut);
-  const currentAll=eventsFor(sessions,'current',days),candAll=eventsFor(sessions,'candidate',days);
-  const currentTest=eventsFor(sessions,'current',test),candTest=eventsFor(sessions,'candidate',test);
+  const currentAll=eventsFor(sessions,'current',days),candAll=eventsFor(sessions,'candidate',days),leadAll=eventsFor(sessions,'lead',days);
+  const currentTest=eventsFor(sessions,'current',test),candTest=eventsFor(sessions,'candidate',test),leadTest=eventsFor(sessions,'lead',test);
+  const thirds=[days.slice(0,20),days.slice(20,40),days.slice(40,60)];
   let crowd={points:0,priced:0,days:0};
   try{const w=JSON.parse(fs.readFileSync('watchlist-data.json','utf8')),h=w?.stocks?.ORCL?.history||[];crowd={points:h.length,priced:h.filter(x=>Number.isFinite(Number(x.price))).length,days:new Set(h.map(x=>String(x.at||'').slice(0,10))).size};}catch{}
-  const out={bars:bars.length,days:days.length,trainDays:train.length,testDays:test.length,crowd,current:{all:summarize(currentAll,sessions),test:summarize(currentTest,sessions)},candidate:{all:summarize(candAll,sessions),test:summarize(candTest,sessions)}};
+  const out={bars:bars.length,days:days.length,trainDays:train.length,testDays:test.length,crowd,current:{all:summarize(currentAll,sessions),test:summarize(currentTest,sessions)},candidate:{all:summarize(candAll,sessions),test:summarize(candTest,sessions)},lead:{all:summarize(leadAll,sessions),test:summarize(leadTest,sessions),thirds:thirds.map(ds=>summarize(eventsFor(sessions,'lead',ds),sessions))}};
   console.log('SIGNAL_VALIDATION_JSON '+JSON.stringify(out));
 })().catch(e=>{console.error(e);process.exit(1);});
