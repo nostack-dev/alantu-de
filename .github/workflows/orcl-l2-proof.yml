@@ -8,6 +8,9 @@ on:
       - "tools/train-orcl-l2-100.py"
       - "tools/l2-event-signal.mjs"
       - "tools/test-l2-event-signal.mjs"
+      - "tools/test_l2_feature_parity.py"
+      - "tools/dump-l2-feature-fixture.mjs"
+      - "tools/l2_temporal_features.py"
       - "tools/databento-orcl-mbp10-live.py"
       - "tools/finalize-l2-model.mjs"
       - ".github/workflows/orcl-l2-proof.yml"
@@ -29,10 +32,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-          python -m py_compile tools/databento-orcl-mbp10-backfill.py tools/train-orcl-l2-100.py tools/databento-orcl-mbp10-live.py
+          python -m py_compile tools/databento-orcl-mbp10-backfill.py tools/train-orcl-l2-100.py tools/databento-orcl-mbp10-live.py tools/l2_temporal_features.py tools/test_l2_feature_parity.py
           node --check tools/l2-event-signal.mjs
           node --check tools/finalize-l2-model.mjs
+          node --check tools/dump-l2-feature-fixture.mjs
           node tools/test-l2-event-signal.mjs
+          python -m pip install --disable-pip-version-check --quiet numpy
+          node tools/dump-l2-feature-fixture.mjs > /tmp/l2-js-feature.json
+          python tools/test_l2_feature_parity.py /tmp/l2-js-feature.json
 
   prove:
     if: ${{ github.event_name == 'workflow_dispatch' }}
