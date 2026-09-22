@@ -263,6 +263,20 @@
     .chart-card-lg{padding-top:12px!important;padding-bottom:12px!important}
   }
 
+  /* Paired core metrics */
+  .row3{display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:20px;align-items:end;border-bottom:1px solid #eeeeef}
+  .row3>.card:not(.aux-card){min-width:0;border-bottom:0!important}
+  .sentiment-hero-card{text-align:right}
+  .sentiment-hero-card .label,.sentiment-hero-card .market-clock{text-align:right}
+  .row3 .hero-price{font-size:40px!important;white-space:nowrap}
+  @media(max-width:700px){
+    .row3{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:12px}
+    .row3 .hero-price{font-size:30px!important}
+    .row3 .hero-change{font-size:12px!important}
+    .row3 .live-state{display:block;margin-left:0;margin-top:2px}
+    .row3 .market-clock{font-size:9px!important}
+  }
+
 </style>
 </head>
 <body>
