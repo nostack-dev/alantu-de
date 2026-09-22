@@ -1,0 +1,725 @@
+{
+  "updated_at": "2026-09-21T17:21:00+02:00",
+  "timezone": "Europe/Berlin",
+  "tick": {
+    "tick_id": "2026-09-21T17:21:00+02:00",
+    "scraped_at": "2026-09-21T17:21:00+02:00",
+    "timezone": "Europe/Berlin",
+    "sources": {
+      "user-X": {
+        "status": "ok",
+        "items": 85,
+        "breakdown": {
+          "trends_usa": 20,
+          "trends_germany": 15,
+          "news": 10,
+          "posts_sampled": 40
+        },
+        "counts_24h": {
+          "nvda": 6974,
+          "tsla": 6575,
+          "btc": 132967,
+          "orcl": 897,
+          "composite": 147413
+        },
+        "counts_7d": {},
+        "freshest": "2026-09-21T16:51:19+02:00",
+        "window": "Posts/News recency ≤24–48h; Counts ~24h ($NVDA|NVDA / $TSLA|TSLA / $BTC|Bitcoin / $ORCL|ORCL)",
+        "credits_before_usd": 1.07,
+        "credits_after_usd": 0.99,
+        "credits_spent_usd": 0.08
+      },
+      "WebSearch": {
+        "status": "ok",
+        "items": 5,
+        "window": "same-day 2026-09-21",
+        "notes": [
+          "Futures AI-led: S&P ~+0.6% / NQ ~+1.1%; oil −~2%; 10Y <5% (Reuters)",
+          "Cash/ORCL ~$148.73 (+0.76%); backlog/AI demand vs debt & Project Jupiter stress",
+          "SoftBank LAUNCHED >$10B+$€1B bonds for OpenAI; pricing ~24 Sep; BB+ (Reuters)",
+          "BTC ~$85k risk-on; short squeezes fueled bounce",
+          "AI tape firm (NVDA bounce) but SoftBank debt caution stays"
+        ]
+      },
+      "user-Bright Data": {
+        "status": "fail",
+        "items": 0,
+        "error": "HTTP 401 Auth method is not supported"
+      },
+      "user-Treg": {
+        "status": "auth_needed",
+        "items": 0,
+        "note": "Use treg.reddit.subreddit.posts / scrapecreators.reddit.search.posts / treg.tiktok.search.videos when signed in."
+      },
+      "user-Monid": {
+        "status": "skip",
+        "items": 0,
+        "note": "not used this tick"
+      },
+      "PublicReddit": {
+        "status": "ok",
+        "items": 3,
+        "providers": [
+          "apewisdom.io",
+          "altindex.com",
+          "thedistributed.co"
+        ],
+        "window": "24h–30d aggregator snapshots 2026-09-21",
+        "freshest": "2026-09-21T17:21:00+02:00",
+        "notes": [
+          "ApeWisdom 24h: 4 mentions, sentiment 50% (WSB 50%)",
+          "AltIndex: ~30 daily investing-subreddit mentions; Reddit sentiment 46/100 bearish (as of Sep 20)",
+          "The Distributed 30d to Sep 15: 1446 mentions; 50% bull / 17% bear / 33% neutral"
+        ],
+        "orcl_hint": {
+          "mentions_24h_approx": 4,
+          "sentiment_pct_bullish": 50,
+          "daily_mentions_altindex": 30,
+          "sentiment_altindex_100": 46
+        }
+      },
+      "TikTokPublic": {
+        "status": "ok_news_only",
+        "items": 2,
+        "note": "No; live video search via Treg treg.tiktok.search.videos when auth valid.",
+        "urls": [
+          "https://www.reuters.com/world/china/oracles-stake-tiktok-us-joint-venture-is-worth-roughly-2-billion-filing-shows-2026-03-11/",
+          "https://www.fool.com/investing/2026/01/31/down-big-buy-ai-stock-oracle-tiktok/"
+        ]
+      }
+    },
+    "totals": {
+      "content_items_usable": 93,
+      "breakdown": {
+        "x_trends": 35,
+        "x_news": 10,
+        "x_posts": 40,
+        "reddit": 3,
+        "tiktok": 0,
+        "websearch": 5
+      }
+    },
+    "freshness": {
+      "freshest_absolute": "2026-09-21T16:51:19+02:00",
+      "primary_signal": "Minuten (X) + same-day Web/News + PublicReddit aggregators (Apify retired)",
+      "quality": "mittel-hoch X+Web+PublicReddit; TikTok news-only until Treg auth; Bright Data 401; Apify retired",
+      "scrape_berlin": "2026-09-21T17:21:00+02:00",
+      "sample_window": "X posts minutes–hours; news ≤48h; Reddit via ApeWisdom/AltIndex/TheDistributed",
+      "freshest_item_age": "",
+      "oldest_usable_signal": "X news breadth story ~24–48h; SoftBank same-day; cash session green"
+    },
+    "vector": {
+      "direction": "mixed_cautious",
+      "magnitude": 36,
+      "confidence": 74,
+      "early_signal": true,
+      "early_signal_note": "Vorsicht wegen SoftBank-Schulden."
+    },
+    "top_themes": [
+      {
+        "theme": "Cash Session AI-Led Green",
+        "sentiment": "leicht_bullish",
+        "strength": 84,
+        "symbol": "SPY",
+        "symbol_note": "Session: futures→cash AI-led; oil −~2%; 10Y <5%; ORCL ~$148.65",
+        "bias": "risk_on",
+        "bias_label": "Beobachten / Bias risk-on",
+        "links": {
+          "tradingview": "https://www.tradingview.com/symbols/SPY/",
+          "yahoo": "https://finance.yahoo.com/quote/SPY"
+        }
+      },
+      {
+        "theme": "SoftBank-Schulden Bonds LIVE",
+        "sentiment": "bearish",
+        "strength": 89,
+        "symbol": "9984.T",
+        "symbol_note": ">$10B+$€1B notes for OpenAI; pricing ~24 Sep; Fitch BB+; AI-debt caution",
+        "bias": "risk_off",
+        "bias_label": "Vorsicht / Bias risk-off",
+        "links": {
+          "tradingview": "https://www.tradingview.com/symbols/TSE:9984/",
+          "yahoo": "https://finance.yahoo.com/quote/9984.T"
+        }
+      },
+      {
+        "theme": "ORCL Debt / Layoffs / Dip-Buys",
+        "sentiment": "mixed",
+        "strength": 79,
+        "symbol": "ORCL",
+        "symbol_note": "~$148.65; debt-loss chatter + Abilene layoffs vs Stifel Buy; X~897/24h",
+        "bias": "mixed",
+        "bias_label": "Abwarten / Bias mixed",
+        "links": {
+          "tradingview": "https://www.tradingview.com/symbols/ORCL/",
+          "yahoo": "https://finance.yahoo.com/quote/ORCL"
+        }
+      },
+      {
+        "theme": "Narrow Breadth / Mega-Cap Lead",
+        "sentiment": "bearish",
+        "strength": 78,
+        "symbol": "SPY",
+        "symbol_note": "S&P near highs; extreme narrow breadth (X news Goepfert); AI leadership",
+        "bias": "risk_off",
+        "bias_label": "Vorsicht / Bias risk-off",
+        "links": {
+          "tradingview": "https://www.tradingview.com/symbols/SPY/",
+          "yahoo": "https://finance.yahoo.com/quote/SPY"
+        }
+      },
+      {
+        "theme": "BTC Risk-On Marker",
+        "sentiment": "leicht_bullish",
+        "strength": 76,
+        "symbol": "BTC-USD",
+        "symbol_note": "BTC ~$86.0k; X counts ~132k/24h",
+        "bias": "risk_on",
+        "bias_label": "Beobachten / Bias risk-on",
+        "links": {
+          "tradingview": "https://www.tradingview.com/symbols/BTCUSD/",
+          "yahoo": "https://finance.yahoo.com/quote/BTC-USD"
+        }
+      }
+    ],
+    "delta_vs_prev": {
+      "prev_tick_id": "2026-09-21T16:25:00+02:00",
+      "magnitude_delta": -1,
+      "confidence_delta": -1,
+      "direction_prev": "mixed_cautious",
+      "direction_now": "mixed_cautious",
+      "direction_changed": false,
+      "early_signal_prev": true,
+      "early_signal_now": true,
+      "early_signal_flipped": false,
+      "volume_prev": 90,
+      "volume_now": 90,
+      "volume_change_pct": 0.0,
+      "new_themes": [
+        "Cash Session AI-Led Green"
+      ],
+      "gone_themes": [
+        "Cash Open AI-Led Higher"
+      ],
+      "sentiment_swings": [
+        "ORCL voices bull17/bear13/mixed10; SoftBank bonds still live; BTC ~$86k; debt-loss chatter louder"
+      ]
+    },
+    "material_change": false,
+    "material_change_reasons": [
+      "|Δmag|=1<5 (37→36)",
+      "direction mixed_cautious unchanged",
+      "early_signal unchanged (True)",
+      "watchlist ORCL hold unchanged",
+      "volume regime same; usable 90",
+      "SoftBank bonds still live + session green + ORCL debt/layoffs; Hold"
+    ],
+    "chart": {
+      "magnitude": 36,
+      "confidence": 74,
+      "direction": "mixed_cautious",
+      "items": 90
+    },
+    "baseline": false,
+    "scrape_window": {
+      "start": "2026-09-21T16:25:00+02:00",
+      "end": "2026-09-21T17:21:00+02:00",
+      "kind": "tick_interval",
+      "note": "Intervall seit dem vorherigen Tick; kein behaupteter Scrape-Startzeitpunkt."
+    },
+    "volume_enriched": true,
+    "mini_series": [
+      {
+        "tick": 3,
+        "at": "2026-09-17T11:15:00+02:00",
+        "direction": "leicht_bearish_risk_off",
+        "magnitude": 56,
+        "confidence": 76
+      },
+      {
+        "tick": 4,
+        "at": "2026-09-17T11:45:00+02:00",
+        "direction": "leicht_bearish_risk_off",
+        "magnitude": 53,
+        "confidence": 77
+      },
+      {
+        "tick": 5,
+        "at": "2026-09-17T12:00:00+02:00",
+        "direction": "leicht_bearish_risk_off",
+        "magnitude": 51,
+        "confidence": 78
+      },
+      {
+        "tick": 6,
+        "at": "2026-09-21T08:15:00+02:00",
+        "direction": "mixed_cautious",
+        "magnitude": 40,
+        "confidence": 71
+      },
+      {
+        "tick": 7,
+        "at": "2026-09-21T08:55:00+02:00",
+        "direction": "mixed_cautious",
+        "magnitude": 38,
+        "confidence": 73
+      },
+      {
+        "tick": 8,
+        "at": "2026-09-21T09:20:00+02:00",
+        "direction": "mixed_cautious",
+        "magnitude": 37,
+        "confidence": 74
+      },
+      {
+        "tick": 9,
+        "at": "2026-09-21T10:00:00+02:00",
+        "direction": "mixed_cautious",
+        "magnitude": 36,
+        "confidence": 75
+      },
+      {
+        "tick": 10,
+        "at": "2026-09-21T10:30:00+02:00",
+        "direction": "mixed_cautious",
+        "magnitude": 37,
+        "confidence": 76
+      },
+      {
+        "tick": 11,
+        "at": "2026-09-21T10:45:00+02:00",
+        "direction": "mixed_cautious",
+        "magnitude": 36,
+        "confidence": 77
+      },
+      {
+        "tick": 12,
+        "at": "2026-09-21T11:15:00+02:00",
+        "direction": "mixed_cautious",
+        "magnitude": 35,
+        "confidence": 74
+      },
+      {
+        "tick": 13,
+        "at": "2026-09-21T11:35:00+02:00",
+        "direction": "mixed_cautious",
+        "magnitude": 34,
+        "confidence": 75
+      },
+      {
+        "tick": 14,
+        "at": "2026-09-21T12:15:00+02:00",
+        "direction": "mixed_cautious",
+        "magnitude": 35,
+        "confidence": 76
+      },
+      {
+        "tick": 15,
+        "at": "2026-09-21T12:45:00+02:00",
+        "direction": "mixed_cautious",
+        "magnitude": 36,
+        "confidence": 77
+      },
+      {
+        "tick": 16,
+        "at": "2026-09-21T13:00:00+02:00",
+        "direction": "mixed_cautious",
+        "magnitude": 37,
+        "confidence": 78
+      },
+      {
+        "tick": 17,
+        "at": "2026-09-21T13:30:00+02:00",
+        "direction": "mixed_cautious",
+        "magnitude": 38,
+        "confidence": 79
+      },
+      {
+        "tick": 18,
+        "at": "2026-09-21T14:00:00+02:00",
+        "direction": "mixed_cautious",
+        "magnitude": 39,
+        "confidence": 80
+      },
+      {
+        "tick": 19,
+        "at": "2026-09-21T14:46:00+02:00",
+        "direction": "mixed_cautious",
+        "magnitude": 40,
+        "confidence": 81
+      },
+      {
+        "tick_id": "2026-09-21T15:00:00+02:00",
+        "magnitude": 39,
+        "confidence": 78,
+        "direction": "mixed_cautious",
+        "items": 90,
+        "early_signal": true
+      },
+      {
+        "tick_id": "2026-09-21T16:10:00+02:00",
+        "magnitude": 38,
+        "confidence": 76,
+        "direction": "mixed_cautious",
+        "items": 90,
+        "early_signal": true
+      },
+      {
+        "tick_id": "2026-09-21T16:25:00+02:00",
+        "magnitude": 37,
+        "confidence": 75,
+        "direction": "mixed_cautious",
+        "items": 90,
+        "early_signal": true
+      },
+      {
+        "tick_id": "2026-09-21T17:05:00+02:00",
+        "magnitude": 36,
+        "confidence": 74,
+        "direction": "mixed_cautious",
+        "items": 90,
+        "early_signal": true
+      }
+    ],
+    "overall_bias": {
+      "key": "mixed",
+      "label": "Gemischt / vorsichtig",
+      "note": "Session grün und BTC risk-on, SoftBank-Anleihen und enge Breite halten Vorsicht."
+    },
+    "macro_calendar": [
+      {
+        "id": "nfp",
+        "title": "US Jobs (NFP)",
+        "when": "2026-10-02T14:30:00+02:00",
+        "when_label": "Fr 02.10.2026 · 14:30 Berlin",
+        "link": "https://www.bls.gov/news.release/empsit.toc.htm"
+      },
+      {
+        "id": "cpi",
+        "title": "US CPI",
+        "when": "2026-10-14T14:30:00+02:00",
+        "when_label": "Mi 14.10.2026 · 14:30 Berlin",
+        "link": "https://www.bls.gov/cpi/"
+      },
+      {
+        "id": "fomc",
+        "title": "Fed Zinsentscheidung",
+        "when": "2026-10-28T20:00:00+02:00",
+        "when_label": "Mi 28.10.2026 · ~20:00 Berlin",
+        "link": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+      },
+      {
+        "id": "earnings",
+        "title": "Q3 Earnings-Fenster",
+        "when": "2026-10-06T00:00:00+02:00",
+        "when_label": "ca. Mitte Okt → Mitte Nov 2026",
+        "link": "https://www.tradingview.com/markets/stocks-usa/earnings/"
+      }
+    ],
+    "katalysator_druck": {
+      "next_shock": "nfp",
+      "next_shock_label": "US Jobs (NFP) Fr 02.10.2026 14:30 Berlin",
+      "days_approx": 11,
+      "note": "Nächster Makro-Schock: NFP in ~11 Tagen; danach CPI 14.10, FOMC 28.10"
+    },
+    "stock_signals": [
+      {
+        "symbol": "ORCL",
+        "name": "Oracle",
+        "hype_state": "mixed",
+        "signal": "hold",
+        "confidence": 70,
+        "social_impulse": 1,
+        "hype_bull": 17,
+        "hype_bear": 13,
+        "hype_net": 4,
+        "why": "Schulden und SoftBank-Anleihen bleiben der Gegenwind. Dip-Käufe und Stifel-Buy halten es gemischt.",
+        "evidence": {
+          "x_posts": 24,
+          "reddit_posts": 0,
+          "news": 5,
+          "snippets": [
+            "SoftBank >$10B+$€1B bonds for OpenAI still live — debt caution",
+            "ORCL X voices bull17/bear13/mixed10; X~897/24h",
+            "Session green; Abilene layoffs + debt-loss chatter; BTC ~$86.0k; ORCL ~$148.65"
+          ],
+          "voices": [
+            {
+              "source": "X",
+              "text": "$ORCL debt losses 30–45% rarely seen",
+              "url": "https://x.com/rdd147/status/2102046517146358225",
+              "lean": "bear",
+              "at": "2026-09-21T16:45:18+02:00"
+            },
+            {
+              "source": "X",
+              "text": "Mass layoffs at Abilene Stargate AI data center",
+              "url": "https://x.com/rdd147/status/2102012845668134981",
+              "lean": "bear",
+              "at": "2026-09-21T14:31:30+02:00"
+            },
+            {
+              "source": "X",
+              "text": "97.9% GPU utilization — AI infra alive for $ORCL",
+              "url": "https://x.com/Mom4Josh/status/2102038143956623757",
+              "lean": "bull",
+              "at": "2026-09-21T16:12:02+02:00"
+            },
+            {
+              "source": "X",
+              "text": "$ORCL smallest hyperscaler program + heavy leverage",
+              "url": "https://x.com/KllResearch/status/2102035115992068265",
+              "lean": "bear",
+              "at": "2026-09-21T16:00:00+02:00"
+            },
+            {
+              "source": "X",
+              "text": "$ORCL vs $AMD cheaper multiple + AI backlog",
+              "url": "https://x.com/theaveragegal__/status/2102033996079128822",
+              "lean": "bull",
+              "at": "2026-09-21T15:55:33+02:00"
+            },
+            {
+              "source": "X",
+              "text": "Short $ORCL today — go for crash",
+              "url": "https://x.com/QuantNug/status/2102028130714296586",
+              "lean": "bear",
+              "at": "2026-09-21T15:32:14+02:00"
+            },
+            {
+              "source": "X",
+              "text": "Stifel keeps Buy rating on Oracle",
+              "url": "https://x.com/PT_CARBA/status/2102024678466351186",
+              "lean": "bull",
+              "at": "2026-09-21T15:18:31+02:00"
+            },
+            {
+              "source": "X",
+              "text": "Oracle debt to fund cloud — derail $ORCL?",
+              "url": "https://x.com/HealyWriting/status/2102040957101203848",
+              "lean": "bear",
+              "at": "2026-09-21T16:23:12+02:00"
+            },
+            {
+              "source": "X",
+              "text": "Volume crypto+AI; $ORCL on green tape",
+              "url": "https://x.com/sssc/status/2102036802701832697",
+              "lean": "bull",
+              "at": "2026-09-21T16:06:42+02:00"
+            },
+            {
+              "source": "X",
+              "text": "$ORCL down ~50% — both sides walked through",
+              "url": "https://x.com/JoshTradeOption/status/2102020269317455957",
+              "lean": "mixed",
+              "at": "2026-09-21T15:01:00+02:00"
+            }
+          ]
+        },
+        "links": {
+          "tradingview": "https://www.tradingview.com/symbols/ORCL/",
+          "yahoo": "https://finance.yahoo.com/quote/ORCL"
+        }
+      }
+    ],
+    "early_signal_note": "Vorsicht wegen SoftBank-Schulden.",
+    "signals_disclaimer": ""
+  },
+  "signals_disclaimer": "",
+  "early_signal_note": "Vorsicht wegen SoftBank-Schulden.",
+  "freshness": {
+    "freshest_absolute": "2026-09-21T16:51:19+02:00",
+    "primary_signal": "Minuten (X) + same-day Web/News + PublicReddit aggregators (Apify retired)",
+    "quality": "mittel-hoch X+Web+PublicReddit; TikTok news-only until Treg auth; Bright Data 401; Apify retired",
+    "scrape_berlin": "2026-09-21T17:21:00+02:00",
+    "sample_window": "X posts minutes–hours; news ≤48h; Reddit via ApeWisdom/AltIndex/TheDistributed",
+    "freshest_item_age": "",
+    "oldest_usable_signal": "X news breadth story ~24–48h; SoftBank same-day; cash session green"
+  },
+  "history": [
+    {
+      "tick_id": "2026-09-17T10:37:00+02:00",
+      "scraped_at": "2026-09-17T10:37:00+02:00",
+      "magnitude": 65,
+      "confidence": 72,
+      "direction": "leicht_bearish_risk_off",
+      "items": 214,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-17T10:58:00+02:00",
+      "scraped_at": "2026-09-17T10:58:00+02:00",
+      "magnitude": 60,
+      "confidence": 74,
+      "direction": "leicht_bearish_risk_off"
+    },
+    {
+      "tick_id": "2026-09-17T11:15:00+02:00",
+      "scraped_at": "2026-09-17T11:15:00+02:00",
+      "magnitude": 56,
+      "confidence": 76,
+      "direction": "leicht_bearish_risk_off"
+    },
+    {
+      "tick_id": "2026-09-17T11:45:00+02:00",
+      "scraped_at": "2026-09-17T11:45:00+02:00",
+      "magnitude": 53,
+      "confidence": 77,
+      "direction": "leicht_bearish_risk_off"
+    },
+    {
+      "tick_id": "2026-09-17T12:00:00+02:00",
+      "scraped_at": "2026-09-17T12:00:00+02:00",
+      "magnitude": 51,
+      "confidence": 78,
+      "direction": "leicht_bearish_risk_off"
+    },
+    {
+      "tick_id": "2026-09-21T08:15:00+02:00",
+      "scraped_at": "2026-09-21T08:15:00+02:00",
+      "magnitude": 40,
+      "confidence": 71,
+      "direction": "mixed_cautious"
+    },
+    {
+      "tick_id": "2026-09-21T08:55:00+02:00",
+      "scraped_at": "2026-09-21T08:55:00+02:00",
+      "magnitude": 38,
+      "confidence": 73,
+      "direction": "mixed_cautious"
+    },
+    {
+      "tick_id": "2026-09-21T09:20:00+02:00",
+      "scraped_at": "2026-09-21T09:20:00+02:00",
+      "magnitude": 37,
+      "confidence": 74,
+      "direction": "mixed_cautious"
+    },
+    {
+      "tick_id": "2026-09-21T10:00:00+02:00",
+      "scraped_at": "2026-09-21T10:00:00+02:00",
+      "magnitude": 36,
+      "confidence": 75,
+      "direction": "mixed_cautious"
+    },
+    {
+      "tick_id": "2026-09-21T10:30:00+02:00",
+      "scraped_at": "2026-09-21T10:30:00+02:00",
+      "magnitude": 37,
+      "confidence": 76,
+      "direction": "mixed_cautious"
+    },
+    {
+      "tick_id": "2026-09-21T10:45:00+02:00",
+      "scraped_at": "2026-09-21T10:45:00+02:00",
+      "magnitude": 36,
+      "confidence": 77,
+      "direction": "mixed_cautious"
+    },
+    {
+      "tick_id": "2026-09-21T11:15:00+02:00",
+      "scraped_at": "2026-09-21T11:15:00+02:00",
+      "magnitude": 35,
+      "confidence": 74,
+      "direction": "mixed_cautious"
+    },
+    {
+      "tick_id": "2026-09-21T11:35:00+02:00",
+      "scraped_at": "2026-09-21T11:35:00+02:00",
+      "magnitude": 34,
+      "confidence": 75,
+      "direction": "mixed_cautious"
+    },
+    {
+      "tick_id": "2026-09-21T12:15:00+02:00",
+      "scraped_at": "2026-09-21T12:15:00+02:00",
+      "magnitude": 35,
+      "confidence": 76,
+      "direction": "mixed_cautious"
+    },
+    {
+      "tick_id": "2026-09-21T12:45:00+02:00",
+      "scraped_at": "2026-09-21T12:45:00+02:00",
+      "magnitude": 36,
+      "confidence": 77,
+      "direction": "mixed_cautious"
+    },
+    {
+      "tick_id": "2026-09-21T13:00:00+02:00",
+      "scraped_at": "2026-09-21T13:00:00+02:00",
+      "magnitude": 37,
+      "confidence": 78,
+      "direction": "mixed_cautious"
+    },
+    {
+      "tick_id": "2026-09-21T13:30:00+02:00",
+      "scraped_at": "2026-09-21T13:30:00+02:00",
+      "magnitude": 38,
+      "confidence": 79,
+      "direction": "mixed_cautious"
+    },
+    {
+      "tick_id": "2026-09-21T14:00:00+02:00",
+      "scraped_at": "2026-09-21T14:00:00+02:00",
+      "magnitude": 39,
+      "confidence": 80,
+      "direction": "mixed_cautious",
+      "items": 147,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-21T14:46:00+02:00",
+      "scraped_at": "2026-09-21T14:46:00+02:00",
+      "magnitude": 40,
+      "confidence": 81,
+      "direction": "mixed_cautious",
+      "items": 140,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-21T15:00:00+02:00",
+      "scraped_at": "2026-09-21T15:00:00+02:00",
+      "magnitude": 39,
+      "confidence": 78,
+      "direction": "mixed_cautious",
+      "items": 90,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-21T16:10:00+02:00",
+      "scraped_at": "2026-09-21T16:10:00+02:00",
+      "magnitude": 38,
+      "confidence": 76,
+      "direction": "mixed_cautious",
+      "items": 90,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-21T16:25:00+02:00",
+      "scraped_at": "2026-09-21T16:25:00+02:00",
+      "magnitude": 37,
+      "confidence": 75,
+      "direction": "mixed_cautious",
+      "items": 90,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-21T17:05:00+02:00",
+      "scraped_at": "2026-09-21T17:05:00+02:00",
+      "magnitude": 36,
+      "confidence": 74,
+      "direction": "mixed_cautious",
+      "items": 90,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-21T17:21:00+02:00",
+      "scraped_at": "2026-09-21T17:21:00+02:00",
+      "magnitude": 36,
+      "confidence": 74,
+      "direction": "mixed_cautious",
+      "items": 93,
+      "early_signal": true
+    }
+  ]
+}

@@ -1,0 +1,2772 @@
+{
+  "updated_at": "2026-09-21T17:05:00+02:00",
+  "watchlist": [
+    {
+      "symbol": "ORCL",
+      "name": "Oracle",
+      "added_at": "2026-09-17T11:30:00+02:00",
+      "note": ""
+    }
+  ],
+  "stocks": {
+    "ORCL": {
+      "symbol": "ORCL",
+      "name": "Oracle",
+      "added_at": "2026-09-17T11:30:00+02:00",
+      "latest": {
+        "at": "2026-09-21T17:05:00+02:00",
+        "signal": "hold",
+        "social_impulse": 1,
+        "hype_bull": 42,
+        "hype_bear": 32,
+        "hype_net": 10,
+        "confidence": 70
+      },
+      "history": [
+        {
+          "at": "2026-08-18T12:00:00+02:00",
+          "signal": "hold",
+          "social_impulse": 0,
+          "confidence": 51,
+          "x_posts": 1,
+          "reddit_posts": 1,
+          "news": 0,
+          "hype_bull": 0,
+          "hype_bear": 0,
+          "hype_net": 0,
+          "voice_bull": 0,
+          "voice_bear": 0,
+          "voice_mixed": 2
+        },
+        {
+          "at": "2026-08-19T12:00:00+02:00",
+          "signal": "buy",
+          "social_impulse": 7,
+          "confidence": 59,
+          "x_posts": 3,
+          "reddit_posts": 0,
+          "news": 0,
+          "hype_bull": 33,
+          "hype_bear": 0,
+          "hype_net": 33,
+          "voice_bull": 1,
+          "voice_bear": 0,
+          "voice_mixed": 2
+        },
+        {
+          "at": "2026-08-20T12:00:00+02:00",
+          "signal": "hold",
+          "social_impulse": 0,
+          "confidence": 62,
+          "x_posts": 3,
+          "reddit_posts": 1,
+          "news": 0,
+          "hype_bull": 25,
+          "hype_bear": 25,
+          "hype_net": 0,
+          "voice_bull": 1,
+          "voice_bear": 1,
+          "voice_mixed": 2
+        },
+        {
+          "at": "2026-08-21T12:00:00+02:00",
+          "signal": "hold",
+          "social_impulse": 0,
+          "confidence": 51,
+          "x_posts": 1,
+          "reddit_posts": 1,
+          "news": 0,
+          "hype_bull": 50,
+          "hype_bear": 50,
+          "hype_net": 0,
+          "voice_bull": 1,
+          "voice_bear": 1,
+          "voice_mixed": 0
+        },
+        {
+          "at": "2026-08-22T12:00:00+02:00",
+          "signal": "sell",
+          "social_impulse": -20,
+          "confidence": 51,
+          "x_posts": 1,
+          "reddit_posts": 0,
+          "news": 1,
+          "hype_bull": 0,
+          "hype_bear": 100,
+          "hype_net": -100,
+          "voice_bull": 0,
+          "voice_bear": 2,
+          "voice_mixed": 0
+        },
+        {
+          "at": "2026-08-23T12:00:00+02:00",
+          "signal": "sell",
+          "social_impulse": -10,
+          "confidence": 51,
+          "x_posts": 2,
+          "reddit_posts": 0,
+          "news": 0,
+          "hype_bull": 0,
+          "hype_bear": 50,
+          "hype_net": -50,
+          "voice_bull": 0,
+          "voice_bear": 1,
+          "voice_mixed": 1
+        },
+        {
+          "at": "2026-08-24T12:00:00+02:00",
+          "signal": "sell",
+          "social_impulse": -7,
+          "confidence": 59,
+          "x_posts": 3,
+          "reddit_posts": 0,
+          "news": 0,
+          "hype_bull": 0,
+          "hype_bear": 33,
+          "hype_net": -33,
+          "voice_bull": 0,
+          "voice_bear": 1,
+          "voice_mixed": 2
+        },
+        {
+          "at": "2026-08-25T12:00:00+02:00",
+          "signal": "hold",
+          "social_impulse": 0,
+          "confidence": 51,
+          "x_posts": 2,
+          "reddit_posts": 0,
+          "news": 0,
+          "hype_bull": 0,
+          "hype_bear": 0,
+          "hype_net": 0,
+          "voice_bull": 0,
+          "voice_bear": 0,
+          "voice_mixed": 2
+        },
+        {
+          "at": "2026-08-26T12:00:00+02:00",
+          "signal": "hold",
+          "social_impulse": 0,
+          "confidence": 59,
+          "x_posts": 3,
+          "reddit_posts": 0,
+          "news": 0,
+          "hype_bull": 0,
+          "hype_bear": 0,
+          "hype_net": 0,
+          "voice_bull": 0,
+          "voice_bear": 0,
+          "voice_mixed": 3
+        },
+        {
+          "at": "2026-08-27T12:00:00+02:00",
+          "signal": "buy",
+          "social_impulse": 10,
+          "confidence": 51,
+          "x_posts": 2,
+          "reddit_posts": 0,
+          "news": 0,
+          "hype_bull": 50,
+          "hype_bear": 0,
+          "hype_net": 50,
+          "voice_bull": 1,
+          "voice_bear": 0,
+          "voice_mixed": 1
+        },
+        {
+          "at": "2026-08-28T12:00:00+02:00",
+          "signal": "buy",
+          "social_impulse": 7,
+          "confidence": 54,
+          "x_posts": 2,
+          "reddit_posts": 1,
+          "news": 0,
+          "hype_bull": 33,
+          "hype_bear": 0,
+          "hype_net": 33,
+          "voice_bull": 1,
+          "voice_bear": 0,
+          "voice_mixed": 2
+        },
+        {
+          "at": "2026-08-29T12:00:00+02:00",
+          "signal": "hold",
+          "social_impulse": 0,
+          "confidence": 48,
+          "x_posts": 0,
+          "reddit_posts": 1,
+          "news": 0,
+          "hype_bull": 0,
+          "hype_bear": 0,
+          "hype_net": 0,
+          "voice_bull": 0,
+          "voice_bear": 0,
+          "voice_mixed": 1
+        },
+        {
+          "at": "2026-08-30T12:00:00+02:00",
+          "signal": "buy",
+          "social_impulse": 20,
+          "confidence": 48,
+          "x_posts": 1,
+          "reddit_posts": 0,
+          "news": 0,
+          "hype_bull": 100,
+          "hype_bear": 0,
+          "hype_net": 100,
+          "voice_bull": 1,
+          "voice_bear": 0,
+          "voice_mixed": 0
+        },
+        {
+          "at": "2026-08-31T12:00:00+02:00",
+          "signal": "buy",
+          "social_impulse": 20,
+          "confidence": 48,
+          "x_posts": 1,
+          "reddit_posts": 0,
+          "news": 0,
+          "hype_bull": 100,
+          "hype_bear": 0,
+          "hype_net": 100,
+          "voice_bull": 1,
+          "voice_bear": 0,
+          "voice_mixed": 0
+        },
+        {
+          "at": "2026-09-01T12:00:00+02:00",
+          "signal": "sell",
+          "social_impulse": -20,
+          "confidence": 51,
+          "x_posts": 2,
+          "reddit_posts": 0,
+          "news": 0,
+          "hype_bull": 0,
+          "hype_bear": 100,
+          "hype_net": -100,
+          "voice_bull": 0,
+          "voice_bear": 2,
+          "voice_mixed": 0
+        },
+        {
+          "at": "2026-09-02T12:00:00+02:00",
+          "signal": "hold",
+          "social_impulse": 0,
+          "confidence": 51,
+          "x_posts": 1,
+          "reddit_posts": 1,
+          "news": 0,
+          "hype_bull": 0,
+          "hype_bear": 0,
+          "hype_net": 0,
+          "voice_bull": 0,
+          "voice_bear": 0,
+          "voice_mixed": 2
+        },
+        {
+          "at": "2026-09-03T12:00:00+02:00",
+          "signal": "buy",
+          "social_impulse": 10,
+          "confidence": 51,
+          "x_posts": 2,
+          "reddit_posts": 0,
+          "news": 0,
+          "hype_bull": 50,
+          "hype_bear": 0,
+          "hype_net": 50,
+          "voice_bull": 1,
+          "voice_bear": 0,
+          "voice_mixed": 1
+        },
+        {
+          "at": "2026-09-04T12:00:00+02:00",
+          "signal": "sell",
+          "social_impulse": -5,
+          "confidence": 62,
+          "x_posts": 4,
+          "reddit_posts": 0,
+          "news": 0,
+          "hype_bull": 0,
+          "hype_bear": 25,
+          "hype_net": -25,
+          "voice_bull": 0,
+          "voice_bear": 1,
+          "voice_mixed": 3
+        },
+        {
+          "at": "2026-09-05T12:00:00+02:00",
+          "signal": "sell",
+          "social_impulse": -7,
+          "confidence": 54,
+          "x_posts": 2,
+          "reddit_posts": 1,
+          "news": 0,
+          "hype_bull": 0,
+          "hype_bear": 33,
+          "hype_net": -33,
+          "voice_bull": 0,
+          "voice_bear": 1,
+          "voice_mixed": 2
+        },
+        {
+          "at": "2026-09-06T12:00:00+02:00",
+          "signal": "sell",
+          "social_impulse": -5,
+          "confidence": 62,
+          "x_posts": 3,
+          "reddit_posts": 1,
+          "news": 0,
+          "hype_bull": 0,
+          "hype_bear": 25,
+          "hype_net": -25,
+          "voice_bull": 0,
+          "voice_bear": 1,
+          "voice_mixed": 3
+        },
+        {
+          "at": "2026-09-07T12:00:00+02:00",
+          "signal": "buy",
+          "social_impulse": 5,
+          "confidence": 62,
+          "x_posts": 4,
+          "reddit_posts": 0,
+          "news": 0,
+          "hype_bull": 50,
+          "hype_bear": 25,
+          "hype_net": 25,
+          "voice_bull": 2,
+          "voice_bear": 1,
+          "voice_mixed": 1
+        },
+        {
+          "at": "2026-09-08T12:00:00+02:00",
+          "signal": "buy",
+          "social_impulse": 8,
+          "confidence": 65,
+          "x_posts": 5,
+          "reddit_posts": 0,
+          "news": 0,
+          "hype_bull": 60,
+          "hype_bear": 20,
+          "hype_net": 40,
+          "voice_bull": 3,
+          "voice_bear": 1,
+          "voice_mixed": 1
+        },
+        {
+          "at": "2026-09-09T12:00:00+02:00",
+          "signal": "hold",
+          "social_impulse": 0,
+          "confidence": 51,
+          "x_posts": 2,
+          "reddit_posts": 0,
+          "news": 0,
+          "hype_bull": 0,
+          "hype_bear": 0,
+          "hype_net": 0,
+          "voice_bull": 0,
+          "voice_bear": 0,
+          "voice_mixed": 2
+        },
+        {
+          "at": "2026-09-10T12:00:00+02:00",
+          "signal": "buy",
+          "social_impulse": 15,
+          "confidence": 62,
+          "x_posts": 4,
+          "reddit_posts": 0,
+          "news": 0,
+          "hype_bull": 75,
+          "hype_bear": 0,
+          "hype_net": 75,
+          "voice_bull": 3,
+          "voice_bear": 0,
+          "voice_mixed": 1
+        },
+        {
+          "at": "2026-09-11T12:00:00+02:00",
+          "signal": "hold",
+          "social_impulse": 0,
+          "confidence": 68,
+          "x_posts": 5,
+          "reddit_posts": 1,
+          "news": 0,
+          "hype_bull": 33,
+          "hype_bear": 33,
+          "hype_net": 0,
+          "voice_bull": 2,
+          "voice_bear": 2,
+          "voice_mixed": 2
+        },
+        {
+          "at": "2026-09-12T12:00:00+02:00",
+          "signal": "buy",
+          "social_impulse": 10,
+          "confidence": 51,
+          "x_posts": 1,
+          "reddit_posts": 0,
+          "news": 1,
+          "hype_bull": 50,
+          "hype_bear": 0,
+          "hype_net": 50,
+          "voice_bull": 1,
+          "voice_bear": 0,
+          "voice_mixed": 1
+        },
+        {
+          "at": "2026-09-13T12:00:00+02:00",
+          "signal": "hold",
+          "social_impulse": 0,
+          "confidence": 59,
+          "x_posts": 3,
+          "reddit_posts": 0,
+          "news": 0,
+          "hype_bull": 33,
+          "hype_bear": 33,
+          "hype_net": 0,
+          "voice_bull": 1,
+          "voice_bear": 1,
+          "voice_mixed": 1
+        },
+        {
+          "at": "2026-09-14T12:00:00+02:00",
+          "signal": "sell",
+          "social_impulse": -20,
+          "confidence": 51,
+          "x_posts": 1,
+          "reddit_posts": 1,
+          "news": 0,
+          "hype_bull": 0,
+          "hype_bear": 100,
+          "hype_net": -100,
+          "voice_bull": 0,
+          "voice_bear": 2,
+          "voice_mixed": 0
+        },
+        {
+          "at": "2026-09-15T12:00:00+02:00",
+          "signal": "sell",
+          "social_impulse": -13,
+          "confidence": 77,
+          "x_posts": 9,
+          "reddit_posts": 0,
+          "news": 0,
+          "hype_bull": 11,
+          "hype_bear": 78,
+          "hype_net": -67,
+          "voice_bull": 1,
+          "voice_bear": 7,
+          "voice_mixed": 1
+        },
+        {
+          "at": "2026-09-16T12:00:00+02:00",
+          "signal": "hold",
+          "social_impulse": 2,
+          "confidence": 77,
+          "x_posts": 5,
+          "reddit_posts": 2,
+          "news": 2,
+          "hype_bull": 44,
+          "hype_bear": 33,
+          "hype_net": 11,
+          "voice_bull": 4,
+          "voice_bear": 3,
+          "voice_mixed": 2
+        },
+        {
+          "at": "2026-09-17T12:00:00+02:00",
+          "signal": "hold",
+          "social_impulse": -2,
+          "confidence": 74,
+          "x_posts": 7,
+          "reddit_posts": 3,
+          "news": 2,
+          "hype_bull": 33,
+          "hype_bear": 42,
+          "hype_net": -9,
+          "voice_bull": 4,
+          "voice_bear": 5,
+          "voice_mixed": 3
+        },
+        {
+          "at": "2026-09-21T08:15:00+02:00",
+          "signal": "hold",
+          "social_impulse": 2,
+          "confidence": 70,
+          "x_posts": 12,
+          "reddit_posts": 8,
+          "news": 2,
+          "hype_bull": 36,
+          "hype_bear": 36,
+          "hype_net": 0,
+          "voice_bull": 5,
+          "voice_bear": 5,
+          "voice_mixed": 4
+        },
+        {
+          "at": "2026-09-21T08:55:00+02:00",
+          "signal": "hold",
+          "social_impulse": -3,
+          "confidence": 72,
+          "x_posts": 12,
+          "reddit_posts": 10,
+          "news": 2,
+          "hype_bull": 30,
+          "hype_bear": 42,
+          "hype_net": -12,
+          "voice_bull": 5,
+          "voice_bear": 6,
+          "voice_mixed": 5
+        },
+        {
+          "at": "2026-09-21T09:20:00+02:00",
+          "signal": "hold",
+          "social_impulse": -3,
+          "confidence": 73,
+          "x_posts": 12,
+          "reddit_posts": 10,
+          "news": 2,
+          "hype_bull": 39,
+          "hype_bear": 44,
+          "hype_net": -5,
+          "voice_bull": 7,
+          "voice_bear": 8,
+          "voice_mixed": 3
+        },
+        {
+          "at": "2026-09-21T10:00:00+02:00",
+          "signal": "hold",
+          "social_impulse": -3,
+          "confidence": 74,
+          "x_posts": 12,
+          "reddit_posts": 10,
+          "news": 2,
+          "hype_bull": 40,
+          "hype_bear": 44,
+          "hype_net": -4,
+          "voice_bull": 7,
+          "voice_bear": 8,
+          "voice_mixed": 3
+        },
+        {
+          "at": "2026-09-21T10:30:00+02:00",
+          "signal": "hold",
+          "social_impulse": -4,
+          "confidence": 75,
+          "x_posts": 13,
+          "reddit_posts": 5,
+          "news": 3,
+          "hype_bull": 39,
+          "hype_bear": 50,
+          "hype_net": -11,
+          "voice_bull": 7,
+          "voice_bear": 11,
+          "voice_mixed": 3
+        },
+        {
+          "at": "2026-09-21T10:45:00+02:00",
+          "signal": "hold",
+          "social_impulse": -3,
+          "confidence": 76,
+          "x_posts": 14,
+          "reddit_posts": 6,
+          "news": 3,
+          "hype_bull": 8,
+          "hype_bear": 15,
+          "hype_net": -7,
+          "voice_bull": 8,
+          "voice_bear": 10,
+          "voice_mixed": 5
+        },
+        {
+          "at": "2026-09-21T11:15:00+02:00",
+          "signal": "hold",
+          "social_impulse": -3,
+          "confidence": 74,
+          "x_posts": 12,
+          "reddit_posts": 0,
+          "news": 3,
+          "hype_bull": 5,
+          "hype_bear": 10,
+          "hype_net": -5
+        },
+        {
+          "at": "2026-09-21T11:35:00+02:00",
+          "signal": "hold",
+          "social_impulse": -3,
+          "confidence": 75,
+          "x_posts": 12,
+          "reddit_posts": 0,
+          "news": 3,
+          "hype_bull": 4,
+          "hype_bear": 11,
+          "hype_net": -7
+        },
+        {
+          "at": "2026-09-21T12:15:00+02:00",
+          "signal": "hold",
+          "social_impulse": -2,
+          "confidence": 75,
+          "x_posts": 12,
+          "reddit_posts": 0,
+          "news": 3,
+          "hype_bull": 4,
+          "hype_bear": 7,
+          "hype_net": -3
+        },
+        {
+          "at": "2026-09-21T12:45:00+02:00",
+          "signal": "hold",
+          "social_impulse": -1,
+          "hype_bull": 9,
+          "hype_bear": 9,
+          "hype_net": 0,
+          "confidence": 76
+        },
+        {
+          "at": "2026-09-21T13:00:00+02:00",
+          "hype_bull": 10,
+          "hype_bear": 10,
+          "hype_net": 0,
+          "signal": "hold",
+          "impulse": -1,
+          "confidence": 76,
+          "x_posts": 12,
+          "reddit_posts": 9,
+          "news": 3
+        },
+        {
+          "at": "2026-09-21T13:30:00+02:00",
+          "signal": "hold",
+          "social_impulse": -1,
+          "hype_bull": 9,
+          "hype_bear": 11,
+          "hype_net": -2,
+          "confidence": 77
+        },
+        {
+          "at": "2026-09-21T14:00:00+02:00",
+          "signal": "hold",
+          "social_impulse": 1,
+          "hype_bull": 10,
+          "hype_bear": 8,
+          "hype_net": 2,
+          "confidence": 78
+        },
+        {
+          "at": "2026-09-21T14:46:00+02:00",
+          "hype_bull": 11,
+          "hype_bear": 10,
+          "hype_net": 1,
+          "social_impulse": 2,
+          "signal": "hold",
+          "confidence": 78
+        },
+        {
+          "at": "2026-09-21T15:00:00+02:00",
+          "hype_bull": 37,
+          "hype_bear": 33,
+          "hype_net": 4,
+          "social_impulse": 1,
+          "signal": "hold",
+          "confidence": 74,
+          "hype_mixed": 30,
+          "voice_bull": 10,
+          "voice_bear": 9,
+          "voice_mixed": 8,
+          "sentiment_unit": "percent_all_classified"
+        },
+        {
+          "at": "2026-09-21T16:10:00+02:00",
+          "hype_bull": 41,
+          "hype_bear": 48,
+          "hype_net": -7,
+          "social_impulse": -1,
+          "signal": "hold",
+          "confidence": 72,
+          "hype_mixed": 11,
+          "voice_bull": 11,
+          "voice_bear": 13,
+          "voice_mixed": 3,
+          "sentiment_unit": "percent_all_classified"
+        },
+        {
+          "at": "2026-09-21T16:25:00+02:00",
+          "hype_bull": 38,
+          "hype_bear": 46,
+          "hype_net": -8,
+          "social_impulse": -1,
+          "signal": "hold",
+          "confidence": 71,
+          "hype_mixed": 16,
+          "voice_bull": 10,
+          "voice_bear": 12,
+          "voice_mixed": 4,
+          "sentiment_unit": "percent_all_classified"
+        },
+        {
+          "at": "2026-09-21T17:05:00+02:00",
+          "hype_bull": 42,
+          "hype_bear": 32,
+          "hype_net": 10,
+          "social_impulse": 1,
+          "signal": "hold",
+          "confidence": 70,
+          "hype_mixed": 26,
+          "voice_bull": 17,
+          "voice_bear": 13,
+          "voice_mixed": 10,
+          "sentiment_unit": "percent_all_classified"
+        }
+      ],
+      "voices_archive": [
+        {
+          "source": "Reddit",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1tggr16/is_oracle_actually_becoming_an_ai_infra_stock_or/",
+          "lean": "mixed",
+          "at": "2026-08-18T10:54:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://x.com/CompoundCurious/status/2089687930293846482",
+          "lean": "mixed",
+          "at": "2026-08-18T14:16:41+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://x.com/cutehorse999/status/2089871696450707782",
+          "lean": "bull",
+          "at": "2026-08-19T02:26:55+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/algotradingdesk/status/2089883322227044553",
+          "lean": "mixed",
+          "at": "2026-08-19T03:13:06+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://x.com/algotradingdesk/status/2089969063401607179",
+          "lean": "mixed",
+          "at": "2026-08-19T08:53:49+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1u5pglj/oracle_beat_every_number_last_quarter_and_the/",
+          "lean": "bear",
+          "at": "2026-08-20T16:00:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://x.com/algotradingdesk/status/2090728948057645438",
+          "lean": "bull",
+          "at": "2026-08-21T11:13:19+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://thenextweb.com/news/oracle-q4-fy2026-capex-55-billion-ai-data-center-openai",
+          "lean": "bear",
+          "at": "2026-08-22T12:00:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/AxentiqCapital/status/2091213572323881041",
+          "lean": "bear",
+          "at": "2026-08-22T19:19:03+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://x.com/JoshTradeOption/status/2091499444168777728",
+          "lean": "mixed",
+          "at": "2026-08-23T14:15:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/algotradingdesk/status/2091504092510323199",
+          "lean": "bear",
+          "at": "2026-08-23T14:33:28+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/MSWPulse/status/2091938536400253409",
+          "lean": "mixed",
+          "at": "2026-08-24T19:19:48+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://x.com/Apex__Invest/status/2092293607575146900",
+          "lean": "mixed",
+          "at": "2026-08-25T18:50:43+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://x.com/Apex__Invest/status/2092301312255725753",
+          "lean": "mixed",
+          "at": "2026-08-25T19:21:20+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/Apex__Invest/status/2092405606648889419",
+          "lean": "mixed",
+          "at": "2026-08-26T02:15:46+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://x.com/SagorH65758/status/2092942349978493277",
+          "lean": "bull",
+          "at": "2026-08-27T13:48:35+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://x.com/Abbycadabby87/status/2093004075059106126",
+          "lean": "mixed",
+          "at": "2026-08-27T17:53:52+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1ug2jbx/trap_or_opportunity_at_150/",
+          "lean": "mixed",
+          "at": "2026-08-28T14:00:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://x.com/InvestNorthwise/status/2094177339596808472",
+          "lean": "bull",
+          "at": "2026-08-30T23:36:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/GPLPCN/status/2094561903293108457",
+          "lean": "bear",
+          "at": "2026-09-01T01:04:07+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/Klaudnin3/status/2094821422874894597",
+          "lean": "bear",
+          "at": "2026-09-01T18:15:21+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/Invest2Growcom/status/2094940344102318518",
+          "lean": "mixed",
+          "at": "2026-09-02T02:07:54+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1ujwg0j/why_is_this_such_a_pos_guys_are_you_buying_at_140/",
+          "lean": "mixed",
+          "at": "2026-09-02T12:00:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://x.com/AIMarketMind/status/2095475141295698018",
+          "lean": "mixed",
+          "at": "2026-09-03T13:33:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://x.com/investorsedge__/status/2095486097698492889",
+          "lean": "bull",
+          "at": "2026-09-03T14:16:32+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/RealSPXSniper/status/2095710001142571260",
+          "lean": "mixed",
+          "at": "2026-09-04T05:06:15+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://x.com/cleoedyta/status/2095830246066978917",
+          "lean": "mixed",
+          "at": "2026-09-04T13:04:03+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/TradeArchitect2/status/2095842102923940297",
+          "lean": "bear",
+          "at": "2026-09-04T13:51:10+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://x.com/justmikeel/status/2095923860323360971",
+          "lean": "mixed",
+          "at": "2026-09-04T19:16:03+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1ui5ndj/orcl_trading_advice_for_next_week_is_it_a_good/",
+          "lean": "mixed",
+          "at": "2026-09-05T11:00:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://x.com/time24trader/status/2096213450783437262",
+          "lean": "mixed",
+          "at": "2026-09-05T14:26:47+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/QubbleOfficial/status/2096218367614931319",
+          "lean": "bear",
+          "at": "2026-09-05T14:46:19+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://x.com/promptdora/status/2096534675887886424",
+          "lean": "mixed",
+          "at": "2026-09-06T11:43:13+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://x.com/TheMuggZone/status/2096742059088490656",
+          "lean": "bull",
+          "at": "2026-09-07T01:27:17+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/sas_and_stocks/status/2096889208518635541",
+          "lean": "mixed",
+          "at": "2026-09-07T11:12:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://x.com/chadinvest2/status/2096950111217577991",
+          "lean": "bull",
+          "at": "2026-09-07T15:14:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/chadinvest2/status/2097051759017337271",
+          "lean": "bear",
+          "at": "2026-09-07T21:57:55+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://x.com/StragglerLiu/status/2097314742608199928",
+          "lean": "bull",
+          "at": "2026-09-08T15:22:55+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://x.com/Lucky_m_X/status/2097585272716173590",
+          "lean": "mixed",
+          "at": "2026-09-09T09:17:54+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://x.com/SamTheCarpetMan/status/2097729438553129367",
+          "lean": "mixed",
+          "at": "2026-09-09T18:50:46+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://x.com/AIMarketMind/status/2098041191111459259",
+          "lean": "bull",
+          "at": "2026-09-10T15:29:34+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://x.com/cutehorse999/status/2098127353993953548",
+          "lean": "bull",
+          "at": "2026-09-10T21:11:57+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/the_analyst_24/status/2098144357891088720",
+          "lean": "mixed",
+          "at": "2026-09-10T22:19:31+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://x.com/TheQuietTrader1/status/2098144584387731549",
+          "lean": "bull",
+          "at": "2026-09-10T22:20:25+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://x.com/chadinvest2/status/2098186669622976986",
+          "lean": "bull",
+          "at": "2026-09-11T01:07:39+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1wd0l6i/my_takeaway_from_the_earning/",
+          "lean": "bull",
+          "at": "2026-09-11T02:18:08+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://x.com/lidokidz/status/2098372827250397207",
+          "lean": "mixed",
+          "at": "2026-09-11T13:27:22+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/AlvaApp/status/2098439048285073802",
+          "lean": "bear",
+          "at": "2026-09-11T17:50:30+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/Bearlovesbull/status/2098440751537353082",
+          "lean": "bear",
+          "at": "2026-09-11T17:57:16+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://x.com/lucaswestine/status/2098448888483164427",
+          "lean": "mixed",
+          "at": "2026-09-11T18:29:36+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/Sam_Badawi/status/2098824910340825406",
+          "lean": "mixed",
+          "at": "2026-09-12T19:23:47+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://x.com/i/trending/2098145987655246241",
+          "lean": "bull",
+          "at": "2026-09-12T21:25:43+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://x.com/Sam_Badawi/status/2099103046219264099",
+          "lean": "bull",
+          "at": "2026-09-13T13:49:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://x.com/EvelynLinAlpha/status/2099184095725281633",
+          "lean": "mixed",
+          "at": "2026-09-13T19:11:04+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/Unclestocknotes/status/2099252801482154420",
+          "lean": "bear",
+          "at": "2026-09-13T23:44:04+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/willowwhis22170/status/2099527104237093235",
+          "lean": "bear",
+          "at": "2026-09-14T17:54:03+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1wg9tfl/where_is_the_recovery_or_rebound/",
+          "lean": "bear",
+          "at": "2026-09-14T19:23:26+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/YUBIT_Exchange/status/2099694065591923138",
+          "lean": "bear",
+          "at": "2026-09-15T04:57:30+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/UraniumGuru24/status/2099731286705213927",
+          "lean": "bear",
+          "at": "2026-09-15T07:25:24+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/Shahjees/status/2099737491704357207",
+          "lean": "bear",
+          "at": "2026-09-15T07:50:03+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/LorenzoSinisi/status/2099863501430837398",
+          "lean": "bear",
+          "at": "2026-09-15T16:10:46+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/RealShreekaram/status/2099864527177175354",
+          "lean": "bear",
+          "at": "2026-09-15T16:14:51+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://x.com/StockChaser_/status/2099945834909725115",
+          "lean": "mixed",
+          "at": "2026-09-15T21:37:56+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/Metricshourcom/status/2099950031570883055",
+          "lean": "bear",
+          "at": "2026-09-15T21:54:37+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://x.com/LC_stocks/status/2099954663290466560",
+          "lean": "bull",
+          "at": "2026-09-15T22:13:01+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/abuchanlife/status/2099954897387196769",
+          "lean": "bear",
+          "at": "2026-09-15T22:13:57+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1whoro1/what_is_a_good_entry_price/",
+          "lean": "bull",
+          "at": "2026-09-16T08:03:53+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://x.com/tsgbrokers/status/2100125410184880188",
+          "lean": "bull",
+          "at": "2026-09-16T09:31:30+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/steady_profits/status/2100159231877939559",
+          "lean": "mixed",
+          "at": "2026-09-16T11:45:54+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/DenisDoros40517/status/2100183674973024346",
+          "lean": "bear",
+          "at": "2026-09-16T13:23:02+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/i/trending/2099493708953493681",
+          "lean": "bear",
+          "at": "2026-09-16T14:14:05+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://x.com/IQOption/status/2100198633232568756",
+          "lean": "bull",
+          "at": "2026-09-16T14:22:28+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/i/trending/2100208591869284480",
+          "lean": "bear",
+          "at": "2026-09-16T15:11:22+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://x.com/David_Omnisc/status/2100229256051577304",
+          "lean": "mixed",
+          "at": "2026-09-16T16:24:09+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1wi1czv/oracle_is_down_omg/",
+          "lean": "bull",
+          "at": "2026-09-16T18:01:43+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/richiewhitesfyi/status/2100422225438605555",
+          "lean": "bear",
+          "at": "2026-09-17T05:10:57+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1wim1e2/any_realistic_chance_orcl_rebounds_above_150_next/",
+          "lean": "mixed",
+          "at": "2026-09-17T08:24:40+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/DenisDoros40517/status/2100506126273953934",
+          "lean": "bear",
+          "at": "2026-09-17T10:44:20+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://x.com/NexusCoOfficial/status/2101903236831822140",
+          "lean": "bull",
+          "at": "2026-09-21T07:15:57+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/signalcalls/status/2101916544762593392",
+          "lean": "mixed",
+          "at": "2026-09-21T08:08:50+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/npunwani/status/2101886735215132676",
+          "lean": "bear",
+          "at": "2026-09-21T06:10:23+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/Aismindiia/status/2101914754906566950",
+          "lean": "bear",
+          "at": "2026-09-21T08:01:43+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/sisbl_in/status/2101916773281067164",
+          "lean": "bear",
+          "at": "2026-09-21T08:09:45+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://x.com/DrWhoTradess/status/2101903969551290686",
+          "lean": "bull",
+          "at": "2026-09-21T07:18:52+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/rdd147/status/2101886774603915486",
+          "lean": "bear",
+          "at": "2026-09-21T06:10:32+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1wk23vp/orcl_is_sustaining_surprisingly_well/",
+          "lean": "bull",
+          "at": "2026-09-18T22:52:55+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1wiuinx/wow_all_neoclouds_down_and_oracle_up/",
+          "lean": "mixed",
+          "at": "2026-09-17T15:48:35+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1wlzo9e/oracle_stock_bullish_research/",
+          "lean": "bull",
+          "at": "2026-09-21T04:00:28+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1wkql6n/oracle_orcl_fy2026_10k_data_us_revenue_hits_398b/",
+          "lean": "mixed",
+          "at": "2026-09-19T18:27:13+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://www.fool.com/investing/2026/09/17/should-buy-oracle-stock-down-53-peak-answer-you/",
+          "lean": "bear",
+          "at": "2026-09-17T12:25:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/i/trending/2101864904172896372",
+          "lean": "mixed",
+          "at": "2026-09-21T07:08:07+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/rdd147/status/2101877126475706843",
+          "lean": "bear",
+          "at": "2026-09-21T05:32:12+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/BNTBriefing/status/2101876972217626778",
+          "lean": "bear",
+          "at": "2026-09-21T05:31:35+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/GryphonIAB/status/2101925239726678128",
+          "lean": "bear",
+          "at": "2026-09-21T08:43:23+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://x.com/kainosflux/status/2101865850328281582",
+          "lean": "bull",
+          "at": "2026-09-21T04:47:24+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://x.com/hanyanghsu1/status/2101872814152441975",
+          "lean": "mixed",
+          "at": "2026-09-21T05:15:04+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://x.com/carrioresearch/status/2101876524882571630",
+          "lean": "mixed",
+          "at": "2026-09-21T05:29:49+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://www.reuters.com/business/finance/oracles-18-billion-data-center-debt-under-pressure-ft-reports-2026-09-18/",
+          "lean": "bear",
+          "at": "2026-09-18T22:03:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/AnuragPattana10/status/2101934473701138705",
+          "lean": "bear",
+          "at": "2026-09-21T09:20:05+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/arbindtiwariT/status/2101924210490962211",
+          "lean": "bear",
+          "at": "2026-09-21T08:39:18+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://x.com/alifalaahati/status/2101933811764191286",
+          "lean": "bull",
+          "at": "2026-09-21T09:17:27+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://www.reddit.com/r/oracle/comments/1wkjqjx/oracles_18_billion_data_center_debt_under/",
+          "lean": "bear",
+          "at": "2026-09-19T13:27:37+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://pomegra.io/briefs/2026-09-21-goolsbee-fed-december-rate-path",
+          "lean": "mixed",
+          "at": "2026-09-21T09:00:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://x.com/ZeyDaCEO/status/2101941775485030895",
+          "lean": "bull",
+          "at": "2026-09-21T09:49:06+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://x.com/_LeifInvests/status/2101918229023051821",
+          "lean": "bull",
+          "at": "2026-09-21T08:15:32+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/LayoffThe10104/status/2101929004143948231",
+          "lean": "bear",
+          "at": "2026-09-21T08:58:21+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://www.reddit.com/r/wallstreetbets/comments/1wm5i24/softbank_seeks_11_billion_in_junk_bonds_for/",
+          "lean": "bear",
+          "at": "2026-09-21T09:05:04+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://x.com/HKIStrategies/status/2101950940723003591",
+          "lean": "bull",
+          "at": "2026-09-21T10:25:31+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/mohinimaheshwa/status/2101870435331940379",
+          "lean": "bear",
+          "at": "2026-09-21T05:05:37+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/zero_rate_ponzi/status/2101869249920643335",
+          "lean": "bear",
+          "at": "2026-09-21T05:00:54+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://www.reuters.com/business/media-telecom/softbank-group-launches-over-10-billion-bonds-openai-investment-term-sheet-shows-2026-09-21/",
+          "lean": "bear",
+          "at": "2026-09-21T10:30:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://production.dataviz.cnn.io/index/fearandgreed/graphdata",
+          "lean": "mixed",
+          "at": "2026-09-21T10:30:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://x.com/mapang1991/status/2101956199721861401",
+          "lean": "mixed",
+          "at": "2026-09-21T10:46:25+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/AceStockPicks_/status/2101953655624843524",
+          "lean": "bear",
+          "at": "2026-09-21T10:36:18+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://x.com/techticker_cz/status/2101953279735255445",
+          "lean": "bull",
+          "at": "2026-09-21T10:34:48+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://x.com/techticker_cz/status/2101953205726740720",
+          "lean": "bull",
+          "at": "2026-09-21T10:34:31+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/SmartStoxx/status/2101953139842896161",
+          "lean": "bear",
+          "at": "2026-09-21T10:34:15+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://x.com/techticker_cz/status/2101953153948102844",
+          "lean": "bull",
+          "at": "2026-09-21T10:34:18+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/techticker_cz/status/2101953163943145887",
+          "lean": "mixed",
+          "at": "2026-09-21T10:34:21+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/Lisaleemx/status/2101962206657323117",
+          "lean": "bear",
+          "at": "2026-09-21T11:10:17+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://x.com/Hostkey/status/2101962712334934195",
+          "lean": "bull",
+          "at": "2026-09-21T11:12:17+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/Tractordriver88/status/2101959638585311706",
+          "lean": "bear",
+          "at": "2026-09-21T11:00:05+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://x.com/techticker_cz/status/2101953029452812372",
+          "lean": "mixed",
+          "at": "2026-09-21T10:33:49+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/i/trending/2101864903011180768",
+          "lean": "bear",
+          "at": "2026-09-21T12:41:40+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://www.tiktok.com/@ttradersignals/video/7687881164777852178",
+          "lean": "mixed",
+          "at": "2026-09-21T09:05:27+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://www.tiktok.com/@_hamzazakaria/video/7684709687748578567",
+          "lean": "bear",
+          "at": "2026-09-12T19:58:30+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://www.tiktok.com/@just.my.trades/video/7687107830628814110",
+          "lean": "mixed",
+          "at": "2026-09-19T07:04:43+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://www.tiktok.com/@c78fbgeln6/video/7684965270946893078",
+          "lean": "bull",
+          "at": "2026-09-13T12:30:19+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://x.com/Charloomberg/status/2101969176562938186",
+          "lean": "bull",
+          "at": "2026-09-21T11:37:59+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/manoj67368/status/2101968404940988843",
+          "lean": "bear",
+          "at": "2026-09-21T11:34:55+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/DilmaiBJP/status/2101967585571127775",
+          "lean": "bear",
+          "at": "2026-09-21T11:31:39+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/ETNOWlive/status/2101935827962265639",
+          "lean": "bear",
+          "at": "2026-09-21T09:25:28+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://x.com/ahmed_qhtani1/status/2101960423540982026",
+          "lean": "bull",
+          "at": "2026-09-21T11:03:12+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://x.com/marketsday/status/2101964114901790766",
+          "lean": "mixed",
+          "at": "2026-09-21T11:17:52+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://x.com/tayloralday/status/2101964309240697105",
+          "lean": "bull",
+          "at": "2026-09-21T11:18:38+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://www.tiktok.com/@kevinmitchell2804/video/7687471633388408072",
+          "lean": "mixed",
+          "at": "2026-09-20T06:36:17+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://www.tiktok.com/@ostium_tech/video/7687634376858864927",
+          "lean": "mixed",
+          "at": "2026-09-20T17:08:02+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://www.tiktok.com/@jqjousabusinessenglish1/video/7687123296374082830",
+          "lean": "bear",
+          "at": "2026-09-19T08:05:05+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://www.tiktok.com/@datacenterimpact/video/7684842897283255565",
+          "lean": "bear",
+          "at": "2026-09-13T04:35:35+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://www.tiktok.com/@1marcusharris/video/7676914599366561038",
+          "lean": "bear",
+          "at": "2026-08-22T19:49:48+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://www.tiktok.com/@stocksbyjonah/video/7687334687710219538",
+          "lean": "mixed",
+          "at": "2026-09-19T21:44:53+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://x.com/HKIStrategies/status/2101977850291081387",
+          "lean": "bull",
+          "at": "2026-09-21T12:12:27+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://x.com/seanwang0521/status/2101977646389506268",
+          "lean": "mixed",
+          "at": "2026-09-21T12:11:38+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/stocksntrends/status/2101977616358281271",
+          "lean": "bear",
+          "at": "2026-09-21T12:11:31+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/trp326/status/2101976260931154307",
+          "lean": "bear",
+          "at": "2026-09-21T12:06:08+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://x.com/HKIStrategies/status/2101975547047793059",
+          "lean": "bull",
+          "at": "2026-09-21T12:03:17+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/Scalpers16779/status/2101975073892470966",
+          "lean": "mixed",
+          "at": "2026-09-21T12:01:25+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://x.com/FLOWKINGOPTIONS/status/2101972754350166214",
+          "lean": "mixed",
+          "at": "2026-09-21T11:52:12+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://x.com/Yabuuh77/status/2101972115809304595",
+          "lean": "mixed",
+          "at": "2026-09-21T11:49:39+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://x.com/seanwang0521/status/2101976802566508848",
+          "lean": "bull",
+          "at": "2026-09-21T12:08:17+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/i/trending/2101717156845269053",
+          "lean": "bear",
+          "at": "2026-09-21T12:15:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/i/trending/2101845122967335261",
+          "lean": "mixed",
+          "at": "2026-09-21T12:15:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://www.tiktok.com/@marcel_benson/video/7687617363386256653",
+          "lean": "bull",
+          "at": "2026-09-20T16:02:02+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://www.tiktok.com/@howtotradewithisaac/video/7686553753771576606",
+          "lean": "bull",
+          "at": "2026-09-17T19:14:29+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://www.tiktok.com/@rynn.rnts/video/7687064902967594271",
+          "lean": "bear",
+          "at": "2026-09-19T04:18:06+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://www.tiktok.com/@tradew2swords/video/7683247620940287245",
+          "lean": "mixed",
+          "at": "2026-09-08T21:25:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://www.tiktok.com/@dailymail/video/7687925043556338958",
+          "lean": "mixed",
+          "at": "2026-09-21T11:55:51+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://x.com/933Athkar/status/2101983759176454218",
+          "lean": "bull",
+          "at": "2026-09-21T12:35:55+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://x.com/YulioEsEm/status/2101981979595903214",
+          "lean": "bull",
+          "at": "2026-09-21T12:28:51+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://x.com/YulioEsEm/status/2101983639609241975",
+          "lean": "bull",
+          "at": "2026-09-21T12:35:27+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/RockMacroxr/status/2101984610368569367",
+          "lean": "mixed",
+          "at": "2026-09-21T12:39:18+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://x.com/RockMacroxr/status/2101982912610783391",
+          "lean": "mixed",
+          "at": "2026-09-21T12:32:33+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://x.com/KobeissiLetter/status/2101977238883221919",
+          "lean": "bull",
+          "at": "2026-09-21T12:10:01+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://www.tiktok.com/@patrimnio.com.cab/video/7687890334658891030",
+          "lean": "bear",
+          "at": "2026-09-21T09:41:10+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://www.tiktok.com/@the.half.percnt.club/video/7687730270916578582",
+          "lean": "mixed",
+          "at": "2026-09-20T23:19:55+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/Mariusz_Invest/status/2101987302599999844",
+          "lean": "mixed",
+          "at": "2026-09-21T12:50:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://x.com/time24trader/status/2101984361230815355",
+          "lean": "mixed",
+          "at": "2026-09-21T12:38:19+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/AlrakhisNaifah/status/2101988769775878435",
+          "lean": "bear",
+          "at": "2026-09-21T12:55:50+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/barzon_/status/2101987858240188754",
+          "lean": "bear",
+          "at": "2026-09-21T12:52:13+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/equity__vision/status/2101988183877857774",
+          "lean": "bear",
+          "at": "2026-09-21T12:53:30+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/clearmarkdaily/status/2101988730810614122",
+          "lean": "bear",
+          "at": "2026-09-21T12:55:41+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/joe_schlindwein/status/2101984260731109518",
+          "lean": "bear",
+          "at": "2026-09-21T12:37:55+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://x.com/IADataFinance/status/2101988835441746205",
+          "lean": "mixed",
+          "at": "2026-09-21T12:56:06+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/kurniAsept/status/2101988542964461763",
+          "lean": "mixed",
+          "at": "2026-09-21T12:54:56+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://x.com/Sullivan521q/status/2101982932340818175",
+          "lean": "bull",
+          "at": "2026-09-21T12:32:38+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1wm8hfz/sep_21_sep_25_weekly_orcl_discussion_thread/",
+          "lean": "mixed",
+          "at": "2026-09-21T12:01:33+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1wks0n2/openai_surpasses_anthropic_in_user_spending_on/",
+          "lean": "bull",
+          "at": "2026-09-19T19:23:46+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://ts2.tech/en/oracle-stock-faces-monday-test-as-18-billion-data-center-loans-slip-to-89-91-cents/",
+          "lean": "bear",
+          "at": "2026-09-21T12:00:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://www.reuters.com/business/wall-st-futures-rise-ai-stocks-gain-oil-prices-slide-2026-09-21/",
+          "lean": "bull",
+          "at": "2026-09-21T11:38:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://www.tiktok.com/@wallstreetgamenotes/video/7684458019249327391",
+          "lean": "bull",
+          "at": "2026-09-12T03:42:04+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://x.com/medflixszn/status/2101993346495569999",
+          "lean": "mixed",
+          "at": "2026-09-21T13:14:01+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/myAlerts_in/status/2101995977846788175",
+          "lean": "bear",
+          "at": "2026-09-21T13:24:28+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/PenguinX01/status/2101996485231706549",
+          "lean": "bear",
+          "at": "2026-09-21T13:26:29+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/thisisgurgavin/status/2101995548722987503",
+          "lean": "bear",
+          "at": "2026-09-21T13:22:46+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/Scott169371391/status/2101992691798036908",
+          "lean": "bear",
+          "at": "2026-09-21T13:11:25+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/TheStreet/status/2101994875730223217",
+          "lean": "mixed",
+          "at": "2026-09-21T13:20:06+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1whb6ps/orcl_slipping_31_today_28_billion_restructuring/",
+          "lean": "bear",
+          "at": "2026-09-15T22:01:50+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://www.reddit.com/r/wallstreetbets/comments/1wm2l6t/jensen_huang_ai_ceos_have_ulterior_reasons_in/",
+          "lean": "mixed",
+          "at": "2026-09-21T06:24:54+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://www.tiktok.com/@stock.genius28/video/7684238892777639184",
+          "lean": "bull",
+          "at": "2026-09-11T13:32:03+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://www.tiktok.com/@titovlogs77/video/7687881435713146133",
+          "lean": "bull",
+          "at": "2026-09-21T13:00:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://www.tiktok.com/@iaparamarcas/video/7685418001360882966",
+          "lean": "bear",
+          "at": "2026-09-14T17:46:44+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://www.reddit.com/r/OracleStock/comments/1whevaw/orcl_loses_key_support_after_five_straight_red/",
+          "lean": "mixed",
+          "at": "2026-09-16T00:22:51+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/RealNickMugalli/status/2101996267836469731",
+          "lean": "mixed",
+          "at": "2026-09-21T13:25:38+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://x.com/lidokidz/status/2102003339936288896",
+          "lean": "bull",
+          "at": "2026-09-21T13:53:44+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://x.com/DerekCollinsF51/status/2102002831708594681",
+          "lean": "bull",
+          "at": "2026-09-21T13:51:43+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://www.tiktok.com/@stock.genius28/video/7686476648387988737",
+          "lean": "mixed",
+          "at": "2026-09-17T14:15:16+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://www.tiktok.com/@the.half.percent.club/video/7684375466878274846",
+          "lean": "mixed",
+          "at": "2026-09-11T22:21:47+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://www.tiktok.com/@overkilltrading.com/video/7684042062496386317",
+          "lean": "mixed",
+          "at": "2026-09-11T00:47:40+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://www.tiktok.com/@jefetrades/video/7684044908423925022",
+          "lean": "mixed",
+          "at": "2026-09-11T00:58:52+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://www.tiktok.com/@scott_investing/video/7685155130173607199",
+          "lean": "mixed",
+          "at": "2026-09-14T00:47:15+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://www.tiktok.com/@sammrr.ai/video/7682508938532621598",
+          "lean": "mixed",
+          "at": "2026-09-06T21:38:33+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://www.tiktok.com/@jakobtrades1/video/7684296961113066765",
+          "lean": "mixed",
+          "at": "2026-09-11T17:17:38+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/rdd147/status/2102012845668134981",
+          "lean": "bear",
+          "at": "2026-09-21T14:31:30+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/rdd147/status/2102009211072958836",
+          "lean": "bear",
+          "at": "2026-09-21T14:17:04+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bearisch: Entlassungen und Schuldenlast werden kritisiert.",
+          "url": "https://x.com/ProfitRajatrade/status/2102006587913023776",
+          "lean": "bear",
+          "at": "2026-09-21T14:06:38+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://x.com/Drewalphatrades/status/2102014341453074505",
+          "lean": "mixed",
+          "at": "2026-09-21T14:37:27+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Negative Stimme: SoftBank-Schulden und Finanzierung bleiben Risiko.",
+          "url": "https://x.com/qz/status/2102014133629837724",
+          "lean": "bear",
+          "at": "2026-09-21T14:36:37+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Vorsicht: Hohe Investitionen und Kosten belasten.",
+          "url": "https://x.com/BriceTian/status/2102013865227665684",
+          "lean": "bear",
+          "at": "2026-09-21T14:35:33+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Positive Stimme: Cloud und Auftragslage werden als stark gesehen.",
+          "url": "https://x.com/blckchaindaily/status/2102014646483931212",
+          "lean": "bull",
+          "at": "2026-09-21T14:38:39+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Gemischt: Bulls und Bears halten sich die Waage.",
+          "url": "https://x.com/FIowStateofMind/status/2102014460747473172",
+          "lean": "mixed",
+          "at": "2026-09-21T14:37:55+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "Reddit",
+          "text": "Gemischt: Chancen im Cloud-Geschäft, Risiken bei den Schulden.",
+          "url": "https://www.reddit.com/r/technology/comments/1wm5pl1/softbank_seeks_11_billion_in_junk_bonds_for/",
+          "lean": "mixed",
+          "at": "2026-09-21T09:16:53+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Unklar: Positive Zahlen, aber Skepsis wegen der Kosten.",
+          "url": "https://www.tiktok.com/@davidflanks/video/7686511678388751630",
+          "lean": "mixed",
+          "at": "2026-09-17T16:31:06+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Kaufargument: Rücksetzer wird als Einstieg gesehen.",
+          "url": "https://www.tiktok.com/@sobhainvests/video/7687756343993781525",
+          "lean": "bull",
+          "at": "2026-09-21T01:30:29+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "TikTok",
+          "text": "Bullisch: Wachstum der Cloud wird gelobt.",
+          "url": "https://www.tiktok.com/@momentum.official/video/7687732847494434062",
+          "lean": "bull",
+          "at": "2026-09-20T23:30:09+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Volume's all crypto and AI today... $ORCL green tape",
+          "url": "https://x.com/sssc/status/2102036802701832697",
+          "lean": "bull",
+          "at": "2026-09-21T16:06:42+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Oracle Q1 FY2027 capex $28.5B fact note",
+          "url": "https://x.com/AllFactsAI/status/2102036636582424643",
+          "lean": "mixed",
+          "at": "2026-09-21T16:06:02+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Hyperscaler capex: ORCL smallest program + highest leverage $124bn net debt",
+          "url": "https://x.com/KllResearch/status/2102035115992068265",
+          "lean": "bear",
+          "at": "2026-09-21T16:00:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Sorry — article was 'stressed' on $ORCL not distressed",
+          "url": "https://x.com/rdd147/status/2102035075634495605",
+          "lean": "bear",
+          "at": "2026-09-21T15:59:50+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "$ORCL vs $AMD: cheaper multiple + large AI infra backlog",
+          "url": "https://x.com/theaveragegal__/status/2102033996079128822",
+          "lean": "bull",
+          "at": "2026-09-21T15:55:33+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "10 names near 52w lows — Oracle $ORCL -55%",
+          "url": "https://x.com/findbettertrade/status/2102033877455831554",
+          "lean": "bear",
+          "at": "2026-09-21T15:55:04+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "$ORCL is section 8 housing for AI — where I'm parked",
+          "url": "https://x.com/strifenjustice/status/2102033269852168396",
+          "lean": "bull",
+          "at": "2026-09-21T15:52:40+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Oil spanked; want all the $ORCL and $CRWV",
+          "url": "https://x.com/strifenjustice/status/2102032648918929674",
+          "lean": "bull",
+          "at": "2026-09-21T15:50:12+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Technicals not ideal for $ORCL — needs 200d ma recovery",
+          "url": "https://x.com/cperruna/status/2102032562403045654",
+          "lean": "bear",
+          "at": "2026-09-21T15:49:51+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "$ORCL is cursed",
+          "url": "https://x.com/FrostyFinances/status/2102031940803014833",
+          "lean": "bear",
+          "at": "2026-09-21T15:47:23+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "$ORCL will fail as stock and company; debt concerns",
+          "url": "https://x.com/QuantNug/status/2102029997687083182",
+          "lean": "bear",
+          "at": "2026-09-21T15:39:39+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "$ORCL ignoring all these gains",
+          "url": "https://x.com/stocksandsushi/status/2102029455245955074",
+          "lean": "bear",
+          "at": "2026-09-21T15:37:30+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "ORCL among names with weakening 4Q EPS revisions while SPX highs",
+          "url": "https://x.com/EarningsScout/status/2102029093927588272",
+          "lean": "bear",
+          "at": "2026-09-21T15:36:04+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Long SPY/QQQ; short $ORCL today for crash",
+          "url": "https://x.com/QuantNug/status/2102028130714296586",
+          "lean": "bear",
+          "at": "2026-09-21T15:32:14+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "$NBIS $ARM $ORCL buying opportunities call",
+          "url": "https://x.com/_GalacticChild/status/2102027683815407668",
+          "lean": "bull",
+          "at": "2026-09-21T15:30:28+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "$ORCL premarket ~$148.75 (+0.77%) vs Fri close",
+          "url": "https://x.com/Miasvrv/status/2102026238617399473",
+          "lean": "bull",
+          "at": "2026-09-21T15:24:43+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Buy list includes $ORCL at $140 fair-value dip",
+          "url": "https://x.com/linda6540749994/status/2102025832470376737",
+          "lean": "bull",
+          "at": "2026-09-21T15:23:06+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Co-CEOs growth strong but stock plunged ~50% in first year",
+          "url": "https://x.com/DalsnaFinance/status/2102025311449940242",
+          "lean": "bear",
+          "at": "2026-09-21T15:21:02+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Bought heavy $META $ORCL $AVGO last 2 weeks",
+          "url": "https://x.com/borispapex/status/2102025094025392221",
+          "lean": "bull",
+          "at": "2026-09-21T15:20:10+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Stifel keeps Buy on Oracle",
+          "url": "https://x.com/PT_CARBA/status/2102024678466351186",
+          "lean": "bull",
+          "at": "2026-09-21T15:18:31+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Huge backlog exciting but backlog isn't revenue yet — $ORCL lesson",
+          "url": "https://x.com/prof_SJGreene/status/2102022063192162454",
+          "lean": "mixed",
+          "at": "2026-09-21T15:08:08+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Green tape AI/crypto; $ORCL in strength basket",
+          "url": "https://x.com/KelseyHard10948/status/2102031534366523623",
+          "lean": "bull",
+          "at": "2026-09-21T15:45:46+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "SoftBank >$11B bonds for OpenAI — AI leverage caution",
+          "url": "https://x.com/i/trending/2101864903011180768",
+          "lean": "bear",
+          "at": "2026-09-21T15:49:35+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "S&P near highs with extreme narrow breadth warning",
+          "url": "https://x.com/i/trending/2101717156845269053",
+          "lean": "bear",
+          "at": "2026-09-20T21:53:22+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "Futures firm Mon; AI stocks lead, oil slides",
+          "url": "https://www.reuters.com/business/wall-st-futures-rise-ai-stocks-gain-oil-prices-slide-2026-09-21/",
+          "lean": "bull",
+          "at": "2026-09-21T15:38:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "Big Tech ~$300B hidden AI debt guarantees incl Oracle",
+          "url": "https://x.com/i/trending/2101650192189772142",
+          "lean": "bear",
+          "at": "2026-09-20T18:04:11+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "ORCL ~$148.42 (+0.55%) on the day",
+          "url": "https://exa.ai/library/markets/stock/ORCL",
+          "lean": "mixed",
+          "at": "2026-09-21T16:00:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Oracle has taken on considerable debt… derail $ORCL stock?",
+          "url": "https://x.com/HealyWriting/status/2102040957101203848",
+          "lean": "bear",
+          "at": "2026-09-21T16:23:12+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "September buys include $ORCL — Buy",
+          "url": "https://x.com/JasonLynch75429/status/2102040935265919061",
+          "lean": "bull",
+          "at": "2026-09-21T16:23:07+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Forces trying to stop $ORCL AI plan are unsound — project is great",
+          "url": "https://x.com/rem26020/status/2102039672545591683",
+          "lean": "bull",
+          "at": "2026-09-21T16:18:06+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "97.9% GPU utilization — AI infra trade alive for $ORCL",
+          "url": "https://x.com/Mom4Josh/status/2102038143956623757",
+          "lean": "bull",
+          "at": "2026-09-21T16:12:02+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Cloud growth delivered; value repair still depends on cash flow (~$140)",
+          "url": "https://x.com/Sean50910043173/status/2102024959497490511",
+          "lean": "mixed",
+          "at": "2026-09-21T15:19:38+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "$ORCL down ~50% from peak — both sides of the debt/AI story",
+          "url": "https://x.com/JoshTradeOption/status/2102020269317455957",
+          "lean": "mixed",
+          "at": "2026-09-21T15:01:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Oracle Stock At Risk As A Major $18 Billion Headwind Emerges",
+          "url": "https://x.com/weijgenberger/status/2102018323504394422",
+          "lean": "bear",
+          "at": "2026-09-21T14:53:16+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "Oracle remains financially strong — massive RPO; scary headlines recycled",
+          "url": "https://x.com/lidokidz/status/2102017636011839637",
+          "lean": "bull",
+          "at": "2026-09-21T14:50:32+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "One company beat earnings 32% and stock fell; later miss and jumped — $ORCL",
+          "url": "https://x.com/AlrakhisNaifah/status/2102035118257062309",
+          "lean": "mixed",
+          "at": "2026-09-21T16:00:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "X",
+          "text": "AI cloud opportunity for $ORCL worth watching closely",
+          "url": "https://x.com/Madison_Shane/status/2102020552315818181",
+          "lean": "bull",
+          "at": "2026-09-21T15:02:07+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "~$18bn Project Jupiter / New Mexico loans quoted stressed (89–91¢)",
+          "url": "https://www.indiainfoline.com/news/companies/why-oracle-shares-are-falling-today-explained",
+          "lean": "bear",
+          "at": "2026-09-21T16:20:00+02:00",
+          "text_orig_lang": "en"
+        },
+        {
+          "source": "News",
+          "text": "ORCL ~$148.21 (+0.4%) on the day",
+          "url": "https://finance.yahoo.com/quote/ORCL",
+          "lean": "mixed",
+          "at": "2026-09-21T16:24:00+02:00",
+          "text_orig_lang": "en"
+        }
+      ],
+      "signal": "hold",
+      "social_impulse": 1,
+      "impulse": 1,
+      "hype_bull": 42,
+      "hype_bear": 32,
+      "hype_net": 10,
+      "confidence": 70,
+      "hype_state": "mixed",
+      "updated_at": "2026-09-21T17:05:00+02:00",
+      "why": "Schulden und SoftBank-Anleihen bleiben der Gegenwind. Dip-Käufe und Stifel-Buy halten es gemischt.",
+      "evidence": {
+        "x_posts": 24,
+        "reddit_posts": 0,
+        "news": 5
+      },
+      "voices": {
+        "bull": 17,
+        "bear": 13,
+        "mixed": 10
+      },
+      "hype_mixed": 26,
+      "sentiment_unit": "percent_all_classified"
+    }
+  }
+}
