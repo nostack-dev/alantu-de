@@ -9,6 +9,7 @@ on:
       - "watchlist.json"
       - "orcl-minute.json"
       - "orcl-history.json"
+      - "orcl-sentiment-history.json"
       - "eurusd-history.json"
       - "runtime-status.json"
       - ".stockstrend-source-sha"
@@ -136,6 +137,13 @@ jobs:
           set -euo pipefail
           node --check tools/refresh-runtime-data.mjs
           node tools/refresh-runtime-data.mjs
+
+      - name: Backfill one year of ORCL sentiment when needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/backfill-orcl-sentiment.mjs
+          node tools/backfill-orcl-sentiment.mjs
 
       - name: Verify browser live-source contract
         shell: bash
@@ -308,6 +316,19 @@ jobs:
           const iv = data['intrinsic-orcl.json'];
           if (iv?.symbol !== 'ORCL' || !iv?.latest) throw new Error('intrinsic-orcl invalid');
 
+          const sh = data['orcl-sentiment-history.json'];
+          if (!sh || sh.symbol !== 'ORCL' || !Array.isArray(sh.history) || sh.history.length < 30) {
+            throw new Error('orcl-sentiment-history invalid or too sparse');
+          }
+          const shFirst = Date.parse(sh.history[0]?.at || '');
+          const shLast = Date.parse(sh.history.at(-1)?.at || '');
+          if (!Number.isFinite(shFirst) || !Number.isFinite(shLast) || shLast <= shFirst) {
+            throw new Error('orcl-sentiment-history timestamps invalid');
+          }
+          if (sh.history.some(x => !Number.isFinite(Number(x.hype_bull)) || !Number.isFinite(Number(x.hype_bear)) || !Number.isFinite(Number(x.confidence)))) {
+            throw new Error('orcl-sentiment-history contains invalid sentiment values');
+          }
+
           console.log('Stockstrend validation OK', {
             updatedAt: status.updated_at,
             signal: status.derived?.signal,
@@ -327,7 +348,7 @@ jobs:
           set -euo pipefail
           git add index.html stockstrend.html methodik.html market-clock-core.js price-shock-core.js \
             stockstrend-data.json watchlist-data.json watchlist.json intrinsic-orcl.json \
-            orcl-minute.json orcl-history.json eurusd-history.json runtime-status.json .stockstrend-source-sha
+            orcl-minute.json orcl-history.json orcl-sentiment-history.json eurusd-history.json runtime-status.json .stockstrend-source-sha
 
           if git diff --cached --quiet; then
             echo "Already current."
