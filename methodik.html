@@ -30,7 +30,7 @@ ul{padding-left:18px}.exact{border-left:3px solid #151517;padding-left:12px}
 <main class="wrap">
 <p class="intro">Diese Seite ist die technische Rechen- und Quellenbeschreibung der Aktienansicht. Sie trennt bewusst <b>Live-Daten im Browser</b>, <b>GitHub-Fallbackdaten</b> und die <b>Intrinsic-Value-Berechnung</b>. Die angezeigten SEC-Werte und Zwischenrechnungen werden direkt aus den produktiven JSON-Daten geladen.</p>
 
-<section id="live">
+<section id="sentiment"><span id="live"></span>
 <h2>1 · Live-Sync: was beim Klick auf „Sync“ wirklich passiert</h2>
 <p>Der Browser lädt nicht nur eine vorhandene Datei neu. Er fragt frische Signalquellen ab, berechnet daraus den aktuellen Stimmungsstand neu und setzt <code>Sync xx:xx</code> erst nach erfolgreichem Abschluss.</p>
 
@@ -74,6 +74,15 @@ early_signal = |net| ≥ 12</div>
 <p class="small"><b>Positiv:</b> beat, beats, growth, surge, surges, rally, rallies, rise, rises, gain, gains, upgrade, upgraded, outperform, strong, record, backlog, contract, deal, boost, expands, expansion, demand, wins, win, bullish, buy rating</p>
 <p class="small"><b>Negativ:</b> debt, risk, risks, fall, falls, drop, drops, decline, declines, downgrade, downgraded, concern, concerns, lawsuit, probe, headwind, headwinds, cost, costs, capex, stress, stressed, junk bond, layoff, layoffs, slump, miss, misses, bearish, sell rating</p>
 </details>
+
+<h3>Historischer Stimmungsverlauf</h3>
+<p>Der Stimmungs-Chart verwendet dieselben Zeitfilter wie der Kurs-Chart: <b>1T, 1W, 1M, 1J, 5J, MAX</b>. Angezeigt werden ausschließlich tatsächlich gespeicherte Messpunkte; fehlende Vergangenheit wird nicht künstlich ergänzt.</p>
+<ul>
+<li>Serverseitig gespeicherte ORCL-Stimmung: aktuell echte Messhistorie ab <b>18.08.2026</b>.</li>
+<li>Neue Browser-Livechecks werden zusätzlich lokal als echte Messpunkte gespeichert und beim nächsten Laden mit der Serverhistorie zusammengeführt.</li>
+<li>1W/1M werden tageweise, 1J wochenweise und 5J/MAX monatsweise verdichtet. Es werden Mittelwerte vorhandener Messpunkte gebildet.</li>
+<li>Wenn ein gewählter Zeitraum weiter zurückreicht als die echte Historie, zeigt die Oberfläche ausdrücklich <b>„Daten seit …“</b>.</li>
+</ul>
 
 <h3>Aktuell live abgefragte Datensätze</h3>
 <div id="liveStatus" class="small">Live-Abfrage läuft …</div>

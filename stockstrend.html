@@ -197,6 +197,10 @@
   .sentiment-key{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
   .sentiment-key .swatch{display:inline-block;width:7px;height:7px;border-radius:50%;vertical-align:1px}
   .sentiment-key .pos{background:#00a94f}.sentiment-key .neu{background:#8e8e93}.sentiment-key .neg{background:#e94035}
+  .sentiment-source{font-size:12px;line-height:1.4;color:#74747c;margin:6px 0 9px;font-variant-numeric:tabular-nums}
+  .sentiment-range{margin:8px 0 10px;padding:2px;background:#f5f5f7;border-radius:999px}
+  .sentiment-range button{padding:6px 9px!important;font-size:11px!important}
+  .sentiment-range button.active{background:#151517!important;color:#fff!important;border-radius:999px!important}
 
   .sync-footer{display:flex!important;align-items:center;justify-content:space-between;gap:10px;max-width:760px;margin:0 auto;padding:11px 18px 18px;color:#8a8a92;font-size:11px;line-height:1.2;font-variant-numeric:tabular-nums}
   .sync-footer.stale #syncStatus,.sync-footer.error #syncStatus{color:#e94035;font-weight:700}
@@ -287,8 +291,17 @@
   </div>
 
   <div class="card chart-card-lg">
-    <div class="label">Oracle · Stimmung</div>
+    <div class="label">Oracle · Stimmung <a class="info-link info-inline" href="methodik.html#sentiment" aria-label="Quellen und Berechnung der Stimmung erklären" title="Quellen und Berechnung der Stimmung">i</a></div>
+    <div class="sentiment-source" id="sentimentSource">Quellen werden geladen …</div>
     <div class="chart-sub"><span class="sentiment-key"><span class="swatch pos"></span>positiv <span class="swatch neu"></span>neutral <span class="swatch neg"></span>negativ</span> <span id="hypeCoverage"></span></div>
+    <div class="range sentiment-range" id="sentimentRange" aria-label="Zeitraum Stimmung">
+      <button type="button" data-sentiment-range="1d">1T</button>
+      <button type="button" data-sentiment-range="1w">1W</button>
+      <button type="button" data-sentiment-range="1m">1M</button>
+      <button type="button" data-sentiment-range="year">1J</button>
+      <button type="button" data-sentiment-range="5y">5J</button>
+      <button type="button" data-sentiment-range="all">MAX</button>
+    </div>
     <div class="chart-wrap chart-wrap-lg"><canvas id="hypeChart"></canvas></div>
   </div>
   <div class="card chart-card-sm secondary-section">
@@ -314,7 +327,7 @@
 <script src="market-clock-core.js"></script>
 <script src="price-shock-core.js"></script>
 <script>
-var LS_RANGE='botbot_wl_range', LS_ACC='botbot_acc_open';
+var LS_RANGE='botbot_wl_range', LS_ACC='botbot_acc_open', SENTIMENT_HISTORY_LS='alantu_orcl_sentiment_history_v1';
 var wlRange=(function(){
   try{
     var r=localStorage.getItem(LS_RANGE)||'1d';
@@ -330,6 +343,38 @@ var liveWs=null,liveHeartbeat=null,liveReconnect=null,liveShockTimer=null;
 function saveRange(r){ try{ localStorage.setItem(LS_RANGE, r); }catch(e){} }
 function loadAccOpen(){ try{ return JSON.parse(localStorage.getItem(LS_ACC)||'{}'); }catch(e){ return {}; } }
 function saveAccOpen(map){ try{ localStorage.setItem(LS_ACC, JSON.stringify(map)); }catch(e){} }
+function loadLocalSentimentHistory(){
+  try{
+    var a=JSON.parse(localStorage.getItem(SENTIMENT_HISTORY_LS)||'[]');
+    return Array.isArray(a)?a:[];
+  }catch(e){return [];}
+}
+function saveLocalSentimentPoint(p){
+  try{
+    var a=loadLocalSentimentHistory(),last=a.length?a[a.length-1]:null,pt={at:p.at,hype_bull:p.hype_bull,hype_bear:p.hype_bear,hype_mixed:p.hype_mixed,hype_net:p.hype_net,confidence:p.confidence,signal:p.signal,price:p.price};
+    if(!last||new Date(pt.at).getTime()-new Date(last.at||0).getTime()>=5*60*1000)a.push(pt);
+    var now=Date.now(),by={};
+    a=a.filter(function(x){var t=new Date(x.at||0).getTime();return isFinite(t)&&t>0;}).sort(function(x,y){return new Date(x.at)-new Date(y.at);}).filter(function(x){
+      var t=new Date(x.at).getTime(),age=now-t,key;
+      if(age<=7*864e5)return true;
+      if(age<=365*864e5)key='h'+Math.floor(t/3600000);
+      else key='d'+Math.floor(t/86400000);
+      if(by[key])return false; by[key]=1; return true;
+    });
+    if(a.length>12000)a=a.slice(-12000);
+    localStorage.setItem(SENTIMENT_HISTORY_LS,JSON.stringify(a));
+  }catch(e){}
+}
+function mergedSentimentHistory(serverRows){
+  var all=(serverRows||[]).concat(loadLocalSentimentHistory()),by={};
+  all.forEach(function(x){
+    var t=new Date(x&&x.at||0).getTime();
+    if(!isFinite(t)||t<=0)return;
+    var k=String(t);
+    if(!by[k]||Object.keys(x||{}).length>Object.keys(by[k]||{}).length)by[k]=x;
+  });
+  return Object.keys(by).map(function(k){return by[k];}).sort(function(a,b){return new Date(a.at)-new Date(b.at);});
+}
 
 var DIR_DE = {
   mixed_cautious: 'Gemischt, vorsichtig',
@@ -373,6 +418,33 @@ function fmtAxisValue(ms){
     else {opts.month='2-digit';opts.year='2-digit';}
     return d.toLocaleString('de-DE',opts);
   }catch(e){return '—';}
+}
+function syncRangeButtons(){
+  Array.prototype.forEach.call(document.querySelectorAll('#rangeBar button'),function(b){b.classList.toggle('active',b.getAttribute('data-range')===wlRange);});
+  Array.prototype.forEach.call(document.querySelectorAll('#sentimentRange button'),function(b){b.classList.toggle('active',b.getAttribute('data-sentiment-range')===wlRange);});
+}
+function sentimentSourceText(t){
+  t=t||{};
+  var live=t.live_sources||null,fr=t.freshness||{},parts=[];
+  if(live){
+    var np=(live.providers&&live.providers[0])||'News';
+    var sp=(live.providers&&live.providers[1])||'Social/UGC';
+    parts.push(np+' '+Number(live.news_count||0));
+    parts.push(sp+' '+Number(live.social_count||0));
+    parts.push((Number(live.news_count||0)+Number(live.social_count||0))+' Beiträge');
+  }else{
+    var src=t.sources||{};
+    if(src.NewsRSS)parts.push((src.NewsRSS.provider||'News')+' '+Number(src.NewsRSS.items||0)+' News');
+    else if(src.WebSearch)parts.push('Web/News '+Number(src.WebSearch.items||0));
+    if(src.PublicReddit){
+      var rp=src.PublicReddit.provider||(Array.isArray(src.PublicReddit.providers)?src.PublicReddit.providers[0]:'PublicReddit');
+      parts.push((rp||'Reddit')+' '+Number(src.PublicReddit.items||0)+(src.PublicReddit.sentiment_pct_bullish!=null?(' · '+src.PublicReddit.sentiment_pct_bullish+'% positiv'):''));
+    }
+    if(!parts.length&&t.totals&&t.totals.content_items_usable!=null)parts.push(Number(t.totals.content_items_usable)+' Beiträge');
+  }
+  var at=(live&&live.at)||fr.freshest_absolute||t.scraped_at;
+  if(at)parts.push('Stand '+new Date(at).toLocaleString('de-DE',{timeZone:'Europe/Berlin',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}));
+  return parts.join(' · ')||'Quellen nicht verfügbar';
 }
 function ageLabel(iso){
   try{
@@ -783,7 +855,10 @@ function renderAll(){
   var L=lat.links||{};
   document.getElementById('orclLinks').innerHTML=(L.yahoo?'<a class="ext" href="'+esc(L.yahoo)+'" target="_blank" rel="noopener">Yahoo</a>':'')+(L.tradingview?'<a class="ext" href="'+esc(L.tradingview)+'" target="_blank" rel="noopener">TradingView</a>':'');
 
-  var hist=filterByAt(orcl.history||[], function(h){return h.at;});
+  var sentimentMeta=document.getElementById('sentimentSource'); if(sentimentMeta) sentimentMeta.textContent=sentimentSourceText(t);
+  syncRangeButtons();
+
+  var hist=filterByAt(mergedSentimentHistory(orcl.history||[]), function(h){return h.at;});
   var hypeAgg=aggregateForRange(hist,function(h){return h.at;},function(h){return stimmungNorm(h);});
   var hypeCov=document.getElementById('hypeCoverage'); if(hypeCov) hypeCov.textContent=compactCoverage(hypeAgg,function(h){return h.at;});
   if(hypeChart) hypeChart.destroy();
@@ -1022,6 +1097,7 @@ function applyFreshSignal(s){
     oldest_usable_signal:''
   };
   tickData.freshness=tickData.tick.freshness;
+  tickData.tick.live_sources={providers:s.providers.slice(),news_count:s.news.length,social_count:s.social.length,at:s.at,newest_age_min:s.newestAge,window:'News/UGC ≤36h'};
   tickData.tick.totals={content_items_usable:s.news.length+s.social.length,breakdown:{websearch:s.news.length,reddit:s.social.length,x_posts:0,tiktok:0}};
   tickData.tick.vector={
     direction:s.direction,magnitude:s.magnitude,confidence:s.confidence,
@@ -1055,6 +1131,7 @@ function applyFreshSignal(s){
     o.history.push({at:s.at,signal:s.signal,social_impulse:o.social_impulse,confidence:s.confidence,hype_bull:s.bull,hype_bear:s.bear,hype_mixed:s.mixed,hype_net:s.net,price:s.price});
     if(o.history.length>600)o.history=o.history.slice(-600);
   }
+  saveLocalSentimentPoint({at:s.at,signal:s.signal,confidence:s.confidence,hype_bull:s.bull,hype_bear:s.bear,hype_mixed:s.mixed,hype_net:s.net,price:s.price});
   lastBrowserSyncAt=s.at;
   syncLastError=false;
   renderAll();
@@ -1076,7 +1153,7 @@ async function load(){
     var h=await fetchJson('orcl-history.json',true);
     tickData=a; wlData=b; ivData=c; fxData=d||fxData; orclMinutePayload=m||orclMinutePayload; orclHistoryPayload=h||orclHistoryPayload;
     fallbackMarket();
-    Array.prototype.forEach.call(document.querySelectorAll('#rangeBar button'),function(b){b.classList.toggle('active',b.getAttribute('data-range')===wlRange);});
+    syncRangeButtons();
     renderAll();
     renderSyncFooter(false);
     connectLiveMarket();
@@ -1107,12 +1184,19 @@ document.getElementById('syncNow').onclick=async function(){
 };
 setInterval(function(){renderSyncFooter();},30000);
 
-document.getElementById('rangeBar').onclick=function(e){
-  var btn=e.target.closest('button[data-range]'); if(!btn) return;
-  wlRange=btn.getAttribute('data-range');
+function setRange(r){
+  wlRange=r;
   saveRange(wlRange);
-  Array.prototype.forEach.call(document.querySelectorAll('#rangeBar button'), function(b){b.classList.toggle('active', b===btn);});
+  syncRangeButtons();
   renderAll();
+}
+document.getElementById('rangeBar').onclick=function(e){
+  var btn=e.target.closest('button[data-range]'); if(!btn)return;
+  setRange(btn.getAttribute('data-range'));
+};
+document.getElementById('sentimentRange').onclick=function(e){
+  var btn=e.target.closest('button[data-sentiment-range]'); if(!btn)return;
+  setRange(btn.getAttribute('data-sentiment-range'));
 };
 var SHOCK_LS='botbot_orcl_price_shocks_v1', SHOCK_NOTIFY_LS='botbot_orcl_shock_notify_v1';
 var shockLastKey='', shockPollBusy=false;
