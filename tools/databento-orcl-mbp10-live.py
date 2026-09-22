@@ -29,7 +29,9 @@ def normalize(r):
     levels=[]
     ts_event_ns=int(getattr(r,"ts_event"))
     ts_recv_raw=getattr(r,"ts_recv",0)
+    ts_out_raw=getattr(r,"ts_out",0)
     ts_recv_ns=int(ts_recv_raw) if ts_recv_raw is not None else 0
+    ts_out_ns=int(ts_out_raw) if ts_out_raw is not None else 0
     ts_local_recv_ns=time.time_ns()
     raw=getattr(r,"levels",None)
     if raw is None or len(raw)<10:return None
@@ -44,6 +46,7 @@ def normalize(r):
       "at":ts_iso(ts_event_ns),
       "ts_event_ns":str(ts_event_ns),
       "ts_recv_ns":str(ts_recv_ns) if ts_recv_ns>0 else None,
+      "ts_out_ns":str(ts_out_ns) if ts_out_ns>0 else None,
       "ts_local_recv_ns":str(ts_local_recv_ns),
       "sequence":int(getattr(r,"sequence",0)),
       "levels":levels
