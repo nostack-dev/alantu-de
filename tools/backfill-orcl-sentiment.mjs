@@ -10,6 +10,8 @@ const BERLIN='Europe/Berlin';
 const REQUEST_GAP_MS=6500;
 const MAX_PAGES=140;
 const UA='Mozilla/5.0 (compatible; alantu-sentiment-backfill/1.0; +https://www.alantu.de/)';
+const REDDIT_SUBS=['stocks','investing','wallstreetbets','StockMarket','options','ValueInvesting','SecurityAnalysis'];
+const ARCTIC='https://arctic-shift.photon-reddit.com/api';
 
 const QUERIES={
   news:'(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))',
@@ -26,6 +28,10 @@ async function readExisting(){
 }
 async function writeJson(path,obj){await fs.writeFile(path,JSON.stringify(obj,null,2)+'\n');}
 function titleKey(s=''){return String(s).replace(/\s+/g,' ').trim().toLowerCase().replace(/[^a-z0-9$]+/g,' ').trim();}
+function socialRelevantText(text=''){
+  const x=String(text).toLowerCase();
+  return /\$orcl\b|\borcl\b/.test(x)||(x.includes('oracle')&&/(stock|share|earn|cloud|database|ai|market|bull|bear|buy|sell|valuation|price|revenue|growth)/.test(x));
+}
 function classifyHeadline(title=''){
   const s=String(title).toLowerCase();
   const pos=['beat','beats','growth','surge','surges','rally','rallies','rise','rises','gain','gains','upgrade','upgraded','outperform','strong','record','backlog','contract','deal','boost','expands','expansion','demand','wins','win','bullish','buy rating'];
@@ -42,10 +48,7 @@ function recencyWeight(time,anchor){
   if(age<=24*3600e3)return 1;
   return 0.65;
 }
-function entityRelevant(x){
-  const s=String(x?.title||'').toLowerCase();
-  return /\$orcl\b|\borcl\b/.test(s)||(s.includes('oracle')&&/(stock|share|earn|cloud|ai|market|bull|bear|buy|sell|valuation|price)/.test(s));
-}
+function entityRelevant(x){return socialRelevantText(x?.title||'');}
 function dedupe(items){
   const seen=new Set(),out=[];
   for(const x of items){
@@ -100,6 +103,57 @@ async function throttledFetch(url){
   }
   throw lastErr;
 }
+let archiveLastRequestAt=0;
+async function archiveFetch(url){
+  const wait=Math.max(0,700-(Date.now()-archiveLastRequestAt));
+  if(wait)await sleep(wait);
+  let lastErr;
+  for(let attempt=1;attempt<=3;attempt++){
+    const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),45000);
+    try{
+      archiveLastRequestAt=Date.now();
+      const r=await fetch(url,{headers:{'user-agent':UA,'accept':'application/json'},signal:ctl.signal});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      return await r.json();
+    }catch(e){
+      lastErr=e;await sleep(attempt*1800);
+    }finally{clearTimeout(timer);}
+  }
+  throw lastErr;
+}
+async function fetchRedditArchive(cutoff,now){
+  const out=[],seen=new Set();
+  const after=Math.floor((cutoff-WINDOW)/1000),before=Math.ceil(now/1000);
+  for(const sub of REDDIT_SUBS){
+    for(const mode of ['posts','comments']){
+      try{
+        const u=new URL(ARCTIC+'/api/'+mode+'/search');
+        u.searchParams.set('subreddit',sub);
+        u.searchParams.set('after',String(after));
+        u.searchParams.set('before',String(before));
+        u.searchParams.set('sort','asc');
+        u.searchParams.set('limit','auto');
+        if(mode==='posts')u.searchParams.set('query','ORCL OR Oracle');
+        else u.searchParams.set('body','ORCL OR Oracle');
+        const j=await archiveFetch(u.toString()),arr=Array.isArray(j?.data)?j.data:[];
+        let kept=0;
+        for(const x of arr){
+          const time=Number(x?.created_utc)*1000;
+          const text=mode==='posts'?[x?.title,x?.selftext].filter(Boolean).join(' '):String(x?.body||'');
+          if(!Number.isFinite(time)||time<cutoff-WINDOW||time>now||!socialRelevantText(text))continue;
+          const key=(mode+':'+String(x?.id||''))||titleKey(text);
+          if(seen.has(key))continue;seen.add(key);
+          out.push({id:key,title:text,url:'https://www.reddit.com/r/'+sub,site:'reddit.com/r/'+sub,time,provider:'Reddit archive'});kept++;
+        }
+        console.log('Reddit archive',sub,mode,'raw',arr.length,'kept',kept);
+      }catch(e){
+        console.warn('Reddit archive failed',sub,mode,e.message);
+      }
+    }
+  }
+  out.sort((a,b)=>a.time-b.time);
+  return out;
+}
 async function fetchPaged(query,label,cutoff){
   const out=[],seenIds=new Set();
   let last=null,prevLast=null,pages=0,oldest=Infinity;
@@ -128,12 +182,13 @@ async function fetchPaged(query,label,cutoff){
   out.sort((a,b)=>a.time-b.time);
   return {items:out,pages,oldest:Number.isFinite(oldest)?oldest:null};
 }
-function pointAt(anchor,newsAll,social1All,social2All){
+function pointAt(anchor,newsAll,social1All,social2All,redditAll){
   const start=anchor-WINDOW;
   const news=newsAll.filter(x=>x.time>start&&x.time<=anchor);
   const s1=social1All.filter(x=>x.time>start&&x.time<=anchor);
   const s2=social2All.filter(x=>x.time>start&&x.time<=anchor&&entityRelevant(x));
-  const social=dedupe(s1.concat(s2));
+  const sr=redditAll.filter(x=>x.time>start&&x.time<=anchor);
+  const social=dedupe(s1.concat(s2,sr));
   if(social.length<MIN_SOCIAL||news.length<MIN_NEWS)return null;
 
   const votes={bull:0,bear:0,mixed:0};
@@ -152,7 +207,7 @@ function pointAt(anchor,newsAll,social1All,social2All){
     social_impulse:clamp(Math.round(net/5),-20,20),
     hype_bull:bull,hype_bear:bear,hype_mixed:mixed,hype_net:net,confidence,
     news_count:news.length,social_count:social.length,
-    source:'tickertick_historical_replay',
+    source:'tickertick_plus_reddit_archive_historical_replay',
     sample_window_hours:36
   };
 }
@@ -173,10 +228,14 @@ console.log('Backfilling ORCL sentiment from',new Date(cutoff).toISOString(),'wi
 const news=await fetchPaged(QUERIES.news,'news',cutoff);
 const s1=await fetchPaged(QUERIES.tickerSocial,'ORCL UGC',cutoff);
 const s2=await fetchPaged(QUERIES.entitySocial,'Oracle entity UGC',cutoff);
+const reddit=await fetchRedditArchive(cutoff,now);
 
 const anchors=dailyAnchors(now);
-const history=anchors.map(a=>pointAt(a,news.items,s1.items,s2.items)).filter(Boolean);
-if(!history.length)throw new Error('Historical replay produced zero valid sentiment points');
+const history=anchors.map(a=>pointAt(a,news.items,s1.items,s2.items,reddit)).filter(Boolean);
+if(!history.length){
+  console.warn('Historical replay produced zero points meeting the unchanged 50-social/3-news gate; leaving prior backfill untouched.');
+  process.exit(0);
+}
 
 const oldestRaw=Math.min(...[news.oldest,s1.oldest,s2.oldest].filter(Number.isFinite));
 const oldestPoint=Date.parse(history[0].at);
@@ -190,14 +249,14 @@ const out={
   method:'historical replay of live 36h sentiment rules; no look-ahead',
   rules:{
     news_query:QUERIES.news,
-    social_queries:[QUERIES.tickerSocial,QUERIES.entitySocial],
+    social_queries:[QUERIES.tickerSocial,QUERIES.entitySocial,'Reddit archive: ORCL/Oracle in finance subreddits'],
     social_min:MIN_SOCIAL,news_min:MIN_NEWS,social_vote_factor:2,
     recency_weights:{lte_2h:1.5,lte_8h:1.25,lte_24h:1,lte_36h:0.65},
     anchor:'22:00 Europe/Berlin daily',
     classifier:'same keyword classifier as browser live sentiment'
   },
   raw:{
-    news:news.items.length,ticker_social:s1.items.length,entity_social:s2.items.length,
+    news:news.items.length,ticker_social:s1.items.length,entity_social:s2.items.length,reddit_archive_social:reddit.length,
     pages:{news:news.pages,ticker_social:s1.pages,entity_social:s2.pages},
     oldest_source_at:Number.isFinite(oldestRaw)?new Date(oldestRaw).toISOString():null
   },
