@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-import { aggregateMicrostructure } from './microstructure-core.mjs';
+import { aggregateMicrostructure, microstructureQuality } from './microstructure-core.mjs';
 
 const KEY=process.env.APCA_API_KEY_ID||'';
 const SECRET=process.env.APCA_API_SECRET_KEY||'';
@@ -8,8 +8,11 @@ const SYMBOL=(process.env.MICRO_SYMBOL||'ORCL').toUpperCase();
 const START=process.env.MICRO_START;
 const END=process.env.MICRO_END;
 const OUT=process.env.MICRO_OUT||'microstructure-report.json';
+const STATUS=process.env.MICRO_STATUS_OUT||'microstructure-status.json';
 
 if(!KEY||!SECRET){
+  const status={provider:'alpaca',feed:FEED,symbol:SYMBOL,configured:false,mode:'shadow',quality:{status:'unavailable',reasons:['missing_credentials']},updated_at:new Date().toISOString()};
+  await fs.writeFile(STATUS,JSON.stringify(status,null,2));
   console.log('ALANTU microstructure: credentials not configured; no fake fallback used.');
   process.exit(0);
 }
@@ -32,11 +35,24 @@ async function fetchPaged(kind){
 }
 const [trades,quotes]=await Promise.all([fetchPaged('trades'),fetchPaged('quotes')]);
 const minutes=aggregateMicrostructure(trades,quotes);
+const quality=microstructureQuality(minutes,{symbol:SYMBOL,feed:FEED});
 const report={
   symbol:SYMBOL, feed:FEED, start:START, end:END,
   generated_at:new Date().toISOString(),
   raw:{trades:trades.length,quotes:quotes.length},
+  quality,
   minutes
 };
+const status={
+  provider:'alpaca',feed:FEED,symbol:SYMBOL,configured:true,mode:'shadow',
+  quality,
+  source_window:{start:START,end:END},
+  updated_at:new Date().toISOString()
+};
 await fs.writeFile(OUT,JSON.stringify(report,null,2));
-console.log(JSON.stringify({symbol:SYMBOL,feed:FEED,trades:trades.length,quotes:quotes.length,minutes:minutes.length,out:OUT}));
+await fs.writeFile(STATUS,JSON.stringify(status,null,2));
+if(quality.status!=='usable'){
+  console.error('Microstructure quality gate failed',JSON.stringify(quality));
+  process.exitCode=2;
+}
+console.log(JSON.stringify({symbol:SYMBOL,feed:FEED,trades:trades.length,quotes:quotes.length,minutes:minutes.length,quality:quality.status,out:OUT,status:STATUS}));
