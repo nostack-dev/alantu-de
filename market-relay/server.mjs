@@ -14,6 +14,9 @@ const EDGE_URL=process.env.EDGE_STATUS_URL||'https://www.alantu.de/microstructur
 const L2_MODEL_PATH=process.env.L2_MODEL_PATH||'/app/orcl-l2-model.json';
 const L2_MODEL_URL=process.env.L2_MODEL_URL||'https://www.alantu.de/orcl-l2-model.json';
 const L2_INGEST_TOKEN=process.env.L2_INGEST_TOKEN||'';
+const L2_MAX_PROVIDER_CAPTURE_MS=Number(process.env.L2_MAX_PROVIDER_CAPTURE_MS||50);
+const L2_MAX_TOTAL_LATENCY_MS=Number(process.env.L2_MAX_TOTAL_LATENCY_MS||250);
+const L2_MAX_LATENCY_FRACTION=Number(process.env.L2_MAX_LATENCY_FRACTION||0.35);
 const ALLOWED=new Set((process.env.ALLOWED_ORIGINS||'https://www.alantu.de,https://alantu.de').split(',').map(x=>x.trim()).filter(Boolean));
 const raw=Object.fromEntries(SYMBOLS.map(s=>[s,{trades:[],quotes:[]}]));
 const l2Raw=Object.fromEntries(SYMBOLS.map(s=>[s,[]]));
@@ -46,47 +49,86 @@ async function loadL2Model(){
   }catch{}
   try{l2Model=JSON.parse(await fs.readFile(L2_MODEL_PATH,'utf8'));}catch{l2Model=null;}
 }
+function eventNs(x,key){
+  try{return BigInt(String(x?.[key]??''));}catch{return null;}
+}
 function validL2Event(x){
+  const te=eventNs(x,'ts_event_ns'),tr=eventNs(x,'ts_recv_ns'),to=eventNs(x,'ts_out_ns'),tl=eventNs(x,'ts_local_recv_ns');
   return x&&x.provider==='databento'&&x.dataset==='XNAS.ITCH'&&x.schema==='mbp-10'&&SYMBOLS.includes(String(x.symbol||'').toUpperCase())
-    &&typeof x.at==='string'&&Number.isFinite(Date.parse(x.at))&&Array.isArray(x.levels)&&x.levels.length>=10;
+    &&typeof x.at==='string'&&Number.isFinite(Date.parse(x.at))
+    &&te!=null&&tr!=null&&to!=null&&tl!=null&&te>0n&&tr>=te&&to>=tr&&tl>0n
+    &&Array.isArray(x.levels)&&x.levels.length>=10;
 }
 function addL2Events(batch){
   let accepted=0;
   for(const x of batch){
     if(!validL2Event(x))continue;
     const s=String(x.symbol).toUpperCase(),arr=l2Raw[s];
-    const t=Date.parse(x.at);
-    if(arr.length&&t<=Date.parse(arr.at(-1).at)){
-      if(t===Date.parse(arr.at(-1).at)&&Number(x.sequence||0)<=Number(arr.at(-1).sequence||0))continue;
+    const t=eventNs(x,'ts_event_ns');
+    if(arr.length){
+      const last=arr.at(-1),lt=eventNs(last,'ts_event_ns');
+      if(lt!=null&&(t<lt||(t===lt&&Number(x.sequence||0)<=Number(last.sequence||0))))continue;
     }
     arr.push(x);accepted++;lastL2At=Date.now();
     if(arr.length>5000)arr.splice(0,arr.length-5000);
   }
   return accepted;
 }
+function l2Snapshot(symbol){
+  const events=l2Raw[symbol]||[],lastEvent=events.at(-1)||null;
+  const contract=validateL2ModelContract(l2Model);
+  const rawForecast=contract.ok&&lastEvent?forecastL2Event(lastEvent,events,l2Model):null;
+  const etaMs=Number(rawForecast?.eta_seconds)*1000;
+  const lat=rawForecast?.latency||{};
+  const providerMs=Number(lat.provider_capture_latency_ms);
+  const totalMs=Number(lat.collector_latency_ms);
+  const relayAgeMs=Math.max(0,Date.now()-lastL2At);
+  const dynamicBudget=Number.isFinite(etaMs)&&etaMs>0
+    ?Math.min(L2_MAX_TOTAL_LATENCY_MS,Math.max(5,etaMs*L2_MAX_LATENCY_FRACTION))
+    :L2_MAX_TOTAL_LATENCY_MS;
+  const timingReasons=[];
+  if(!lastEvent)timingReasons.push('no_l2_event');
+  if(!Number.isFinite(providerMs)||providerMs<0||providerMs>L2_MAX_PROVIDER_CAPTURE_MS)timingReasons.push('provider_capture_latency');
+  if(!Number.isFinite(totalMs)||totalMs<0||totalMs>dynamicBudget)timingReasons.push('end_to_end_latency_budget');
+  if(relayAgeMs>Math.min(250,dynamicBudget))timingReasons.push('relay_stale');
+  const timingOk=timingReasons.length===0;
+  return {
+    provider:'databento',dataset:'XNAS.ITCH',schema:'mbp-10',
+    configured:!!L2_INGEST_TOKEN,event_count:events.length,last_at:lastEvent?.at||null,
+    fresh:timingOk,
+    model_status:l2Model?.status||'unavailable',model_id:l2Model?.model_id||null,
+    contract:contract.ok?'valid':'blocked',contract_reasons:contract.reasons,
+    timing:{
+      ok:timingOk,reasons:timingReasons,
+      eta_ms:Number.isFinite(etaMs)?etaMs:null,
+      latency_budget_ms:dynamicBudget,
+      provider_capture_ms:Number.isFinite(providerMs)?providerMs:null,
+      end_to_end_ms:Number.isFinite(totalMs)?totalMs:null,
+      relay_age_ms:relayAgeMs,
+      network_to_collector_ms:Number.isFinite(Number(lat.network_to_collector_ms))?Number(lat.network_to_collector_ms):null
+    },
+    forecast:timingOk&&rawForecast?.status==='forecast'?rawForecast:null
+  };
+}
 function snapshot(symbol){
   const r=raw[symbol];if(!r)return null;
   const minutes=aggregateMicrostructure(r.trades,r.quotes);
   const quality=microstructureQuality(minutes,{symbol,feed:FEED,minMinutes:15});
   const live_signal=edgeModel?.status==='validated'&&quality.status==='usable'?currentMicroSignal(minutes,edgeModel):null;
-  const events=l2Raw[symbol]||[],lastEvent=events.at(-1)||null;
-  const l2Contract=validateL2ModelContract(l2Model);
-  const l2_forecast=l2Contract.ok&&lastEvent&&Date.now()-Date.parse(lastEvent.at)<=5000
-    ?forecastL2Event(lastEvent,events,l2Model):null;
   return {
     provider:'alpaca',feed:FEED,symbol,mode:'live-relay',at:new Date().toISOString(),quality,
     edge_status:edgeModel?.status||'unavailable',edge_model_id:edgeModel?.model_id||null,live_signal,minutes,
-    l2:{
-      provider:'databento',dataset:'XNAS.ITCH',schema:'mbp-10',
-      configured:!!L2_INGEST_TOKEN,event_count:events.length,last_at:lastEvent?.at||null,
-      fresh:!!lastEvent&&Date.now()-Date.parse(lastEvent.at)<=5000,
-      model_status:l2Model?.status||'unavailable',model_id:l2Model?.model_id||null,
-      contract:l2Contract.ok?'valid':'blocked',contract_reasons:l2Contract.reasons,
-      forecast:l2_forecast?.status==='forecast'?l2_forecast:null
-    }
+    l2:l2Snapshot(symbol)
   };
 }
-function sendEvent(res,obj){res.write('event: market\ndata: '+JSON.stringify(obj)+'\n\n');}
+function sendEvent(res,obj,eventName='market'){res.write('event: '+eventName+'\ndata: '+JSON.stringify(obj)+'\n\n');}
+function broadcastL2(symbol){
+  const l2=l2Snapshot(symbol),payload={symbol,l2,at:new Date().toISOString()};
+  for(const c of [...clients]){
+    if(c.symbol!==symbol)continue;
+    try{sendEvent(c.res,payload,'l2');}catch{clients.delete(c);try{c.res.end();}catch{}}
+  }
+}
 function broadcast(){
   prune();
   for(const c of [...clients]){
@@ -133,6 +175,10 @@ const server=http.createServer((req,res)=>{
         const x=JSON.parse(body),batch=Array.isArray(x)?x:[x];
         if(batch.length>1000)return json(res,413,{error:'too_many_events'});
         const accepted=addL2Events(batch);
+        if(accepted>0){
+          const symbols=[...new Set(batch.map(x=>String(x?.symbol||'').toUpperCase()).filter(s=>SYMBOLS.includes(s)))];
+          for(const s of symbols)broadcastL2(s);
+        }
         return json(res,200,{ok:true,accepted});
       }catch{return json(res,400,{error:'bad_json'});}
     });
