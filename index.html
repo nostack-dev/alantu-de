@@ -481,11 +481,11 @@ function initChartPanels(){
     };
   });
 }
-var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null, orclHistoryPayload=null, sentimentBackfillData=null, microstructureStatus=null, microstructureData=null, microstructureEdgeStatus=null;
+var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null, orclHistoryPayload=null, sentimentBackfillData=null, microstructureStatus=null, microstructureData=null, microstructureEdgeStatus=null, microstructureLiveConfig=null;
 var hypeChart=null, magChart=null, ivChart=null, pieChart=null;
 var fxBars=[], orclMinuteBars=[], orclDailyBars=[];
 var liveMarket={orclUsd:null,eurusd:null,prevOrclUsd:null,prevEurusd:null,at:null,connected:false,lastRenderedEur:null};
-var livePriceTicks=[],liveWs=null,liveHeartbeat=null,liveReconnect=null,liveShockTimer=null,lastFlowRenderAt=0,lastLiveTickPruneAt=0;
+var livePriceTicks=[],liveWs=null,liveHeartbeat=null,liveReconnect=null,liveShockTimer=null,lastFlowRenderAt=0,lastLiveTickPruneAt=0,microLiveEventSource=null;
 function loadAccOpen(){ try{ return JSON.parse(localStorage.getItem(LS_ACC)||'{}'); }catch(e){ return {}; } }
 function saveAccOpen(map){ try{ localStorage.setItem(LS_ACC, JSON.stringify(map)); }catch(e){} }
 function loadLocalSentimentHistory(){
@@ -1359,15 +1359,37 @@ function scheduleLiveShock(){
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden)connectLiveMarket();});
 
-function microstructureShadowUsable(){
-  var s=microstructureStatus||{},d=microstructureData||{},q=s.quality||{},dq=d.quality||{};
+function microstructureTransportUsable(){
+  var s=microstructureStatus||{},d=microstructureData||{},dq=d.quality||{};
+  if(d.mode==='live-relay'){
+    var liveAt=Date.parse(d.at||'');
+    return dq.status==='usable'&&isFinite(liveAt)&&Math.abs(Date.now()-liveAt)<=15000;
+  }
+  var q=s.quality||{};
   if(s.mode!=='shadow'||s.configured!==true||q.status!=='usable'||dq.status!=='usable')return false;
   var rows=Array.isArray(d.minutes)?d.minutes:[],last=rows.length?Date.parse(rows[rows.length-1].at||''):NaN;
   return isFinite(last)&&Math.abs(Date.now()-last)<=15*60*1000;
 }
+function microstructureShadowUsable(){return microstructureTransportUsable();}
+function connectMicrostructureRelay(){
+  var cfg=microstructureLiveConfig||{},endpoint=String(cfg.endpoint||'');
+  if(!cfg.enabled||cfg.transport!=='sse'||!/^https:\/\//.test(endpoint)||typeof EventSource==='undefined')return;
+  if(microLiveEventSource){try{microLiveEventSource.close();}catch(e){}}
+  var es=new EventSource(endpoint);microLiveEventSource=es;
+  es.addEventListener('market',function(ev){
+    try{
+      var d=JSON.parse(ev.data||'{}');
+      if(d&&d.provider==='alpaca'&&d.feed==='sip'&&d.symbol==='ORCL'&&d.mode==='live-relay'){
+        microstructureData=d;
+        lastFlowRenderAt=0;
+        try{renderMarketFlowVisual(getMarketWaveVector());}catch(e){}
+      }
+    }catch(e){}
+  });
+}
 function validatedMicrostructureSignal(){
   var e=microstructureEdgeStatus||{},d=microstructureData||{},s=d.live_signal||null;
-  if(!microstructureShadowUsable()||e.status!=='validated'||!s)return null;
+  if(!microstructureTransportUsable()||e.status!=='validated'||!s)return null;
   if(!e.model_id||d.edge_model_id!==e.model_id||s.model_id!==e.model_id)return null;
   var at=Date.parse(s.asof||'');if(!isFinite(at)||Math.abs(Date.now()-at)>15*60*1000)return null;
   var dir=Number(s.dir);if(dir!==1&&dir!==-1)return null;
@@ -1914,13 +1936,15 @@ async function load(){
     var ms=await fetchJson('microstructure-status.json',true);
     var md=await fetchJson('microstructure-current.json',true);
     var me=await fetchJson('microstructure-edge-status.json',true);
+    var ml=await fetchJson('microstructure-live-config.json',true);
     tickData=a; wlData=b; ivData=c; fxData=d||fxData; orclMinutePayload=m||orclMinutePayload; orclHistoryPayload=h||orclHistoryPayload; sentimentBackfillData=sb||sentimentBackfillData;
-    microstructureStatus=ms||microstructureStatus; microstructureData=md||microstructureData; microstructureEdgeStatus=me||microstructureEdgeStatus;
+    microstructureStatus=ms||microstructureStatus; microstructureData=md||microstructureData; microstructureEdgeStatus=me||microstructureEdgeStatus; microstructureLiveConfig=ml||microstructureLiveConfig;
     fallbackMarket();
     syncRangeButtons();
     renderAll();
     renderSyncFooter(false);
     connectLiveMarket();
+    connectMicrostructureRelay();
     return true;
   }catch(e){
     var age=document.getElementById('freshAge'),q=document.getElementById('freshQuality');
