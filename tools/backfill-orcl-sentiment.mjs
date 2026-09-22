@@ -10,7 +10,7 @@ const BERLIN='Europe/Berlin';
 const REQUEST_GAP_MS=6500;
 const MAX_PAGES=140;
 const UA='Mozilla/5.0 (compatible; alantu-sentiment-backfill/1.0; +https://www.alantu.de/)';
-const REDDIT_SUBS=['stocks','investing','wallstreetbets','StockMarket','options','ValueInvesting','SecurityAnalysis'];
+const REDDIT_SUBS=['stocks','investing','wallstreetbets','StockMarket','ValueInvesting'];
 const ARCTIC='https://arctic-shift.photon-reddit.com/api';
 
 const QUERIES={
@@ -105,11 +105,11 @@ async function throttledFetch(url){
 }
 let archiveLastRequestAt=0;
 async function archiveFetch(url){
-  const wait=Math.max(0,700-(Date.now()-archiveLastRequestAt));
+  const wait=Math.max(0,450-(Date.now()-archiveLastRequestAt));
   if(wait)await sleep(wait);
   let lastErr;
-  for(let attempt=1;attempt<=3;attempt++){
-    const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),45000);
+  for(let attempt=1;attempt<=2;attempt++){
+    const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),25000);
     try{
       archiveLastRequestAt=Date.now();
       const r=await fetch(url,{headers:{'user-agent':UA,'accept':'application/json'},signal:ctl.signal});
@@ -123,35 +123,38 @@ async function archiveFetch(url){
 }
 async function fetchRedditArchive(cutoff,now){
   const out=[],seen=new Set();
-  const after=Math.floor((cutoff-WINDOW)/1000),before=Math.ceil(now/1000);
   for(const sub of REDDIT_SUBS){
-    for(const mode of ['posts','comments']){
-      try{
-        const u=new URL(ARCTIC+'/api/'+mode+'/search');
-        u.searchParams.set('subreddit',sub);
-        u.searchParams.set('after',String(after));
-        u.searchParams.set('before',String(before));
-        u.searchParams.set('sort','asc');
-        u.searchParams.set('limit','auto');
-        if(mode==='posts')u.searchParams.set('query','ORCL OR Oracle');
-        else u.searchParams.set('body','ORCL OR Oracle');
-        const j=await archiveFetch(u.toString()),arr=Array.isArray(j?.data)?j.data:[];
-        let kept=0;
-        for(const x of arr){
-          const time=Number(x?.created_utc)*1000;
-          const text=mode==='posts'?[x?.title,x?.selftext].filter(Boolean).join(' '):String(x?.body||'');
-          if(!Number.isFinite(time)||time<cutoff-WINDOW||time>now||!socialRelevantText(text))continue;
-          const key=(mode+':'+String(x?.id||''))||titleKey(text);
-          if(seen.has(key))continue;seen.add(key);
-          out.push({id:key,title:text,url:'https://www.reddit.com/r/'+sub,site:'reddit.com/r/'+sub,time,provider:'Reddit archive'});kept++;
+    for(let chunkStart=cutoff-WINDOW;chunkStart<now;chunkStart+=31*DAY){
+      const chunkEnd=Math.min(now,chunkStart+31*DAY);
+      for(const mode of ['posts','comments']){
+        try{
+          const u=new URL(ARCTIC+'/api/'+mode+'/search');
+          u.searchParams.set('subreddit',sub);
+          u.searchParams.set('after',String(Math.floor(chunkStart/1000)));
+          u.searchParams.set('before',String(Math.ceil(chunkEnd/1000)));
+          u.searchParams.set('sort','asc');
+          u.searchParams.set('limit','auto');
+          if(mode==='posts')u.searchParams.set('query','ORCL OR Oracle');
+          else u.searchParams.set('body','ORCL OR Oracle');
+          const j=await archiveFetch(u.toString()),arr=Array.isArray(j?.data)?j.data:[];
+          let kept=0;
+          for(const x of arr){
+            const time=Number(x?.created_utc)*1000;
+            const text=mode==='posts'?[x?.title,x?.selftext].filter(Boolean).join(' '):String(x?.body||'');
+            if(!Number.isFinite(time)||time<cutoff-WINDOW||time>now||!socialRelevantText(text))continue;
+            const key=mode+':'+String(x?.id||titleKey(text));
+            if(seen.has(key))continue;seen.add(key);
+            out.push({id:key,title:text,url:'https://www.reddit.com/r/'+sub,site:'reddit.com/r/'+sub,time,provider:'Reddit archive'});kept++;
+          }
+          if(arr.length||kept)console.log('Reddit archive',sub,mode,new Date(chunkStart).toISOString().slice(0,10),'raw',arr.length,'kept',kept);
+        }catch(e){
+          console.warn('Reddit archive failed',sub,mode,new Date(chunkStart).toISOString().slice(0,10),e.message);
         }
-        console.log('Reddit archive',sub,mode,'raw',arr.length,'kept',kept);
-      }catch(e){
-        console.warn('Reddit archive failed',sub,mode,e.message);
       }
     }
   }
   out.sort((a,b)=>a.time-b.time);
+  console.log('Reddit archive total kept',out.length);
   return out;
 }
 async function fetchPaged(query,label,cutoff){
