@@ -160,8 +160,33 @@ confidence = clamp(
 <p class="small">Wichtig: Live-Browserpfad und Fallbackpfad sind absichtlich getrennt. Der Fallback ist ein robuster Snapshot, nicht die Quelle des manuellen Sync-Zeitstempels.</p>
 </section>
 
+<section id="wave">
+<h2>3 · Wellenvektor: Crowd, Kurs und Volumen über Zeit</h2>
+<p>Der Wellenvektor ist bewusst <b>kein Daytrading-Speed-Signal</b>. Realtime-Kurse dürfen schnell aktualisieren; die Interpretation selbst wird langsamer und nur bei konsistenten Mehrfenster-Mustern neu bewertet.</p>
+<div class="formula">Preisrichtung:
+lineare Richtung + Persistenz + Effizienz
+über ca. 20 / 60 / 180 Minuten.
+
+Volumenfluss:
+signiertes 1-Minuten-Volumen als Proxy:
+Volumen × Vorzeichen der Preisänderung.
+Auswertung über ca. 30 / 90 Minuten.
+
+Crowd-Richtung:
+Stimmungsverlauf über ca. 90 / 360 Minuten.
+Zusätzlich wird geprüft, ob die beobachtete
+Social-/News-Masse in dieselbe Richtung wächst.
+
+Wichtig:
+Yahoo liefert Volumen, aber keine echte Käufer-/Verkäufer-Zuordnung.
+„Volumenfluss“ ist deshalb ein transparenter Proxy,
+kein echter Orderbuch- oder Trade-Tape-Saldo.</div>
+<p>Es wird <b>kein gemeinsamer Gesamtscore</b> gebildet. Die Oberfläche zeigt nur dann einen Wellenzustand, wenn mindestens zwei unabhängige Dimensionen tragen. Mögliche Zustände sind <b>„Welle baut sich auf“</b>, <b>„Welle bestätigt“</b>, <b>„Welle dreht“</b> und <b>„Welle läuft aus“</b>. Fehlt die Evidenz, bleibt die Zeile leer.</p>
+<p>Die Idee dahinter ist Timing statt Geschwindigkeit: interessant ist vor allem, wenn Crowd und Volumen bereits gemeinsam in eine Richtung laufen, während der Kurs noch nicht folgt, oder wenn der Kurs weiterläuft, während Crowd und Volumen bereits dagegen kippen. Das ist ein Strukturhinweis, keine garantierte Kursprognose.</p>
+</section>
+
 <section id="price">
-<h2>3 · Kurs und EUR-Umrechnung</h2>
+<h2>4 · Kurs und EUR-Umrechnung</h2>
 <div class="formula">Live ORCL USD = Yahoo WebSocket ORCL
 Live EURUSD   = Yahoo WebSocket EURUSD=X
 
@@ -174,7 +199,7 @@ dessen Zeitstempel ≤ dem Kurs-/Intrinsic-Zeitstempel ist.</div>
 </section>
 
 <section id="intrinsic">
-<h2>4 · Innerer Wert: exakte Berechnung</h2>
+<h2>5 · Innerer Wert: exakte Berechnung</h2>
 <p>Der innere Wert wird ausschließlich aus veröffentlichten Cashflow-/Aktien-Daten der Oracle-SEC-Filings abgeleitet. Kein EBITDA und kein „Adjusted EPS“ fließen als Bewertungsbasis ein.</p>
 <div id="modelKpis" class="grid"></div>
 
@@ -236,7 +261,7 @@ Innerer Wert je Aktie =
 </section>
 
 <section>
-<h2>5 · Grenzen</h2>
+<h2>6 · Grenzen</h2>
 <ul>
 <li>„Innerer Wert“ ist ein Modellwert, kein beobachtbarer Marktpreis.</li>
 <li>Oracle weist Maintenance CapEx nicht separat aus. Genau deshalb wird 0,8× / 1,0× / 1,2× Abschreibung als sichtbarer Korridor gerechnet.</li>
