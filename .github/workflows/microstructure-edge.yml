@@ -1,0 +1,85 @@
+name: Validate SIP edge
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/microstructure-core.mjs"
+      - "tools/microstructure-signal.mjs"
+      - "tools/validate-sip-edge.mjs"
+      - ".github/workflows/microstructure-edge.yml"
+  schedule:
+    - cron: "45 22 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: microstructure-edge
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      APCA_API_KEY_ID: ${{ secrets.APCA_API_KEY_ID }}
+      APCA_API_SECRET_KEY: ${{ secrets.APCA_API_SECRET_KEY }}
+      ALANTU_MARKET_FEED: sip
+      MICRO_SYMBOL: ORCL
+      EDGE_CALENDAR_DAYS: "45"
+      EDGE_STATUS_OUT: microstructure-edge-status.json
+      EDGE_REPORT_OUT: microstructure-edge-report.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Syntax check exact production model
+        run: |
+          node --check tools/microstructure-core.mjs
+          node --check tools/microstructure-signal.mjs
+          node --check tools/validate-sip-edge.mjs
+          node --check tools/apply-micro-edge.mjs
+      - name: Walk-forward SIP model
+        id: validate
+        shell: bash
+        run: |
+          set +e
+          node tools/validate-sip-edge.mjs
+          code=$?
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Validate edge status contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s microstructure-edge-status.json
+          jq -e '.provider=="alpaca" and .feed=="sip" and (.status=="unavailable" or .status=="unproven" or .status=="validated")' microstructure-edge-status.json >/dev/null
+          if [ "$(jq -r '.status' microstructure-edge-status.json)" = "validated" ]; then
+            jq -e '.configured==true and (.holdout.n>=40) and (.holdout.days>=10) and (.holdout.hit95[0]>0.5) and (.holdout.mean_net_bps>0.5) and (.holdout.median_net_bps>0)' microstructure-edge-status.json >/dev/null
+          fi
+      - name: Upload full evidence
+        if: ${{ hashFiles('microstructure-edge-report.json') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: sip-edge-evidence-${{ github.run_id }}
+          path: microstructure-edge-report.json
+          retention-days: 90
+      - name: Publish only status/model, never raw tape
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
+          export EDGE_STATUS_OUT=/tmp/microstructure-edge-status.json
+          export EDGE_REPORT_OUT=/tmp/microstructure-edge-report.json
+          node tools/validate-sip-edge.mjs || true
+          test -s /tmp/microstructure-edge-status.json
+          cp /tmp/microstructure-edge-status.json microstructure-edge-status.json
+          ! grep -R -E 'APCA_API_(KEY_ID|SECRET_KEY)' microstructure-edge-status.json
+          git add microstructure-edge-status.json
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name "sip-edge-validator"
+          git config user.email "sip-edge-validator@users.noreply.github.com"
+          git commit -m "Update SIP edge validation status"
+          git push origin HEAD:main
