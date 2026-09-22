@@ -67,7 +67,12 @@ function addL2Events(batch){
     const t=eventNs(x,'ts_event_ns');
     if(arr.length){
       const last=arr.at(-1),lt=eventNs(last,'ts_event_ns');
-      if(lt!=null&&(t<lt||(t===lt&&Number(x.sequence||0)<=Number(last.sequence||0))))continue;
+      const seq=Number(x.sequence||0),lastSeq=Number(last.sequence||0);
+      if(seq>0&&lastSeq>0){
+        if(seq<=lastSeq)continue;
+      }else if(lt!=null&&t<=lt){
+        continue;
+      }
     }
     arr.push(x);accepted++;lastL2At=Date.now();
     if(arr.length>5000)arr.splice(0,arr.length-5000);
