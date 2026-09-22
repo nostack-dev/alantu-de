@@ -1270,11 +1270,23 @@ function renderMarketFlowVisual(f){
   else if(f.kind==='l2'){
     phase='100E FORECAST';dir=f.dir;
     var eta=f.microSignal&&Number(f.microSignal.eta_seconds);
-    sub='L2 · nächste 100 Events'+(isFinite(eta)?' · ≈ '+(eta<10?eta.toLocaleString('de-DE',{maximumFractionDigits:1}):Math.round(eta))+' s':'');
+    var tr=f.microSignal&&f.microSignal.trajectory||{},lm=f.microSignal&&f.microSignal.latency||{};
+    var dtms=Number(tr.dt_ms),e2e=Number(lm.collector_latency_ms);
+    sub='L2 · +100 Events'
+      +(isFinite(eta)?' · ≈ '+(eta<10?eta.toLocaleString('de-DE',{maximumFractionDigits:2}):Math.round(eta))+' s':'')
+      +(isFinite(dtms)?' · Δt '+dtms.toLocaleString('de-DE',{maximumFractionDigits:3})+' ms':'')
+      +(isFinite(e2e)?' · E2E '+e2e.toLocaleString('de-DE',{maximumFractionDigits:1})+' ms':'');
   }
 
   var vals;
-  if(f.kind==='micro'&&f.microSignal&&f.microSignal.feature){
+  if(f.kind==='l2'&&f.microSignal&&f.microSignal.trajectory&&f.microSignal.trajectory.hdr){
+    var hh=f.microSignal.trajectory.hdr;
+    vals=[
+      {name:'Self',v:liveClamp(Number(hh.self&&hh.self.x)||0,-1,1)},
+      {name:'Lokal',v:liveClamp(Number(hh.local&&hh.local.x)||0,-1,1)},
+      {name:'Global',v:liveClamp(Number(hh.global&&hh.global.x)||0,-1,1)}
+    ];
+  }else if(f.kind==='micro'&&f.microSignal&&f.microSignal.feature){
     var mf=f.microSignal.feature,mt=(microstructureEdgeStatus&&microstructureEdgeStatus.thresholds)||{};
     var norm=function(v,m){v=Number(v);m=Math.max(1e-9,Number(m)||1);return liveClamp(v/m,-1,1);};
     vals=[
@@ -1386,6 +1398,16 @@ function connectMicrostructureRelay(){
       var d=JSON.parse(ev.data||'{}');
       if(d&&d.provider==='alpaca'&&d.feed==='sip'&&d.symbol==='ORCL'&&d.mode==='live-relay'){
         microstructureData=d;
+        lastFlowRenderAt=0;
+        try{renderMarketFlowVisual(getMarketWaveVector());}catch(e){}
+      }
+    }catch(e){}
+  });
+  es.addEventListener('l2',function(ev){
+    try{
+      var d=JSON.parse(ev.data||'{}'),l2=d&&d.l2;
+      if(d&&d.symbol==='ORCL'&&l2&&l2.provider==='databento'&&l2.dataset==='XNAS.ITCH'&&l2.schema==='mbp-10'){
+        microstructureData=Object.assign({},microstructureData||{},{l2:l2});
         lastFlowRenderAt=0;
         try{renderMarketFlowVisual(getMarketWaveVector());}catch(e){}
       }
