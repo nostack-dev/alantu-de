@@ -251,6 +251,12 @@ jobs:
           grep -q 'function microstructureShadowUsable' index.html
           grep -q 'function validatedMicrostructureSignal' index.html
           grep -q 'function validatedL2Forecast' index.html
+          grep -q "addEventListener('l2'" index.html
+          grep -q "name:'Self'" index.html
+          grep -q "name:'Lokal'" index.html
+          grep -q "name:'Global'" index.html
+          grep -q 'Δt ' index.html
+          grep -q 'E2E ' index.html
           grep -q "fetchJson('orcl-l2-model.json',true)" index.html
           grep -q "phase='100E FORECAST'" index.html
           grep -q 'Number(s.horizon_events)!==100' index.html
