@@ -885,154 +885,19 @@ function renderSyncFooter(error){
   btn.textContent=syncBusy?'↻ Sync …':'↻ Sync';
 }
 async function fetchJson(url,optional){
-  try{var r=await fetch(url+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json();}
-  catch(e){if(optional)return null;throw e;}
-}
-function liveClamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
-function liveHeadlineLean(title){
-  var s=String(title||'').toLowerCase();
-  var pos=['beat','beats','growth','surge','surges','rally','rallies','rise','rises','gain','gains','upgrade','upgraded','outperform','strong','record','backlog','contract','deal','boost','expands','expansion','demand','wins','win','bullish','buy rating'];
-  var neg=['debt','risk','risks','fall','falls','drop','drops','decline','declines','downgrade','downgraded','concern','concerns','lawsuit','probe','headwind','headwinds','cost','costs','capex','stress','stressed','junk bond','layoff','layoffs','slump','miss','misses','bearish','sell rating'];
-  var p=0,n=0,i;
-  for(i=0;i<pos.length;i++)if(s.indexOf(pos[i])>=0)p++;
-  for(i=0;i<neg.length;i++)if(s.indexOf(neg[i])>=0)n++;
-  return p>n?'bull':(n>p?'bear':'mixed');
-}
-function liveStoryAgeOk(ms){
-  return isFinite(ms)&&ms>0&&(Date.now()-ms)<=36*60*60*1000;
-}
-function normalizeTickerTickStory(x){
-  var ms=Number(x&&x.time);
-  if(!liveStoryAgeOk(ms))return null;
-  return {title:String(x.title||''),url:String(x.url||''),site:String(x.site||''),time:ms};
-}
-async function fetchTickerTick(q,n){
-  var u='https://api.tickertick.com/feed?q='+encodeURIComponent(q)+'&n='+(n||30)+'&_='+Date.now();
-  var r=await fetch(u,{cache:'no-store'});
-  if(!r.ok)throw new Error('TickerTick HTTP '+r.status);
-  var j=await r.json(), arr=(j&&j.stories)||[];
-  arr=arr.map(normalizeTickerTickStory).filter(Boolean);
-  if(!arr.length)throw new Error('TickerTick ohne frische Treffer');
-  return arr;
-}
-async function fetchGoogleNewsFallback(q){
-  var feed='https://news.google.com/rss/search?q='+encodeURIComponent(q+' when:1d')+'&hl=en-US&gl=US&ceid=US:en';
-  var u='https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(feed)+'&_='+Date.now();
-  var r=await fetch(u,{cache:'no-store'});
-  if(!r.ok)throw new Error('RSS-Fallback HTTP '+r.status);
-  var j=await r.json();
-  if(!j||j.status!=='ok'||!Array.isArray(j.items))throw new Error('RSS-Fallback ungültig');
-  var arr=j.items.map(function(x){
-    var ms=Date.parse(x.pubDate||'');
-    if(!liveStoryAgeOk(ms))return null;
-    return {title:String(x.title||''),url:String(x.link||''),site:'Google News RSS',time:ms};
-  }).filter(Boolean);
-  if(!arr.length)throw new Error('RSS-Fallback ohne frische Treffer');
-  return arr;
-}
-async function fetchFreshSignalSources(){
-  var news=null,social=null,providers=[];
-  try{
-    news=await fetchTickerTick('(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))',40);
-    providers.push('TickerTick News');
-  }catch(e){
-    news=await fetchGoogleNewsFallback('Oracle ORCL stock');
-    providers.push('Google News RSS');
-  }
-  try{
-    social=await fetchTickerTick('(and tt:orcl T:ugc)',30);
-    providers.push('TickerTick UGC');
-  }catch(e){
+  var remote='https://raw.githubusercontent.com/nostack-dev/alantu-de/main/'+url+'?t='+Date.now();
+  var local=url+'?t='+Date.now();
+  var candidates=[remote,local];
+  var lastErr=null;
+  for(var i=0;i<candidates.length;i++){
     try{
-      social=await fetchGoogleNewsFallback('site:reddit.com Oracle ORCL stock');
-      providers.push('Google News Reddit-Fallback');
-    }catch(_e){social=[];}
+      var r=await fetch(candidates[i],{cache:'no-store'});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      return await r.json();
+    }catch(e){lastErr=e;}
   }
-  if((!news||news.length<3)&&(!social||social.length<1))throw new Error('Keine belastbaren frischen Signalquellen');
-  return {news:news||[],social:social||[],providers:providers};
-}
-function deriveFreshSignal(src){
-  var items=src.news.concat(src.social);
-  var votes={bull:0,bear:0,mixed:0};
-  src.news.forEach(function(x){votes[liveHeadlineLean(x.title)]++;});
-  src.social.forEach(function(x){votes[liveHeadlineLean(x.title)]++;votes[liveHeadlineLean(x.title)]++;});
-  var total=Math.max(1,votes.bull+votes.bear+votes.mixed);
-  var bull=Math.round(100*votes.bull/total),bear=Math.round(100*votes.bear/total),mixed=liveClamp(100-bull-bear,0,100);
-  var net=bull-bear;
-  var conf=liveClamp(Math.round(48+Math.min(18,src.news.length)*1.1+Math.min(12,src.social.length)*1.4),45,82);
-  var signal=(net>=25&&conf>=60)?'buy':((net<=-25&&conf>=60)?'sell':'hold');
-  var direction=net>=12?'leicht_bullish_risk_on':(net<=-12?'leicht_bearish_risk_off':'mixed_cautious');
-  var magnitude=liveClamp(Math.round(28+Math.abs(net)*0.55),25,75);
-  var at=new Date().toISOString();
-  var orcl=((wlData&&wlData.stocks)||{}).ORCL||{};
-  var price=(liveMarket&&isFinite(Number(liveMarket.orclUsd)))?Number(liveMarket.orclUsd):Number(orcl.price);
-  if(!isFinite(price)||price<=0)price=null;
-  var newest=items.reduce(function(m,x){return Math.max(m,Number(x.time)||0);},0);
-  var newestAge=newest?Math.max(0,Math.round((Date.now()-newest)/60000)):null;
-  return {
-    at:at,bull:bull,bear:bear,mixed:mixed,net:net,confidence:conf,signal:signal,direction:direction,magnitude:magnitude,
-    price:price,providers:src.providers,news:src.news,social:src.social,newestAge:newestAge
-  };
-}
-function applyFreshSignal(s){
-  if(!tickData)tickData={};
-  tickData.tick=tickData.tick||{};
-  tickData.updated_at=s.at;
-  tickData.tick.tick_id=s.at;
-  tickData.tick.scraped_at=s.at;
-  tickData.tick.freshness={
-    freshest_absolute:s.at,
-    primary_signal:'Browser-Livecheck: '+s.providers.join(' + ')+(liveMarket.connected?' + Yahoo Live-Kurs':''),
-    quality:'live abgefragt'+(s.newestAge!=null?' · neuester Treffer '+s.newestAge+' Min alt':''),
-    scrape_berlin:s.at,
-    sample_window:'News/UGC ≤36h; Livecheck jetzt',
-    freshest_item_age:s.newestAge==null?'':(s.newestAge+' min'),
-    oldest_usable_signal:''
-  };
-  tickData.freshness=tickData.tick.freshness;
-  tickData.tick.totals={content_items_usable:s.news.length+s.social.length,breakdown:{websearch:s.news.length,reddit:s.social.length,x_posts:0,tiktok:0}};
-  tickData.tick.vector={
-    direction:s.direction,magnitude:s.magnitude,confidence:s.confidence,
-    early_signal:Math.abs(s.net)>=12,
-    early_signal_note:(s.social.length?s.social.length+' UGC/Social + ':'')+s.news.length+' aktuelle News'+(s.price?(' · ORCL $'+s.price.toFixed(2)):'')
-  };
-  tickData.tick.stock_signals=[{
-    symbol:'ORCL',name:'Oracle',hype_state:Math.abs(s.net)<15?'mixed':(s.net>0?'bullish':'bearish'),
-    signal:s.signal,confidence:s.confidence,social_impulse:liveClamp(Math.round(s.net/5),-20,20),
-    hype_bull:s.bull,hype_bear:s.bear,hype_net:s.net,
-    why:(s.social.length?s.social.length+' Social/UGC · ':'')+s.news.length+' aktuelle News'+(s.price?(' · ORCL $'+s.price.toFixed(2)):''),
-    evidence:{x_posts:0,reddit_posts:s.social.length,news:s.news.length,snippets:s.news.slice(0,3).map(function(x){return x.title;})},
-    links:{tradingview:'https://www.tradingview.com/symbols/ORCL/',yahoo:'https://finance.yahoo.com/quote/ORCL'},
-    price:s.price
-  }];
-
-  if(!wlData)wlData={stocks:{}};
-  wlData.stocks=wlData.stocks||{};
-  var o=wlData.stocks.ORCL=wlData.stocks.ORCL||{symbol:'ORCL',name:'Oracle',history:[]};
-  wlData.updated_at=s.at;
-  o.updated_at=s.at;o.signal=s.signal;o.social_impulse=liveClamp(Math.round(s.net/5),-20,20);o.impulse=o.social_impulse;
-  o.hype_bull=s.bull;o.hype_bear=s.bear;o.hype_mixed=s.mixed;o.hype_net=s.net;o.confidence=s.confidence;
-  o.hype_state=Math.abs(s.net)<15?'mixed':(s.net>0?'bullish':'bearish');
-  o.price=s.price||o.price;
-  o.why=(s.social.length?s.social.length+' Social/UGC · ':'')+s.news.length+' aktuelle News'+(s.price?(' · ORCL $'+s.price.toFixed(2)):'');
-  o.evidence={x_posts:0,reddit_posts:s.social.length,news:s.news.length,snippets:s.news.slice(0,3).map(function(x){return x.title;})};
-  o.latest={at:s.at,signal:s.signal,social_impulse:o.social_impulse,hype_bull:s.bull,hype_bear:s.bear,hype_net:s.net,confidence:s.confidence};
-  o.history=Array.isArray(o.history)?o.history:[];
-  var last=o.history.length?o.history[o.history.length-1]:null;
-  if(!last||Date.now()-new Date(last.at||0).getTime()>2*60*1000){
-    o.history.push({at:s.at,signal:s.signal,social_impulse:o.social_impulse,confidence:s.confidence,hype_bull:s.bull,hype_bear:s.bear,hype_mixed:s.mixed,hype_net:s.net,price:s.price});
-    if(o.history.length>600)o.history=o.history.slice(-600);
-  }
-  lastBrowserSyncAt=s.at;
-  syncLastError=false;
-  renderAll();
-  renderSyncFooter(false);
-}
-async function refreshFreshSignals(){
-  var src=await fetchFreshSignalSources();
-  var s=deriveFreshSignal(src);
-  applyFreshSignal(s);
-  return s;
+  if(optional)return null;
+  throw lastErr||new Error('Daten nicht verfügbar');
 }
 function liveClamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
 function liveHeadlineLean(title){
