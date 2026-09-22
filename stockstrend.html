@@ -481,7 +481,7 @@ function initChartPanels(){
     };
   });
 }
-var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null, orclHistoryPayload=null, sentimentBackfillData=null;
+var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null, orclHistoryPayload=null, sentimentBackfillData=null, microstructureStatus=null, microstructureData=null;
 var hypeChart=null, magChart=null, ivChart=null, pieChart=null;
 var fxBars=[], orclMinuteBars=[], orclDailyBars=[];
 var liveMarket={orclUsd:null,eurusd:null,prevOrclUsd:null,prevEurusd:null,at:null,connected:false,lastRenderedEur:null};
@@ -1346,6 +1346,12 @@ function scheduleLiveShock(){
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden)connectLiveMarket();});
 
+function microstructureShadowUsable(){
+  var s=microstructureStatus||{},d=microstructureData||{},q=s.quality||{},dq=d.quality||{};
+  if(s.mode!=='shadow'||s.configured!==true||q.status!=='usable'||dq.status!=='usable')return false;
+  var rows=Array.isArray(d.minutes)?d.minutes:[],last=rows.length?Date.parse(rows[rows.length-1].at||''):NaN;
+  return isFinite(last)&&Math.abs(Date.now()-last)<=15*60*1000;
+}
 function currentContext(){
   var t=(tickData&&tickData.tick)||{},v=t.vector||{},fr=t.freshness||{},orcl=((wlData&&wlData.stocks)||{}).ORCL||{};
   var lat=orcl.latest||{},tail=(orcl.history||[]).length?(orcl.history||[])[(orcl.history||[]).length-1]:null;
@@ -1884,7 +1890,10 @@ async function load(){
     var m=await fetchJson('orcl-minute.json',true);
     var h=await fetchJson('orcl-history.json',true);
     var sb=await fetchJson('orcl-sentiment-history.json',true);
+    var ms=await fetchJson('microstructure-status.json',true);
+    var md=await fetchJson('microstructure-current.json',true);
     tickData=a; wlData=b; ivData=c; fxData=d||fxData; orclMinutePayload=m||orclMinutePayload; orclHistoryPayload=h||orclHistoryPayload; sentimentBackfillData=sb||sentimentBackfillData;
+    microstructureStatus=ms||microstructureStatus; microstructureData=md||microstructureData;
     fallbackMarket();
     syncRangeButtons();
     renderAll();
