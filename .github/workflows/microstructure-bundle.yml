@@ -60,11 +60,6 @@ jobs:
           import json, math, os
           from pathlib import Path
           root=Path(os.environ["RUNNER_TEMP"])/"alantu-microstructure-complete"/"research"
-          a=json.loads((root/"fi2010-microstructure-proof.json").read_text())
-          b=json.loads(Path("research/microstructure/fi2010-microstructure-proof.json").read_text())
-          assert a==b, "proof JSON changed"
-          a=json.loads((root/"fi2010-microstructure-model.json").read_text())
-          b=json.loads(Path("research/microstructure/fi2010-microstructure-model.json").read_text())
           def eq(x,y,path=""):
               if isinstance(x,dict) and isinstance(y,dict):
                   assert x.keys()==y.keys(), path
@@ -76,6 +71,12 @@ jobs:
                   assert math.isclose(float(x),float(y),rel_tol=1e-10,abs_tol=1e-12), (path,x,y)
               else:
                   assert x==y, (path,x,y)
+          a=json.loads((root/"fi2010-microstructure-proof.json").read_text())
+          b=json.loads(Path("research/microstructure/fi2010-microstructure-proof.json").read_text())
+          eq(a,b)
+          a=json.loads((root/"fi2010-microstructure-model.json").read_text())
+          b=json.loads(Path("research/microstructure/fi2010-microstructure-model.json").read_text())
+          # same numerical-tolerance comparison for model and proof
           eq(a,b)
           PY
 
