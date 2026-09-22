@@ -652,11 +652,14 @@
         coverThickness:.16
       });
 
-      const COVER_W=PAGE_W+.30;
-      const COVER_H=PAGE_H+.30;
+      // Match the proven main-page hardcover geometry exactly:
+      // main = 3.85 × 5.15 around 3.52 × 4.80 paper.
+      // Keep those physical overhangs for arbitrary PDF aspect ratios.
+      const COVER_W=PAGE_W+.33;
+      const COVER_H=PAGE_H+.35;
       const COVER_T=.16;
-      // Same hinge as the sheet geometry. The extra .30 belongs only
-      // to the outer hardcover edge, never between page and binding.
+      // Same hinge as the sheet geometry. All extra cover width belongs
+      // to the outer edge, never between page and binding.
       const HINGE_X=-PAGE_W/2;
 
       frontCoverPivot=new THREE.Group();
