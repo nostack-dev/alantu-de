@@ -31,4 +31,6 @@ process.on('SIGTERM',()=>shutdown(0));
 process.on('SIGINT',()=>shutdown(0));
 
 run('node',['market-relay/server.mjs'],'relay');
-setTimeout(()=>run('python',['tools/databento-orcl-mbp10-live.py'],'l2-collector'),500);
+if(process.env.MARKET_RUNTIME_RELAY_ONLY!=='1'){
+  setTimeout(()=>run('python',['tools/databento-orcl-mbp10-live.py'],'l2-collector'),500);
+}
