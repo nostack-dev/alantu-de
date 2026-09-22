@@ -1,3 +1,98 @@
+export function sanitizeAlantuCoverTitle(value,fallback="ALANTU Exposé"){
+  const cleaned=String(value??"")
+    .replace(/\\n/g," ")
+    .replace(/[\r\n\t]+/g," ")
+    .replace(/\.pdf$/i,"")
+    .replace(/[_-]+/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+
+  return cleaned||fallback;
+}
+
+export function createAlantuCoverCanvas({
+  title,
+  brand="ALANTU",
+  subtitle="Exposé",
+  width=1200,
+  height=1600
+}={}){
+  const canvas=document.createElement("canvas");
+  canvas.width=width;
+  canvas.height=height;
+  const ctx=canvas.getContext("2d",{alpha:false});
+
+  ctx.fillStyle="#171713";
+  ctx.fillRect(0,0,width,height);
+
+  const pad=Math.round(width*.105);
+  const usable=width-pad*2;
+  const safeTitle=sanitizeAlantuCoverTitle(title);
+
+  ctx.textBaseline="alphabetic";
+
+  // Brand: small, quiet, spaced.
+  ctx.fillStyle="#b89a63";
+  ctx.font=`600 ${Math.round(width*.036)}px Arial, sans-serif`;
+  ctx.fillText(brand.toUpperCase(),pad,Math.round(height*.11));
+
+  // Minimal champagne rule.
+  ctx.fillRect(pad,Math.round(height*.145),Math.round(width*.075),Math.max(2,Math.round(width*.003)));
+
+  // Title: centered vertically, premium serif, max 3 lines.
+  let fontSize=Math.round(width*.092);
+  let lines=[];
+  const words=safeTitle.split(" ");
+
+  function layout(){
+    lines=[];
+    let line="";
+    for(const word of words){
+      const test=line?line+" "+word:word;
+      if(ctx.measureText(test).width>usable&&line){
+        lines.push(line);
+        line=word;
+      }else{
+        line=test;
+      }
+    }
+    if(line)lines.push(line);
+  }
+
+  do{
+    ctx.font=`400 ${fontSize}px Georgia, 'Times New Roman', serif`;
+    layout();
+    if(lines.length<=3)break;
+    fontSize-=4;
+  }while(fontSize>44);
+
+  if(lines.length>3){
+    lines=lines.slice(0,3);
+    let last=lines[2];
+    while(last.length>1&&ctx.measureText(last+"…").width>usable){
+      last=last.slice(0,-1);
+    }
+    lines[2]=last.trimEnd()+"…";
+  }
+
+  const lineHeight=Math.round(fontSize*1.14);
+  const blockHeight=(lines.length-1)*lineHeight;
+  let y=Math.round(height*.56-blockHeight/2);
+
+  ctx.fillStyle="#f4f0e8";
+  ctx.font=`400 ${fontSize}px Georgia, 'Times New Roman', serif`;
+  for(const line of lines){
+    ctx.fillText(line,pad,y);
+    y+=lineHeight;
+  }
+
+  ctx.fillStyle="#d9d0c2";
+  ctx.font=`400 ${Math.round(width*.031)}px Arial, sans-serif`;
+  ctx.fillText(subtitle,pad,Math.round(height*.79));
+
+  return canvas;
+}
+
 export function configureAlantuPageTexture(texture,{
   renderer,
   linearFilter,
