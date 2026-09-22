@@ -1,0 +1,222 @@
+name: Build exhaustive model package
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "research/microstructure/**"
+      - "tools/l2*"
+      - "tools/*l2*"
+      - "tools/*fi2010*"
+      - "tools/databento-*"
+      - "market-relay/**"
+      - "deploy/**"
+      - "Dockerfile*"
+      - ".github/workflows/orcl-l2-proof.yml"
+      - ".github/workflows/fi2010-proof.yml"
+      - ".github/workflows/fi2010-long-horizons.yml"
+      - ".github/workflows/fi2010-horizon-sweep.yml"
+      - ".github/workflows/model-complete-bundle.yml"
+      - "orcl-l2-model.json"
+      - "microstructure-live-config.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install reproducibility runtime
+        run: python -m pip install --disable-pip-version-check --quiet numpy
+
+      - name: Download exact FI-2010 source data
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/fi2010
+          curl -fL --retry 4 --connect-timeout 15 --max-time 300             'https://raw.githubusercontent.com/zcakhaa/DeepLOB-Deep-Convolutional-Neural-Networks-for-Limit-Order-Books/ff14d7c2fd38bdfc143389786993d0f0236d4eb8/data/data.zip'             -o /tmp/FI-2010-data.zip
+          test "$(git hash-object /tmp/FI-2010-data.zip)" = '2d8d7749caf622dd07e0df954413dc698129c766'
+          unzip -q /tmp/FI-2010-data.zip -d /tmp/fi2010
+
+      - name: Reproduce all public-data results
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/results
+          python tools/validate-fi2010-microstructure.py             /tmp/fi2010             /tmp/results/fi2010-microstructure-proof.json             /tmp/results/fi2010-microstructure-model.json
+          python tools/validate-fi2010-long-horizons.py             /tmp/fi2010             /tmp/results/fi2010-long-horizons.json
+          python tools/find-fi2010-event-horizon.py             /tmp/fi2010             /tmp/results/fi2010-horizon-sweep.json
+
+      - name: Prove research/live feature parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/test-l2-event-signal.mjs
+          node tools/dump-l2-feature-fixture.mjs > /tmp/l2-js-feature.json
+          PYTHONPATH=tools python tools/test_l2_feature_parity.py /tmp/l2-js-feature.json
+
+      - name: Assemble exhaustive package
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="/tmp/ALANTU-100E-HDR-DT-COMPLETE"
+          mkdir -p "$root"/{data,models,results,docs,src/research,src/live,deploy,workflows,ui,manifests}
+
+          cp research/microstructure/COMPLETE_MODEL_GUIDE.md "$root/00_README_FIRST.md"
+          cp research/microstructure/QUICK_START.md "$root/01_QUICK_START.md"
+          cp research/microstructure/ORCL_PROOF_VERDICT.md "$root/docs/"
+          cp research/microstructure/ORCL_100E_IMPLEMENTATION.md "$root/docs/"
+          cp research/microstructure/README.md "$root/docs/FI2010_RESEARCH_README.md"
+          cp research/microstructure/DATA_MANIFEST.json "$root/manifests/FI2010_DATA_MANIFEST.json"
+          cp research/microstructure/orcl-external-evidence.json "$root/results/"
+          cp research/microstructure/reproduce.sh "$root/src/research/reproduce-fi2010.sh"
+
+          cp /tmp/FI-2010-data.zip "$root/data/FI-2010-data.zip"
+          sha256sum /tmp/FI-2010-data.zip | sed 's#/tmp/##' > "$root/data/FI-2010-data.zip.sha256"
+
+          cp /tmp/results/fi2010-microstructure-model.json "$root/models/"
+          cp /tmp/results/fi2010-microstructure-proof.json "$root/results/"
+          cp /tmp/results/fi2010-long-horizons.json "$root/results/"
+          cp /tmp/results/fi2010-horizon-sweep.json "$root/results/"
+
+          cp orcl-l2-model.json "$root/models/orcl-l2-model-CURRENT-UNTRAINED.json"
+          cp microstructure-live-config.json "$root/deploy/" || true
+
+          cp tools/validate-fi2010-microstructure.py "$root/src/research/"
+          cp tools/validate-fi2010-long-horizons.py "$root/src/research/"
+          cp tools/find-fi2010-event-horizon.py "$root/src/research/"
+          cp tools/databento-orcl-mbp10-backfill.py "$root/src/research/"
+          cp tools/train-orcl-l2-100.py "$root/src/research/"
+          cp tools/l2_temporal_features.py "$root/src/research/"
+          cp tools/test_l2_feature_parity.py "$root/src/research/"
+
+          cp tools/l2-event-signal.mjs "$root/src/live/"
+          cp tools/test-l2-event-signal.mjs "$root/src/live/"
+          cp tools/dump-l2-feature-fixture.mjs "$root/src/live/"
+          cp tools/finalize-l2-model.mjs "$root/src/live/"
+          cp tools/databento-orcl-mbp10-live.py "$root/src/live/"
+          cp tools/microstructure-core.mjs "$root/src/live/"
+          cp tools/microstructure-signal.mjs "$root/src/live/"
+          cp tools/alpaca-microstructure-backfill.mjs "$root/src/live/"
+          cp tools/apply-micro-edge.mjs "$root/src/live/"
+          cp market-relay/server.mjs "$root/src/live/market-relay-server.mjs"
+
+          cp Dockerfile.market-relay "$root/deploy/"
+          cp Dockerfile.l2-collector "$root/deploy/"
+          cp deploy/market-stack.compose.yml "$root/deploy/"
+
+          cp .github/workflows/orcl-l2-proof.yml "$root/workflows/"
+          cp .github/workflows/fi2010-proof.yml "$root/workflows/"
+          cp .github/workflows/fi2010-long-horizons.yml "$root/workflows/"
+          cp .github/workflows/fi2010-horizon-sweep.yml "$root/workflows/"
+          cp .github/workflows/market-relay-image.yml "$root/workflows/"
+          cp .github/workflows/l2-collector-image.yml "$root/workflows/"
+
+          test -f index.html && cp index.html "$root/ui/alantu-index.html" || true
+          test -f stockstrend.html && cp stockstrend.html "$root/ui/stockstrend.html" || true
+
+          cat > "$root/MODEL_STATUS.json" <<'JSON'
+          {
+            "trained_benchmark_model": {
+              "file": "models/fi2010-microstructure-model.json",
+              "status": "trained",
+              "purpose": "public benchmark / research evidence",
+              "production_ORCL_model": false
+            },
+            "ORCL_hdr_dt_v1": {
+              "file": "models/orcl-l2-model-CURRENT-UNTRAINED.json",
+              "status": "unavailable",
+              "reason": "No 252+ day current ORCL XNAS.ITCH MBP-10 history has been supplied. No coefficients are fabricated.",
+              "required_data": "real ORCL top-10 order-book events with exact event timestamps; receive timestamps retained for latency measurements",
+              "horizon_events": 100,
+              "feature_version": "hdr-dt-v1",
+              "feature_count": 24
+            }
+          }
+          JSON
+
+          cat > "$root/WHAT_IS_AND_IS_NOT_INCLUDED.md" <<'EOF'
+          # Included
+
+          - trained FI-2010 benchmark model
+          - original FI-2010 ZIP used to train/test it
+          - exact benchmark proof results
+          - long-horizon results
+          - development-only horizon sweep
+          - published ORCL evidence summary
+          - complete ORCL hdr-dt-v1 feature implementation
+          - exact Python historical trainer
+          - exact JavaScript live inference
+          - Python/JS numerical parity tests
+          - Databento historical MBP-10 normalizer
+          - Databento live MBP-10 collector
+          - end-to-end timestamp/latency path
+          - market relay
+          - Docker/container deployment files
+          - production CI proof gates
+          - current fail-closed ORCL model contract
+          - ALANTU UI integration source present in this repository
+
+          # Not included
+
+          A trained current ORCL hdr-dt-v1 coefficient set is not included because the required
+          252+ day ORCL XNAS.ITCH MBP-10 historical feed has not been purchased/provided.
+          Creating coefficients without that dataset would be fabricated evidence.
+
+          Provider API keys and private relay tokens are never included.
+          EOF
+
+          python - <<'PY'
+          import json, subprocess, pathlib, os
+          root=pathlib.Path('/tmp/ALANTU-100E-HDR-DT-COMPLETE')
+          meta={
+            "package":"ALANTU-100E-HDR-DT-COMPLETE",
+            "repository":"nostack-dev/alantu-de",
+            "source_commit":os.environ["GITHUB_SHA"],
+            "built_by_run":os.environ["GITHUB_RUN_ID"],
+            "fi2010_upstream_commit":"ff14d7c2fd38bdfc143389786993d0f0236d4eb8",
+            "fi2010_git_blob_sha1":"2d8d7749caf622dd07e0df954413dc698129c766",
+            "feature_version":"hdr-dt-v1",
+            "horizon_events":100,
+            "feature_count":24,
+            "secrets_included":False
+          }
+          (root/'manifests'/'SOURCE_REVISION.json').write_text(json.dumps(meta,indent=2)+"\n")
+          PY
+
+          # No private credential values may enter the archive.
+          if grep -R -nE '(DATABENTO_API_KEY|APCA_API_SECRET_KEY|L2_INGEST_TOKEN)[[:space:]]*=[[:space:]]*["'\''"][A-Za-z0-9_\-]{12,}' "$root"; then
+            echo "Potential embedded secret detected" >&2
+            exit 2
+          fi
+
+          (
+            cd "$root"
+            find . -type f ! -path './manifests/SHA256SUMS.txt' -print0               | sort -z               | xargs -0 sha256sum > manifests/SHA256SUMS.txt
+          )
+
+          find "$root" -type f | sort > /tmp/package-files.txt
+          cat /tmp/package-files.txt
+
+      - name: Create final ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp
+          zip -q -r -0 ALANTU-100E-HDR-DT-COMPLETE.zip ALANTU-100E-HDR-DT-COMPLETE
+          sha256sum ALANTU-100E-HDR-DT-COMPLETE.zip | tee ALANTU-100E-HDR-DT-COMPLETE.zip.sha256
+          ls -lh ALANTU-100E-HDR-DT-COMPLETE.zip
+
+      - name: Upload final package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ALANTU-100E-HDR-DT-COMPLETE
+          path: |
+            /tmp/ALANTU-100E-HDR-DT-COMPLETE.zip
+            /tmp/ALANTU-100E-HDR-DT-COMPLETE.zip.sha256
+          retention-days: 90
+          compression-level: 0
