@@ -527,7 +527,8 @@
     frontCover.receiveShadow = true;
 
     const spine = new THREE.Mesh(new THREE.BoxGeometry(.12,5.10,.37),goldMat);
-    spine.position.set(-1.90,0,-.07);
+    // Spine sits immediately outside the page hinge; it never overlaps paper.
+    spine.position.set(HINGE_X-.06,0,-.07);
     spine.castShadow = true;
     root.add(spine);
 
@@ -669,7 +670,8 @@
 
     const COVER_W=3.85;
     const COVER_T=.16;
-    const HINGE_X=-1.90;
+    // One physical hinge for pages and both hard covers.
+    const HINGE_X=-PAGE_W/2;
     const frontCoverPivot=new THREE.Group();
     const endCoverPivot=new THREE.Group();
     frontCoverPivot.position.x=HINGE_X;
