@@ -38,7 +38,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: stockstrend-runtime
+  group: stockstrend-runtime-v2
   cancel-in-progress: true
 
 jobs:
