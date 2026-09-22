@@ -20,10 +20,6 @@ COPY tools/microstructure-signal.mjs ./tools/microstructure-signal.mjs
 COPY tools/l2-event-signal.mjs ./tools/l2-event-signal.mjs
 COPY tools/databento-orcl-mbp10-live.py ./tools/databento-orcl-mbp10-live.py
 COPY orcl-l2-model.json ./orcl-l2-model.json
-COPY deploy/start-market-runtime.sh ./start-market-runtime.sh
-
-RUN chmod +x ./start-market-runtime.sh
-
 EXPOSE 8080
 
-CMD ["./start-market-runtime.sh"]
+CMD ["sh","-c","node market-relay/server.mjs & exec python tools/databento-orcl-mbp10-live.py"]
