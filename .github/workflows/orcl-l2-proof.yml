@@ -15,6 +15,8 @@ on:
       - "tools/databento-orcl-mbp10-live.py"
       - "tools/finalize-l2-model.mjs"
       - ".github/workflows/orcl-l2-proof.yml"
+  schedule:
+    - cron: "35 22 * * 1-5"
   workflow_dispatch:
     inputs:
       dataset:
@@ -33,16 +35,22 @@ on:
         required: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   syntax:
     runs-on: ubuntu-latest
+    outputs:
+      databento_configured: ${{ steps.credential.outputs.configured }}
     env:
       DATABENTO_API_KEY_PRESENT: ${{ secrets.DATABENTO_API_KEY != '' }}
     steps:
       - name: Report provider credential state
-        run: echo "DATABENTO_CONFIGURED=$DATABENTO_API_KEY_PRESENT"
+        id: credential
+        shell: bash
+        run: |
+          echo "DATABENTO_CONFIGURED=$DATABENTO_API_KEY_PRESENT"
+          echo "configured=$DATABENTO_API_KEY_PRESENT" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
       - run: |
           python -m py_compile tools/databento-orcl-mbp10-backfill.py tools/databento-orcl-cost.py tools/train-orcl-l2-100.py tools/databento-orcl-mbp10-live.py tools/l2_temporal_features.py tools/test_l2_feature_parity.py
@@ -55,19 +63,29 @@ jobs:
           python tools/test_l2_feature_parity.py /tmp/l2-js-feature.json
 
   prove:
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && needs.syntax.outputs.databento_configured == 'true' }}
     needs: syntax
     runs-on: ubuntu-latest
     env:
       DATABENTO_API_KEY: ${{ secrets.DATABENTO_API_KEY }}
-      L2_DATASET: ${{ inputs.dataset }}
-      L2_START: ${{ inputs.start }}
-      L2_END: ${{ inputs.end }}
+      L2_DATASET: ${{ github.event_name == 'workflow_dispatch' && inputs.dataset || 'MEMX.MEMOIR' }}
       L2_OUT_DIR: orcl-l2-days
       L2_COST_OUT: orcl-l2-cost.json
       L2_MAX_COST_USD: "125"
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Resolve chronological proof window
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "L2_START=${{ inputs.start }}" >> "$GITHUB_ENV"
+            echo "L2_END=${{ inputs.end }}" >> "$GITHUB_ENV"
+          else
+            echo "L2_START=$(date -u -d '430 days ago' +%F)" >> "$GITHUB_ENV"
+            echo "L2_END=$(date -u +%F)" >> "$GITHUB_ENV"
+          fi
       - name: Require real provider credential
         run: test -n "$DATABENTO_API_KEY"
       - name: Install exact data runtime
@@ -108,3 +126,35 @@ jobs:
             orcl-l2-days/manifest.json
             orcl-l2-cost.json
           retention-days: 90
+      - name: Stage publication payload
+        shell: bash
+        run: |
+          cp orcl-l2-model.json /tmp/orcl-l2-model.json
+          cp orcl-l2-proof.json /tmp/orcl-l2-proof.json
+          jq '{
+            status:.status,
+            symbol:.symbol,
+            dataset:.dataset,
+            schema:.schema,
+            feature_version:.feature_version,
+            horizon_events:.horizon_events,
+            model_id:.model_id,
+            evidence:.evidence,
+            updated_at:(now|todate)
+          }' /tmp/orcl-l2-model.json > /tmp/orcl-l2-proof-status.json
+      - name: Publish proof result fail-closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
+          cp /tmp/orcl-l2-proof-status.json orcl-l2-proof-status.json
+          if [ "$(jq -r '.status' /tmp/orcl-l2-model.json)" = "validated" ]; then
+            cp /tmp/orcl-l2-model.json orcl-l2-model.json
+          fi
+          git add orcl-l2-proof-status.json orcl-l2-model.json
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name "orcl-l2-validator"
+          git config user.email "orcl-l2-validator@users.noreply.github.com"
+          git commit -m "Publish ORCL 100E L2 proof result"
+          git push origin HEAD:main
