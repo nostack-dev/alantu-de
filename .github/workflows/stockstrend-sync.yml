@@ -361,8 +361,14 @@ jobs:
           const fresh = Date.parse(status?.updated_at || '');
           if (!Number.isFinite(fresh)) throw new Error('runtime-status timestamp invalid');
           const ageMs = Date.now() - fresh;
-          if (ageMs < -5*60*1000 || ageMs > 15*60*1000) {
-            throw new Error('runtime snapshot not fresh: ageMs='+ageMs);
+          if (ageMs < -5*60*1000) {
+            throw new Error('runtime snapshot timestamp is in the future: ageMs='+ageMs);
+          }
+          if (ageMs > 36*60*60*1000) {
+            throw new Error('runtime snapshot too old even for last-known-good: ageMs='+ageMs);
+          }
+          if (ageMs > 15*60*1000) {
+            console.log('Runtime snapshot is stale but valid last-known-good; UI must show its timestamp. ageMs='+ageMs);
           }
           if (watch.updated_at !== status.updated_at) throw new Error('watchlist/runtime timestamp mismatch');
           if (trend?.tick?.freshness?.freshest_absolute !== status.updated_at) throw new Error('trend/runtime freshness mismatch');
