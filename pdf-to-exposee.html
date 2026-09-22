@@ -878,8 +878,15 @@
       const fullscreen=document.fullscreenElement===stage||document.webkitFullscreenElement===stage;
       if(w<560&&!fullscreen){
         camera.fov=31;
-        root.scale.setScalar(.70);
-        root.position.set(.64,.07,0);
+
+        // Mobile portrait fit is derived from the full physical turn envelope,
+        // not just the resting page. This keeps the outer edge visible even
+        // around 75–100% of a turn on 320–430 px devices.
+        const mobileScale=Math.max(.52,Math.min(.69,.56+(w-300)*.001636));
+        const mobileX=Math.max(.96,Math.min(1.20,.96+Math.max(0,w-300)*.00218));
+
+        root.scale.setScalar(mobileScale);
+        root.position.set(mobileX,.07,0);
       }else{
         camera.fov=30;
         const aspectComp=bookAspect>.85?.70:.76;
