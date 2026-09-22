@@ -1,0 +1,7 @@
+{
+  "enabled": false,
+  "endpoint": "https://market.alantu.de/v1/stream?symbol=ORCL",
+  "transport": "sse",
+  "provider": "alpaca",
+  "feed": "sip"
+}
