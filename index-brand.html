@@ -486,6 +486,10 @@
     backCover.receiveShadow = true;
     root.add(backCover);
 
+    const frontCover = new THREE.Mesh(new THREE.BoxGeometry(3.85,5.15,.16),coverMat.clone());
+    frontCover.castShadow = true;
+    frontCover.receiveShadow = true;
+
     const pageBlock = new THREE.Mesh(new THREE.BoxGeometry(3.58,4.88,.26),paperEdgeMat);
     pageBlock.position.set(.07,0,-.06);
     pageBlock.castShadow = true;
@@ -622,15 +626,43 @@
     const rightZ=i=>.17-i*.018;
     const leftZ=i=>.17+i*.018;
 
-    {
-      const support=computeAlantuBookSupportZ({
-        totalLeaves,
-        rightZ,
-        pageBlockThickness:.26,
-        coverThickness:.16
-      });
-      pageBlock.position.z=support.pageBlockCenterZ;
-      backCover.position.z=support.backCoverCenterZ;
+    const support=computeAlantuBookSupportZ({
+      totalLeaves,
+      rightZ,
+      pageBlockThickness:.26,
+      coverThickness:.16
+    });
+    pageBlock.position.z=support.pageBlockCenterZ;
+
+    const COVER_W=3.85;
+    const COVER_T=.16;
+    const HINGE_X=-1.90;
+    const frontCoverPivot=new THREE.Group();
+    const endCoverPivot=new THREE.Group();
+    frontCoverPivot.position.x=HINGE_X;
+    endCoverPivot.position.x=HINGE_X;
+    root.add(frontCoverPivot,endCoverPivot);
+
+    frontCover.position.set(COVER_W/2,0,0);
+    backCover.position.set(COVER_W/2,0,0);
+    frontCoverPivot.add(frontCover);
+    endCoverPivot.add(backCover);
+
+    const startCoverOpenZ=support.backCoverCenterZ;
+    const startCoverClosedZ=rightZ(0)+.010+COVER_T/2;
+    const endCoverOpenZ=support.backCoverCenterZ;
+    const endCoverClosedZ=leftZ(totalLeaves-1)+.010+COVER_T/2;
+
+    function setStartCoverProgress(progress){
+      const p=Math.max(0,Math.min(1,progress));
+      frontCoverPivot.rotation.y=-Math.PI*(1-p);
+      frontCoverPivot.position.z=startCoverOpenZ+(startCoverClosedZ-startCoverOpenZ)*p;
+    }
+
+    function setEndCoverProgress(progress){
+      const p=Math.max(0,Math.min(1,progress));
+      endCoverPivot.rotation.y=-Math.PI*p;
+      endCoverPivot.position.z=endCoverOpenZ+(endCoverClosedZ-endCoverOpenZ)*p;
     }
     const basePageGeom=new THREE.PlaneGeometry(PAGE_W,PAGE_H,30,1);
     basePageGeom.translate(PAGE_W/2,0,0);
@@ -710,6 +742,8 @@
       getTotalLeaves:()=>totalLeaves,
       rightZ,
       leftZ,
+      setStartCoverProgress,
+      setEndCoverProgress,
       prefersReduced,
       onStateChange:updateUI,
       nextButton:nextBtn,
