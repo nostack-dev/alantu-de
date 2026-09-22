@@ -1,0 +1,8 @@
+{
+  "provider": "alpaca",
+  "feed": "sip",
+  "symbol": "ORCL",
+  "status": "unavailable",
+  "configured": false,
+  "reasons": ["missing_credentials"]
+}
