@@ -21,69 +21,86 @@ jobs:
       - name: Capture
         run: |
           python3 -m http.server 4173 > /tmp/alantu-http.log 2>&1 &
+          mkdir -p screenshots
           cat > audit.mjs <<'JS'
           import { chromium } from "playwright";
+          import fs from "node:fs";
+
           const browser=await chromium.launch({headless:true});
           const wait=ms=>new Promise(r=>setTimeout(r,ms));
-const diagnostics=[];
-async function diag(page,label){
-  diagnostics.push({
-    label,
-    count:await page.locator("#pageCount").textContent().catch(()=>null),
-    prevDisabled:await page.locator("#prevBtn").isDisabled().catch(()=>null),
-    nextDisabled:await page.locator("#nextBtn").isDisabled().catch(()=>null)
-  });
-}
+          const diagnostics=[];
+
+          async function diag(page,label){
+            diagnostics.push({
+              label,
+              count:await page.locator("#pageCount").textContent().catch(()=>null),
+              prevDisabled:await page.locator("#prevBtn").isDisabled().catch(()=>null),
+              nextDisabled:await page.locator("#nextBtn").isDisabled().catch(()=>null)
+            });
+          }
+
+          async function click(page,id){
+            await page.evaluate(id=>document.querySelector(id)?.click(),id);
+            await wait(1200);
+          }
 
           async function shotMain(viewport,namePrefix){
             const page=await browser.newPage({viewport});
-            await page.goto("http://127.0.0.1:4173/index-brand.html?audit=1",{waitUntil:"networkidle"});
-            await wait(1000);
-            await page.screenshot({path:`screenshots/${namePrefix}-open.png`,fullPage:false}); await diag(page,`${namePrefix}-open`);
+            await page.goto("http://127.0.0.1:4173/index-brand.html?audit=2",{waitUntil:"networkidle"});
+            await wait(800);
 
-            await page.evaluate(()=>document.querySelector("#prevBtn")?.click());
-            await wait(1200);
-            await page.screenshot({path:`screenshots/${namePrefix}-front-closed.png`,fullPage:false}); await diag(page,`${namePrefix}-front-closed`);
+            await page.screenshot({path:`screenshots/${namePrefix}-open.png`});
+            await diag(page,`${namePrefix}-open`);
 
-            await page.evaluate(()=>document.querySelector("#nextBtn")?.click());
-            await wait(1200);
-            for(let i=0;i<3;i++){await page.evaluate(()=>document.querySelector("#nextBtn")?.click());await wait(1100);}
-            await page.screenshot({path:`screenshots/${namePrefix}-last-open.png`,fullPage:false}); await diag(page,`${namePrefix}-last-open`);
-            await page.evaluate(()=>document.querySelector("#nextBtn")?.click());
-            await wait(1200);
-            await page.screenshot({path:`screenshots/${namePrefix}-end-closed.png`,fullPage:false}); await diag(page,`${namePrefix}-end-closed`);
+            await click(page,"#prevBtn");
+            await page.screenshot({path:`screenshots/${namePrefix}-front-closed.png`});
+            await diag(page,`${namePrefix}-front-closed`);
+
+            await click(page,"#nextBtn");
+            for(let i=0;i<3;i++) await click(page,"#nextBtn");
+            await page.screenshot({path:`screenshots/${namePrefix}-last-open.png`});
+            await diag(page,`${namePrefix}-last-open`);
+
+            await click(page,"#nextBtn");
+            await page.screenshot({path:`screenshots/${namePrefix}-end-closed.png`});
+            await diag(page,`${namePrefix}-end-closed`);
+
             await page.close();
           }
 
           async function makePdf(){
-            const p=await browser.newPage({viewport:{width:900,height:1200}});
+            const page=await browser.newPage({viewport:{width:900,height:1200}});
             let html='<style>@page{size:A4;margin:0}body{margin:0;font-family:Arial}section{height:1122px;padding:90px;box-sizing:border-box;page-break-after:always;background:#f4f0e8;color:#171713}h1{font:64px Georgia;margin-top:250px}p{font-size:28px;line-height:1.45}</style>';
             const titles=["Villa am See","Lage","Architektur","Wohnen","Grundriss","Kontakt"];
             for(let i=0;i<titles.length;i++) html+=`<section><div style="letter-spacing:.2em;color:#8d7347">ALANTU</div><h1>${titles[i]}</h1><p>Premium Exposé · Seite ${i+1}</p></section>`;
-            await p.setContent(html);
-            await p.pdf({path:"/tmp/sample.pdf",format:"A4",printBackground:true});
-            await p.close();
+            await page.setContent(html);
+            await page.pdf({path:"/tmp/sample.pdf",format:"A4",printBackground:true});
+            await page.close();
           }
 
           async function shotPdf(viewport,namePrefix){
             const page=await browser.newPage({viewport});
-            await page.goto("http://127.0.0.1:4173/pdf-to-exposee.html?audit=1",{waitUntil:"networkidle"});
+            await page.goto("http://127.0.0.1:4173/pdf-to-exposee.html?audit=2",{waitUntil:"networkidle"});
             await page.locator("#pdfInput").setInputFiles("/tmp/sample.pdf");
             await page.waitForFunction(()=>document.querySelector("#status")?.textContent?.includes("Seiten bereit"),null,{timeout:30000});
-            await wait(700);
-            await page.screenshot({path:`screenshots/${namePrefix}-open.png`,fullPage:false});
+            await wait(800);
 
-            await page.evaluate(()=>document.querySelector("#prevBtn")?.click());
-            await wait(1200);
-            await page.screenshot({path:`screenshots/${namePrefix}-front-closed.png`,fullPage:false});
+            await page.screenshot({path:`screenshots/${namePrefix}-open.png`});
+            await diag(page,`${namePrefix}-open`);
 
-            await page.evaluate(()=>document.querySelector("#nextBtn")?.click());
-            await wait(1200);
-            for(let i=0;i<3;i++){await page.evaluate(()=>document.querySelector("#nextBtn")?.click());await wait(1100);}
-            await page.screenshot({path:`screenshots/${namePrefix}-last-open.png`,fullPage:false});
-            await page.evaluate(()=>document.querySelector("#nextBtn")?.click());
-            await wait(1200);
-            await page.screenshot({path:`screenshots/${namePrefix}-end-closed.png`,fullPage:false});
+            await click(page,"#prevBtn");
+            await page.screenshot({path:`screenshots/${namePrefix}-front-closed.png`});
+            await diag(page,`${namePrefix}-front-closed`);
+
+            await click(page,"#nextBtn");
+            for(let i=0;i<3;i++) await click(page,"#nextBtn");
+            await page.screenshot({path:`screenshots/${namePrefix}-last-open.png`});
+            await diag(page,`${namePrefix}-last-open`);
+
+            await click(page,"#nextBtn");
+            await page.screenshot({path:`screenshots/${namePrefix}-end-closed.png`});
+            await diag(page,`${namePrefix}-end-closed`);
+
             await page.close();
           }
 
@@ -92,10 +109,10 @@ async function diag(page,label){
           await shotPdf({width:1600,height:1100},"pdf-desktop");
           await shotMain({width:390,height:844},"main-mobile");
           await shotPdf({width:390,height:844},"pdf-mobile");
-          await import("node:fs").then(fs=>fs.writeFileSync("screenshots/diagnostics.json",JSON.stringify(diagnostics,null,2)));
-await browser.close();
+
+          fs.writeFileSync("screenshots/diagnostics.json",JSON.stringify(diagnostics,null,2));
+          await browser.close();
           JS
-          mkdir -p screenshots
           node audit.mjs
       - uses: actions/upload-artifact@v4
         with:
