@@ -46,6 +46,10 @@ def event_time(df):
 def receive_time(df):
     if "ts_recv" in df.columns:
         return pd.to_datetime(df["ts_recv"],utc=True,errors="coerce")
+    # Databento indexes schemas that contain ts_recv by the receive timestamp.
+    if "ts_event" in df.columns:
+        idx=pd.to_datetime(df.index,utc=True,errors="coerce")
+        return pd.Series(idx,index=df.index)
     return pd.Series(pd.NaT,index=df.index,dtype="datetime64[ns, UTC]")
 
 def extract(df,day):
