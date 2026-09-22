@@ -225,6 +225,11 @@ jobs:
           grep -q 'function hdrImpulseVector' index.html
           grep -q 'function runHdrFreshAsync' index.html
           grep -q 'function microstructureShadowUsable' index.html
+          grep -q 'function validatedMicrostructureSignal' index.html
+          grep -q "fetchJson('microstructure-edge-status.json',true)" index.html
+          grep -q "phase='SIP EDGE'" index.html
+          grep -q 'd.edge_model_id!==e.model_id' index.html
+          grep -q 's.model_id!==e.model_id' index.html
           ! grep -q 'APCA_API_SECRET_KEY' index.html
           ! grep -q 'APCA_API_KEY_ID' index.html
           grep -q 'new Worker(url)' index.html
