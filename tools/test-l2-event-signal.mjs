@@ -9,6 +9,7 @@ function makeEvent(i){
     at:new Date(Number(ns/1000000n)).toISOString(),
     ts_event_ns:String(ns),
     ts_recv_ns:String(ns+100000n),
+    ts_out_ns:String(ns+150000n),
     ts_local_recv_ns:String(ns+300000n),
     sequence:i,
     levels:Array.from({length:10},(_,j)=>({
@@ -35,7 +36,9 @@ const clock=estimateEventClock(hist,100);
 assert(clock.events_per_second>999&&clock.events_per_second<1001);
 assert(clock.eta_seconds>.099&&clock.eta_seconds<.101);
 const lm=latencyMetrics(event);
-assert(Math.abs(lm.provider_latency_ms-.1)<1e-9);
+assert(Math.abs(lm.provider_capture_latency_ms-.1)<1e-9);
+assert(Math.abs(lm.provider_gateway_ms-.05)<1e-9);
+assert(Math.abs(lm.network_to_collector_ms-.15)<1e-9);
 assert(Math.abs(lm.collector_latency_ms-.3)<1e-9);
 
 const model={
