@@ -436,7 +436,7 @@
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-    import { createAlantuBookCore, computeAlantuBookSupportZ } from "./alantu-book-core.js";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture } from "./alantu-book-core.js";
 
     const canvas = document.getElementById("bookCanvas");
     const stage = document.getElementById("stage");
@@ -450,7 +450,7 @@
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const renderer = new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:"high-performance"});
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.5));
+    renderer.setPixelRatio(Math.min(Math.max(window.devicePixelRatio || 1,1.5),2.5));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -513,8 +513,8 @@
 
     function textureFor(index){
       const c=document.createElement("canvas");
-      const TEX_SCALE=2;
-      c.width=900*TEX_SCALE;c.height=1220*TEX_SCALE;
+      const TEX_SCALE=2.5;
+      c.width=Math.round(900*TEX_SCALE);c.height=Math.round(1220*TEX_SCALE);
       const ctx=c.getContext("2d");
       ctx.scale(TEX_SCALE,TEX_SCALE);
       ctx.fillStyle="#f4f0e8";ctx.fillRect(0,0,900,1220);
@@ -600,9 +600,11 @@
         ctx.font="19px Arial";ctx.fillStyle="#bfb6aa";ctx.fillText("+49 89 123 45 67 · berger@beispiel-immobilien.de",86,1100);
       }
       const tex=new THREE.CanvasTexture(c);
-      tex.colorSpace=THREE.SRGBColorSpace;
-      tex.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);
-      return tex;
+      return configureAlantuPageTexture(tex,{
+        renderer,
+        linearFilter:THREE.LinearFilter,
+        colorSpace:THREE.SRGBColorSpace
+      });
     }
 
     function wrap(ctx,text,x,y,maxWidth,lineHeight){
