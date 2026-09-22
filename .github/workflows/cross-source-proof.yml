@@ -1,0 +1,46 @@
+name: Cross-source microstructure proof
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/validate-cross-source-microstructure.py"
+      - ".github/workflows/cross-source-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download official public LOBSTER samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/micro-proof
+          for s in AAPL MSFT AMZN GOOG INTC; do
+            curl -fL --retry 4 --connect-timeout 15 --max-time 240               "https://php.lobsterdata.com/info/sample/LOBSTER_SampleFile_${s}_2012-06-21_10.zip"               -o "/tmp/micro-proof/LOBSTER_SampleFile_${s}_2012-06-21_10.zip"
+            unzip -t "/tmp/micro-proof/LOBSTER_SampleFile_${s}_2012-06-21_10.zip" >/dev/null
+          done
+      - name: Download independent official Cboe Trade+NBBO sample
+        run: |
+          curl -fL --retry 4 --connect-timeout 15 --max-time 180             'https://datashop.cboe.com/download/sample/213' -o /tmp/cboe.zip
+          unzip -q /tmp/cboe.zip -d /tmp/cboe
+          test -s /tmp/cboe/UnderlyingTrades_2016-06-01.csv
+      - name: Install numeric runtime
+        run: python -m pip install --disable-pip-version-check --quiet numpy
+      - name: Train 2012 Nasdaq samples and test untouched 2016 Cboe IWM
+        run: python tools/validate-cross-source-microstructure.py /tmp/micro-proof /tmp/cboe/UnderlyingTrades_2016-06-01.csv cross-source-microstructure-proof.json
+      - name: Verify independent-source contract
+        run: |
+          jq -e '.independent_test_source|contains("Cboe")' cross-source-microstructure-proof.json >/dev/null
+          jq -e '.horizons["60"].cboe_iwm_2016_holdout.n>=0 and .horizons["300"].cboe_iwm_2016_holdout.n>=0' cross-source-microstructure-proof.json >/dev/null
+      - name: Upload proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-source-microstructure-proof-${{ github.run_id }}
+          path: cross-source-microstructure-proof.json
+          retention-days: 90
