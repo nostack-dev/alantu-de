@@ -38,13 +38,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cid="$(docker run -d --rm -e MARKET_RUNTIME_RELAY_ONLY=1 -p 18080:8080 alantu-market-runtime:test)"
+          cid="$(docker run -d --rm -p 18080:8080 alantu-market-runtime:test)"
           trap 'docker stop "$cid" >/dev/null 2>&1 || true' EXIT
           for i in $(seq 1 40); do
             if curl -fsS http://127.0.0.1:18080/health -o /tmp/health.json; then break; fi
             sleep .25
           done
-          jq -e '.ok==true and .l2.dataset=="XNAS.ITCH"' /tmp/health.json >/dev/null
+          jq -e '.ok==true and .l2.dataset=="XNAS.ITCH" and .l2.model_status=="unavailable" and .l2.contract=="blocked"' /tmp/health.json >/dev/null
+          docker inspect -f '{{.State.Running}}' "$cid" | grep -qx true
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
