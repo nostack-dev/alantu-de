@@ -1,0 +1,5 @@
+FROM python:3.12-slim
+WORKDIR /app
+RUN pip install --no-cache-dir databento
+COPY tools/databento-orcl-mbp10-live.py ./databento-orcl-mbp10-live.py
+CMD ["python","databento-orcl-mbp10-live.py"]
