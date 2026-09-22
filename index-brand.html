@@ -722,6 +722,11 @@
     let bookCore=null;
 
     function updateUI(state){
+      // The static right-hand paper block represents only pages still waiting
+      // on the right. Once the final real leaf has landed on the left it must
+      // disappear, otherwise closing the back cover leaves a white ghost slab.
+      pageBlock.visible=state.currentLeaf<totalLeaves;
+
       const shownLeaf=state.activeTurn
         ? (state.activeTurn.progress>=.5?state.activeTurn.index+1:state.activeTurn.index)
         : state.currentLeaf;
