@@ -27,6 +27,10 @@ def ts_iso(ns):
 
 def normalize(r):
     levels=[]
+    ts_event_ns=int(getattr(r,"ts_event"))
+    ts_recv_raw=getattr(r,"ts_recv",0)
+    ts_recv_ns=int(ts_recv_raw) if ts_recv_raw is not None else 0
+    ts_local_recv_ns=time.time_ns()
     raw=getattr(r,"levels",None)
     if raw is None or len(raw)<10:return None
     for i in range(10):
@@ -37,7 +41,11 @@ def normalize(r):
         levels.append({"bid_px":bp,"ask_px":ap,"bid_sz":bs,"ask_sz":a})
     return {
       "provider":"databento","dataset":DATASET,"schema":"mbp-10","symbol":SYMBOL,
-      "at":ts_iso(getattr(r,"ts_event")),"sequence":int(getattr(r,"sequence",0)),
+      "at":ts_iso(ts_event_ns),
+      "ts_event_ns":str(ts_event_ns),
+      "ts_recv_ns":str(ts_recv_ns) if ts_recv_ns>0 else None,
+      "ts_local_recv_ns":str(ts_local_recv_ns),
+      "sequence":int(getattr(r,"sequence",0)),
       "levels":levels
     }
 
@@ -52,12 +60,12 @@ def post_batch(batch):
 def worker():
     pending=[];last=time.monotonic()
     while not stop:
-        timeout=max(0.01,.10-(time.monotonic()-last))
+        timeout=max(0.001,.01-(time.monotonic()-last))
         try:
             pending.append(q.get(timeout=timeout))
         except queue.Empty:
             pass
-        if pending and (len(pending)>=50 or time.monotonic()-last>=.10):
+        if pending and (len(pending)>=20 or time.monotonic()-last>=.01):
             try:
                 post_batch(pending)
                 pending.clear();last=time.monotonic()
