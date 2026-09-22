@@ -5,6 +5,8 @@ on:
     branches: ["main"]
     paths:
       - "Dockerfile.market-runtime"
+      - "market-runtime/**"
+      - "railway.json"
       - "market-relay/server.mjs"
       - "tools/microstructure-core.mjs"
       - "tools/microstructure-signal.mjs"
