@@ -481,7 +481,7 @@ function initChartPanels(){
     };
   });
 }
-var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null, orclHistoryPayload=null, sentimentBackfillData=null, microstructureStatus=null, microstructureData=null;
+var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null, orclHistoryPayload=null, sentimentBackfillData=null, microstructureStatus=null, microstructureData=null, microstructureEdgeStatus=null;
 var hypeChart=null, magChart=null, ivChart=null, pieChart=null;
 var fxBars=[], orclMinuteBars=[], orclDailyBars=[];
 var liveMarket={orclUsd:null,eurusd:null,prevOrclUsd:null,prevEurusd:null,at:null,connected:false,lastRenderedEur:null};
@@ -1193,7 +1193,7 @@ function hdrImpulseVector(p,v,s){
   };
 }
 function marketWaveVector(){
-  var p=priceWave(),v=volumeWave(),s=sentimentWave(),label='',dir=0,kind='';
+  var p=priceWave(),v=volumeWave(),s=sentimentWave(),label='',dir=0,kind='',micro=validatedMicrostructureSignal();
   var crowd=s.dir,price=p.dir,vol=v.dir;
   var impulse=hdrImpulseVector(p,v,s);
   var massSupports=crowd&&((vol===crowd)||(s.massDir===crowd)||(v.ratio!=null&&v.ratio>=1.15&&Math.sign(v.pressure)===crowd));
@@ -1212,6 +1212,7 @@ function marketWaveVector(){
 
   var evidence=(crowd?1:0)+(price?1:0)+(vol?1:0)+(massSupports?1:0);
   if(evidence<2){label='';dir=0;kind='';}
+  if(!label&&micro){label='SIP Edge';dir=micro.dir;kind='micro';}
 
   // Kein unvalidierter Vorimpuls als Richtungsclaim.
   // Der Impuls bleibt als beobachtbare Komponente verfügbar, aber ein
@@ -1221,7 +1222,7 @@ function marketWaveVector(){
     label:label,dir:dir,kind:kind,crowdDir:crowd,priceDir:price,volumeDir:vol,
     volumeRatio:v.ratio,volumePressure:v.pressure,pricePersist:p.persist||0,
     priceEfficiency:p.eff||0,priceAccel:p.accel||0,sentPersist:s.short?s.short.persist:0,
-    massDir:s.massDir||0,evidence:evidence,impulse:impulse
+    massDir:s.massDir||0,evidence:evidence,impulse:impulse,microSignal:micro
   };
 }
 function getMarketWaveVector(){
@@ -1265,12 +1266,24 @@ function renderMarketFlowVisual(f){
   else if(f.kind==='confirm'){phase='WELLE BESTÄTIGT';dir=f.dir;}
   else if(f.kind==='turn'){phase='WELLE DREHT';dir=f.dir;}
   else if(f.kind==='exhaust'){phase='WELLE LÄUFT AUS';dir=f.dir;sub='Unterstützung bricht weg';}
+  else if(f.kind==='micro'){phase='SIP EDGE';dir=f.dir;sub='Tape + NBBO · Holdout validiert';}
 
-  var vals=[
-    {name:'Crowd',v:flowComponentValue(f,'Crowd',f.crowdDir)},
-    {name:'Volumen',v:flowComponentValue(f,'Volumen',f.volumeDir)},
-    {name:'Kurs',v:flowComponentValue(f,'Kurs',f.priceDir)}
-  ];
+  var vals;
+  if(f.kind==='micro'&&f.microSignal&&f.microSignal.feature){
+    var mf=f.microSignal.feature,mt=(microstructureEdgeStatus&&microstructureEdgeStatus.thresholds)||{};
+    var norm=function(v,m){v=Number(v);m=Math.max(1e-9,Number(m)||1);return liveClamp(v/m,-1,1);};
+    vals=[
+      {name:'Tape',v:norm(mf.aggressor_accel,mt.min_aggressor)},
+      {name:'Book',v:liveClamp((norm(mf.ofi_norm,mt.min_ofi)+norm(mf.quote_imbalance,mt.min_quote))/2,-1,1)},
+      {name:'Microprice',v:norm(mf.microprice_edge_bps,mt.min_micro_bps)}
+    ];
+  }else{
+    vals=[
+      {name:'Crowd',v:flowComponentValue(f,'Crowd',f.crowdDir)},
+      {name:'Volumen',v:flowComponentValue(f,'Volumen',f.volumeDir)},
+      {name:'Kurs',v:flowComponentValue(f,'Kurs',f.priceDir)}
+    ];
+  }
   var xs=[50,150,250],yp=vals.map(function(x){return 50-35*x.v;});
   var points=xs.map(function(x,i){return x+','+yp[i].toFixed(2);}).join(' ');
   var nodes=vals.map(function(x,i){
@@ -1290,7 +1303,7 @@ function renderMarketFlowVisual(f){
     '</div>';
 }
 function flowPointStyle(f){
-  return f&&f.kind==='impulse'?'rectRot':'triangle';
+  return f&&(f.kind==='impulse'||f.kind==='micro')?'rectRot':'triangle';
 }
 function flowPoint(pricePts,f){
   if(!f||!f.label||!pricePts||!pricePts.length)return [];
@@ -1351,6 +1364,14 @@ function microstructureShadowUsable(){
   if(s.mode!=='shadow'||s.configured!==true||q.status!=='usable'||dq.status!=='usable')return false;
   var rows=Array.isArray(d.minutes)?d.minutes:[],last=rows.length?Date.parse(rows[rows.length-1].at||''):NaN;
   return isFinite(last)&&Math.abs(Date.now()-last)<=15*60*1000;
+}
+function validatedMicrostructureSignal(){
+  var e=microstructureEdgeStatus||{},d=microstructureData||{},s=d.live_signal||null;
+  if(!microstructureShadowUsable()||e.status!=='validated'||!s)return null;
+  if(!e.model_id||d.edge_model_id!==e.model_id||s.model_id!==e.model_id)return null;
+  var at=Date.parse(s.asof||'');if(!isFinite(at)||Math.abs(Date.now()-at)>15*60*1000)return null;
+  var dir=Number(s.dir);if(dir!==1&&dir!==-1)return null;
+  return s;
 }
 function currentContext(){
   var t=(tickData&&tickData.tick)||{},v=t.vector||{},fr=t.freshness||{},orcl=((wlData&&wlData.stocks)||{}).ORCL||{};
@@ -1892,8 +1913,9 @@ async function load(){
     var sb=await fetchJson('orcl-sentiment-history.json',true);
     var ms=await fetchJson('microstructure-status.json',true);
     var md=await fetchJson('microstructure-current.json',true);
+    var me=await fetchJson('microstructure-edge-status.json',true);
     tickData=a; wlData=b; ivData=c; fxData=d||fxData; orclMinutePayload=m||orclMinutePayload; orclHistoryPayload=h||orclHistoryPayload; sentimentBackfillData=sb||sentimentBackfillData;
-    microstructureStatus=ms||microstructureStatus; microstructureData=md||microstructureData;
+    microstructureStatus=ms||microstructureStatus; microstructureData=md||microstructureData; microstructureEdgeStatus=me||microstructureEdgeStatus;
     fallbackMarket();
     syncRangeButtons();
     renderAll();
