@@ -170,7 +170,14 @@ const server=http.createServer((req,res)=>{
   const u=new URL(req.url,'http://localhost');
   if(u.pathname==='/health'){
     return json(res,200,{ok:true,configured:!!(KEY&&SECRET),feed:FEED,symbols:SYMBOLS,upstream_fresh:Date.now()-lastUpstreamAt<15000,edge_status:edgeModel?.status||'unavailable',
-      l2:{configured:!!L2_INGEST_TOKEN,dataset:L2_DATASET,fresh:Date.now()-lastL2At<5000,model_status:l2Model?.status||'unavailable'}});
+      l2:{
+        configured:!!L2_INGEST_TOKEN,
+        dataset:L2_DATASET,
+        fresh:Date.now()-lastL2At<5000,
+        model_status:l2Model?.status||'unavailable',
+        model_id:l2Model?.model_id||null,
+        contract:validateL2ModelContract(l2Model).ok?'valid':'blocked'
+      }});
   }
   if(u.pathname==='/internal/l2-events'){
     if(req.method!=='POST')return json(res,405,{error:'method_not_allowed'});
