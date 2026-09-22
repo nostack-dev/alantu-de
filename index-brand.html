@@ -603,7 +603,7 @@
     paperGeom.translate(1.76,0,0);
     for(let i=0;i<totalPages;i++){
       const pivot=new THREE.Group();
-      pivot.position.set(-1.76,0,.11+i*.006);
+      pivot.position.set(-1.76,0,.17-i*.012);
       const material=new THREE.MeshStandardMaterial({
         map:textureFor(i),
         roughness:.88,
@@ -655,7 +655,7 @@
         const bend=Math.sin(Math.PI*t)*0.055;
         pivot.rotation.z=(toFlipped?-1:1)*bend;
         if(t<1){requestAnimationFrame(frame)}else{
-          pivot.rotation.y=to;pivot.rotation.z=0;animating=false;updateUI();if(onDone)onDone();
+          pivot.rotation.y=to;pivot.rotation.z=0;pivot.position.z=toZ;animating=false;updateUI();if(onDone)onDone();
         }
       }
       requestAnimationFrame(frame);
