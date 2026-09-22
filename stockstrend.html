@@ -219,10 +219,11 @@
   @media(max-width:700px){.sync-footer{padding:10px 18px 16px}}
 
   .sentiment-hero-card{border-bottom:1px solid #eeeeef!important}
-  .sentiment-hero-score{font-variant-numeric:tabular-nums}
-  .sentiment-hero-score.up{color:#00a94f}
-  .sentiment-hero-score.down{color:#e94035}
-  .sentiment-hero-score.flat{color:#151517}
+  .sentiment-hero-score{font-variant-numeric:tabular-nums;color:#151517!important}
+  .sentiment-hero-number.up{color:#00a94f}
+  .sentiment-hero-number.down{color:#e94035}
+  .sentiment-hero-number.flat{color:#151517}
+  .sentiment-denom{color:#151517!important}
   .chart-actions{display:flex;align-items:center;gap:12px}
   .chart-collapse{border:0;background:transparent;color:#a0a0a7;font:700 12px/1 system-ui,sans-serif;padding:4px 0 4px 6px;cursor:pointer;min-width:18px}
   .chart-collapse:hover{color:#151517}
@@ -313,7 +314,7 @@
     <div class="card sentiment-hero-card">
       <div class="label">Oracle Stimmung <span class="live-state" id="sentimentHeroState">Lädt …</span></div>
       <div class="market-clock" id="sentimentHeroMeta">Aktuelle Stimmung · 0–100</div>
-      <div class="hero-price sentiment-hero-score" id="sentimentHeroScore">—</div>
+      <div class="hero-price sentiment-hero-score" id="sentimentHeroScore"><span id="sentimentHeroNumber">—</span><span class="sentiment-denom"> / 100</span></div>
       <div class="hero-change flat" id="sentimentHeroLabel"></div>
     </div>
     <div class="card aux-card">
@@ -940,12 +941,12 @@ function renderOverview(){
   document.getElementById('orclBear').textContent=dp.bear!=null?(dp.bear.toLocaleString('de-DE',{maximumFractionDigits:1})+' %'):'—';
   var sentimentScore=stimmungNorm({hype_bull:hyp.bull,hype_bear:hyp.bear,hype_net:hyp.net,social_impulse:lat.social_impulse});
   document.getElementById('orclNet').textContent=sentimentScore!=null?(sentimentScore+' / 100'):'—';
-  var shs=document.getElementById('sentimentHeroScore'),shl=document.getElementById('sentimentHeroLabel'),shm=document.getElementById('sentimentHeroMeta'),shst=document.getElementById('sentimentHeroState');
-  if(shs&&shl&&shm&&shst){
+  var shs=document.getElementById('sentimentHeroScore'),shn=document.getElementById('sentimentHeroNumber'),shl=document.getElementById('sentimentHeroLabel'),shm=document.getElementById('sentimentHeroMeta'),shst=document.getElementById('sentimentHeroState');
+  if(shs&&shn&&shl&&shm&&shst){
     var mood=sentimentScore==null?'':(sentimentScore>55?'Positiv':sentimentScore<45?'Negativ':'Neutral');
     var moodCls=sentimentScore==null?'flat':(sentimentScore>55?'up':sentimentScore<45?'down':'flat');
-    shs.className='hero-price sentiment-hero-score '+moodCls;
-    shs.textContent=sentimentScore!=null?(sentimentScore+' / 100'):'—';
+    shn.className='sentiment-hero-number '+moodCls;
+    shn.textContent=sentimentScore!=null?String(sentimentScore):'—';
     shl.className='hero-change '+moodCls;shl.textContent=mood;
     shm.textContent=sentimentSourceText(t);
     var sat=fr.freshest_absolute||updated;
@@ -966,7 +967,7 @@ function renderSentimentChart(){
   var pts=agg.map(function(h){return {x:new Date(h.at).getTime(),y:Number(h.value)};});
   var ds={label:'Stimmung',data:pts,parsing:false,spanGaps:false,borderColor:'#8e8e93',backgroundColor:'#8e8e93',fill:false,tension:.12,pointRadius:agg.length<=12?2:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:function(ctx){return sentimentColor(ctx.raw&&ctx.raw.y);},borderWidth:2,segment:{borderColor:function(ctx){return sentimentColor((Number(ctx.p0.parsed.y)+Number(ctx.p1.parsed.y))/2);}},pointBackgroundColor:function(ctx){return sentimentColor(ctx.raw&&ctx.raw.y);}};
   if(!hypeChart){
-    hypeChart=new Chart(document.getElementById('hypeChart'),{type:'line',data:{datasets:[ds]},options:{animation:false,events:chartEvents(),responsive:true,maintainAspectRatio:false,layout:{padding:{top:6,bottom:2,left:4,right:4}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('hype')},scales:{x:axisX(agg,function(h){return h.at;},sentimentRange),y:{min:0,max:100,ticks:{color:'#6b6b76',font:{size:11},stepSize:50},grid:{color:'#f2f2f4'},border:{display:false}}}}});
+    hypeChart=new Chart(document.getElementById('hypeChart'),{type:'line',data:{datasets:[ds]},options:{animation:false,events:chartEvents(),responsive:true,maintainAspectRatio:false,layout:{padding:{top:6,bottom:2,left:4,right:4}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('hype')},scales:{x:axisX(agg,function(h){return h.at;},sentimentRange),y:{min:-4,max:104,afterBuildTicks:function(scale){scale.ticks=[{value:0},{value:50},{value:100}];},ticks:{color:'#6b6b76',font:{size:11},callback:function(v){return v===0||v===50||v===100?v:'';}},grid:{color:'#f2f2f4'},border:{display:false}}}}});
   }else{
     hypeChart.data.datasets[0]=ds;
     hypeChart.options.scales.x=axisX(agg,function(h){return h.at;},sentimentRange);
