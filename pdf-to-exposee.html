@@ -403,13 +403,13 @@
       exterior.map=texture;
       exterior.color.set(0xffffff);
       exterior.needsUpdate=true;
-      const endpaper=new THREE.MeshStandardMaterial({
-        color:0xeee7dc,
-        roughness:.96,
+      const interior=new THREE.MeshStandardMaterial({
+        color:0x2b2924,
+        roughness:.94,
         metalness:0
       });
 
-      return [side(),side(),side(),side(),exterior,endpaper];
+      return [side(),side(),side(),side(),exterior,interior];
     }
 
     let pageTextures=[];
@@ -668,7 +668,7 @@
         new THREE.BoxGeometry(COVER_W,COVER_H,COVER_T),
         [
           coverMaterial.clone(),coverMaterial.clone(),coverMaterial.clone(),coverMaterial.clone(),
-          new THREE.MeshStandardMaterial({color:0xeee7dc,roughness:.96,metalness:0}),
+          new THREE.MeshStandardMaterial({color:0x2b2924,roughness:.94,metalness:0}),
           coverMaterial.clone()
         ]
       );
