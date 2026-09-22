@@ -144,12 +144,14 @@ export function l2TemporalFeatureVector(eventHistory){
 export function latencyMetrics(event){
   const te=eventNs(event,'ts_event_ns');
   const tr=eventNs(event,'ts_recv_ns');
+  const to=eventNs(event,'ts_out_ns');
   const tl=eventNs(event,'ts_local_recv_ns');
   const diffMs=(a,b)=>a!=null&&b!=null&&a>=b?Number(a-b)/1e6:null;
   return {
-    provider_latency_ms:diffMs(tr,te),
-    collector_latency_ms:diffMs(tl,te),
-    transport_after_provider_ms:diffMs(tl,tr)
+    provider_capture_latency_ms:diffMs(tr,te),
+    provider_gateway_ms:diffMs(to,tr),
+    network_to_collector_ms:diffMs(tl,to),
+    collector_latency_ms:diffMs(tl,te)
   };
 }
 
