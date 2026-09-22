@@ -209,7 +209,7 @@ jobs:
           grep -q 'minSocial=50' index.html
           grep -q 'id="sentimentRelation"' index.html
           grep -q 'function hdrRelationSeries' index.html
-          grep -q 'daily.slice(0,i).filter' index.html
+          grep -q 'while(windowStart<i&&cur.t-daily\[windowStart\].t>yearMs)windowStart++' index.html
           grep -q "label:'Struktur'" index.html
           ! grep -q 'public.api.bsky.app' index.html
           ! grep -q 'id="sentiment3dToggle"' index.html
