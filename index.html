@@ -322,9 +322,9 @@ var wlRange=(function(){
     return ['1d','1w','1m','year','5y','all'].indexOf(r)>=0?r:'1d';
   }catch(e){ return '1d'; }
 })();
-var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null;
+var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null, orclHistoryPayload=null;
 var hypeChart=null, magChart=null, ivChart=null, pieChart=null;
-var fxBars=[], orclMinuteBars=[];
+var fxBars=[], orclMinuteBars=[], orclDailyBars=[];
 var liveMarket={orclUsd:null,eurusd:null,prevOrclUsd:null,prevEurusd:null,at:null,connected:false,lastRenderedEur:null};
 var liveWs=null,liveHeartbeat=null,liveReconnect=null,liveShockTimer=null;
 function saveRange(r){ try{ localStorage.setItem(LS_RANGE, r); }catch(e){} }
@@ -544,6 +544,9 @@ function lastClose(payload){
 function buildFxBars(){
   fxBars=typeof PriceShock!=='undefined'&&fxData?PriceShock.parseYahoo(fxData):[];
 }
+function buildOrclDailyBars(){
+  orclDailyBars=typeof PriceShock!=='undefined'&&orclHistoryPayload?PriceShock.parseYahoo(orclHistoryPayload):[];
+}
 function fxAt(at){
   var t=new Date(at||Date.now()).getTime();
   if(liveMarket.eurusd&&Math.abs(Date.now()-t)<2*864e5)return liveMarket.eurusd;
@@ -578,6 +581,7 @@ function priceRangeColor(points){
 function fallbackMarket(){
   var om=chartResult(orclMinutePayload),fm=chartResult(fxData);
   orclMinuteBars=typeof PriceShock!=='undefined'&&orclMinutePayload?PriceShock.parseYahoo(orclMinutePayload):[];
+  buildOrclDailyBars();
   buildFxBars();
   var ol=orclMinuteBars.length?orclMinuteBars[orclMinuteBars.length-1]:null;
   var fl=fxBars.length?fxBars[fxBars.length-1]:null;
@@ -717,7 +721,8 @@ function connectLiveMarket(){
 var liveChartTimer=null;
 function scheduleLiveChartUpdate(){
   if(liveChartTimer)return;
-  liveChartTimer=setTimeout(function(){liveChartTimer=null;if(wlRange==='1d'||wlRange==='1w')renderAll();},1200);
+  var delay=(wlRange==='1d'||wlRange==='1w')?1200:5000;
+  liveChartTimer=setTimeout(function(){liveChartTimer=null;renderAll();},delay);
 }
 function scheduleLiveShock(){
   if(liveShockTimer)return;
@@ -807,12 +812,19 @@ function renderAll(){
   var priceRows;
   if((wlRange==='1d'||wlRange==='1w')&&orclMinuteBars.length){
     priceRows=filterByAt(orclMinuteBars,function(h){return h.at;}).map(function(h){return {at:h.at,value:usdToEur(h.close,h.at)};}).filter(function(h){return isFinite(h.value);});
+  }else if(orclDailyBars.length){
+    priceRows=filterByAt(orclDailyBars,function(h){return h.at;}).map(function(h){return {at:h.at,value:usdToEur(h.close,h.at)};}).filter(function(h){return isFinite(h.value);});
   }else{
     priceRows=ivHist.map(function(h){return {at:h.at,value:ivEur(h,'price')};}).filter(function(h){return isFinite(h.value);});
   }
-  if(liveMarket.orclUsd&&(wlRange==='1d'||wlRange==='1w')){
+  if(liveMarket.orclUsd){
     var liveEur=usdToEur(liveMarket.orclUsd,Date.now());
-    if(isFinite(liveEur))priceRows.push({at:new Date(liveMarket.at||Date.now()).toISOString(),value:liveEur});
+    if(isFinite(liveEur)){
+      var liveAt=new Date(liveMarket.at||Date.now()).toISOString();
+      var lastPrice=priceRows.length?priceRows[priceRows.length-1]:null;
+      if(lastPrice&&Math.abs(new Date(lastPrice.at).getTime()-new Date(liveAt).getTime())<60000) lastPrice.value=liveEur;
+      else priceRows.push({at:liveAt,value:liveEur});
+    }
   }
   var pricePts=priceRows.map(function(h){return {x:new Date(h.at).getTime(),y:Number(h.value)};});
   var fairPts;
@@ -821,6 +833,12 @@ function renderAll(){
     fairPts=priceRows.length&&isFinite(fairNow)?[{x:new Date(priceRows[0].at).getTime(),y:fairNow},{x:new Date(priceRows[priceRows.length-1].at).getTime(),y:fairNow}]:[];
   }else{
     fairPts=ivHist.map(function(h){return {x:new Date(h.at).getTime(),y:ivEur(h,'intrinsic_base')};}).filter(function(p){return isFinite(p.y);});
+    var fairLatest=ivData&&ivData.latest?usdToEur(ivData.latest.intrinsic_base_usd||ivData.latest.intrinsic_usd,Date.now()):null;
+    if(priceRows.length&&isFinite(fairLatest)){
+      var fairEnd=new Date(priceRows[priceRows.length-1].at).getTime();
+      var lastFair=fairPts.length?fairPts[fairPts.length-1]:null;
+      if(!lastFair||fairEnd>lastFair.x)fairPts.push({x:fairEnd,y:fairLatest});
+    }
   }
   var pColor=priceRangeColor(pricePts);
   ivChart=new Chart(document.getElementById('ivChart'),{type:'line',data:{datasets:[
@@ -1054,7 +1072,8 @@ async function load(){
     var c=await fetchJson('intrinsic-orcl.json',true);
     var d=await fetchJson('eurusd-history.json',true);
     var m=await fetchJson('orcl-minute.json',true);
-    tickData=a; wlData=b; ivData=c; fxData=d||fxData; orclMinutePayload=m||orclMinutePayload;
+    var h=await fetchJson('orcl-history.json',true);
+    tickData=a; wlData=b; ivData=c; fxData=d||fxData; orclMinutePayload=m||orclMinutePayload; orclHistoryPayload=h||orclHistoryPayload;
     fallbackMarket();
     Array.prototype.forEach.call(document.querySelectorAll('#rangeBar button'),function(b){b.classList.toggle('active',b.getAttribute('data-range')===wlRange);});
     renderAll();

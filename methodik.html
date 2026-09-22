@@ -121,7 +121,7 @@ ORCL in EUR = ORCL_USD / EURUSD
 Für historische Punkte:
 Es wird der letzte EURUSD-Tageswert verwendet,
 dessen Zeitstempel ≤ dem Kurs-/Intrinsic-Zeitstempel ist.</div>
-<p>Die historische ORCL-Preisreihe in <code>intrinsic-orcl.json</code> dient nur zum Vergleich „Kurs vs. innerer Wert“. Sie verändert den berechneten inneren Wert nicht. Die ursprüngliche Provider-Provenienz dieser älteren gespeicherten Preisreihe ist im aktuellen Input-Datensatz nicht codiert; deshalb wird hier dafür bewusst kein Provider behauptet.</p>
+<p><b>Kurs und Bewertung sind getrennte Datenpfade.</b> Für 1T/1W nutzt der Chart <code>orcl-minute.json</code> aus Yahoo Finance (5 Tage, 1-Minuten-Bars). Für 1M/1J/5J/MAX nutzt er <code>orcl-history.json</code> aus Yahoo Finance (10 Jahre, Tages-Bars). <code>intrinsic-orcl.json</code> liefert nur noch den SEC/DCF-Wertverlauf und ist nicht die Kursquelle. Der jeweils neueste Live-WebSocket-Kurs wird zusätzlich an die Kursreihe angehängt.</p>
 </section>
 
 <section id="intrinsic">
