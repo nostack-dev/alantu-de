@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0d0d0b">\n  <link rel="icon" href="/favicon.svg" type="image/svg+xml">\n  <link rel="alternate icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0d0d0b">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="/favicon.ico" sizes="any">
   <meta name="description" content="ALANTU – Premium-Exposés für Immobilienmakler. Interaktiv, dreidimensional und auf jedem Gerät ein Erlebnis.">
   <title>ALANTU — Premium-Exposés für Immobilienmakler</title>
   <style>
@@ -489,16 +491,29 @@
       });
 
       const side=()=>coverMat.clone();
-      const face=coverMat.clone();
-      face.map=texture;
-      face.color.set(0xffffff);
-      face.needsUpdate=true;
+      const exterior=coverMat.clone();
+      exterior.map=texture;
+      exterior.color.set(0xffffff);
+      exterior.needsUpdate=true;
+      const endpaper=new THREE.MeshStandardMaterial({
+        color:0xeee7dc,
+        roughness:.96,
+        metalness:0
+      });
 
       // BoxGeometry material order: +X, -X, +Y, -Y, +Z, -Z.
-      return [side(),side(),side(),side(),face,side()];
+      // +Z = outside/front title. -Z = inside/front endpaper.
+      return [side(),side(),side(),side(),exterior,endpaper];
     }
 
-    const backCover = new THREE.Mesh(new THREE.BoxGeometry(3.85,5.15,.16),coverMat);
+    const backCover = new THREE.Mesh(
+      new THREE.BoxGeometry(3.85,5.15,.16),
+      [
+        coverMat.clone(),coverMat.clone(),coverMat.clone(),coverMat.clone(),
+        new THREE.MeshStandardMaterial({color:0xeee7dc,roughness:.96,metalness:0}),
+        coverMat.clone()
+      ]
+    );
     backCover.position.set(0,0,-.25);
     backCover.castShadow = true;
     backCover.receiveShadow = true;
