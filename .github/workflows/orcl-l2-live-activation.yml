@@ -1,0 +1,89 @@
+name: Activate validated ORCL L2 live path
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "orcl-l2-model.json"
+      - "microstructure-live-config.json"
+      - "market-relay/server.mjs"
+      - ".github/workflows/orcl-l2-live-activation.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: orcl-l2-live-activation
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve desired state from model and relay health
+        shell: bash
+        run: |
+          set -euo pipefail
+          model_status="$(jq -r '.status // "unavailable"' orcl-l2-model.json)"
+          model_id="$(jq -r '.model_id // ""' orcl-l2-model.json)"
+          dataset="$(jq -r '.dataset // ""' orcl-l2-model.json)"
+          desired=false
+          reason="model_not_validated"
+
+          if [ "$model_status" = "validated" ] && [ -n "$model_id" ]; then
+            reason="relay_unreachable"
+            if curl -fsS --connect-timeout 3 --max-time 8 https://market.alantu.de/health -o /tmp/relay-health.json; then
+              if jq -e                 --arg id "$model_id"                 --arg dataset "$dataset"                 '.ok==true
+                 and .l2.configured==true
+                 and .l2.model_status=="validated"
+                 and .l2.model_id==$id
+                 and .l2.dataset==$dataset
+                 and .l2.contract=="valid"'                  /tmp/relay-health.json >/dev/null; then
+                desired=true
+                reason="validated_model_and_healthy_relay"
+              else
+                reason="relay_contract_mismatch"
+              fi
+            fi
+          fi
+
+          jq             --argjson enabled "$desired"             --arg reason "$reason"             --arg model_id "$model_id"             --arg dataset "$dataset"             '.enabled=$enabled
+             | .endpoint="https://market.alantu.de/v1/stream?symbol=ORCL"
+             | .transport="sse"
+             | .provider="databento"
+             | .feed="mbp-10"
+             | .dataset=$dataset
+             | .model_id=($model_id|select(length>0) // null)
+             | .activation_reason=$reason
+             | .checked_at=(now|todate)'             microstructure-live-config.json > /tmp/live-config.json
+          mv /tmp/live-config.json microstructure-live-config.json
+          cat microstructure-live-config.json
+
+      - name: Publish state only when changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          # checked_at is diagnostic and must not cause a commit every five minutes.
+          git show HEAD:microstructure-live-config.json 2>/dev/null | jq 'del(.checked_at)' > /tmp/before.json || echo '{}' > /tmp/before.json
+          jq 'del(.checked_at)' microstructure-live-config.json > /tmp/after.json
+          if cmp -s /tmp/before.json /tmp/after.json; then
+            git checkout -- microstructure-live-config.json
+            exit 0
+          fi
+          git add microstructure-live-config.json
+          git config user.name "orcl-l2-live-gate"
+          git config user.email "orcl-l2-live-gate@users.noreply.github.com"
+          if jq -e '.enabled==true' microstructure-live-config.json >/dev/null; then
+            git commit -m "Activate validated ORCL L2 live forecast"
+          else
+            git commit -m "Fail closed ORCL L2 live forecast"
+          fi
+          git pull --rebase origin main
+          git push origin HEAD:main
