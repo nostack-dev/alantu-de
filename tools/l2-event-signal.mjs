@@ -46,7 +46,7 @@ export function estimateEventClock(events,horizonEvents=100){
   return {events_per_second:rate,eta_seconds:rate>0?horizonEvents/rate:null,sample_events:recent.length};
 }
 
-function modelKey(model){
+export function l2ModelId(model){
   return crypto.createHash('sha256').update(JSON.stringify({
     symbol:model.symbol,dataset:model.dataset,schema:model.schema,
     horizon_events:model.horizon_events,feature_names:model.feature_names,
@@ -69,7 +69,7 @@ export function validateL2ModelContract(model){
   if(Number(model?.evidence?.usable_days||0)<252)reasons.push('insufficient_days');
   if(Number(model?.evidence?.holdout_signals||0)<500)reasons.push('insufficient_holdout_signals');
   if(Number(model?.evidence?.holdout_days||0)<60)reasons.push('insufficient_holdout_days');
-  const expected=modelKey(model);
+  const expected=l2ModelId(model);
   if(model?.model_id!==expected)reasons.push('model_id_mismatch');
   return {ok:reasons.length===0,reasons,expected_model_id:expected};
 }
