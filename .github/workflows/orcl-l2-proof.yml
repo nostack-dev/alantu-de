@@ -1,0 +1,82 @@
+name: Prove ORCL 100-event L2 model
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/databento-orcl-mbp10-backfill.py"
+      - "tools/train-orcl-l2-100.py"
+      - "tools/l2-event-signal.mjs"
+      - "tools/finalize-l2-model.mjs"
+      - ".github/workflows/orcl-l2-proof.yml"
+  workflow_dispatch:
+    inputs:
+      start:
+        description: "Historical start YYYY-MM-DD"
+        required: true
+      end:
+        description: "Historical end YYYY-MM-DD"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          python -m py_compile tools/databento-orcl-mbp10-backfill.py tools/train-orcl-l2-100.py tools/databento-orcl-mbp10-live.py
+          node --check tools/l2-event-signal.mjs
+          node --check tools/finalize-l2-model.mjs
+          node tools/test-l2-event-signal.mjs
+
+  prove:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    needs: syntax
+    runs-on: ubuntu-latest
+    env:
+      DATABENTO_API_KEY: ${{ secrets.DATABENTO_API_KEY }}
+      L2_START: ${{ inputs.start }}
+      L2_END: ${{ inputs.end }}
+      L2_OUT_DIR: orcl-l2-days
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require real provider credential
+        run: test -n "$DATABENTO_API_KEY"
+      - name: Install exact data runtime
+        run: python -m pip install --disable-pip-version-check --quiet databento pandas numpy
+      - name: Download and normalize real ORCL MBP-10
+        run: python tools/databento-orcl-mbp10-backfill.py
+      - name: Train fixed 100-event model
+        run: python tools/train-orcl-l2-100.py orcl-l2-days orcl-l2-model.json orcl-l2-proof.json
+      - name: Finalize canonical model identity
+        run: node tools/finalize-l2-model.mjs orcl-l2-model.json
+      - name: Enforce long-form evidence if validated
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '.symbol=="ORCL" and .dataset=="XNAS.ITCH" and .schema=="mbp-10" and .horizon_events==100' orcl-l2-model.json >/dev/null
+          if [ "$(jq -r '.status' orcl-l2-model.json)" = "validated" ]; then
+            jq -e '
+              (.evidence.usable_days>=252)
+              and (.evidence.holdout_signals>=500)
+              and (.evidence.holdout_days>=60)
+              and (.evidence.holdout.hit95[0]>0.5)
+              and (.evidence.holdout.mean_net_bps>0.5)
+              and (.evidence.holdout.median_net_bps>0)
+              and (.evidence.holdout.mean_net_bps95[0]>0)
+              and (.evidence.regimes.low_vol.mean_net_bps>0)
+              and (.evidence.regimes.high_vol.mean_net_bps>0)
+            ' orcl-l2-model.json >/dev/null
+            test "$(jq -r '.model_id|length' orcl-l2-model.json)" -eq 16
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: orcl-l2-100-proof-${{ github.run_id }}
+          path: |
+            orcl-l2-model.json
+            orcl-l2-proof.json
+            orcl-l2-days/manifest.json
+          retention-days: 90
