@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 const OUT='orcl-sentiment-history.json';
 const DAY=864e5;
 const WINDOW=36*3600e3;
-const TARGET_DAYS=370;
+const TARGET_DAYS=740;
 const MIN_SOCIAL=50;
 const MIN_NEWS=3;
 const BERLIN='Europe/Berlin';
@@ -78,7 +78,7 @@ function dailyAnchors(now=Date.now()){
   const p=berlinParts(now);
   const todayPseudo=Date.UTC(+p.year,+p.month-1,+p.day);
   const out=[];
-  for(let back=365;back>=0;back--){
+  for(let back=730;back>=0;back--){
     const d=new Date(todayPseudo-back*DAY);
     const anchor=berlinLocalToUtc(d.getUTCFullYear(),d.getUTCMonth()+1,d.getUTCDate(),22);
     if(anchor<=now)out.push(anchor);
@@ -221,7 +221,7 @@ const existing=await readExisting();
 if(existing?.generated_at&&Array.isArray(existing.history)&&existing.history.length){
   const age=now-Date.parse(existing.generated_at);
   const oldest=Date.parse(existing.history[0]?.at||'');
-  if(age<21*DAY&&Number.isFinite(oldest)&&oldest<=now-330*DAY){
+  if(age<21*DAY&&Number.isFinite(oldest)&&oldest<=now-690*DAY){
     console.log('Historical sentiment backfill already sufficient; keeping',existing.history.length,'points from',existing.history[0].at);
     process.exit(0);
   }
@@ -264,7 +264,7 @@ const out={
     oldest_source_at:Number.isFinite(oldestRaw)?new Date(oldestRaw).toISOString():null
   },
   coverage:{
-    requested_days:365,
+    requested_days:730,
     valid_points:history.length,
     skipped_points:skipped,
     oldest_point_at:new Date(oldestPoint).toISOString(),
