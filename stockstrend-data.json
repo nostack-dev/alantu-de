@@ -1,125 +1,68 @@
 {
-  "updated_at": "2026-09-22T08:25:00+02:00",
+  "updated_at": "2026-09-22T10:31:36+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-22T08:25:00+02:00",
-    "scraped_at": "2026-09-22T08:31:17+02:00",
+    "tick_id": "2026-09-22T10:31:36+02:00",
+    "scraped_at": "2026-09-22T10:31:36+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
-      "user-X": {
-        "status": "ok_partial",
-        "items": 0,
-        "breakdown": {
-          "trends_usa": 0,
-          "trends_germany": 0,
-          "news": 0,
-          "posts_sampled": 0
-        },
-        "counts_24h": {},
-        "counts_7d": {},
-        "freshest": null,
-        "window": "skipped paid X (credits_exhausted); USA trends also 402 credits_depleted",
-        "credits_before_usd": 0.0,
-        "credits_after_usd": 0.0,
-        "credits_spent_usd": 0.0,
-        "note": "credits_exhausted total_balance=$0.00; skipped search_posts_all / counts / paid news; get_trends_by_woeid USA also 402"
-      },
-      "WebSearch": {
-        "status": "ok",
-        "items": 5,
-        "window": "same-day 2026-09-22",
-        "notes": [
-          "Futures mild: prior close SPY ~773.50 / QQQ ~741.47; AI/oil support into open",
-          "ORCL ~$148.56; AI backlog strong vs debt/capex caution",
-          "SoftBank ~$11B OpenAI bonds still live (Sep 22 coverage)",
-          "BTC ~$85,313 after overnight risk-on fade",
-          "Goolsbee: supply shocks may force Fed response — caution under AI bid"
-        ]
-      },
-      "user-Bright Data": {
-        "status": "fail",
-        "items": 0,
-        "error": "HTTP 401 Auth method is not supported"
-      },
-      "user-Treg": {
-        "status": "auth_needed",
-        "items": 0,
-        "note": "catalog_search ok (treg.tiktok.search.videos); call failed (not signed in / token invalid); mark TikTok news-only."
-      },
-      "user-Monid": {
-        "status": "skip",
-        "items": 0,
-        "note": "not used this tick"
-      },
       "PublicReddit": {
         "status": "ok",
-        "items": 3,
-        "providers": [
-          "apewisdom.io",
-          "altindex.com",
-          "thedistributed.co"
-        ],
-        "window": "24h–30d aggregator snapshots 2026-09-22",
-        "freshest": "2026-09-22T08:31:17+02:00",
-        "notes": [
-          "ApeWisdom 24h: 11 mentions overall (Upvotes 19), sentiment ~78% overall",
-          "AltIndex: ~37 daily investing-subreddit mentions; chatter below recent average",
-          "The Distributed 30d: 1402 mentions; 50% bull / 17% bear / 33% neutral"
-        ],
-        "orcl_hint": {
-          "mentions_24h_approx": 11,
-          "sentiment_pct_bullish": 78,
-          "daily_mentions_altindex": 37,
-          "upvotes_24h": 19
-        }
+        "items": 11,
+        "provider": "apewisdom.io",
+        "window": "24h aggregate snapshot",
+        "freshest": "2026-09-22T10:31:36+02:00",
+        "sentiment_pct_bullish": 78,
+        "upvotes_24h": 21
       },
-      "TikTokPublic": {
-        "status": "ok_news_only",
-        "items": 2,
-        "note": "No live video search; Treg call auth_needed. TikTok/ORCL news URLs only.",
-        "urls": [
-          "https://www.reuters.com/world/china/oracles-stake-tiktok-us-joint-venture-is-worth-roughly-2-billion-filing-shows-2026-03-11/",
-          "https://www.fool.com/investing/2026/01/31/down-big-buy-ai-stock-oracle-tiktok/"
+      "NewsRSS": {
+        "status": "ok",
+        "items": 20,
+        "provider": "news.google.com",
+        "window": "last 36h, fetched now",
+        "freshest": "2026-09-22T10:31:36+02:00",
+        "notes": [
+          "Jim Cramer sends strong signal to Oracle stock investors",
+          "Oracle’s Co-CEOs Deliver Explosive Growth, but Stock Plunges 50% in Their First Year",
+          "Oracle’s $7B Pentagon Deal Win Sparks 'Buy' Calls From Retail Traders As ORCL Rebounds Premarket"
         ]
       },
       "Yahoo": {
         "status": "ok",
-        "items": 4,
+        "items": 1,
         "prices": {
-          "ORCL": 148.56,
-          "SPY": 773.5,
-          "QQQ": 741.47,
-          "BTC-USD": 85312.54
+          "ORCL": 148.1132
         },
-        "note": "query2 chart 5d; Stooq not needed"
+        "price_at": "2026-09-22T08:30:43.000Z",
+        "note": "Yahoo chart 5d/1m fallback feed"
       }
     },
     "totals": {
-      "content_items_usable": 8,
+      "content_items_usable": 21,
       "breakdown": {
         "x_trends": 0,
         "x_news": 0,
         "x_posts": 0,
-        "reddit": 3,
+        "reddit": 1,
         "tiktok": 0,
-        "websearch": 5
+        "websearch": 20
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-22T08:31:17+02:00",
-      "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
-      "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok news-only; Bright Data 401; Treg catalog ok, call auth_needed",
-      "scrape_berlin": "2026-09-22T08:25:00+02:00",
-      "sample_window": "Web/news ≤24h; Reddit via ApeWisdom/AltIndex/TheDistributed; X fully credits_depleted",
-      "freshest_item_age": "",
-      "oldest_usable_signal": "SoftBank bonds still live; morning futures mild; ORCL debt caution"
+      "freshest_absolute": "2026-09-22T10:31:36+02:00",
+      "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
+      "quality": "medium-high public sources",
+      "scrape_berlin": "2026-09-22T10:31:36+02:00",
+      "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
+      "freshest_item_age": "snapshot fetched now",
+      "oldest_usable_signal": "Oracle’s $7B Pentagon Deal Win Sparks 'Buy' Calls From Retail Traders As ORCL Rebounds Premarket"
     },
     "vector": {
-      "direction": "mixed_cautious",
-      "magnitude": 30,
-      "confidence": 65,
+      "direction": "leicht_bullish_risk_on",
+      "magnitude": 52,
+      "confidence": 78,
       "early_signal": true,
-      "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig."
+      "early_signal_note": "Reddit 78% positiv bei 11 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $148.11."
     },
     "top_themes": [
       {
@@ -187,7 +130,7 @@
       "early_signal_flipped": false,
       "volume_prev": 8,
       "volume_now": 8,
-      "volume_change_pct": 0.0,
+      "volume_change_pct": 0,
       "new_themes": [],
       "gone_themes": [],
       "sentiment_swings": [
@@ -536,87 +479,30 @@
       {
         "symbol": "ORCL",
         "name": "Oracle",
-        "hype_state": "mixed",
-        "signal": "hold",
-        "confidence": 65,
-        "social_impulse": 0,
-        "hype_bull": 3,
-        "hype_bear": 2,
-        "hype_net": 1,
-        "why": "SoftBank-Anleihen und ORCL-Schulden bleiben Gegenwind. Kurs hält bei etwa 148 Dollar.",
+        "hype_state": "bullish",
+        "signal": "buy",
+        "confidence": 78,
+        "social_impulse": 9,
+        "hype_bull": 56,
+        "hype_bear": 13,
+        "hype_net": 43,
+        "why": "Reddit 78% positiv bei 11 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $148.11.",
         "evidence": {
           "x_posts": 0,
-          "reddit_posts": 0,
-          "news": 5,
+          "reddit_posts": 11,
+          "news": 20,
           "snippets": [
-            "SoftBank ~$11B OpenAI bonds still live — Sep 22 coverage",
-            "ORCL voices bull3/bear2/mixed3; Reddit ApeWisdom 11/24h @78%; X skipped (credits)",
-            "Futures mild; BTC ~$85.300; ORCL ~$148.56"
-          ],
-          "voices": [
-            {
-              "source": "News",
-              "text": "SoftBank sucht weiter ~11-Mrd.-Anleihen für OpenAI; Markt weiter vorsichtig.",
-              "url": "https://www.thestar.com.my/business/business-news/2026/09/22/softbank-seeks-us11bil-in-junk-bonds-for-ai-stake",
-              "lean": "bear",
-              "at": "2026-09-22T08:31:17+02:00"
-            },
-            {
-              "source": "News",
-              "text": "ORCL-Schulden und teure Rechenzentren bleiben Gegenwind.",
-              "url": "https://www.marketscreener.com/news/oracle-puts-its-meters-in-the-red-and-its-bankers-in-a-tricky-situation-ce785adbda8ef523",
-              "lean": "bear",
-              "at": "2026-09-22T08:31:17+02:00"
-            },
-            {
-              "source": "News",
-              "text": "Futures leicht im Plus; Tech und niedrigere Ölpreise stützen.",
-              "url": "https://news.trustfinance.com/news/en-US/us-stock-futures-rise-buoyed-by-ai-led-tech-rally-and-lower-oil-prices",
-              "lean": "bull",
-              "at": "2026-09-22T08:31:17+02:00"
-            },
-            {
-              "source": "News",
-              "text": "BTC etwa 85.300 Dollar; Risikoappetit nur verhalten.",
-              "url": "https://finance.yahoo.com/quote/BTC-USD",
-              "lean": "mixed",
-              "at": "2026-09-22T08:31:17+02:00"
-            },
-            {
-              "source": "News",
-              "text": "ORCL ~148,56 Dollar; starkes Auftragsbuch, Kapitalfrage bleibt,",
-              "url": "https://www.fool.com/investing/2026/09/21/not-nvidia-not-micron-meet-the-ai-infrastructure-stock-that-could-triple-in-just-3-years/",
-              "lean": "mixed",
-              "at": "2026-09-22T08:31:17+02:00"
-            },
-            {
-              "source": "Reddit",
-              "text": "ApeWisdom: ORCL 11 Mentions/24h (Upvotes 19), Sentiment ~78%.",
-              "url": "https://apewisdom.io/stocks/ORCL/",
-              "lean": "bull",
-              "at": "2026-09-22T08:31:17+02:00"
-            },
-            {
-              "source": "Reddit",
-              "text": "AltIndex: ~37 Mentions/Tag, Social-Sentiment unterdurchschnittlich, Hold-Nähe.",
-              "url": "https://altindex.com/ticker/orcl",
-              "lean": "mixed",
-              "at": "2026-09-22T08:31:17+02:00"
-            },
-            {
-              "source": "Reddit",
-              "text": "TheDistributed 30d: 1402 Mentions, 50% bull / 17% bear / 33% neutral.",
-              "url": "https://thedistributed.co/stocks/ORCL/",
-              "lean": "bull",
-              "at": "2026-09-22T08:31:17+02:00"
-            }
+            "ApeWisdom: 11 Mentions/24h, Sentiment 78%",
+            "Jim Cramer sends strong signal to Oracle stock investors",
+            "Oracle’s Co-CEOs Deliver Explosive Growth, but Stock Plunges 50% in Their First Year",
+            "Oracle’s $7B Pentagon Deal Win Sparks 'Buy' Calls From Retail Traders As ORCL Rebounds Premarket"
           ]
         },
         "links": {
           "tradingview": "https://www.tradingview.com/symbols/ORCL/",
           "yahoo": "https://finance.yahoo.com/quote/ORCL"
         },
-        "price": 148.56
+        "price": 148.1132
       }
     ],
     "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
@@ -625,13 +511,13 @@
   "signals_disclaimer": "",
   "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
   "freshness": {
-    "freshest_absolute": "2026-09-22T08:31:17+02:00",
-    "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
-    "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok news-only; Bright Data 401; Treg catalog ok, call auth_needed",
-    "scrape_berlin": "2026-09-22T08:25:00+02:00",
-    "sample_window": "Web/news ≤24h; Reddit via ApeWisdom/AltIndex/TheDistributed; X fully credits_depleted",
-    "freshest_item_age": "",
-    "oldest_usable_signal": "SoftBank bonds still live; morning futures mild; ORCL debt caution"
+    "freshest_absolute": "2026-09-22T10:31:36+02:00",
+    "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
+    "quality": "medium-high public sources",
+    "scrape_berlin": "2026-09-22T10:31:36+02:00",
+    "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
+    "freshest_item_age": "snapshot fetched now",
+    "oldest_usable_signal": "Oracle’s $7B Pentagon Deal Win Sparks 'Buy' Calls From Retail Traders As ORCL Rebounds Premarket"
   },
   "history": [
     {
@@ -933,6 +819,15 @@
       "confidence": 65,
       "direction": "mixed_cautious",
       "items": 8,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-22T10:31:36+02:00",
+      "scraped_at": "2026-09-22T10:31:36+02:00",
+      "magnitude": 52,
+      "confidence": 78,
+      "direction": "leicht_bullish_risk_on",
+      "items": 21,
       "early_signal": true
     }
   ],

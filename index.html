@@ -884,8 +884,19 @@ function renderSyncFooter(error){
   btn.textContent=syncBusy?'↻ Sync …':'↻ Sync';
 }
 async function fetchJson(url,optional){
-  try{var r=await fetch(url+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json();}
-  catch(e){if(optional)return null;throw e;}
+  var remote='https://raw.githubusercontent.com/nostack-dev/alantu-de/main/'+url+'?t='+Date.now();
+  var local=url+'?t='+Date.now();
+  var candidates=[remote,local];
+  var lastErr=null;
+  for(var i=0;i<candidates.length;i++){
+    try{
+      var r=await fetch(candidates[i],{cache:'no-store'});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      return await r.json();
+    }catch(e){lastErr=e;}
+  }
+  if(optional)return null;
+  throw lastErr||new Error('Daten nicht verfügbar');
 }
 async function load(){
   try{

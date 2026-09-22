@@ -1,0 +1,29 @@
+{
+  "updated_at": "2026-09-22T10:31:36+02:00",
+  "sources": {
+    "reddit": {
+      "ok": true,
+      "mentions": 11,
+      "sentiment": 78,
+      "provider": "apewisdom.io"
+    },
+    "news": {
+      "ok": true,
+      "count": 20,
+      "provider": "news.google.com"
+    },
+    "yahoo": {
+      "ok": true,
+      "price": 148.1132,
+      "price_at": "2026-09-22T08:30:43.000Z"
+    }
+  },
+  "derived": {
+    "signal": "buy",
+    "hype_bull": 56,
+    "hype_bear": 13,
+    "hype_mixed": 31,
+    "hype_net": 43,
+    "confidence": 78
+  }
+}

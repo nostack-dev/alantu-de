@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-22T08:25:00+02:00",
+  "updated_at": "2026-09-22T10:31:36+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,13 +9,13 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-22T08:25:00+02:00",
-        "signal": "hold",
-        "social_impulse": 0,
-        "hype_bull": 38,
-        "hype_bear": 25,
-        "hype_net": 13,
-        "confidence": 65
+        "at": "2026-09-22T10:31:36+02:00",
+        "signal": "buy",
+        "social_impulse": 9,
+        "hype_bull": 56,
+        "hype_bear": 13,
+        "hype_net": 43,
+        "confidence": 78
       },
       "history": [
         {
@@ -896,6 +896,20 @@
           "voice_bear": 2,
           "voice_mixed": 3,
           "price": 148.56
+        },
+        {
+          "at": "2026-09-22T10:31:36+02:00",
+          "hype_bull": 56,
+          "hype_bear": 13,
+          "hype_net": 43,
+          "social_impulse": 9,
+          "signal": "buy",
+          "confidence": 78,
+          "hype_mixed": 31,
+          "voice_bull": 11,
+          "voice_bear": 2,
+          "voice_mixed": 9,
+          "price": 148.1132
         }
       ],
       "voices_archive": [
@@ -1210,35 +1224,36 @@
           "mixed": 3
         }
       ],
-      "signal": "hold",
-      "social_impulse": 0,
-      "impulse": 0,
-      "hype_bull": 38,
-      "hype_bear": 25,
-      "hype_net": 13,
-      "confidence": 65,
-      "hype_state": "mixed",
-      "updated_at": "2026-09-22T08:25:00+02:00",
-      "why": "SoftBank-Anleihen und ORCL-Schulden bleiben Gegenwind. Kurs hält bei etwa 148 Dollar.",
+      "signal": "buy",
+      "social_impulse": 9,
+      "impulse": 9,
+      "hype_bull": 56,
+      "hype_bear": 13,
+      "hype_net": 43,
+      "confidence": 78,
+      "hype_state": "bullish",
+      "updated_at": "2026-09-22T10:31:36+02:00",
+      "why": "Reddit 78% positiv bei 11 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $148.11.",
       "evidence": {
         "x_posts": 0,
-        "reddit_posts": 0,
-        "news": 5,
+        "reddit_posts": 11,
+        "news": 20,
         "snippets": [
-          "SoftBank ~$11B OpenAI bonds still live — Sep 22 coverage",
-          "ORCL voices bull3/bear2/mixed3; Reddit ApeWisdom 11/24h @78%; X skipped (credits)",
-          "Futures mild; BTC ~$85.300; ORCL ~$148.56"
+          "ApeWisdom: 11 Mentions/24h, Sentiment 78%",
+          "Jim Cramer sends strong signal to Oracle stock investors",
+          "Oracle’s Co-CEOs Deliver Explosive Growth, but Stock Plunges 50% in Their First Year",
+          "Oracle’s $7B Pentagon Deal Win Sparks 'Buy' Calls From Retail Traders As ORCL Rebounds Premarket"
         ]
       },
       "voices": {
-        "bull": 3,
+        "bull": 11,
         "bear": 2,
-        "mixed": 3,
-        "updated_at": "2026-09-22T08:25:00+02:00"
+        "mixed": 9,
+        "updated_at": "2026-09-22T10:31:36+02:00"
       },
-      "hype_mixed": 38,
+      "hype_mixed": 31,
       "sentiment_unit": "percent_all_classified",
-      "price": 148.56
+      "price": 148.1132
     }
   }
 }
