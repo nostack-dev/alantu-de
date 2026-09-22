@@ -5,6 +5,7 @@ import numpy as np
 
 ROOT=Path(sys.argv[1] if len(sys.argv)>1 else "/tmp/fi2010")
 OUT=Path(sys.argv[2] if len(sys.argv)>2 else "fi2010-microstructure-proof.json")
+MODEL=Path(sys.argv[3] if len(sys.argv)>3 else "fi2010-microstructure-model.json")
 
 def find(name):
     hits=list(ROOT.rglob(name))
@@ -39,8 +40,8 @@ def features(a):
 
 def labels(a):
     y=a[-5:,:].T.astype(np.int8)
-    # FI-2010: 1=up, 2=stationary, 3=down.
-    return np.where(y==1,1,np.where(y==3,-1,0)).astype(np.int8)
+    # FI-2010: 1=down, 2=stationary, 3=up.
+    return np.where(y==1,-1,np.where(y==3,1,0)).astype(np.int8)
 
 def standardize_fit(X):
     mu=X.mean(0); sd=X.std(0); sd[sd<1e-9]=1
@@ -98,7 +99,9 @@ cut=int(len(X)*.80)
 mu,sd=standardize_fit(X[:cut])
 Xfit=z(X[:cut],mu,sd); Xval=z(X[cut:],mu,sd)
 
-result={"dataset":"FI-2010 NoAuction DecPre","train_samples":int(cut),"validation_samples":int(len(X)-cut),"test_days":[],"horizons":{}}
+feature_names=["imbalance_l1","imbalance_l3","imbalance_l5","imbalance_l10","microprice_bias","near_far_imbalance","depth_ratio_l5"]
+result={"dataset":"FI-2010 NoAuction DecPre","label_map":{"1":"down","2":"stationary","3":"up"},"feature_names":feature_names,"train_samples":int(cut),"validation_samples":int(len(X)-cut),"test_days":[8,9,10],"horizons":{}}
+model={"dataset":"FI-2010 NoAuction DecPre","label_map":{"1":"down","2":"stationary","3":"up"},"feature_names":feature_names,"standardization":{"mean":[float(x) for x in mu],"std":[float(x) for x in sd]},"ridge_lambda":8.0,"fit":{"train_days":[1,2,3,4,5,6,7],"fit_fraction_of_train":0.8,"validation_fraction_of_train":0.2,"holdout_days":[8,9,10]},"horizons":{}}
 for h in range(5):
     yfit=Y[:cut,h].astype(float); yval=Y[cut:,h]
     b=ridge_fit(Xfit,yfit)
@@ -122,7 +125,9 @@ for h in range(5):
     bn=int(fire.sum()); bh=int((base_pred[fire]==by[fire]).sum()) if bn else 0
     baseline={"n":bn,"coverage":float(bn/len(by)) if len(by) else 0,"hit":float(bh/bn) if bn else None,"hit95":wilson(bh,bn)}
     stable=sum(1 for m in day_metrics if m["hit"] is not None and m["hit"]>.5)
-    result["horizons"][str([10,20,30,50,100][h])]={
+    horizon=str([10,20,30,50,100][h])
+    model["horizons"][horizon]={"threshold":float(thr),"coefficients":[float(x) for x in b]}
+    result["horizons"][horizon]={
       "threshold":thr,"validation":valm,"holdout":held,"holdout_days":day_metrics,
       "stable_days_above_50":stable,"l1_imbalance_baseline":baseline,
       "coefficients":{"intercept":float(b[0]),"imb1":float(b[1]),"imb3":float(b[2]),"imb5":float(b[3]),"imb10":float(b[4]),"micro_bias":float(b[5]),"near_far":float(b[6]),"depth_ratio":float(b[7])}
@@ -137,4 +142,6 @@ for h,r in result["horizons"].items():
 result["verdict"]="microstructure_predictive_oos" if qualified else "not_proven"
 result["qualified_horizons"]=qualified
 OUT.write_text(json.dumps(result,indent=2))
+MODEL.write_text(json.dumps(model,indent=2))
 print("FI2010_PROOF_JSON "+json.dumps(result))
+print("FI2010_MODEL_JSON "+json.dumps(model))
