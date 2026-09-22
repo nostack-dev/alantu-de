@@ -3,6 +3,7 @@
   "symbol": "ORCL",
   "dataset": "XNAS.ITCH",
   "schema": "mbp-10",
+  "feature_version": "hdr-dt-v1",
   "horizon_events": 100,
   "feature_names": [
     "imbalance_l1",
@@ -11,8 +12,25 @@
     "imbalance_l10",
     "microprice_bias",
     "near_far_imbalance",
-    "depth_ratio_l5"
+    "depth_ratio_l5",
+    "xy_pressure",
+    "xy_liquidity_log",
+    "spread_bps",
+    "log_dt_us",
+    "vx_log",
+    "vy_log",
+    "ax_log",
+    "ay_log",
+    "hdr_self_x",
+    "hdr_self_y",
+    "hdr_local_x",
+    "hdr_local_y",
+    "hdr_global_x",
+    "hdr_global_y",
+    "log_rate_10",
+    "log_rate_100",
+    "pace_ratio_log"
   ],
   "model_id": null,
-  "reason": "No validated ORCL MBP-10 model has passed the long-form holdout gate."
+  "reason": "No validated ORCL MBP-10 hdr-dt-v1 model has passed the long-form holdout gate."
 }
