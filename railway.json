@@ -1,0 +1,25 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile.market-runtime",
+    "watchPatterns": [
+      "Dockerfile.market-runtime",
+      "railway.json",
+      "market-runtime/**",
+      "market-relay/**",
+      "tools/l2-event-signal.mjs",
+      "tools/microstructure-core.mjs",
+      "tools/microstructure-signal.mjs",
+      "tools/databento-orcl-mbp10-live.py",
+      "orcl-l2-model.json",
+      "microstructure-edge-status.json"
+    ]
+  },
+  "deploy": {
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 120,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
+}
