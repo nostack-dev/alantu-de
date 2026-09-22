@@ -150,6 +150,24 @@
       left:18px;right:18px;top:18px;
       display:flex;justify-content:space-between;align-items:center;gap:10px;
     }
+    .stage-top-actions{display:flex;align-items:center;gap:8px;pointer-events:auto}
+    .stage-fullscreen{width:40px;height:40px;background:rgba(244,240,232,.72)}
+    .stage:fullscreen{
+      width:100vw;
+      height:100vh;
+      min-height:0;
+      aspect-ratio:auto;
+      border-radius:0;
+      border:0;
+    }
+    .stage:-webkit-full-screen{
+      width:100vw;
+      height:100vh;
+      min-height:0;
+      aspect-ratio:auto;
+      border-radius:0;
+      border:0;
+    }
     .badge{
       border:1px solid rgba(13,13,11,.12);
       background:rgba(244,240,232,.66);
@@ -346,7 +364,14 @@
           <div class="stage-ui">
             <div class="stage-top">
               <span class="badge">LIVE · 3D EXPOSÉ</span>
-              <span class="badge">VILLA AM SEE</span>
+              <div class="stage-top-actions">
+                <span class="badge">VILLA AM SEE</span>
+                <button class="stage-control stage-fullscreen" id="fullscreenBtn" type="button" aria-label="Vollbild öffnen" title="Vollbild">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
             </div>
             <div class="hint">Tippen oder wischen</div>
             <div class="stage-bottom">
@@ -432,10 +457,11 @@
     const tapNext = document.getElementById("tapNext");
     const pageCount = document.getElementById("pageCount");
     const experienceBtn = document.getElementById("experienceBtn");
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const renderer = new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:"high-performance"});
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.5));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -494,9 +520,11 @@
 
     function textureFor(index){
       const c=document.createElement("canvas");
-      c.width=900;c.height=1220;
+      const TEX_SCALE=2;
+      c.width=900*TEX_SCALE;c.height=1220*TEX_SCALE;
       const ctx=c.getContext("2d");
-      ctx.fillStyle="#f4f0e8";ctx.fillRect(0,0,c.width,c.height);
+      ctx.scale(TEX_SCALE,TEX_SCALE);
+      ctx.fillStyle="#f4f0e8";ctx.fillRect(0,0,900,1220);
 
       if(index===0){
         const g=ctx.createLinearGradient(0,0,900,1220);
@@ -705,14 +733,27 @@
       requestAnimationFrame(frame);
     }
 
+    function setPageState(index,flipped){
+      const pivot=pageRoots[index];
+      pivot.rotation.y=flipped?-Math.PI:0;
+      pivot.rotation.z=0;
+      pivot.position.z=flipped?leftZ(index):rightZ(index);
+      bendPage(pivot,0);
+    }
+
+    function normalizeBookState(){
+      for(let i=0;i<totalPages;i++)setPageState(i,i<current);
+    }
+
     function next(){
       if(animating || current>=totalPages-1)return;
-      animatePage(current,true,()=>{current++;updateUI()});
+      const turning=current;
+      animatePage(turning,true,()=>{current=turning+1;normalizeBookState();updateUI()});
     }
     function prev(){
       if(animating || current<=0)return;
       const target=current-1;
-      animatePage(target,false,()=>{current=target;updateUI()});
+      animatePage(target,false,()=>{current=target;normalizeBookState();updateUI()});
     }
 
     prevBtn.addEventListener("click",prev);
@@ -723,6 +764,30 @@
       document.getElementById("demo").scrollIntoView({behavior:prefersReduced?"auto":"smooth",block:"center"});
       setTimeout(()=>{if(current===0)next()},prefersReduced?0:420);
     });
+
+    fullscreenBtn.addEventListener("click",async()=>{
+      try{
+        const active=document.fullscreenElement||document.webkitFullscreenElement;
+        if(active){
+          if(document.exitFullscreen) await document.exitFullscreen();
+          else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+        }else{
+          if(stage.requestFullscreen) await stage.requestFullscreen();
+          else if(stage.webkitRequestFullscreen) stage.webkitRequestFullscreen();
+        }
+      }catch(e){
+        console.warn("Fullscreen unavailable",e);
+      }
+    });
+
+    function syncFullscreenButton(){
+      const active=document.fullscreenElement===stage||document.webkitFullscreenElement===stage;
+      fullscreenBtn.setAttribute("aria-label",active?"Vollbild schließen":"Vollbild öffnen");
+      fullscreenBtn.title=active?"Vollbild schließen":"Vollbild";
+      setTimeout(resize,30);
+    }
+    document.addEventListener("fullscreenchange",syncFullscreenButton);
+    document.addEventListener("webkitfullscreenchange",syncFullscreenButton);
 
     stage.addEventListener("pointerdown",e=>{pointerStart={x:e.clientX,y:e.clientY,id:e.pointerId}});
     stage.addEventListener("pointerup",e=>{
@@ -735,19 +800,25 @@
 
     function resize(){
       const r=stage.getBoundingClientRect();
-      const w=Math.max(1,r.width),h=Math.max(1,r.height);
+      const w=Math.max(1,Math.round(r.width));
+      const h=Math.max(1,Math.round(r.height));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2.5));
       renderer.setSize(w,h,false);
       camera.aspect=w/h;
-      camera.updateProjectionMatrix();
-      if(w<560){
-        root.scale.setScalar(.78);
-        root.position.set(.18,.10,0);
-        root.rotation.y=-.18;
+
+      const fullscreen=document.fullscreenElement===stage||document.webkitFullscreenElement===stage;
+      if(w<560 && !fullscreen){
+        camera.fov=31;
+        root.scale.setScalar(.72);
+        root.position.set(.58,.08,0);
+        root.rotation.y=-.16;
       }else{
-        root.scale.setScalar(.91);
-        root.position.set(.26,.02,0);
-        root.rotation.y=-.24;
+        camera.fov=30;
+        root.scale.setScalar(fullscreen?.86:.76);
+        root.position.set(1.34,.02,0);
+        root.rotation.y=-.18;
       }
+      camera.updateProjectionMatrix();
     }
     const ro=new ResizeObserver(resize);ro.observe(stage);resize();
 
@@ -755,6 +826,7 @@
       renderer.render(scene,camera);
       requestAnimationFrame(render);
     }
+    normalizeBookState();
     updateUI();render();
   </script>
 </body>
