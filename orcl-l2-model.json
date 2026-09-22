@@ -1,7 +1,7 @@
 {
   "status": "unavailable",
   "symbol": "ORCL",
-  "dataset": "XNAS.ITCH",
+  "dataset": "MEMX.MEMOIR",
   "schema": "mbp-10",
   "feature_version": "hdr-dt-v1",
   "horizon_events": 100,
@@ -32,5 +32,5 @@
     "pace_ratio_log"
   ],
   "model_id": null,
-  "reason": "No validated ORCL MBP-10 hdr-dt-v1 model has passed the long-form holdout gate."
+  "reason": "No validated ORCL MEMX.MEMOIR MBP-10 hdr-dt-v1 model has passed the long-form holdout gate."
 }
