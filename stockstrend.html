@@ -283,6 +283,12 @@
     .sentiment-denom{font-size:.58em}
   }
 
+  /* Native iOS-style rubber-band even when content exactly fits */
+  @media (hover:none) and (pointer:coarse){
+    html{min-height:100%;overscroll-behavior-y:auto}
+    body{min-height:calc(100dvh + 1px);overscroll-behavior-y:auto;-webkit-overflow-scrolling:touch}
+  }
+
 </style>
 </head>
 <body>
