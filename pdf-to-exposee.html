@@ -738,14 +738,14 @@
       spine.receiveShadow=true;
       root.add(spine);
 
-      const COVER_GAP=.008;
+      const OPEN_COVER_GAP=.052;
       coverSupport={
         coverThickness:COVER_T,
 
-        // Once opened to the left, the front cover is the physical bottom
-        // board of the left stack. It must stay directly below leaf 0,
-        // independent of total PDF page count.
-        startOpenZ:leftZ(0)-COVER_GAP-COVER_T/2,
+        // Match the main viewer: its open front cover sits ~.052 below
+        // the first left leaf. Keep that visual gap constant regardless
+        // of PDF page count instead of tying it to the deepest right leaf.
+        startOpenZ:leftZ(0)-OPEN_COVER_GAP-COVER_T/2,
 
         // Closed at the start it sits directly above the right-hand top leaf.
         startClosedZ:rightZ(0)+.010+COVER_T/2,
