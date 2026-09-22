@@ -330,7 +330,7 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture } from "./alantu-book-core.js?v=d7158e87";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle } from "./alantu-book-core.js?v=33ff1ad2";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
@@ -388,6 +388,23 @@
     const coverMaterial=new THREE.MeshStandardMaterial({color:0x171713,roughness:.68,metalness:.05});
     const edgeMaterial=new THREE.MeshStandardMaterial({color:0xeee7dc,roughness:.94});
 
+    function hardcoverMaterials(title){
+      const canvas=createAlantuCoverCanvas({title});
+      const texture=configureAlantuPageTexture(new THREE.CanvasTexture(canvas),{
+        renderer,
+        linearFilter:THREE.LinearFilter,
+        colorSpace:THREE.SRGBColorSpace
+      });
+
+      const side=()=>coverMaterial.clone();
+      const face=coverMaterial.clone();
+      face.map=texture;
+      face.color.set(0xffffff);
+      face.needsUpdate=true;
+
+      return [side(),side(),side(),side(),face,side()];
+    }
+
     let pageTextures=[];
     let leafRoots=[];
     let frontCover=null;
@@ -402,6 +419,7 @@
     let PAGE_W=3.52;
     let PAGE_H=4.80;
     let bookAspect=PAGE_W/PAGE_H;
+    let currentCoverTitle="ALANTU Exposé";
     let loadToken=0;
 
     function setStatus(text,type=""){
@@ -635,7 +653,7 @@
 
       frontCover=new THREE.Mesh(
         new THREE.BoxGeometry(COVER_W,COVER_H,COVER_T),
-        coverMaterial.clone()
+        hardcoverMaterials(currentCoverTitle)
       );
       frontCover.position.set(COVER_W/2,0,0);
       frontCover.castShadow=true;
@@ -731,7 +749,8 @@
       setProgress(3);
       metaFile.textContent=file.name;
       metaPages.textContent="…";
-      viewerTitle.textContent=file.name.replace(/\.pdf$/i,"").toUpperCase();
+      currentCoverTitle=sanitizeAlantuCoverTitle(file.name);
+      viewerTitle.textContent=currentCoverTitle.toUpperCase();
 
       try{
         const buffer=await file.arrayBuffer();
