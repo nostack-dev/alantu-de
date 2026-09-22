@@ -11,6 +11,16 @@ REPORT=Path(sys.argv[3] if len(sys.argv)>3 else "orcl-l2-proof.json")
 H=100
 DEADBAND_BPS=.5
 SLIPPAGE_BPS=.35
+ALLOWED_DATASETS={"MEMX.MEMOIR","XNAS.ITCH"}
+manifest_path=ROOT/"manifest.json"
+if not manifest_path.exists():
+    raise SystemExit("manifest.json missing; training refuses unknown data provenance")
+manifest=json.loads(manifest_path.read_text())
+DATASET=str(manifest.get("dataset") or "")
+if DATASET not in ALLOWED_DATASETS:
+    raise SystemExit(f"unsupported dataset: {DATASET}")
+if str(manifest.get("schema") or "")!="mbp-10" or str(manifest.get("symbol") or "")!="ORCL":
+    raise SystemExit("manifest dataset contract mismatch")
 def day_files():
     return sorted(p for p in ROOT.glob("*.npz") if p.stem[:4].isdigit())
 
@@ -133,7 +143,7 @@ def daily_vol(p):
 
 files=day_files()
 if len(files)<252:
-    status={"status":"unproven","reason":"usable_days_lt_252","usable_days":len(files),"horizon_events":H,"feature_version":FEATURE_VERSION}
+    status={"status":"unproven","reason":"usable_days_lt_252","usable_days":len(files),"dataset":DATASET,"schema":"mbp-10","symbol":"ORCL","horizon_events":H,"feature_version":FEATURE_VERSION}
     OUT.write_text(json.dumps(status,indent=2));REPORT.write_text(json.dumps(status,indent=2));print(json.dumps(status));raise SystemExit(0)
 
 a=int(len(files)*.55);b=int(len(files)*.75)
@@ -158,7 +168,7 @@ for thr in candidates:
     obj=(m["hit95"][0] or 0)+.06*max(-2,min(4,m["mean_net_bps"] or 0))+.02*math.log1p(m["n"])
     if best is None or obj>best[0]:best=(obj,thr,m)
 if best is None:
-    status={"status":"unproven","reason":"no_validation_threshold","usable_days":len(files),"horizon_events":H,"feature_version":FEATURE_VERSION}
+    status={"status":"unproven","reason":"no_validation_threshold","usable_days":len(files),"dataset":DATASET,"schema":"mbp-10","symbol":"ORCL","horizon_events":H,"feature_version":FEATURE_VERSION}
     OUT.write_text(json.dumps(status,indent=2));REPORT.write_text(json.dumps(status,indent=2));print(json.dumps(status));raise SystemExit(0)
 _,thr,valm=best
 
@@ -205,7 +215,7 @@ if not (held["mean_net_bps"] is not None and held["mean_net_bps"]>baseline+.25):
 
 status="validated" if not reasons else "unproven"
 model={
-    "status":status,"symbol":"ORCL","dataset":"XNAS.ITCH","schema":"mbp-10",
+    "status":status,"symbol":"ORCL","dataset":DATASET,"schema":"mbp-10",
     "feature_version":FEATURE_VERSION,"horizon_events":H,
     "feature_names":FEATURE_NAMES,"deadband_bps":DEADBAND_BPS,"slippage_bps":SLIPPAGE_BPS,
     "standardization":{"mean":[float(x) for x in mu],"std":[float(x) for x in sd]},
@@ -221,6 +231,7 @@ report={
     "split":{"train":[p.stem for p in train],"validation":[p.stem for p in val],"holdout":[p.stem for p in hold]},
     "protocol":{
         "horizon_events":100,
+        "dataset":DATASET,
         "feature_version":FEATURE_VERSION,
         "event_time":"ts_event nanoseconds",
         "delta_t":"exact exchange-event delta; zero intervals floored to 1 ns only for derivatives",
