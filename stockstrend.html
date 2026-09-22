@@ -218,6 +218,18 @@
   .info-inline{width:16px;height:16px;font-size:10px;margin-left:4px;vertical-align:-1px}
   @media(max-width:700px){.sync-footer{padding:10px 18px 16px}}
 
+  .sentiment-hero-card{border-bottom:1px solid #eeeeef!important}
+  .sentiment-hero-score{font-variant-numeric:tabular-nums}
+  .sentiment-hero-score.up{color:#00a94f}
+  .sentiment-hero-score.down{color:#e94035}
+  .sentiment-hero-score.flat{color:#151517}
+  .chart-actions{display:flex;align-items:center;gap:12px}
+  .chart-collapse{border:0;background:transparent;color:#a0a0a7;font:700 12px/1 system-ui,sans-serif;padding:4px 0 4px 6px;cursor:pointer;min-width:18px}
+  .chart-collapse:hover{color:#151517}
+  .chart-panel.collapsed{padding-bottom:10px!important}
+  .chart-panel.collapsed .chart-panel-body{display:none}
+  .chart-panel.collapsed .chart-head{margin-bottom:0!important}
+
   /* TR-density main surface */
   header{padding-top:12px!important;padding-bottom:4px!important}
   header h1{font-size:13px!important;font-weight:700!important;letter-spacing:-.01em!important}
@@ -284,6 +296,12 @@
       <div class="note" id="orclWhy"></div>
       <div class="meta" style="display:none" id="orclLinks"></div>
     </div>
+    <div class="card sentiment-hero-card">
+      <div class="label">Oracle Stimmung <span class="live-state" id="sentimentHeroState">Lädt …</span></div>
+      <div class="market-clock" id="sentimentHeroMeta">Aktuelle Stimmung · 0–100</div>
+      <div class="hero-price sentiment-hero-score" id="sentimentHeroScore">—</div>
+      <div class="hero-change flat" id="sentimentHeroLabel"></div>
+    </div>
     <div class="card aux-card">
       <div class="label">Aktualität</div>
       <div class="big" id="freshAge">—</div>
@@ -310,41 +328,49 @@
     <div class="shock-events" id="shockEvents"></div>
   </div>
 
-  <div class="card chart-card-lg">
-    <div class="chart-head chart-head-min"><div class="value-summary"><span id="ivNow"></span> <a class="info-link info-inline" href="methodik.html#intrinsic" aria-label="Berechnung des inneren Werts erklären" title="Berechnung des inneren Werts">i</a></div><button type="button" class="line-toggle active" id="intrinsicToggle" aria-pressed="true">Wert</button></div>
+  <div class="card chart-card-lg chart-panel" data-chart-panel="price">
+    <div class="chart-head chart-head-min"><div class="value-summary"><span id="ivNow"></span> <a class="info-link info-inline" href="methodik.html#intrinsic" aria-label="Berechnung des inneren Werts erklären" title="Berechnung des inneren Werts">i</a></div><div class="chart-actions"><button type="button" class="line-toggle active" id="intrinsicToggle" aria-pressed="true">Wert</button><button type="button" class="chart-collapse" data-chart-collapse="price" aria-expanded="true" aria-label="Kurschart einklappen">▴</button></div></div>
+    <div class="chart-panel-body">
     <div class="value-status flat" id="ivStatus"></div>
     <div class="chart-sub"><span id="ivCoverage"></span></div>
     <div class="chart-wrap chart-wrap-lg"><canvas id="ivChart"></canvas></div>
     <div class="mini-range" id="priceRange" aria-label="Zeitraum Kurs und Wert">
       <button type="button" data-price-range="1d">1T</button><button type="button" data-price-range="1w">1W</button><button type="button" data-price-range="1m">1M</button><button type="button" data-price-range="year">1J</button><button type="button" data-price-range="5y">5J</button><button type="button" data-price-range="all">MAX</button>
     </div>
+    </div>
   </div>
 
-  <div class="card chart-card-lg">
-    <div class="chart-head"><div class="label">Oracle · Stimmung <a class="info-link info-inline" href="methodik.html#sentiment" aria-label="Quellen und Berechnung der Stimmung erklären" title="Quellen und Berechnung der Stimmung">i</a></div></div>
+  <div class="card chart-card-lg chart-panel" data-chart-panel="sentiment">
+    <div class="chart-head"><div class="label">Oracle · Stimmung <a class="info-link info-inline" href="methodik.html#sentiment" aria-label="Quellen und Berechnung der Stimmung erklären" title="Quellen und Berechnung der Stimmung">i</a></div><button type="button" class="chart-collapse" data-chart-collapse="sentiment" aria-expanded="true" aria-label="Stimmungs-Chart einklappen">▴</button></div>
+    <div class="chart-panel-body">
     <div class="sentiment-source" id="sentimentSource">Quellen werden geladen …</div>
     <div class="chart-sub"><span id="hypeCoverage"></span></div>
     <div class="chart-wrap chart-wrap-lg"><canvas id="hypeChart"></canvas></div>
     <div class="mini-range" id="sentimentRange" aria-label="Zeitraum Stimmung">
       <button type="button" data-sentiment-range="1d">1T</button><button type="button" data-sentiment-range="1w">1W</button><button type="button" data-sentiment-range="1m">1M</button><button type="button" data-sentiment-range="year">1J</button><button type="button" data-sentiment-range="5y">5J</button><button type="button" data-sentiment-range="all">MAX</button>
     </div>
+    </div>
   </div>
-  <div class="card chart-card-sm secondary-section">
-    <div class="chart-head"><div class="label">Markt · Stimmungsstärke (0–100) <span class="meta" id="magNow"></span></div></div>
+  <div class="card chart-card-sm secondary-section chart-panel" data-chart-panel="magnitude">
+    <div class="chart-head"><div class="label">Markt · Stimmungsstärke (0–100) <span class="meta" id="magNow"></span></div><button type="button" class="chart-collapse" data-chart-collapse="magnitude" aria-expanded="true" aria-label="Stimmungsstärke-Chart einklappen">▴</button></div>
+    <div class="chart-panel-body">
     <div class="meta" style="margin:0 0 10px">Aktueller Social-Druck am Markt — nicht der Kurs. <span id="magCoverage"></span></div>
     <div class="chart-wrap chart-wrap-sm"><canvas id="magChart"></canvas></div>
     <div class="mini-range" id="magnitudeRange" aria-label="Zeitraum Stimmungsstärke">
       <button type="button" data-magnitude-range="1d">1T</button><button type="button" data-magnitude-range="1w">1W</button><button type="button" data-magnitude-range="1m">1M</button><button type="button" data-magnitude-range="year">1J</button><button type="button" data-magnitude-range="5y">5J</button><button type="button" data-magnitude-range="all">MAX</button>
     </div>
+    </div>
   </div>
-<div class="card secondary-section">
-    <div class="label">Oracle · Meinungen <span class="meta" id="stimmenRange"></span></div>
+<div class="card secondary-section chart-panel" data-chart-panel="opinions">
+    <div class="chart-head"><div class="label">Oracle · Meinungen <span class="meta" id="stimmenRange"></span></div><button type="button" class="chart-collapse" data-chart-collapse="opinions" aria-expanded="true" aria-label="Meinungen einklappen">▴</button></div>
+    <div class="chart-panel-body">
     <div class="stimmen-box">
       <div>
         <canvas id="pie" width="150" height="150"></canvas>
         <div class="meta" id="pieLeg" style="text-align:center;margin-top:6px"></div>
       </div>
       <div id="stimmenList"></div>
+    </div>
     </div>
   </div>
 </div>
@@ -356,7 +382,7 @@
 <script src="price-shock-core.js"></script>
 <script>
 var LS_ACC='botbot_acc_open', SENTIMENT_HISTORY_LS='alantu_orcl_sentiment_history_v1';
-var RANGE_KEYS={price:'alantu_price_range_v1',sentiment:'alantu_sentiment_range_v1',magnitude:'alantu_magnitude_range_v1'}, INTRINSIC_VISIBLE_LS='alantu_intrinsic_visible_v1';
+var RANGE_KEYS={price:'alantu_price_range_v1',sentiment:'alantu_sentiment_range_v1',magnitude:'alantu_magnitude_range_v1'}, INTRINSIC_VISIBLE_LS='alantu_intrinsic_visible_v1', CHART_OPEN_LS='alantu_chart_open_v1';
 function loadChartRange(key,def){
   try{
     var r=localStorage.getItem(RANGE_KEYS[key])||def||'1d';
@@ -368,6 +394,39 @@ var priceRange=loadChartRange('price','1d');
 var sentimentRange=loadChartRange('sentiment','1m');
 var magnitudeRange=loadChartRange('magnitude','1m');
 var showIntrinsic=(function(){try{return localStorage.getItem(INTRINSIC_VISIBLE_LS)!=='0';}catch(e){return true;}})();
+function loadChartOpenState(){
+  try{
+    var v=JSON.parse(localStorage.getItem(CHART_OPEN_LS)||'{}');
+    return v&&typeof v==='object'?v:{};
+  }catch(e){return {};}
+}
+var chartOpenState=loadChartOpenState();
+function chartIsOpen(key){return chartOpenState[key]!==false;}
+function saveChartOpenState(){try{localStorage.setItem(CHART_OPEN_LS,JSON.stringify(chartOpenState));}catch(e){}}
+function resizeChartForPanel(key){
+  setTimeout(function(){
+    var ch=key==='price'?ivChart:key==='sentiment'?hypeChart:key==='magnitude'?magChart:key==='opinions'?pieChart:null;
+    if(ch&&typeof ch.resize==='function')ch.resize();
+  },0);
+}
+function applyChartPanelState(panel,key,open){
+  panel.classList.toggle('collapsed',!open);
+  var b=panel.querySelector('[data-chart-collapse="'+key+'"]');
+  if(b){b.setAttribute('aria-expanded',open?'true':'false');b.textContent=open?'▴':'▾';}
+  if(open)resizeChartForPanel(key);
+}
+function initChartPanels(){
+  Array.prototype.forEach.call(document.querySelectorAll('[data-chart-panel]'),function(panel){
+    var key=panel.getAttribute('data-chart-panel'),open=chartIsOpen(key);
+    applyChartPanelState(panel,key,open);
+    var b=panel.querySelector('[data-chart-collapse="'+key+'"]');
+    if(!b)return;
+    b.onclick=function(){
+      var next=panel.classList.contains('collapsed');
+      chartOpenState[key]=next;saveChartOpenState();applyChartPanelState(panel,key,next);
+    };
+  });
+}
 var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null, orclHistoryPayload=null;
 var hypeChart=null, magChart=null, ivChart=null, pieChart=null;
 var fxBars=[], orclMinuteBars=[], orclDailyBars=[];
@@ -865,7 +924,20 @@ function renderOverview(){
   var dp=directionalPct({hype_bull:hyp.bull,hype_bear:hyp.bear});
   document.getElementById('orclBull').textContent=dp.bull!=null?(dp.bull.toLocaleString('de-DE',{maximumFractionDigits:1})+' %'):'—';
   document.getElementById('orclBear').textContent=dp.bear!=null?(dp.bear.toLocaleString('de-DE',{maximumFractionDigits:1})+' %'):'—';
-  document.getElementById('orclNet').textContent=(function(){var s=stimmungNorm({hype_bull:hyp.bull,hype_bear:hyp.bear,hype_net:hyp.net,social_impulse:lat.social_impulse});return s!=null?(s+' / 100'):'—';})();
+  var sentimentScore=stimmungNorm({hype_bull:hyp.bull,hype_bear:hyp.bear,hype_net:hyp.net,social_impulse:lat.social_impulse});
+  document.getElementById('orclNet').textContent=sentimentScore!=null?(sentimentScore+' / 100'):'—';
+  var shs=document.getElementById('sentimentHeroScore'),shl=document.getElementById('sentimentHeroLabel'),shm=document.getElementById('sentimentHeroMeta'),shst=document.getElementById('sentimentHeroState');
+  if(shs&&shl&&shm&&shst){
+    var mood=sentimentScore==null?'':(sentimentScore>55?'Positiv':sentimentScore<45?'Negativ':'Neutral');
+    var moodCls=sentimentScore==null?'flat':(sentimentScore>55?'up':sentimentScore<45?'down':'flat');
+    shs.className='hero-price sentiment-hero-score '+moodCls;
+    shs.textContent=sentimentScore!=null?(sentimentScore+' / 100'):'—';
+    shl.className='hero-change '+moodCls;shl.textContent=mood;
+    shm.textContent=sentimentSourceText(t);
+    var sat=fr.freshest_absolute||updated;
+    shst.className='live-state'+(sat?' live':'');
+    shst.textContent=sat?'Aktuell':'Lädt …';
+  }
   document.getElementById('orclWhy').textContent=lat.why||orcl.why||'';
   var L=lat.links||orcl.links||{};
   document.getElementById('orclLinks').innerHTML=(L.yahoo?'<a class="ext" href="'+esc(L.yahoo)+'" target="_blank" rel="noopener">Yahoo</a>':'')+(L.tradingview?'<a class="ext" href="'+esc(L.tradingview)+'" target="_blank" rel="noopener">TradingView</a>':'');
@@ -1293,6 +1365,7 @@ document.getElementById('shockNotify').onclick=async function(){
   try{localStorage.setItem(SHOCK_NOTIFY_LS,shockNotifyEnabled()?'0':'1');}catch(e){}
   setShockNotifyButton();
 };
+initChartPanels();
 renderShockEvents(); setShockNotifyButton(); pollShock();
 renderMarketClock();
 setInterval(renderMarketClock,30000);
