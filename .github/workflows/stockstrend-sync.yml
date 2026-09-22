@@ -207,6 +207,17 @@ jobs:
           PY
           node --check /tmp/stockstrend-inline.js
 
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          html=Path('methodik.html').read_text()
+          scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',html,re.I)
+          if not scripts:
+              raise SystemExit('no methodology inline script found')
+          Path('/tmp/methodik-inline.js').write_text('\n;\n'.join(scripts))
+          PY
+          node --check /tmp/methodik-inline.js
+
           node - <<'NODE'
           const fs = require('fs');
           const names = [
