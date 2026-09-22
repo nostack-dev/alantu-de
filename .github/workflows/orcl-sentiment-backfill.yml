@@ -1,0 +1,79 @@
+name: Backfill ORCL sentiment history
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/backfill-orcl-sentiment.mjs"
+      - ".github/workflows/orcl-sentiment-backfill.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 0"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: orcl-sentiment-backfill
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Start from current main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
+
+      - name: Build two-year historical sentiment
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/backfill-orcl-sentiment.mjs
+          node tools/backfill-orcl-sentiment.mjs
+
+      - name: Validate real historical output when available
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f orcl-sentiment-history.json ]; then
+            echo "No historical file produced: unchanged 50-social/3-news gate yielded no valid points."
+            exit 0
+          fi
+          node - <<'NODE'
+          const fs=require('fs');
+          const sh=JSON.parse(fs.readFileSync('orcl-sentiment-history.json','utf8'));
+          if(sh?.symbol!=='ORCL'||!Array.isArray(sh.history)||!sh.history.length) throw new Error('invalid historical sentiment output');
+          if(Number(sh?.coverage?.requested_days)!==730) throw new Error('historical coverage target must be 730 days');
+          for(const x of sh.history){
+            if(!Number.isFinite(Date.parse(x.at))) throw new Error('invalid timestamp');
+            if(!Number.isFinite(Number(x.hype_bull))||!Number.isFinite(Number(x.hype_bear))||!Number.isFinite(Number(x.confidence))) throw new Error('invalid sentiment point');
+            if(Number(x.social_count)<50||Number(x.news_count)<3) throw new Error('historical point violates unchanged sample gate');
+          }
+          console.log('Historical sentiment validated', sh.coverage);
+          NODE
+
+      - name: Commit historical dataset
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f orcl-sentiment-history.json ]; then exit 0; fi
+          git add orcl-sentiment-history.json
+          if git diff --cached --quiet; then
+            echo "Historical dataset already current."
+            exit 0
+          fi
+          git fetch origin main
+          git rebase origin/main
+          git config user.name "stockstrend-history"
+          git config user.email "stockstrend-history@users.noreply.github.com"
+          git commit -m "Refresh ORCL two-year sentiment history"
+          git push origin HEAD:main
