@@ -417,10 +417,6 @@
     }
 
     function clearBook(){
-      currentLeaf=0;
-      desiredLeaf=0;
-      activeTurn=null;
-      dragState=null;
       leafRoots.forEach(p=>{
         p.traverse(obj=>{
           if(obj.isMesh){
