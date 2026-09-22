@@ -495,22 +495,22 @@
       exterior.map=texture;
       exterior.color.set(0xffffff);
       exterior.needsUpdate=true;
-      const endpaper=new THREE.MeshStandardMaterial({
-        color:0xeee7dc,
-        roughness:.96,
+      const interior=new THREE.MeshStandardMaterial({
+        color:0x2b2924,
+        roughness:.94,
         metalness:0
       });
 
       // BoxGeometry material order: +X, -X, +Y, -Y, +Z, -Z.
-      // +Z = outside/front title. -Z = inside/front endpaper.
-      return [side(),side(),side(),side(),exterior,endpaper];
+      // +Z = exterior/front title. -Z = physical inside of the hard cover.
+      return [side(),side(),side(),side(),exterior,interior];
     }
 
     const backCover = new THREE.Mesh(
       new THREE.BoxGeometry(3.85,5.15,.16),
       [
         coverMat.clone(),coverMat.clone(),coverMat.clone(),coverMat.clone(),
-        new THREE.MeshStandardMaterial({color:0xeee7dc,roughness:.96,metalness:0}),
+        new THREE.MeshStandardMaterial({color:0x2b2924,roughness:.94,metalness:0}),
         coverMat.clone()
       ]
     );
