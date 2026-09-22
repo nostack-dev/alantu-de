@@ -37,7 +37,9 @@ ul{padding-left:18px}.exact{border-left:3px solid #151517;padding-left:12px}
 <h3>Primäre Live-Datensätze</h3>
 <ul>
 <li><b>News:</b> TickerTick API, Query <code>(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))</code>, maximal 40 Treffer.</li>
-<li><b>UGC/Social:</b> TickerTick API, Query <code>(and tt:orcl T:ugc)</code>, maximal 30 Treffer.</li>
+<li><b>UGC/Social:</b> TickerTick API, Query <code>(and tt:orcl T:ugc)</code>, bis zu 200 Treffer pro Abruf.</li>
+<li><b>Zusätzlicher Social-Abruf:</b> zweiter TickerTick-UGC-Lauf über die Entity <code>E:oracle</code>, ebenfalls bis zu 200 Treffer. Danach werden nur ORCL-/aktienrelevante Treffer behalten und mit dem tickergebundenen Feed dedupliziert.</li>
+<li><b>Mindeststichprobe:</b> mindestens 50 deduplizierte Social-/UGC-Beiträge im 36-Stunden-Fenster. Darunter wird der Live-Sentiment-Sync verworfen statt eine scheinpräzise Stimmung anzuzeigen.</li>
 <li><b>Freshness-Gate:</b> nur Datensätze mit Zeitstempel innerhalb der letzten 36 Stunden.</li>
 <li><b>News-Fallback:</b> Google News RSS für <code>Oracle ORCL stock when:1d</code>, browserseitig über RSS2JSON gelesen.</li>
 <li><b>Kurs:</b> Yahoo Finance WebSocket <code>wss://streamer.finance.yahoo.com/?version=2</code>, Subscription <code>ORCL</code> und <code>EURUSD=X</code>.</li>
@@ -52,6 +54,21 @@ mixed = Gleichstand / kein Treffer
 Gewichtung:
 News = 1 Stimme pro Treffer
 UGC/Social = 2 Stimmen pro Treffer
+
+Social-Stichprobe:
+TickerTick ORCL-UGC bis 200 Treffer
++ TickerTick Oracle-Entity-UGC bis 200 Treffer
+→ Aktien-/ORCL-Relevanzfilter
+→ Deduplizierung
+→ Mindestgröße 50
+
+Zeitgewicht je Treffer:
+≤ 2h  = 1,50×
+≤ 8h  = 1,25×
+≤ 24h = 1,00×
+≤ 36h = 0,65×
+
+Social erhält zusätzlich den Faktor 2 gegenüber News.
 
 bull_pct  = round(100 × bull_votes / all_votes)
 bear_pct  = round(100 × bear_votes / all_votes)
