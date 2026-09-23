@@ -1,6 +1,6 @@
-export const FEATURE_VERSION='wave-hdr-dt-v2';
-export const BAR_MINUTES=2;
-export const HORIZONS=[2,6,10,20,30];
+export const FEATURE_VERSION='wave-hdr-dt-v1';
+export const BAR_MINUTES=5;
+export const HORIZONS=[5,15,30];
 export const MIN_CONTEXT_BARS=Math.ceil(180/BAR_MINUTES);
 export const FEATURE_NAMES=[
   'ret_bps','log_dt_min','velocity_bps_min','accel_bps_min2',
@@ -98,7 +98,7 @@ export function scoreHorizon(features,h){const z=zscore(features.x,h),b=h.coeffi
 export function forecastLatest(rows,model){
   if(!model||model.feature_version!==FEATURE_VERSION||model.bar_minutes!==BAR_MINUTES)return {status:'blocked',reason:'model_contract'};
   const f=latestFeatures(rows);if(!f)return {status:'blocked',reason:'insufficient_live_history'};
-  const age=Date.now()-Date.parse(f.at);if(!Number.isFinite(age)||age>3*60000)return {status:'blocked',reason:'stale_live_bar',asof:f.at};
+  const age=Date.now()-Date.parse(f.at);if(!Number.isFinite(age)||age>6*60000)return {status:'blocked',reason:'stale_live_bar',asof:f.at};
   const forecasts=[];
   for(const h of model.horizons||[]){
     if(!h||h.status!=='validated')continue;const score=scoreHorizon(f,h),thr=Number(h.threshold)||Infinity,dir=Math.abs(score)>=thr?Math.sign(score):0;
