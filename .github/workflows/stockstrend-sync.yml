@@ -17,6 +17,8 @@ on:
       - "microstructure-edge-status.json"
       - "microstructure-live-config.json"
       - "orcl-l2-model.json"
+      - "orcl-wave-model.json"
+      - "wave-model-core.js"
       - "tools/l2-event-signal.mjs"
       - "tools/test-l2-event-signal.mjs"
       - "tools/databento-orcl-mbp10-backfill.py"
@@ -92,6 +94,7 @@ jobs:
           get methodik.html methodik.html
           get market-clock-core.js market-clock-core.js
           get price-shock-core.js price-shock-core.js
+          get wave-model-core.js wave-model-core.js
           get intrinsic-orcl.json intrinsic-orcl.json
           printf '%s\n' "$UPSTREAM_SHA" > .stockstrend-source-sha
 
