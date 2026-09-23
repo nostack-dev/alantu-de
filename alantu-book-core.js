@@ -180,6 +180,7 @@ export function createAlantuBookCore(options){
   let desiredPosition=0; // -1=start closed, 0..N=open leaf states, N+1=end closed
   let closedSide=null;   // null | "start" | "end"
   let activeTurn=null;
+  let settlingTurns=[];
   let activeBoundary=null;
   let dragState=null;
   let lastMotionTime=performance.now();
@@ -212,6 +213,10 @@ export function createAlantuBookCore(options){
       desiredPosition,
       closedSide,
       activeTurn:activeTurn?{...activeTurn}:null,
+      activeTurns:[
+        ...(activeTurn?[{...activeTurn}]:[]),
+        ...settlingTurns.map(turn=>({...turn}))
+      ],
       activeBoundary:activeBoundary?{...activeBoundary}:null,
       dragging:!!dragState,
       totalLeaves
@@ -318,9 +323,72 @@ export function createAlantuBookCore(options){
     deformLeaf(index,flipped?1:0);
   }
 
+  function isTurnMoving(index){
+    return activeTurn?.index===index||
+      settlingTurns.some(turn=>turn.index===index);
+  }
+
+  function normalizeInactive(){
+    const totalLeaves=getTotalLeaves();
+    for(let i=0;i<totalLeaves;i++){
+      if(!isTurnMoving(i))setLeafState(i,i<currentLeaf);
+    }
+  }
+
   function normalize(){
+    settlingTurns=[];
     const totalLeaves=getTotalLeaves();
     for(let i=0;i<totalLeaves;i++)setLeafState(i,i<currentLeaf);
+  }
+
+  function takeSettlingTurn(index){
+    const i=settlingTurns.findIndex(turn=>turn.index===index);
+    if(i<0)return null;
+    return settlingTurns.splice(i,1)[0];
+  }
+
+  function settleTurn(turn){
+    const i=settlingTurns.findIndex(item=>item.index===turn.index);
+    if(i>=0)settlingTurns.splice(i,1);
+    settlingTurns.push(turn);
+  }
+
+  function autoTurn(direction){
+    const totalLeaves=getTotalLeaves();
+
+    if(direction>0){
+      if(currentLeaf>=totalLeaves)return false;
+      const index=currentLeaf;
+      const turn=takeSettlingTurn(index)||{
+        index,
+        progress:0,
+        velocity:0,
+        target:1
+      };
+      turn.target=1;
+      turn.velocity=Math.max(turn.velocity,.34);
+      currentLeaf=index+1;
+      desiredPosition=currentLeaf;
+      settleTurn(turn);
+      normalizeInactive();
+      return true;
+    }
+
+    if(currentLeaf<=0)return false;
+    const index=currentLeaf-1;
+    const turn=takeSettlingTurn(index)||{
+      index,
+      progress:1,
+      velocity:0,
+      target:0
+    };
+    turn.target=0;
+    turn.velocity=Math.min(turn.velocity,-.34);
+    currentLeaf=index;
+    desiredPosition=currentLeaf;
+    settleTurn(turn);
+    normalizeInactive();
+    return true;
   }
 
   function setBoundaryVisual(side,progress){
@@ -349,7 +417,7 @@ export function createAlantuBookCore(options){
 
   function ensureTurn(){
     const totalLeaves=getTotalLeaves();
-    if(dragState||totalLeaves<=0)return;
+    if(totalLeaves<=0)return;
 
     if(activeBoundary){
       if(activeBoundary.side==="start"){
@@ -364,28 +432,22 @@ export function createAlantuBookCore(options){
       if(desiredPosition>=0)beginBoundary("start",0,1);
       return;
     }
+
     if(closedSide==="end"){
       if(desiredPosition<=totalLeaves)beginBoundary("end",0,1);
       return;
     }
 
-    if(activeTurn){
-      if(activeTurn.index===currentLeaf){
-        activeTurn.target=desiredPosition>currentLeaf?1:0;
-      }else if(activeTurn.index===currentLeaf-1){
-        activeTurn.target=desiredPosition<currentLeaf?0:1;
-      }
-      return;
-    }
+    if(dragState)return;
 
     if(desiredPosition<0&&currentLeaf===0){
       beginBoundary("start",1,0);
     }else if(desiredPosition>totalLeaves&&currentLeaf===totalLeaves){
       beginBoundary("end",1,0);
     }else if(desiredPosition>currentLeaf){
-      activeTurn={index:currentLeaf,progress:0,velocity:0,target:1};
+      autoTurn(1);
     }else if(desiredPosition<currentLeaf){
-      activeTurn={index:currentLeaf-1,progress:1,velocity:0,target:0};
+      autoTurn(-1);
     }
 
     notify();
@@ -459,9 +521,9 @@ export function createAlantuBookCore(options){
     lastMotionTime=now;
 
     ensureTurn();
-    if(dragState)return;
 
-    if(activeBoundary){
+    const draggingBoundary=dragState?.mode==="boundary";
+    if(activeBoundary&&!draggingBoundary){
       springStep(activeBoundary,dt);
       setBoundaryVisual(activeBoundary.side,activeBoundary.progress);
 
@@ -474,49 +536,77 @@ export function createAlantuBookCore(options){
         else closedSide=null;
 
         activeBoundary=null;
-        ensureTurn();
       }
-
-      notify();
-      return;
     }
 
-    if(!activeTurn)return;
+    const done=[];
+    for(const turn of settlingTurns){
+      springStep(turn,dt);
+      deformLeaf(turn.index,turn.progress,turn.velocity);
 
-    springStep(activeTurn,dt);
-    deformLeaf(activeTurn.index,activeTurn.progress,activeTurn.velocity);
-
-    if(settled(activeTurn)){
-      const finished=activeTurn;
-      deformLeaf(finished.index,finished.target);
-
-      if(finished.target===1&&finished.index===currentLeaf){
-        currentLeaf++;
-      }else if(finished.target===0&&finished.index===currentLeaf-1){
-        currentLeaf--;
+      if(settled(turn)){
+        turn.progress=turn.target;
+        deformLeaf(turn.index,turn.target,0);
+        done.push(turn.index);
       }
+    }
 
-      activeTurn=null;
-      normalize();
+    if(done.length){
+      settlingTurns=settlingTurns.filter(turn=>!done.includes(turn.index));
+      normalizeInactive();
+    }
+
+    // A directly-held page is rendered by pointerMove and must never be
+    // advanced by the spring while the user owns it.
+    if(activeTurn&&dragState?.mode!=="leaf"){
+      springStep(activeTurn,dt);
+      deformLeaf(activeTurn.index,activeTurn.progress,activeTurn.velocity);
+    }
+
+    ensureTurn();
+
+    if(
+      activeBoundary||
+      settlingTurns.length||
+      activeTurn||
+      dragState||
+      desiredPosition!==currentLeaf
+    ){
+      notify();
+    }
+  }
+
+  function next(){
+    const totalLeaves=getTotalLeaves();
+    if(totalLeaves<=0)return;
+
+    if(closedSide==="start"||activeBoundary?.side==="start"){
+      desiredPosition=0;
+      ensureTurn();
+    }else if(currentLeaf<totalLeaves){
+      autoTurn(1);
+    }else{
+      desiredPosition=totalLeaves+1;
       ensureTurn();
     }
 
     notify();
   }
 
-  function next(){
-    const totalLeaves=getTotalLeaves();
-    if(totalLeaves<=0)return;
-    desiredPosition=Math.min(totalLeaves+1,desiredPosition+1);
-    ensureTurn();
-    notify();
-  }
-
   function prev(){
     const totalLeaves=getTotalLeaves();
     if(totalLeaves<=0)return;
-    desiredPosition=Math.max(-1,desiredPosition-1);
-    ensureTurn();
+
+    if(closedSide==="end"||activeBoundary?.side==="end"){
+      desiredPosition=totalLeaves;
+      ensureTurn();
+    }else if(currentLeaf>0){
+      autoTurn(-1);
+    }else{
+      desiredPosition=-1;
+      ensureTurn();
+    }
+
     notify();
   }
 
@@ -526,6 +616,7 @@ export function createAlantuBookCore(options){
     desiredPosition=currentLeaf;
     closedSide=null;
     activeTurn=null;
+    settlingTurns=[];
     activeBoundary=null;
     dragState=null;
     lastMotionTime=performance.now();
@@ -542,6 +633,7 @@ export function createAlantuBookCore(options){
   }
 
   function pointerDown(e){
+    if(e.pointerType==="mouse"&&e.button!==0)return;
     if(getTotalLeaves()<=0)return;
     if(ignorePointerSelector&&e.target.closest?.(ignorePointerSelector))return;
 
@@ -560,11 +652,11 @@ export function createAlantuBookCore(options){
       startY:e.clientY,
       lastX:e.clientX,
       lastTime:now,
-      mode:activeBoundary?"boundary":activeTurn?"leaf":null,
+      mode:activeBoundary?"boundary":null,
       side:activeBoundary?.side??null,
-      index:activeTurn?.index??null,
-      startProgress:activeBoundary?.progress??activeTurn?.progress??null,
-      velocity:activeBoundary?.velocity??activeTurn?.velocity??0,
+      index:null,
+      startProgress:activeBoundary?.progress??null,
+      velocity:activeBoundary?.velocity??0,
       samples:[{x:e.clientX,t:now}],
       moved:false
     };
@@ -611,10 +703,20 @@ export function createAlantuBookCore(options){
       }else if(!closedSide){
         const index=dx<0?currentLeaf:currentLeaf-1;
         if(index<0||index>=totalLeaves)return;
+
+        activeTurn=takeSettlingTurn(index)||{
+          index,
+          progress:dx<0?0:1,
+          velocity:0,
+          target:dx<0?0:1
+        };
+
+        // User immediately owns the sheet at its current visual position.
+        activeTurn.target=activeTurn.progress;
+        activeTurn.velocity=0;
         dragState.mode="leaf";
         dragState.index=index;
-        dragState.startProgress=dx<0?0:1;
-        activeTurn={index,progress:dragState.startProgress,velocity:0,target:dragState.startProgress};
+        dragState.startProgress=activeTurn.progress;
       }else{
         return;
       }
@@ -685,9 +787,22 @@ export function createAlantuBookCore(options){
         velocity,
         cancelled
       );
+
       activeTurn.target=target;
       activeTurn.velocity=cancelled?0:clamp(velocity,-3.5,3.5);
-      desiredPosition=target?activeTurn.index+1:activeTurn.index;
+
+      // Commit the logical page immediately. The same sheet can continue
+      // settling visually while the next page is already draggable.
+      if(target===1&&currentLeaf===activeTurn.index){
+        currentLeaf=activeTurn.index+1;
+      }else if(target===0&&currentLeaf===activeTurn.index+1){
+        currentLeaf=activeTurn.index;
+      }
+
+      desiredPosition=currentLeaf;
+      settleTurn(activeTurn);
+      activeTurn=null;
+      normalizeInactive();
     }
 
     if(dragState.moved)suppressTapUntil=performance.now()+260;
@@ -706,6 +821,7 @@ export function createAlantuBookCore(options){
     releaseDrag(true);
   }
 
+  stage.addEventListener("contextmenu",e=>e.preventDefault());
   stage.addEventListener("pointerdown",pointerDown);
   stage.addEventListener("pointermove",pointerMove);
   stage.addEventListener("pointerup",pointerUp);
