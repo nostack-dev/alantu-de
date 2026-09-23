@@ -1,11 +1,11 @@
 {
-  "enabled": true,
+  "enabled": false,
   "endpoint": "https://alantu-market-production.up.railway.app/v1/stream?symbol=ORCL",
   "transport": "sse",
-  "provider": "yahoo",
-  "feed": "2m",
-  "dataset": "ORCL",
+  "provider": "databento",
+  "feed": "mbp-10",
+  "dataset": "XNAS.ITCH",
   "model_id": null,
-  "activation_reason": "wave_runtime_enabled",
-  "checked_at": "2026-09-23T06:51:07.509Z"
+  "activation_reason": "model_not_validated",
+  "checked_at": "2026-09-23T06:51:52Z"
 }
