@@ -453,7 +453,7 @@
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core-box3d029.js";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core-box3d030.js";
 
     const canvas = document.getElementById("bookCanvas");
     const stage = document.getElementById("stage");
@@ -805,6 +805,37 @@
       }
     }
 
+    const dragRaycaster=new THREE.Raycaster();
+    const dragPointer=new THREE.Vector2();
+
+    function resolveGrabU({clientX,clientY,type,index,side}){
+      const rect=canvas.getBoundingClientRect();
+      if(!rect.width||!rect.height)return null;
+
+      dragPointer.set(
+        ((clientX-rect.left)/rect.width)*2-1,
+        -((clientY-rect.top)/rect.height)*2+1
+      );
+      scene.updateMatrixWorld(true);
+      dragRaycaster.setFromCamera(dragPointer,camera);
+
+      if(type==="leaf"){
+        const pageRoot=pageRoots[index];
+        if(!pageRoot)return null;
+        const targets=[];
+        pageRoot.traverse(obj=>{if(obj.isMesh)targets.push(obj)});
+        const hit=dragRaycaster.intersectObjects(targets,true)[0];
+        return hit?.uv?Math.max(0,Math.min(1,hit.uv.x)):null;
+      }
+
+      const mesh=side==="start"?frontCover:backCover;
+      if(!mesh)return null;
+      const hit=dragRaycaster.intersectObject(mesh,true)[0];
+      if(!hit)return null;
+      const local=mesh.worldToLocal(hit.point.clone());
+      return Math.max(0,Math.min(1,(local.x+COVER_W/2)/COVER_W));
+    }
+
     bookCore=createAlantuBookCore({
       stage,
       getLeaves:()=>pageRoots,
@@ -822,7 +853,8 @@
       prevButton:prevBtn,
       nextTap:tapNext,
       prevTap:tapPrev,
-      ignorePointerSelector:".stage-control"
+      ignorePointerSelector:".stage-control",
+      resolveGrabU
     });
     window.__alantuBookCore=bookCore;
 
