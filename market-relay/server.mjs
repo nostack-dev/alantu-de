@@ -258,6 +258,14 @@ function connectYahoo(){
 function latestYahooPrice(){
   const a=yahooSeries.ORCL||[];return a.length?Number(a.at(-1).p):null;
 }
+function shadowCounts(){
+  const current=shadowState.outcomes.filter(x=>x.version===YAHOO_SHADOW_VERSION);
+  return {
+    pending:shadowState.predictions.filter(x=>x.version===YAHOO_SHADOW_VERSION).length,
+    evaluated:current.filter(x=>x.status==='evaluated').length,
+    invalid:current.filter(x=>x.status==='invalid').length
+  };
+}
 function shadowProof(){
   const out={};
   for(const h of YAHOO_HORIZONS){
@@ -449,7 +457,7 @@ const server=http.createServer((req,res)=>{
   cors(req,res);if(req.method==='OPTIONS'){res.statusCode=204;return res.end();}
   const u=new URL(req.url,'http://localhost');
   if(u.pathname==='/health'){
-    return json(res,200,KEY&&SECRET?{ok:true,provider:'alpaca',feed:FEED,symbols:SYMBOLS,configured:true,auth_state:authState,subscription_verified:subscriptionVerified,upstream_fresh:Date.now()-lastUpstreamAt<15000,last_upstream_at:lastUpstreamAt?new Date(lastUpstreamAt).toISOString():null,primary_runtime:'raw-sip-wave',model:modelSummary(),forecast:{status:rawForecast?.status||'blocked',asof:rawForecast?.asof||null,last_compute_at:lastForecastAt?new Date(lastForecastAt).toISOString():null},setup:'automatic'}:{ok:true,provider:'yahoo',feed:'streamer',symbols:YAHOO_SYMBOLS,configured:true,auth_state:'no_key_required',subscription_verified:yahooState==='streaming',upstream_fresh:Date.now()-yahooLastAt<15000,last_upstream_at:yahooLastAt?new Date(yahooLastAt).toISOString():null,primary_runtime:'yahoo-shadow-wave',model:yahooModelSummary(),forecast:{status:yahooForecast?.status||'blocked',asof:yahooForecast?.asof||null,last_compute_at:lastForecastAt?new Date(lastForecastAt).toISOString():null},shadow:{pending:shadowState.predictions.length,evaluated:shadowState.outcomes.length,proof:shadowProof()},setup:'zero-cost / zero-key; Alpaca credentials later upgrade provider automatically'});
+    return json(res,200,KEY&&SECRET?{ok:true,provider:'alpaca',feed:FEED,symbols:SYMBOLS,configured:true,auth_state:authState,subscription_verified:subscriptionVerified,upstream_fresh:Date.now()-lastUpstreamAt<15000,last_upstream_at:lastUpstreamAt?new Date(lastUpstreamAt).toISOString():null,primary_runtime:'raw-sip-wave',model:modelSummary(),forecast:{status:rawForecast?.status||'blocked',asof:rawForecast?.asof||null,last_compute_at:lastForecastAt?new Date(lastForecastAt).toISOString():null},setup:'automatic'}:{ok:true,provider:'yahoo',feed:'streamer',symbols:YAHOO_SYMBOLS,configured:true,auth_state:'no_key_required',subscription_verified:yahooState==='streaming',upstream_fresh:Date.now()-yahooLastAt<15000,last_upstream_at:yahooLastAt?new Date(yahooLastAt).toISOString():null,primary_runtime:'yahoo-shadow-wave',model:yahooModelSummary(),forecast:{status:yahooForecast?.status||'blocked',asof:yahooForecast?.asof||null,last_compute_at:lastForecastAt?new Date(lastForecastAt).toISOString():null},shadow:{...shadowCounts(),proof:shadowProof()},setup:'zero-cost / zero-key; Alpaca credentials later upgrade provider automatically'});
   }
   if(u.pathname==='/v1/shadow-history')return json(res,200,shadowTrail());
   if(u.pathname==='/v1/source-state')return json(res,200,sourceState);
@@ -472,8 +480,7 @@ if(!KEY||!SECRET){
   console.log(JSON.stringify({
     type:'yahoo-shadow-proof-startup',
     at:new Date().toISOString(),
-    pending:shadowState.predictions.length,
-    evaluated:shadowState.outcomes.length,
+    ...shadowCounts(),
     proof:shadowProof()
   }));
 }
@@ -488,8 +495,7 @@ setInterval(()=>{
   console.log(JSON.stringify({
     type:'yahoo-shadow-proof',
     at:new Date().toISOString(),
-    pending:shadowState.predictions.length,
-    evaluated:shadowState.outcomes.length,
+    ...shadowCounts(),
     proof:p
   }));
 },60000).unref();
