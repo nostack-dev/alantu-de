@@ -347,7 +347,7 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core-box3d031.js";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core-box3d101.js";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
@@ -569,24 +569,6 @@
     function rightZ(i){return .18-i*leafZStep}
     function leftZ(i){return .18+i*leafZStep}
 
-    function setStartCoverProgress(progress){
-      if(!frontCoverPivot||!coverSupport)return;
-      const p=Math.max(0,Math.min(1,progress));
-      frontCoverPivot.rotation.y=-Math.PI*(1-p);
-      frontCoverPivot.position.z=
-        coverSupport.startOpenZ+
-        (coverSupport.startClosedZ-coverSupport.startOpenZ)*p;
-    }
-
-    function setEndCoverProgress(progress){
-      if(!endCoverPivot||!coverSupport)return;
-      const p=Math.max(0,Math.min(1,progress));
-      endCoverPivot.rotation.y=-Math.PI*p;
-      endCoverPivot.position.z=
-        coverSupport.endOpenZ+
-        (coverSupport.endClosedZ-coverSupport.endOpenZ)*p;
-    }
-
     function getCoverSetup(){
       if(!coverSpec||!frontCoverPivot||!endCoverPivot||!frontCover||!backCover)return null;
       return {
@@ -603,35 +585,17 @@
       };
     }
 
-    function syncSpineToBook(state){
+    function sizeSpineToBook(){
       if(!spine||!coverSupport||!totalLeaves)return;
 
-      // The binding must span the real book thickness, not a fixed 3-leaf demo
-      // thickness. Keep its back edge at the back cover and grow it toward
-      // whichever stack/cover is physically highest at the hinge.
-      const backOutside=coverSupport.endOpenZ-coverSupport.coverThickness/2;
-      let frontOutside=coverSupport.startOpenZ+coverSupport.coverThickness/2;
+      const backOutside=
+        coverSupport.endOpenZ-coverSupport.coverThickness/2;
 
-      const shownLeaf=state?.activeTurn
-        ? Math.max(0,Math.min(totalLeaves,
-            state.activeTurn.index+(state.activeTurn.progress>=.5?1:0)))
-        : Math.max(0,Math.min(totalLeaves,state?.currentLeaf??0));
-
-      if(shownLeaf>0){
-        frontOutside=Math.max(frontOutside,leftZ(shownLeaf-1)+.010);
-      }
-      if(state?.activeBoundary?.side==="end"){
-        const p=Math.max(0,Math.min(1,state.activeBoundary.progress));
-        const endCenter=
-          coverSupport.endOpenZ+
-          (coverSupport.endClosedZ-coverSupport.endOpenZ)*p;
-        frontOutside=Math.max(frontOutside,endCenter+coverSupport.coverThickness/2);
-      }else if(state?.closedSide==="end"){
-        frontOutside=Math.max(
-          frontOutside,
-          coverSupport.endClosedZ+coverSupport.coverThickness/2
-        );
-      }
+      const frontOutside=Math.max(
+        coverSupport.startClosedZ+coverSupport.coverThickness/2,
+        coverSupport.endClosedZ+coverSupport.coverThickness/2,
+        leftZ(totalLeaves-1)+.010
+      );
 
       const depth=Math.max(.12,frontOutside-backOutside);
       spine.scale.z=depth;
@@ -705,8 +669,6 @@
       rightZ,
       leftZ,
       getCoverSetup,
-      setStartCoverProgress,
-      setEndCoverProgress,
       prefersReduced,
       onStateChange:updateUI,
       nextButton:nextBtn,
@@ -831,9 +793,7 @@
         // At the end it closes directly above the highest flipped leaf.
         endClosedZ:leftZ(totalLeaves-1)+.010+COVER_T/2
       };
-      setStartCoverProgress(0);
-      setEndCoverProgress(0);
-      syncSpineToBook({currentLeaf:0});
+      sizeSpineToBook();
 
       const baseGeometry=new THREE.PlaneGeometry(PAGE_W,PAGE_H,20,1);
       baseGeometry.translate(PAGE_W/2,0,0);
