@@ -1,0 +1,17 @@
+{
+  "status": "unavailable",
+  "symbol": "ORCL",
+  "provider": "yahoo",
+  "data_contract": "2m_regular_session_ohlcv",
+  "feature_version": "wave-hdr-dt-v1",
+  "bar_minutes": 2,
+  "feature_names": [],
+  "horizons": [],
+  "model_id": null,
+  "production": {
+    "enabled": false,
+    "validated_horizons": [],
+    "principle": "timing beats speed; precision beats power"
+  },
+  "reason": "Awaiting first automated 60-day chronological training and holdout validation."
+}
