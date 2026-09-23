@@ -34,16 +34,74 @@ jobs:
           git fetch origin main
           git reset --hard origin/main
 
-      - name: Fetch 60d ORCL 2-minute history
+      - name: Fetch segmented ORCL 2-minute history
         shell: bash
         run: |
           set -euo pipefail
-          url1='https://query1.finance.yahoo.com/v8/finance/chart/ORCL?range=60d&interval=2m&includePrePost=false&events=div%2Csplits'
-          url2='https://query2.finance.yahoo.com/v8/finance/chart/ORCL?range=60d&interval=2m&includePrePost=false&events=div%2Csplits'
-          if ! curl -fsSL --retry 3 --connect-timeout 10 --max-time 60 -A 'Mozilla/5.0' "$url1" -o /tmp/orcl-wave-history.json; then
-            curl -fsSL --retry 3 --connect-timeout 10 --max-time 60 -A 'Mozilla/5.0' "$url2" -o /tmp/orcl-wave-history.json
-          fi
-          jq -e '.chart.result[0].timestamp | length > 5000' /tmp/orcl-wave-history.json >/dev/null
+          end="$(date -u +%s)"
+          start="$(date -u -d '59 days ago' +%s)"
+          span=$((15*86400))
+          rm -f /tmp/orcl-wave-part-*.json
+
+          fetch_segment() {
+            local a="$1" b="$2" out="$3"
+            local q="period1=$a&period2=$b&interval=2m&includePrePost=false&events=div%2Csplits"
+            local u1="https://query1.finance.yahoo.com/v8/finance/chart/ORCL?$q"
+            local u2="https://query2.finance.yahoo.com/v8/finance/chart/ORCL?$q"
+            if ! curl -fsSL --retry 3 --connect-timeout 10 --max-time 60 -A 'Mozilla/5.0' "$u1" -o "$out"; then
+              curl -fsSL --retry 3 --connect-timeout 10 --max-time 60 -A 'Mozilla/5.0' "$u2" -o "$out"
+            fi
+            jq -e '.chart.result[0].timestamp | length > 0' "$out" >/dev/null
+          }
+
+          i=0
+          a="$start"
+          while [ "$a" -lt "$end" ]; do
+            b=$((a+span))
+            if [ "$b" -gt "$end" ]; then b="$end"; fi
+            fetch_segment "$a" "$b" "/tmp/orcl-wave-part-$i.json"
+            a="$b"
+            i=$((i+1))
+          done
+
+          python3 - <<'PY'
+          import glob,json
+          parts=sorted(glob.glob('/tmp/orcl-wave-part-*.json'))
+          rows={}
+          meta=None
+          for path in parts:
+              j=json.load(open(path))
+              r=j['chart']['result'][0]
+              meta=r.get('meta') or meta
+              q=(r.get('indicators') or {}).get('quote',[{}])[0]
+              for idx,t in enumerate(r.get('timestamp') or []):
+                  rows[int(t)]=[
+                      (q.get('open') or [None]*len(r['timestamp']))[idx],
+                      (q.get('high') or [None]*len(r['timestamp']))[idx],
+                      (q.get('low') or [None]*len(r['timestamp']))[idx],
+                      (q.get('close') or [None]*len(r['timestamp']))[idx],
+                      (q.get('volume') or [None]*len(r['timestamp']))[idx],
+                  ]
+          ts=sorted(rows)
+          if len(ts)<5000:
+              raise SystemExit(f'not enough merged 2m rows: {len(ts)}')
+          out={
+            'chart':{'result':[{
+              'meta':meta or {},
+              'timestamp':ts,
+              'indicators':{'quote':[{
+                'open':[rows[t][0] for t in ts],
+                'high':[rows[t][1] for t in ts],
+                'low':[rows[t][2] for t in ts],
+                'close':[rows[t][3] for t in ts],
+                'volume':[rows[t][4] for t in ts],
+              }]}
+            }],'error':None}
+          }
+          json.dump(out,open('/tmp/orcl-wave-history.json','w'))
+          from datetime import datetime,timezone
+          print('MERGED_ROWS',len(ts),'FIRST',datetime.fromtimestamp(ts[0],timezone.utc).isoformat(),'LAST',datetime.fromtimestamp(ts[-1],timezone.utc).isoformat())
+          PY
 
       - name: Train and validate 2m / 10m / 30m
         shell: bash
