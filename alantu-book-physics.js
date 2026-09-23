@@ -305,7 +305,7 @@ export function createAlantuBookPhysics({
     const joint=leaf.rootJoint;
     joint.enableSpring(true);
     joint.setSpringHertz(dragging?19:7.2);
-    joint.setSpringDampingRatio(dragging?.92:1.0);
+    joint.setSpringDampingRatio(dragging ? .92 : 1.0);
     joint.setTargetAngle(-OPEN_ANGLE*p);
     for(const body of leaf.bodies)body.setAwake(true);
   }
