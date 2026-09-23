@@ -1,3 +1,4 @@
+# verify-024: 1790150325051
 name: box3d-smoke
 
 on:
@@ -49,7 +50,7 @@ jobs:
             await page.waitForFunction(()=>document.querySelector(".stage")?.dataset?.physics==="box3d-0.2.0",null,{timeout:30000});
             const resources=await page.evaluate(()=>performance.getEntriesByType("resource").map(r=>r.name));
             if(!resources.some(x=>x.includes("alantu-book-core-box3d024.js")))throw new Error(label+" missing core 024");
-            if(!resources.some(x=>x.includes("alantu-book-physics-box3d023.js")))throw new Error(label+" missing physics 023");
+            if(!resources.some(x=>x.includes("alantu-book-physics-box3d024.js")))throw new Error(label+" missing physics 024");
           }
 
           async function advance(page,target,label){
