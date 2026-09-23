@@ -453,7 +453,7 @@
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=swipe301";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=touch304";
 
     const canvas = document.getElementById("bookCanvas");
     const stage = document.getElementById("stage");
@@ -482,6 +482,8 @@
     key.position.set(-3.5,7,7);
     key.castShadow = true;
     key.shadow.mapSize.set(1024,1024);
+    key.shadow.normalBias=.035;
+    key.shadow.bias=-.00015;
     scene.add(key);
     const rim = new THREE.DirectionalLight(0xcdb88e,2.1);
     rim.position.set(5,2,-3);
@@ -756,10 +758,12 @@
       const front=new THREE.Mesh(geometry,frontMaterial);
       front.castShadow=true;
       front.receiveShadow=true;
+      front.frustumCulled=false;
 
       const back=new THREE.Mesh(geometry,backMaterial);
       back.castShadow=true;
       back.receiveShadow=true;
+      back.frustumCulled=false;
 
       pivot.add(front,back);
       pivot.userData.geometry=geometry;

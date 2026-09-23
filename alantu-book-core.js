@@ -190,6 +190,19 @@ export function createAlantuBookCore(options){
     const t=clamp((x-a)/(b-a),0,1);
     return t*t*(3-2*t);
   };
+  const fract=v=>v-Math.floor(v);
+  const smoothMax=(a,b,k=.003)=>{
+    const m=Math.max(a,b);
+    return m+Math.log1p(Math.exp(-Math.abs(a-b)/k))*k;
+  };
+  function paperCharacter(index){
+    const a=fract(Math.sin((index+1)*12.9898)*43758.5453);
+    const b=fract(Math.sin((index+1)*78.233)*24634.6345);
+    return {
+      rigidity:.96+a*.08,
+      response:.95+b*.10
+    };
+  }
 
   function state(){
     const totalLeaves=getTotalLeaves();
@@ -218,7 +231,7 @@ export function createAlantuBookCore(options){
     onStateChange(state());
   }
 
-  function deformLeaf(index,progress){
+  function deformLeaf(index,progress,velocity=0){
     const leaves=getLeaves();
     const pivot=leaves[index];
     if(!pivot)return;
@@ -230,10 +243,17 @@ export function createAlantuBookCore(options){
     const segments=30;
     const ds=PAGE_W/segments;
     const p=clamp(progress,0,1);
+    const v=clamp(velocity,-3.2,3.2);
+    const paper=paperCharacter(index);
 
+    // Same hard physical bounds for every sheet:
+    // fixed segment lengths, fixed spine, angle in [0, PI].
+    // Only the response inside those bounds varies slightly per sheet.
     const theta=Math.PI*p;
-    const lag=.58*Math.sin(Math.PI*p);
-    const spineBlend=smoothstep(.35,.92,p);
+    const arch=Math.sin(Math.PI*p);
+    const passiveLag=clamp(.32/paper.rigidity,.29,.35)*arch;
+    const edgeLead=clamp(.045*v*paper.response,-.13,.13)*arch;
+    const spineBlend=smoothstep(.18,.86,p);
     const spineZ=rightZ(index)+(leftZ(index)-rightZ(index))*spineBlend;
 
     const curveX=new Float32Array(segments+1);
@@ -243,7 +263,16 @@ export function createAlantuBookCore(options){
 
     for(let j=1;j<=segments;j++){
       const u=(j-.5)/segments;
-      const localAngle=clamp(theta-lag*Math.sin(Math.PI*u),0,Math.PI);
+      const bound=smoothstep(.05,.23,u);
+      const middle=Math.sin(Math.PI*u)*bound;
+      const freeEdge=smoothstep(.52,.98,u);
+
+      const localAngle=clamp(
+        theta-passiveLag*middle+edgeLead*freeEdge,
+        0,
+        Math.PI
+      );
+
       curveX[j]=curveX[j-1]+ds*Math.cos(localAngle);
       curveZ[j]=curveZ[j-1]+ds*Math.sin(localAngle);
     }
@@ -256,17 +285,22 @@ export function createAlantuBookCore(options){
       const bx=base[i*3];
       const by=base[i*3+1];
       const u=clamp(bx/PAGE_W,0,1);
-      const seg=clamp(Math.round(u*segments),0,segments);
+      const f=u*segments;
+      const seg=Math.min(segments-1,Math.floor(f));
+      const t=(seg===segments-1&&f===segments)?1:f-seg;
 
-      let x=curveX[seg];
-      let z=curveZ[seg];
+      let x=curveX[seg]+(curveX[seg+1]-curveX[seg])*t;
+      let z=curveZ[seg]+(curveZ[seg+1]-curveZ[seg])*t;
 
+      // Smooth contact-inspired floor instead of a hard max kink.
       if(x<0){
-        const landing=smoothstep(.72,1,p);
-        z=Math.max(z,leftStackTop+safety*(1-landing));
+        const landing=smoothstep(.70,.985,p);
+        const floor=leftStackTop+safety*(1-landing);
+        z=smoothMax(z,floor,.0025);
       }else{
-        const leaving=smoothstep(0,.28,p);
-        z=Math.max(z,rightStackTop-safety*leaving);
+        const leaving=smoothstep(.015,.30,p);
+        const floor=rightStackTop-safety*leaving;
+        z=smoothMax(z,floor,.0025);
       }
 
       pos.array[i*3]=x;
@@ -450,7 +484,7 @@ export function createAlantuBookCore(options){
     if(!activeTurn)return;
 
     springStep(activeTurn,dt);
-    deformLeaf(activeTurn.index,activeTurn.progress);
+    deformLeaf(activeTurn.index,activeTurn.progress,activeTurn.velocity);
 
     if(settled(activeTurn)){
       const finished=activeTurn;
@@ -551,7 +585,8 @@ export function createAlantuBookCore(options){
     const dy=e.clientY-dragState.startY;
 
     if(dragState.mode===null){
-      if(Math.abs(dx)<6||Math.abs(dx)<Math.abs(dy)*1.05)return;
+      if(Math.abs(dx)<.8)return;
+      if(Math.abs(dy)>4&&Math.abs(dx)<Math.abs(dy)*.38)return;
 
       if(closedSide==="start"&&dx<0){
         dragState.mode="boundary";
@@ -607,12 +642,12 @@ export function createAlantuBookCore(options){
       dragState.velocity=velocity;
       activeTurn.progress=progress;
       activeTurn.velocity=velocity;
-      deformLeaf(activeTurn.index,progress);
+      deformLeaf(activeTurn.index,progress,velocity);
     }
 
     dragState.lastX=e.clientX;
     dragState.lastTime=now;
-    dragState.moved=dragState.moved||Math.abs(dx)>8;
+    dragState.moved=dragState.moved||Math.abs(dx)>2;
     notify();
 
     if(dragState.moved)e.preventDefault();
