@@ -1,3 +1,5 @@
+import { createAlantuBookPhysics } from "./alantu-book-physics.js?v=edc5c4fb";
+
 export function sanitizeAlantuCoverTitle(value,fallback="ALANTU Exposé"){
   const cleaned=String(value??"")
     .replace(/\\n/g," ")
@@ -162,9 +164,11 @@ export function createAlantuBookCore(options){
     stage,
     getLeaves,
     getPageWidth,
+    getPageHeight,
     getTotalLeaves,
     rightZ,
     leftZ,
+    getCoverSetup=()=>null,
     setStartCoverProgress=()=>{},
     setEndCoverProgress=()=>{},
     prefersReduced=false,
@@ -184,6 +188,16 @@ export function createAlantuBookCore(options){
   let dragState=null;
   let lastMotionTime=performance.now();
   let suppressTapUntil=0;
+
+  const physics=createAlantuBookPhysics({
+    getLeaves,
+    getPageWidth,
+    getPageHeight,
+    getTotalLeaves,
+    rightZ,
+    leftZ,
+    getCoverSetup
+  });
 
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const smoothstep=(a,b,x)=>{
@@ -218,66 +232,9 @@ export function createAlantuBookCore(options){
     onStateChange(state());
   }
 
-  function deformLeaf(index,progress){
-    const leaves=getLeaves();
-    const pivot=leaves[index];
-    if(!pivot)return;
-
-    const PAGE_W=getPageWidth();
-    const geometry=pivot.userData.geometry;
-    const pos=geometry.attributes.position;
-    const base=geometry.userData.basePosition;
-    const segments=30;
-    const ds=PAGE_W/segments;
-    const p=clamp(progress,0,1);
-
-    const theta=Math.PI*p;
-    const lag=.58*Math.sin(Math.PI*p);
-    const spineBlend=smoothstep(.35,.92,p);
-    const spineZ=rightZ(index)+(leftZ(index)-rightZ(index))*spineBlend;
-
-    const curveX=new Float32Array(segments+1);
-    const curveZ=new Float32Array(segments+1);
-    curveX[0]=0;
-    curveZ[0]=spineZ;
-
-    for(let j=1;j<=segments;j++){
-      const u=(j-.5)/segments;
-      const localAngle=clamp(theta-lag*Math.sin(Math.PI*u),0,Math.PI);
-      curveX[j]=curveX[j-1]+ds*Math.cos(localAngle);
-      curveZ[j]=curveZ[j-1]+ds*Math.sin(localAngle);
-    }
-
-    const leftStackTop=index>0?leftZ(index-1):rightZ(0)-.01;
-    const rightStackTop=rightZ(index);
-    const safety=.007;
-
-    for(let i=0;i<pos.count;i++){
-      const bx=base[i*3];
-      const by=base[i*3+1];
-      const u=clamp(bx/PAGE_W,0,1);
-      const seg=clamp(Math.round(u*segments),0,segments);
-
-      let x=curveX[seg];
-      let z=curveZ[seg];
-
-      if(x<0){
-        const landing=smoothstep(.72,1,p);
-        z=Math.max(z,leftStackTop+safety*(1-landing));
-      }else{
-        const leaving=smoothstep(0,.28,p);
-        z=Math.max(z,rightStackTop-safety*leaving);
-      }
-
-      pos.array[i*3]=x;
-      pos.array[i*3+1]=by;
-      pos.array[i*3+2]=z;
-    }
-
-    pos.needsUpdate=true;
-    geometry.computeVertexNormals();
-    pivot.rotation.set(0,0,0);
-    pivot.position.set(-PAGE_W/2,0,0);
+  function deformLeaf(index,progress,{dragging=false}={}){
+    physics.ensureBuilt(currentLeaf);
+    physics.setLeafTarget(index,clamp(progress,0,1),{dragging});
   }
 
   function setLeafState(index,flipped){
@@ -285,8 +242,9 @@ export function createAlantuBookCore(options){
   }
 
   function normalize(){
-    const totalLeaves=getTotalLeaves();
-    for(let i=0;i<totalLeaves;i++)setLeafState(i,i<currentLeaf);
+    physics.ensureBuilt(currentLeaf);
+    physics.setAllLeafStates(currentLeaf);
+    physics.syncVisuals();
   }
 
   function setBoundaryVisual(side,progress){
@@ -383,11 +341,11 @@ export function createAlantuBookCore(options){
     lastMotionTime=now;
 
     ensureTurn();
-    if(dragState)return;
 
     if(activeBoundary){
       springStep(activeBoundary,dt);
       setBoundaryVisual(activeBoundary.side,activeBoundary.progress);
+      physics.step(dt);
 
       if(settled(activeBoundary)){
         const finished=activeBoundary;
@@ -405,27 +363,32 @@ export function createAlantuBookCore(options){
       return;
     }
 
-    if(!activeTurn)return;
+    if(activeTurn){
+      const previous=activeTurn.progress;
+      physics.setLeafTarget(activeTurn.index,activeTurn.target,{dragging:!!dragState});
+      physics.step(dt);
+      activeTurn.progress=physics.getLeafProgress(activeTurn.index);
+      activeTurn.velocity=(activeTurn.progress-previous)/Math.max(dt,.001);
 
-    springStep(activeTurn,dt);
-    deformLeaf(activeTurn.index,activeTurn.progress);
+      if(!dragState&&physics.isLeafSettled(activeTurn.index,activeTurn.target)){
+        const finished=activeTurn;
+        activeTurn.progress=finished.target;
 
-    if(settled(activeTurn)){
-      const finished=activeTurn;
-      deformLeaf(finished.index,finished.target);
+        if(finished.target===1&&finished.index===currentLeaf){
+          currentLeaf++;
+        }else if(finished.target===0&&finished.index===currentLeaf-1){
+          currentLeaf--;
+        }
 
-      if(finished.target===1&&finished.index===currentLeaf){
-        currentLeaf++;
-      }else if(finished.target===0&&finished.index===currentLeaf-1){
-        currentLeaf--;
+        activeTurn=null;
+        ensureTurn();
       }
 
-      activeTurn=null;
-      normalize();
-      ensureTurn();
+      notify();
+      return;
     }
 
-    notify();
+    physics.step(dt);
   }
 
   function next(){
@@ -452,10 +415,11 @@ export function createAlantuBookCore(options){
     activeTurn=null;
     activeBoundary=null;
     dragState=null;
+    stage.classList.remove("is-book-dragging");
     lastMotionTime=performance.now();
     setStartCoverProgress(0);
     setEndCoverProgress(0);
-    normalize();
+    physics.reset(currentLeaf);
     notify();
   }
 
@@ -563,7 +527,7 @@ export function createAlantuBookCore(options){
       dragState.velocity=velocity;
       activeTurn.progress=progress;
       activeTurn.velocity=velocity;
-      deformLeaf(activeTurn.index,progress);
+      deformLeaf(activeTurn.index,progress,{dragging:true});
     }
 
     dragState.lastX=e.clientX;
@@ -636,6 +600,8 @@ export function createAlantuBookCore(options){
     normalize,
     deformLeaf,
     shownLeaf,
-    state
+    state,
+    physics,
+    physicsEngine:"Box3D"
   };
 }
