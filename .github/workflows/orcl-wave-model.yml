@@ -34,18 +34,18 @@ jobs:
           git fetch origin main
           git reset --hard origin/main
 
-      - name: Fetch 60d ORCL 5-minute history
+      - name: Fetch 60d ORCL 2-minute history
         shell: bash
         run: |
           set -euo pipefail
-          u1='https://query1.finance.yahoo.com/v8/finance/chart/ORCL?range=60d&interval=5m&includePrePost=false&events=div%2Csplits'
-          u2='https://query2.finance.yahoo.com/v8/finance/chart/ORCL?range=60d&interval=5m&includePrePost=false&events=div%2Csplits'
+          u1='https://query1.finance.yahoo.com/v8/finance/chart/ORCL?range=60d&interval=2m&includePrePost=false&events=div%2Csplits'
+          u2='https://query2.finance.yahoo.com/v8/finance/chart/ORCL?range=60d&interval=2m&includePrePost=false&events=div%2Csplits'
           if ! curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 60 -A 'Mozilla/5.0' "$u1" -o /tmp/orcl-wave-history.json; then
             sleep 2
             curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 60 -A 'Mozilla/5.0' "$u2" -o /tmp/orcl-wave-history.json
           fi
-          jq -e '.chart.result[0].timestamp | length > 4000' /tmp/orcl-wave-history.json >/dev/null
-      - name: Train and validate 5m / 15m / 30m
+          jq -e '.chart.result[0].timestamp | length > 9000' /tmp/orcl-wave-history.json >/dev/null
+      - name: Train and validate 2m / 6m / 10m / 20m / 30m
         shell: bash
         run: |
           set -euo pipefail
@@ -54,10 +54,10 @@ jobs:
           node tools/train-orcl-wave-model.mjs /tmp/orcl-wave-history.json /tmp/orcl-wave-model.json | tee /tmp/orcl-wave-model.log
           jq -e '
             .symbol=="ORCL" and
-            .feature_version=="wave-hdr-dt-v1" and
-            .bar_minutes==5 and
-            (.horizons|length)==3 and
-            ([.horizons[].horizon_minutes]|sort)==[5,15,30] and
+            .feature_version=="wave-hdr-dt-v2" and
+            .bar_minutes==2 and
+            (.horizons|length)==5 and
+            ([.horizons[].horizon_minutes]|sort)==[2,6,10,20,30] and
             (.status=="validated" or .status=="unproven")
           ' /tmp/orcl-wave-model.json >/dev/null
 
