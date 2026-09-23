@@ -1,7 +1,7 @@
 import Box3DFactory from "https://cdn.jsdelivr.net/npm/box3d-wasm@0.2.0/dist/box3d.mjs";
 
 export const ALANTU_BOX3D_VERSION="0.2.0";
-export const ALANTU_BOX3D_RUNTIME="100";
+export const ALANTU_BOX3D_RUNTIME="200";
 
 const b3=await Box3DFactory();
 
@@ -47,7 +47,7 @@ export function createAlantuBookPhysics({
   rightZ,
   leftZ,
   getCoverSetup,
-  segments=18
+  segments=12
 }){
   let world=null;
   let spineBody=null;
@@ -195,6 +195,8 @@ export function createAlantuBookPhysics({
         gravityScale,
         enableSleep:true,
         isAwake:true,
+        isBullet:true,
+        allowFastRotation:false,
         motionLocks:{
           linearY:true,
           angularX:true,
@@ -207,7 +209,7 @@ export function createAlantuBookPhysics({
         halfExtents:{
           x:sw*.5,
           y:height*.5,
-          z:thickness*.5
+          z:Math.max(thickness,.008)*.5
         },
         density,
         friction,
@@ -311,9 +313,9 @@ export function createAlantuBookPhysics({
         angularDamping:4.8,
         gravityScale:1,
         rootHertz:15,
-        rootTorque:230,
-        bendHertz:32,
-        bendLimit:.075,
+        rootTorque:150,
+        bendHertz:38,
+        bendLimit:.055,
         categoryBits:CAT_PAGE,
         maskBits:CAT_PAGE|CAT_COVER|CAT_SPINE,
         groupIndex:-(index+1)
@@ -390,8 +392,9 @@ export function createAlantuBookPhysics({
       gravity:{x:0,y:0,z:-4.5},
       enableSleep:true,
       enableContinuous:true,
-      contactHertz:70,
-      contactDampingRatio:1
+      contactHertz:80,
+      contactDampingRatio:1,
+      maximumLinearSpeed:8
     });
 
     buildSpine();
@@ -419,32 +422,32 @@ export function createAlantuBookPhysics({
     const joint=model?.rootJoint;
     if(!joint)return;
 
+    for(const body of model.bodies)body.setAwake(true);
+
+    // During a grab the MotorJoint at the actual touch point is the ONLY
+    // external drive. The revolute joint remains a hard hinge constraint,
+    // but its spring/motor are disabled so two solvers cannot fight.
+    if(dragging){
+      joint.enableSpring(false);
+      joint.enableMotor(false);
+      return;
+    }
+
     let angle=0;
     try{angle=joint.getAngle()}catch{}
     const error=targetAngle-angle;
 
     joint.enableSpring(true);
-    joint.setSpringHertz(
-      dragging
-        ? (cover?24:21)
-        : model.rootHertz
-    );
+    joint.setSpringHertz(model.rootHertz);
     joint.setSpringDampingRatio(1);
     joint.setTargetAngle(targetAngle);
-
     joint.enableMotor(true);
-    joint.setMaxMotorTorque(
-      dragging
-        ? (cover?700:360)
-        : model.rootTorque
-    );
+    joint.setMaxMotorTorque(model.rootTorque);
     joint.setMotorSpeed(
       Math.abs(error)<.004
         ? 0
-        : clamp(error*(cover?15:17),-22,22)
+        : clamp(error*(cover?12:14),-16,16)
     );
-
-    for(const body of model.bodies)body.setAwake(true);
   }
 
   function setLeafTarget(index,progress,{dragging=false}={}){
@@ -511,7 +514,7 @@ export function createAlantuBookPhysics({
     };
   }
 
-  function beginModelGrab(model,u,maxForce){
+  function beginModelGrab(model,u,{maxForce=220,maxSpeed=4}={}){
     endGrab();
     if(!model||!world)return;
 
@@ -530,6 +533,7 @@ export function createAlantuBookPhysics({
       type:"kinematic",
       position:actualPoint,
       rotation:IDENTITY_Q,
+      linearVelocity:{x:0,y:0,z:0},
       enableSleep:false,
       name:"alantu-grab-driver"
     });
@@ -548,9 +552,9 @@ export function createAlantuBookPhysics({
       maxVelocityForce:maxForce,
       angularVelocity:{x:0,y:0,z:0},
       maxVelocityTorque:0,
-      linearHertz:30,
+      linearHertz:22,
       linearDampingRatio:1,
-      maxSpringForce:maxForce*1.8,
+      maxSpringForce:maxForce,
       angularHertz:0,
       angularDampingRatio:1,
       maxSpringTorque:0
@@ -560,59 +564,61 @@ export function createAlantuBookPhysics({
       model,
       u:clampedU,
       driver,
-      joint
+      joint,
+      target:{...actualPoint},
+      maxSpeed
     };
     body.setAwake(true);
   }
 
-  function moveGrab(target){
-    if(!grab)return;
-    grab.driver.setTargetTransform({
-      position:target,
-      rotation:IDENTITY_Q
-    },FIXED_DT,true);
+  function setGrabTarget(target){
+    if(!grab||!target)return;
+    const x=Number(target.x),y=Number(target.y),z=Number(target.z);
+    if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(z))return;
+    grab.target={x,y,z};
   }
 
-  function beginGrab(index,u,progress){
+  function advanceGrabDriver(){
+    if(!grab?.target)return;
+
+    const p=grab.driver.getPosition();
+    const dx=grab.target.x-p.x;
+    const dy=grab.target.y-p.y;
+    const dz=grab.target.z-p.z;
+    const distance=Math.hypot(dx,dy,dz);
+
+    if(distance<.0005){
+      grab.driver.setLinearVelocity({x:0,y:0,z:0});
+      return;
+    }
+
+    // Crucial: never teleport the kinematic mouse body. A capped velocity
+    // lets CCD/contact constraints solve before the dragged sheet can cross
+    // another sheet, and prevents the joint chain from being pulled apart.
+    const speed=Math.min(grab.maxSpeed,distance/FIXED_DT);
+    const scale=speed/distance;
+    grab.driver.setLinearVelocity({
+      x:dx*scale,
+      y:dy*scale,
+      z:dz*scale
+    });
+  }
+
+  function beginGrab(index,u){
     const model=leafModels[index];
     if(!model)return;
-    beginModelGrab(model,u,1100);
-    updateGrab(index,u,progress);
+    beginModelGrab(model,u,{maxForce:220,maxSpeed:4});
   }
 
-  function updateGrab(index,u,progress){
-    const model=leafModels[index];
-    if(!model)return;
-    if(!grab||grab.model!==model)beginModelGrab(model,u,1100);
-    moveGrab(modelPoint(
-      model,
-      grab?.u??u,
-      -TURN_ANGLE*clamp(progress,0,1)
-    ));
-  }
-
-  function beginCoverGrab(side,u,progress){
+  function beginCoverGrab(side,u){
     if(!coverModels)return;
     const model=side==="start"?coverModels.front:coverModels.back;
-    beginModelGrab(model,u,1800);
-    updateCoverGrab(side,u,progress);
-  }
-
-  function updateCoverGrab(side,u,progress){
-    if(!coverModels)return;
-    const model=side==="start"?coverModels.front:coverModels.back;
-    if(!grab||grab.model!==model)beginModelGrab(model,u,1800);
-
-    const p=clamp(progress,0,1);
-    const angle=side==="start"
-      ? -TURN_ANGLE*(1-p)
-      : -TURN_ANGLE*p;
-
-    moveGrab(modelPoint(model,grab?.u??u,angle));
+    beginModelGrab(model,u,{maxForce:650,maxSpeed:3});
   }
 
   function endGrab(){
     if(!grab)return;
+    try{grab.driver.setLinearVelocity({x:0,y:0,z:0})}catch{}
     safeDelete(grab.joint);
     safeDelete(grab.driver);
     grab=null;
@@ -711,7 +717,8 @@ export function createAlantuBookPhysics({
     let loops=0;
 
     while(accumulator>=FIXED_DT&&loops<4){
-      world.step(FIXED_DT,SUBSTEPS);
+      advanceGrabDriver();
+      world.step(FIXED_DT,12);
       accumulator-=FIXED_DT;
       loops++;
     }
@@ -740,9 +747,8 @@ export function createAlantuBookPhysics({
     setCoverTarget,
     getCoverProgress,
     beginGrab,
-    updateGrab,
     beginCoverGrab,
-    updateCoverGrab,
+    setGrabTarget,
     endGrab,
     syncVisuals,
     syncCoverVisuals,

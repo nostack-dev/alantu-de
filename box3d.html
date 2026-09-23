@@ -453,7 +453,7 @@
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=8a805934";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./box3d-core.js";
 
     const canvas = document.getElementById("bookCanvas");
     const stage = document.getElementById("stage");
@@ -705,18 +705,24 @@
     const endCoverOpenZ=support.backCoverCenterZ;
     const endCoverClosedZ=leftZ(totalLeaves-1)+.010+COVER_T/2;
 
-    function setStartCoverProgress(progress){
-      const p=Math.max(0,Math.min(1,progress));
-      frontCoverPivot.rotation.y=-Math.PI*(1-p);
-      frontCoverPivot.position.z=startCoverOpenZ+(startCoverClosedZ-startCoverOpenZ)*p;
+    function getCoverSetup(){
+      return {
+        frontPivot:frontCoverPivot,
+        endPivot:endCoverPivot,
+        frontCover,
+        backCover,
+        spine,
+        coverWidth:COVER_W,
+        coverHeight:5.15,
+        coverThickness:COVER_T,
+        hingeX:HINGE_X,
+        startOpenZ:startCoverOpenZ,
+        startClosedZ:startCoverClosedZ,
+        endOpenZ:endCoverOpenZ,
+        endClosedZ:endCoverClosedZ
+      };
     }
-
-    function setEndCoverProgress(progress){
-      const p=Math.max(0,Math.min(1,progress));
-      endCoverPivot.rotation.y=-Math.PI*p;
-      endCoverPivot.position.z=endCoverOpenZ+(endCoverClosedZ-endCoverOpenZ)*p;
-    }
-    const basePageGeom=new THREE.PlaneGeometry(PAGE_W,PAGE_H,30,1);
+    const basePageGeom=new THREE.PlaneGeometry(PAGE_W,PAGE_H,20,1);
     basePageGeom.translate(PAGE_W/2,0,0);
 
     function backTextureFor(pageIndex){
@@ -787,23 +793,85 @@
       }
     }
 
+    const dragRaycaster=new THREE.Raycaster();
+    const dragPointer=new THREE.Vector2();
+
+    function resolveGrabU({clientX,clientY,type,index,side}){
+      const rect=canvas.getBoundingClientRect();
+      if(!rect.width||!rect.height)return null;
+
+      dragPointer.set(
+        ((clientX-rect.left)/rect.width)*2-1,
+        -((clientY-rect.top)/rect.height)*2+1
+      );
+      scene.updateMatrixWorld(true);
+      dragRaycaster.setFromCamera(dragPointer,camera);
+
+      if(type==="leaf"){
+        const pageRoot=pageRoots[index];
+        if(!pageRoot)return null;
+        const targets=[];
+        pageRoot.traverse(obj=>{if(obj.isMesh)targets.push(obj)});
+        const hit=dragRaycaster.intersectObjects(targets,true)[0];
+        return hit?.uv?Math.max(0,Math.min(1,hit.uv.x)):null;
+      }
+
+      const mesh=side==="start"?frontCover:backCover;
+      if(!mesh)return null;
+      const hit=dragRaycaster.intersectObject(mesh,true)[0];
+      if(!hit)return null;
+      const local=mesh.worldToLocal(hit.point.clone());
+      return Math.max(0,Math.min(1,(local.x+COVER_W/2)/COVER_W));
+    }
+
+    function resolveGrabTarget({clientX,clientY}){
+      const rect=canvas.getBoundingClientRect();
+      if(!rect.width||!rect.height)return null;
+
+      dragPointer.set(
+        ((clientX-rect.left)/rect.width)*2-1,
+        -((clientY-rect.top)/rect.height)*2+1
+      );
+
+      scene.updateMatrixWorld(true);
+      root.updateMatrixWorld(true);
+      dragRaycaster.setFromCamera(dragPointer,camera);
+
+      const rootOrigin=new THREE.Vector3();
+      const rootQuat=new THREE.Quaternion();
+      root.getWorldPosition(rootOrigin);
+      root.getWorldQuaternion(rootQuat);
+
+      const normal=new THREE.Vector3(0,1,0).applyQuaternion(rootQuat).normalize();
+      const plane=new THREE.Plane().setFromNormalAndCoplanarPoint(normal,rootOrigin);
+      const worldPoint=new THREE.Vector3();
+
+      if(!dragRaycaster.ray.intersectPlane(plane,worldPoint))return null;
+
+      const local=root.worldToLocal(worldPoint.clone());
+      return {x:local.x,y:0,z:local.z};
+    }
+
     bookCore=createAlantuBookCore({
       stage,
       getLeaves:()=>pageRoots,
       getPageWidth:()=>PAGE_W,
+      getPageHeight:()=>PAGE_H,
       getTotalLeaves:()=>totalLeaves,
       rightZ,
       leftZ,
-      setStartCoverProgress,
-      setEndCoverProgress,
+      getCoverSetup,
       prefersReduced,
       onStateChange:updateUI,
       nextButton:nextBtn,
       prevButton:prevBtn,
       nextTap:tapNext,
       prevTap:tapPrev,
-      ignorePointerSelector:".stage-control"
+      ignorePointerSelector:".stage-control",
+      resolveGrabU,
+      resolveGrabTarget
     });
+    window.__alantuBookCore=bookCore;
 
     experienceBtn.addEventListener("click",()=>{
       document.getElementById("demo").scrollIntoView({behavior:prefersReduced?"auto":"smooth",block:"center"});
