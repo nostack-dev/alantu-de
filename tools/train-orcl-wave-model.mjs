@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
-import {barsFromYahoo,groupSessions,featureAt,futureReturnBps,FEATURE_NAMES,FEATURE_VERSION,BAR_MINUTES,HORIZONS} from '../wave-model-core.js';
+import {barsFromYahoo,groupSessions,featureAt,futureReturnBps,FEATURE_NAMES,FEATURE_VERSION,BAR_MINUTES,HORIZONS,MIN_CONTEXT_BARS} from '../wave-model-core.js';
 
 const IN=process.argv[2]||'orcl-wave-history.json';
 const OUT=process.argv[3]||'orcl-wave-model.json';
@@ -139,7 +139,7 @@ const rowsByH=new Map();
 for(const H of HORIZONS){
   const rows=[];
   for(const s of sessions){
-    for(let i=36;i<s.bars.length;i++){
+    for(let i=MIN_CONTEXT_BARS;i<s.bars.length;i++){
       const f=featureAt(s.bars,i);if(!f)continue;
       const y=futureReturnBps(s.bars,i,H);if(!Number.isFinite(y))continue;
       rows.push({day:s.day,at:f.at,x:f.x,y});
@@ -164,10 +164,10 @@ for(const H of HORIZONS){
 const validated=horizons.filter(x=>x.status==='validated');
 const model={
   status:validated.length?'validated':'unproven',
-  symbol:'ORCL',provider:'yahoo',data_contract:'5m_regular_session_ohlcv',
+  symbol:'ORCL',provider:'yahoo',data_contract:`${BAR_MINUTES}m_regular_session_ohlcv`,
   feature_version:FEATURE_VERSION,bar_minutes:BAR_MINUTES,feature_names:FEATURE_NAMES,horizons,
   cost_bps:COST_BPS,ridge_lambda:LAMBDA,
-  training:{usable_sessions:days.length,first_day:days[0],last_day:days.at(-1),protocol:'rolling-30d-causal-walkforward-v1',lookback_days:LOOKBACK_DAYS,inner_train_days:INNER_TRAIN_DAYS,inner_validation_days:INNER_VALIDATION_DAYS,oos_days:days.length-LOOKBACK_DAYS},
+  training:{usable_sessions:days.length,first_day:days[0],last_day:days.at(-1),protocol:'rolling-30d-causal-walkforward-v2',lookback_days:LOOKBACK_DAYS,inner_train_days:INNER_TRAIN_DAYS,inner_validation_days:INNER_VALIDATION_DAYS,oos_days:days.length-LOOKBACK_DAYS},
   production:{enabled:validated.length>0,validated_horizons:validated.map(x=>x.horizon_minutes),principle:'timing beats speed; precision beats power',retrain:'twice daily plus on model changes'},
   generated_at:new Date().toISOString(),model_id:null
 };
