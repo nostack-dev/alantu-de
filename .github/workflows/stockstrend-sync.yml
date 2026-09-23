@@ -252,7 +252,7 @@ jobs:
           grep -q 'function scheduleWaveForecast' index.html
           grep -q "fetchJson('orcl-wave-model.json',true)" index.html
           grep -q "waveCore=await import('./wave-model-core.js" index.html
-          grep -q "var hs=[5,15,30]" index.html
+          grep -Fq "var hs=[5,15,30]" index.html
           grep -q "field===9" index.html
           grep -q "f.kind==='wave'" index.html
           grep -q 'function marketWaveVector' index.html
