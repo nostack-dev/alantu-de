@@ -1,16 +1,7 @@
 name: Activate validated ORCL L2 live path
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch:
-  push:
-    branches: ["main"]
-    paths:
-      - "orcl-l2-model.json"
-      - "microstructure-live-config.json"
-      - "market-relay/server.mjs"
-      - ".github/workflows/orcl-l2-live-activation.yml"
 
 permissions:
   contents: write
