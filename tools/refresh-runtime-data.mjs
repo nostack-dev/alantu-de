@@ -276,10 +276,37 @@ if (!trend.history.length || trend.history.at(-1)?.tick_id !== at) {
   trend.history.push({tick_id:at,scraped_at:at,magnitude,confidence,direction,items:trend.tick.totals.content_items_usable,early_signal:Math.abs(net)>=12});
 }
 
+const sentimentHistory = Array.isArray(stock.history) ? stock.history : [];
+const sentimentHistoryOut = {
+  symbol: 'ORCL',
+  source: 'watchlist-data.json',
+  coverage: {
+    points: sentimentHistory.length,
+    first_at: sentimentHistory[0]?.at || null,
+    last_at: sentimentHistory.at(-1)?.at || null
+  },
+  history: sentimentHistory
+};
+const microstructureBootstrap = {
+  provider: 'alpaca',
+  feed: 'sip',
+  symbol: 'ORCL',
+  mode: 'awaiting_live_stream',
+  configured: false,
+  at,
+  quality: {status:'unavailable', reasons:['awaiting_railway_sse']},
+  minutes: [],
+  live_signal: null,
+  wave_forecast: {status:'blocked', reason:'awaiting_railway_sse'},
+  l2: {status:'retired', provider:'databento', reason:'replaced_by_raw_alpaca_sip'}
+};
+
 await Promise.all([
   writeJson('stockstrend-data.json', trend),
   writeJson('watchlist-data.json', watch),
   writeJson('watchlist.json', wl),
+  writeJson('orcl-sentiment-history.json', sentimentHistoryOut),
+  writeJson('microstructure-current.json', microstructureBootstrap),
   writeJson('runtime-status.json', {
     updated_at: at,
     sources: {
