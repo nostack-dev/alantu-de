@@ -282,6 +282,17 @@ setInterval(loadRawModel,30000).unref();
 setInterval(refreshForecast,5000).unref();
 setInterval(()=>flushYahooEvents().catch(()=>{}),1000).unref();
 setInterval(()=>persistShadow().catch(()=>{}),15000).unref();
+setInterval(()=>{
+  if(KEY&&SECRET)return;
+  const p=shadowProof();
+  console.log(JSON.stringify({
+    type:'yahoo-shadow-proof',
+    at:new Date().toISOString(),
+    pending:shadowState.predictions.length,
+    evaluated:shadowState.outcomes.length,
+    proof:p
+  }));
+},60000).unref();
 setInterval(broadcast,1000).unref();
 setInterval(()=>{if(KEY&&SECRET&&Date.now()-lastUpstreamAt>15000&&authState!=='connecting')connect();},15000).unref();
 if(KEY&&SECRET)connect();else connectYahoo();
