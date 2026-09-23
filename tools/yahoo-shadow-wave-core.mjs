@@ -1,4 +1,4 @@
-export const YAHOO_SHADOW_VERSION='yahoo-shadow-hdr-dt-v1';
+export const YAHOO_SHADOW_VERSION='yahoo-shadow-hdr-dt-v2';
 export const YAHOO_HORIZONS=[1,5,15,30];
 export const YAHOO_LOCAL=['MSFT','AMZN','GOOGL','NVDA','IGV'];
 export const YAHOO_GLOBAL=['QQQ','SPY'];
@@ -9,76 +9,73 @@ function mean(a){const x=a.filter(Number.isFinite);return x.length?x.reduce((s,v
 export function hdr(a,b){a=Number(a);b=Number(b);if(!Number.isFinite(a)||!Number.isFinite(b))return 0;return clamp((a-b)/(Math.abs(a)+Math.abs(b)+1e-12),-1,1);}
 function squash(x,scale=1){return Math.tanh(Number(x||0)/Math.max(1e-9,scale));}
 
-function windowRows(rows,endMs,windowMs){
-  const start=endMs-windowMs;
-  let i=rows.length-1;
-  while(i>=0&&rows[i].t>=start)i--;
-  return rows.slice(i+1);
-}
-function stats(rows,endMs,windowMs){
-  const a=windowRows(rows,endMs,windowMs);
-  if(a.length<2)return null;
+function statsRows(a){
+  if(!a||a.length<2)return null;
   const first=a[0],last=a[a.length-1],mins=Math.max((last.t-first.t)/60000,1/60);
   if(!(first.p>0&&last.p>0))return null;
-  let signed=0,total=0,up=0,down=0;
+  let signedVol=0,totalVol=0,up=0,down=0;
   for(let i=1;i<a.length;i++){
-    const dv=Math.max(0,Number(a[i].dv)||0),d=a[i].p-a[i-1].p;
-    const s=d>0?1:d<0?-1:0;
-    signed+=s*dv;total+=dv;if(s>0)up++;else if(s<0)down++;
+    const dv=Math.max(0,Number(a[i].dv)||0),d=a[i].p-a[i-1].p,s=d>0?1:d<0?-1:0;
+    signedVol+=s*dv;totalVol+=dv;if(s>0)up++;else if(s<0)down++;
   }
-  const ret=Math.log(last.p/first.p)*10000;
-  const dir=ret>0?1:ret<0?-1:0,steps=up+down;
+  const ret=Math.log(last.p/first.p)*10000,dir=ret>0?1:ret<0?-1:0,steps=up+down;
+  const eventRatio=steps?(up-down)/steps:0;
   return {
     count:a.length,
+    elapsed_s:Math.max(1,(last.t-first.t)/1000),
     return_bps:ret,
     velocity_bps_min:ret/mins,
-    signed_volume_ratio:total?signed/total:0,
-    event_rate:a.length/Math.max(.01,windowMs/1000),
+    signed_volume_ratio:totalVol?signedVol/totalVol:null,
+    directional_event_ratio:eventRatio,
+    flow_ratio:totalVol?signedVol/totalVol:eventRatio,
+    event_rate:a.length/Math.max(1,(last.t-first.t)/1000),
     persistence:steps?(dir>0?up:down)/steps:0
   };
 }
-function groupStats(series,symbols,endMs,windowMs){
-  const s=symbols.map(sym=>stats(series[sym]||[],endMs,windowMs)).filter(Boolean);
+function statsN(rows,n){
+  if(!rows||rows.length<2)return null;
+  return statsRows(rows.slice(Math.max(0,rows.length-n)));
+}
+function groupStatsN(series,symbols,n){
+  const s=symbols.map(sym=>statsN(series[sym]||[],n)).filter(Boolean);
   if(!s.length)return null;
   return {
     members:s.length,
     return_bps:median(s.map(x=>x.return_bps)),
     velocity_bps_min:median(s.map(x=>x.velocity_bps_min)),
-    signed_volume_ratio:median(s.map(x=>x.signed_volume_ratio)),
+    flow_ratio:median(s.map(x=>x.flow_ratio)),
     event_rate:mean(s.map(x=>x.event_rate)),
     persistence:median(s.map(x=>x.persistence))
   };
 }
-function eventRate60(rows,endMs){
-  return windowRows(rows,endMs,60000).length/60;
-}
-function dynamicWindows(rows,endMs){
-  const rate=Math.max(.08,eventRate60(rows,endMs));
-  let fast=clamp(16/rate,4,30);
-  let mid=clamp(96/rate,20,180);
-  let slow=clamp(600/rate,90,900);
-  mid=Math.max(mid,fast*3);slow=Math.max(slow,mid*3);
-  return {fast_s:fast,mid_s:Math.min(mid,180),slow_s:Math.min(slow,900),event_rate_60s:rate};
+function freshCount(series,symbols,endMs,maxAge){
+  return symbols.filter(s=>{const x=(series[s]||[]).at(-1);return x&&endMs-x.t<=maxAge;}).length;
 }
 function quality(series,endMs){
-  const target=series.ORCL||[];
-  const last=target.at(-1),age=last?endMs-last.t:Infinity;
-  const localFresh=YAHOO_LOCAL.filter(s=>{const x=(series[s]||[]).at(-1);return x&&endMs-x.t<=15000;}).length;
-  const globalFresh=YAHOO_GLOBAL.filter(s=>{const x=(series[s]||[]).at(-1);return x&&endMs-x.t<=15000;}).length;
-  return {target_age_ms:age,local_fresh:localFresh,global_fresh:globalFresh,usable:age<=15000&&localFresh>=3&&globalFresh>=1};
+  const target=series.ORCL||[],last=target.at(-1),age=last?Math.max(0,endMs-last.t):Infinity;
+  const maxAge=5*60000;
+  const localFresh=freshCount(series,YAHOO_LOCAL,endMs,maxAge);
+  const globalFresh=freshCount(series,YAHOO_GLOBAL,endMs,maxAge);
+  const peerWeight=clamp((localFresh/3+globalFresh)/2,0,1);
+  const ageWeight=clamp(1-(age/maxAge)*0.5,.5,1);
+  const usable=target.length>=5&&age<=maxAge&&localFresh>=2&&globalFresh>=1;
+  return {
+    target_age_ms:age,target_events:target.length,local_fresh:localFresh,global_fresh:globalFresh,
+    max_age_ms:maxAge,freshness_weight:usable?ageWeight*peerWeight:0,usable
+  };
 }
-function components(series,endMs){
-  const target=series.ORCL||[],w=dynamicWindows(target,endMs);
-  const fast=w.fast_s*1000,mid=w.mid_s*1000,slow=w.slow_s*1000;
-  const self={fast:stats(target,endMs,fast),mid:stats(target,endMs,mid),slow:stats(target,endMs,slow)};
-  const local={fast:groupStats(series,YAHOO_LOCAL,endMs,fast),mid:groupStats(series,YAHOO_LOCAL,endMs,mid),slow:groupStats(series,YAHOO_LOCAL,endMs,slow)};
-  const global={fast:groupStats(series,YAHOO_GLOBAL,endMs,fast),mid:groupStats(series,YAHOO_GLOBAL,endMs,mid),slow:groupStats(series,YAHOO_GLOBAL,endMs,slow)};
+function components(series){
+  const target=series.ORCL||[];
+  const self={fast:statsN(target,2),mid:statsN(target,3),slow:statsN(target,5)};
+  const local={fast:groupStatsN(series,YAHOO_LOCAL,2),mid:groupStatsN(series,YAHOO_LOCAL,3),slow:groupStatsN(series,YAHOO_LOCAL,5)};
+  const global={fast:groupStatsN(series,YAHOO_GLOBAL,2),mid:groupStatsN(series,YAHOO_GLOBAL,3),slow:groupStatsN(series,YAHOO_GLOBAL,5)};
   if(!self.fast||!self.mid||!self.slow||!local.fast||!local.mid||!global.fast||!global.mid)return null;
+  if(local.fast.members<2||local.mid.members<2||global.fast.members<1||global.mid.members<1)return null;
   const c={
     self_fast:squash(self.fast.velocity_bps_min,3),
     self_mid:squash(self.mid.velocity_bps_min,2),
     self_slow:squash(self.slow.velocity_bps_min,1.2),
-    flow_fast:squash(self.fast.signed_volume_ratio,.35),
+    flow_fast:squash(self.fast.flow_ratio,.45),
     accel:squash(self.fast.velocity_bps_min-self.mid.velocity_bps_min,3),
     local_fast:squash(local.fast.velocity_bps_min,2.5),
     local_mid:squash(local.mid.velocity_bps_min,1.8),
@@ -88,7 +85,10 @@ function components(series,endMs){
     hdr_self_local:hdr(self.fast.velocity_bps_min,local.fast.velocity_bps_min),
     hdr_local_global:hdr(local.mid.velocity_bps_min,global.mid.velocity_bps_min)
   };
-  return {windows:w,self,local,global,c};
+  return {
+    windows:{mode:'adaptive_event_count',fast_events:2,mid_events:3,slow_events:5,exact_dt:true},
+    self,local,global,c
+  };
 }
 function scoreFor(h,c){
   if(h===1)return .30*c.self_fast+.20*c.flow_fast+.20*c.accel+.15*c.local_fast+.10*c.global_fast+.05*c.peer_lead;
@@ -101,12 +101,12 @@ function threshold(h){return h===1?.30:h===5?.26:h===15?.24:.22;}
 export function forecastYahooShadow(series,nowMs=Date.now(),proof={}){
   const q=quality(series,nowMs);
   if(!q.usable)return {status:'blocked',reason:'insufficient_fresh_peer_events',quality:q,source:'yahoo_shadow'};
-  const x=components(series,nowMs);
+  const x=components(series);
   if(!x)return {status:'blocked',reason:'insufficient_event_history',quality:q,source:'yahoo_shadow'};
   const forecasts=YAHOO_HORIZONS.map(h=>{
-    const score=scoreFor(h,x.c),thr=threshold(h),dir=Math.abs(score)>=thr?Math.sign(score):0;
+    const raw=scoreFor(h,x.c),score=raw*q.freshness_weight,thr=threshold(h),dir=Math.abs(score)>=thr?Math.sign(score):0;
     return {
-      horizon_minutes:h,dir,score,threshold:thr,margin:Math.abs(score)/thr,
+      horizon_minutes:h,dir,score,raw_score:raw,threshold:thr,margin:Math.abs(score)/thr,
       proof:proof[String(h)]||null,mode:'shadow_only'
     };
   });
