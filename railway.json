@@ -8,12 +8,10 @@
       "railway.json",
       "market-runtime/**",
       "market-relay/**",
-      "tools/l2-event-signal.mjs",
       "tools/microstructure-core.mjs",
-      "tools/microstructure-signal.mjs",
-      "tools/databento-orcl-mbp10-live.py",
-      "orcl-l2-model.json",
-      "microstructure-edge-status.json"
+      "tools/raw-sip-wave-core.mjs",
+      "tools/train-raw-sip-wave.mjs",
+      "orcl-raw-sip-model.json"
     ]
   },
   "deploy": {
