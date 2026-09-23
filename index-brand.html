@@ -453,7 +453,7 @@
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=8a805934";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=119f6537";
 
     const canvas = document.getElementById("bookCanvas");
     const stage = document.getElementById("stage");
@@ -716,7 +716,21 @@
       endCoverPivot.rotation.y=-Math.PI*p;
       endCoverPivot.position.z=endCoverOpenZ+(endCoverClosedZ-endCoverOpenZ)*p;
     }
-    const basePageGeom=new THREE.PlaneGeometry(PAGE_W,PAGE_H,30,1);
+
+    function getCoverSetup(){
+      return {
+        frontPivot:frontCoverPivot,
+        endPivot:endCoverPivot,
+        frontCover,
+        backCover,
+        spine,
+        coverWidth:COVER_W,
+        coverHeight:5.15,
+        coverThickness:COVER_T,
+        hingeX:HINGE_X
+      };
+    }
+    const basePageGeom=new THREE.PlaneGeometry(PAGE_W,PAGE_H,20,1);
     basePageGeom.translate(PAGE_W/2,0,0);
 
     function backTextureFor(pageIndex){
@@ -791,9 +805,11 @@
       stage,
       getLeaves:()=>pageRoots,
       getPageWidth:()=>PAGE_W,
+      getPageHeight:()=>PAGE_H,
       getTotalLeaves:()=>totalLeaves,
       rightZ,
       leftZ,
+      getCoverSetup,
       setStartCoverProgress,
       setEndCoverProgress,
       prefersReduced,
