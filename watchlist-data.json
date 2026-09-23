@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-23T23:39:02+02:00",
+  "updated_at": "2026-09-24T01:59:24+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,12 +9,12 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-23T23:39:02+02:00",
+        "at": "2026-09-24T01:59:24+02:00",
         "signal": "hold",
-        "social_impulse": -1,
-        "hype_bull": 18,
-        "hype_bear": 23,
-        "hype_net": -5,
+        "social_impulse": -4,
+        "hype_bull": 9,
+        "hype_bear": 27,
+        "hype_net": -18,
         "confidence": 73
       },
       "history": [
@@ -3752,6 +3752,20 @@
           "voice_bear": 5,
           "voice_mixed": 14,
           "price": 144.4
+        },
+        {
+          "at": "2026-09-24T01:59:24+02:00",
+          "hype_bull": 9,
+          "hype_bear": 27,
+          "hype_net": -18,
+          "social_impulse": -4,
+          "signal": "hold",
+          "confidence": 73,
+          "hype_mixed": 64,
+          "voice_bull": 1,
+          "voice_bear": 6,
+          "voice_mixed": 15,
+          "price": 144.3981
         }
       ],
       "voices_archive": [
@@ -4067,35 +4081,35 @@
         }
       ],
       "signal": "hold",
-      "social_impulse": -1,
-      "impulse": -1,
-      "hype_bull": 18,
-      "hype_bear": 23,
-      "hype_net": -5,
+      "social_impulse": -4,
+      "impulse": -4,
+      "hype_bull": 9,
+      "hype_bear": 27,
+      "hype_net": -18,
       "confidence": 73,
-      "hype_state": "mixed",
-      "updated_at": "2026-09-23T23:39:02+02:00",
-      "why": "Reddit 100% positiv bei 3 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $144.40.",
+      "hype_state": "bearish",
+      "updated_at": "2026-09-24T01:59:24+02:00",
+      "why": "Reddit 100% positiv bei 4 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $144.40.",
       "evidence": {
         "x_posts": 0,
-        "reddit_posts": 3,
+        "reddit_posts": 4,
         "news": 20,
         "snippets": [
-          "ApeWisdom: 3 Mentions/24h, Sentiment 100%",
+          "ApeWisdom: 4 Mentions/24h, Sentiment 100%",
+          "3 Reasons ORCL is Risky and 1 Stock to Buy Instead",
           "Trump Downplayed AI Safety Concerns, but His Investment Portfolio Bought Cybersecurity Stocks",
-          "Oracle Drops as AI Debt Carries a 37-Basis-Point Premium",
-          "Oracle (NYSE:ORCL) Stock Price Down 3.2% - Should You Sell?"
+          "Oracle (NYSE: ORCL) executive Mark Hura has 8,456 and 20,805 shares withheld for taxes."
         ]
       },
       "voices": {
-        "bull": 3,
-        "bear": 5,
-        "mixed": 14,
-        "updated_at": "2026-09-23T23:39:02+02:00"
+        "bull": 1,
+        "bear": 6,
+        "mixed": 15,
+        "updated_at": "2026-09-24T01:59:24+02:00"
       },
-      "hype_mixed": 59,
+      "hype_mixed": 64,
       "sentiment_unit": "percent_all_classified",
-      "price": 144.4
+      "price": 144.3981
     }
   }
 }

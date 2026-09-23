@@ -1,39 +1,39 @@
 {
-  "updated_at": "2026-09-23T23:39:02+02:00",
+  "updated_at": "2026-09-24T01:59:24+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-23T23:39:02+02:00",
-    "scraped_at": "2026-09-23T23:39:02+02:00",
+    "tick_id": "2026-09-24T01:59:24+02:00",
+    "scraped_at": "2026-09-24T01:59:24+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "PublicReddit": {
         "status": "ok",
-        "items": 3,
+        "items": 4,
         "provider": "apewisdom.io",
         "window": "24h aggregate snapshot",
-        "freshest": "2026-09-23T23:39:02+02:00",
+        "freshest": "2026-09-24T01:59:24+02:00",
         "sentiment_pct_bullish": 100,
-        "upvotes_24h": 6
+        "upvotes_24h": 8
       },
       "NewsRSS": {
         "status": "ok",
         "items": 20,
         "provider": "news.google.com",
         "window": "last 36h, fetched now",
-        "freshest": "2026-09-23T23:39:02+02:00",
+        "freshest": "2026-09-24T01:59:24+02:00",
         "notes": [
+          "3 Reasons ORCL is Risky and 1 Stock to Buy Instead",
           "Trump Downplayed AI Safety Concerns, but His Investment Portfolio Bought Cybersecurity Stocks",
-          "Oracle Drops as AI Debt Carries a 37-Basis-Point Premium",
-          "Oracle (NYSE:ORCL) Stock Price Down 3.2% - Should You Sell?"
+          "Oracle (NYSE: ORCL) executive Mark Hura has 8,456 and 20,805 shares withheld for taxes."
         ]
       },
       "Yahoo": {
         "status": "ok",
         "items": 1,
         "prices": {
-          "ORCL": 144.4
+          "ORCL": 144.3981
         },
-        "price_at": "2026-09-23T21:38:57.000Z",
+        "price_at": "2026-09-23T23:59:08.000Z",
         "note": "Yahoo chart 5d/1m fallback feed"
       }
     },
@@ -49,20 +49,20 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-23T23:39:02+02:00",
+      "freshest_absolute": "2026-09-24T01:59:24+02:00",
       "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
       "quality": "medium-high public sources",
-      "scrape_berlin": "2026-09-23T23:39:02+02:00",
+      "scrape_berlin": "2026-09-24T01:59:24+02:00",
       "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
       "freshest_item_age": "snapshot fetched now",
-      "oldest_usable_signal": "Oracle (NYSE:ORCL) Stock Price Down 3.2% - Should You Sell?"
+      "oldest_usable_signal": "Oracle (NYSE: ORCL) executive Mark Hura has 8,456 and 20,805 shares withheld for taxes."
     },
     "vector": {
-      "direction": "mixed_cautious",
-      "magnitude": 31,
+      "direction": "leicht_bearish_risk_off",
+      "magnitude": 38,
       "confidence": 73,
-      "early_signal": false,
-      "early_signal_note": "Reddit 100% positiv bei 3 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $144.40."
+      "early_signal": true,
+      "early_signal_note": "Reddit 100% positiv bei 4 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $144.40."
     },
     "top_themes": [
       {
@@ -479,30 +479,30 @@
       {
         "symbol": "ORCL",
         "name": "Oracle",
-        "hype_state": "mixed",
+        "hype_state": "bearish",
         "signal": "hold",
         "confidence": 73,
-        "social_impulse": -1,
-        "hype_bull": 18,
-        "hype_bear": 23,
-        "hype_net": -5,
-        "why": "Reddit 100% positiv bei 3 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $144.40.",
+        "social_impulse": -4,
+        "hype_bull": 9,
+        "hype_bear": 27,
+        "hype_net": -18,
+        "why": "Reddit 100% positiv bei 4 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $144.40.",
         "evidence": {
           "x_posts": 0,
-          "reddit_posts": 3,
+          "reddit_posts": 4,
           "news": 20,
           "snippets": [
-            "ApeWisdom: 3 Mentions/24h, Sentiment 100%",
+            "ApeWisdom: 4 Mentions/24h, Sentiment 100%",
+            "3 Reasons ORCL is Risky and 1 Stock to Buy Instead",
             "Trump Downplayed AI Safety Concerns, but His Investment Portfolio Bought Cybersecurity Stocks",
-            "Oracle Drops as AI Debt Carries a 37-Basis-Point Premium",
-            "Oracle (NYSE:ORCL) Stock Price Down 3.2% - Should You Sell?"
+            "Oracle (NYSE: ORCL) executive Mark Hura has 8,456 and 20,805 shares withheld for taxes."
           ]
         },
         "links": {
           "tradingview": "https://www.tradingview.com/symbols/ORCL/",
           "yahoo": "https://finance.yahoo.com/quote/ORCL"
         },
-        "price": 144.4
+        "price": 144.3981
       }
     ],
     "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
@@ -511,13 +511,13 @@
   "signals_disclaimer": "",
   "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
   "freshness": {
-    "freshest_absolute": "2026-09-23T23:39:02+02:00",
+    "freshest_absolute": "2026-09-24T01:59:24+02:00",
     "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
     "quality": "medium-high public sources",
-    "scrape_berlin": "2026-09-23T23:39:02+02:00",
+    "scrape_berlin": "2026-09-24T01:59:24+02:00",
     "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
     "freshest_item_age": "snapshot fetched now",
-    "oldest_usable_signal": "Oracle (NYSE:ORCL) Stock Price Down 3.2% - Should You Sell?"
+    "oldest_usable_signal": "Oracle (NYSE: ORCL) executive Mark Hura has 8,456 and 20,805 shares withheld for taxes."
   },
   "history": [
     {
@@ -2656,6 +2656,15 @@
       "direction": "mixed_cautious",
       "items": 21,
       "early_signal": false
+    },
+    {
+      "tick_id": "2026-09-24T01:59:24+02:00",
+      "scraped_at": "2026-09-24T01:59:24+02:00",
+      "magnitude": 38,
+      "confidence": 73,
+      "direction": "leicht_bearish_risk_off",
+      "items": 21,
+      "early_signal": true
     }
   ],
   "disclaimer": ""
