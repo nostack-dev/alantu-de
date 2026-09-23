@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <title>alantu.de · Aktien</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="vendor/chart.umd.min.js"></script>
 <style>
   :root {
     --bg: #ffffff;
@@ -2165,30 +2165,6 @@ function normalizeTickerTickStory(x){
   if(!liveStoryAgeOk(ms))return null;
   return {title:String(x.title||''),url:String(x.url||''),site:String(x.site||''),time:ms};
 }
-async function fetchTickerTick(q,n){
-  var u='https://api.tickertick.com/feed?q='+encodeURIComponent(q)+'&n='+(n||30)+'&_='+Date.now();
-  var r=await fetch(u,{cache:'no-store'});
-  if(!r.ok)throw new Error('TickerTick HTTP '+r.status);
-  var j=await r.json(), arr=(j&&j.stories)||[];
-  arr=arr.map(normalizeTickerTickStory).filter(Boolean);
-  if(!arr.length)throw new Error('TickerTick ohne frische Treffer');
-  return arr;
-}
-async function fetchGoogleNewsFallback(q){
-  var feed='https://news.google.com/rss/search?q='+encodeURIComponent(q+' when:1d')+'&hl=en-US&gl=US&ceid=US:en';
-  var u='https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(feed)+'&_='+Date.now();
-  var r=await fetch(u,{cache:'no-store'});
-  if(!r.ok)throw new Error('RSS-Fallback HTTP '+r.status);
-  var j=await r.json();
-  if(!j||j.status!=='ok'||!Array.isArray(j.items))throw new Error('RSS-Fallback ungültig');
-  var arr=j.items.map(function(x){
-    var ms=Date.parse(x.pubDate||'');
-    if(!liveStoryAgeOk(ms))return null;
-    return {title:String(x.title||''),url:String(x.link||''),site:'Google News RSS',time:ms};
-  }).filter(Boolean);
-  if(!arr.length)throw new Error('RSS-Fallback ohne frische Treffer');
-  return arr;
-}
 function dedupeSocial(items){
   var seen={},out=[];
   (items||[]).forEach(function(x){
@@ -2198,20 +2174,15 @@ function dedupeSocial(items){
   return out.sort(function(a,b){return Number(b.time||0)-Number(a.time||0)});
 }
 async function fetchFreshSignalSources(){
-  var news=null,tickerSocial=[],entitySocial=[],newsProviders=[],socialProviders=[];
-  try{news=await fetchTickerTick('(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))',100);newsProviders.push('TickerTick News');}
-  catch(e){news=await fetchGoogleNewsFallback('Oracle ORCL stock');newsProviders.push('Google News RSS');}
-  try{tickerSocial=await fetchTickerTick('(and tt:orcl T:ugc)',200);socialProviders.push('TickerTick ORCL UGC');}catch(e){}
-  try{entitySocial=await fetchTickerTick('(and E:oracle T:ugc)',200);socialProviders.push('TickerTick Oracle Entity UGC');}catch(e){}
-  entitySocial=entitySocial.filter(function(x){
-    var s=String(x&&x.title||'').toLowerCase();
-    return /\$orcl\b|\borcl\b/.test(s)||(s.indexOf('oracle')>=0&&/(stock|share|earn|cloud|ai|market|bull|bear|buy|sell|valuation|price)/.test(s));
-  });
-  var social=dedupeSocial(tickerSocial.concat(entitySocial)),minSocial=50;
-  if(social.length<minSocial)throw new Error('Zu wenig frische Social-Daten: '+social.length+'/'+minSocial);
-  if(!news||news.length<3)throw new Error('Zu wenig frische News-Daten');
-  var breakdown={'TickerTick ORCL UGC':dedupeSocial(tickerSocial).length,'TickerTick Oracle Entity UGC':dedupeSocial(entitySocial).length};
-  return {news:news||[],social:social.slice(0,300),providers:newsProviders.concat(socialProviders),newsProviders:newsProviders,socialProviders:socialProviders,socialBreakdown:breakdown,minSocial:minSocial};
+  var r=await fetch('fresh-sources.json?_='+Date.now(),{cache:'no-store'});
+  if(!r.ok)throw new Error('Quellensnapshot HTTP '+r.status);
+  var snap=await r.json(),at=Date.parse(snap.fetched_at||'');
+  if(!isFinite(at)||Date.now()-at>20*60*1000||at>Date.now()+60000)throw new Error('Quellensnapshot veraltet');
+  var news=(snap.news||[]).map(normalizeTickerTickStory).filter(Boolean);
+  var social=dedupeSocial((snap.social||[]).map(normalizeTickerTickStory).filter(Boolean));
+  var minSocial=50;
+  if(!news.length||social.length<minSocial)throw new Error('Quellensnapshot unvollständig');
+  return {news:news,social:social.slice(0,300),providers:snap.providers||[],newsProviders:snap.news_providers||[],socialProviders:snap.social_providers||[],socialBreakdown:snap.social_breakdown||{},minSocial:minSocial,fetchedAt:snap.fetched_at};
 }
 function liveRecencyWeight(ms){
   var age=Math.max(0,Date.now()-Number(ms||0));
@@ -2232,7 +2203,7 @@ function deriveFreshSignal(src){
   var signal=(net>=25&&conf>=60)?'buy':((net<=-25&&conf>=60)?'sell':'hold');
   var direction=net>=12?'leicht_bullish_risk_on':(net<=-12?'leicht_bearish_risk_off':'mixed_cautious');
   var magnitude=liveClamp(Math.round(28+Math.abs(net)*0.55),25,75);
-  var at=new Date().toISOString();
+  var at=src.fetchedAt;
   var orcl=((wlData&&wlData.stocks)||{}).ORCL||{};
   var price=(liveMarket&&isFinite(Number(liveMarket.orclUsd)))?Number(liveMarket.orclUsd):Number(orcl.price);
   if(!isFinite(price)||price<=0)price=null;
@@ -2251,10 +2222,10 @@ function applyFreshSignal(s){
   tickData.tick.scraped_at=s.at;
   tickData.tick.freshness={
     freshest_absolute:s.at,
-    primary_signal:'Browser-Livecheck: '+s.providers.join(' + ')+(liveMarket.connected?' + Yahoo Live-Kurs':''),
-    quality:'live abgefragt'+(s.newestAge!=null?' · neuester Treffer '+s.newestAge+' Min alt':''),
+    primary_signal:'Server-Quellensnapshot: '+s.providers.join(' + ')+(liveMarket.connected?' + Yahoo Live-Kurs':''),
+    quality:'serverseitig geprüft'+(s.newestAge!=null?' · neuester Treffer '+s.newestAge+' Min alt':''),
     scrape_berlin:s.at,
-    sample_window:'News/UGC ≤36h; Livecheck jetzt',
+    sample_window:'News/UGC ≤36h; Snapshot '+s.at,
     freshest_item_age:s.newestAge==null?'':(s.newestAge+' min'),
     oldest_usable_signal:''
   };

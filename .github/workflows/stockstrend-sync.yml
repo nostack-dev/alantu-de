@@ -7,6 +7,7 @@ on:
   push:
     branches: ["main"]
     paths-ignore:
+      - "fresh-sources.json"
       - "stockstrend-data.json"
       - "watchlist-data.json"
       - "watchlist.json"
@@ -104,54 +105,8 @@ jobs:
           node --check tools/refresh-runtime-data.mjs
           node tools/refresh-runtime-data.mjs
 
-      - name: Verify browser live-source contract
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          cors_ok() {
-            local url="$1" out="$2"
-            curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 \
-              -H 'Origin: https://www.alantu.de' \
-              -D "${out}.headers" "$url" -o "${out}.body" || return 1
-            tr -d '\r' < "${out}.headers" | \
-              grep -Eiq '^access-control-allow-origin:[[:space:]]*(\*|https://www\.alantu\.de)[[:space:]]*$'
-          }
-
-          primary=0
-          tt='https://api.tickertick.com/feed?q=%28and%20tt%3Aorcl%20%28or%20T%3Acurated%20T%3Amarket%20T%3Aanalysis%20T%3Aindustry%20T%3Aearning%20T%3Asec%29%29&n=10'
-          if cors_ok "$tt" /tmp/tickertick && jq -e '(.stories // []) | length > 0' /tmp/tickertick.body >/dev/null; then
-            echo 'TickerTick browser CORS: OK'
-            primary=1
-          else
-            echo 'TickerTick browser CORS unavailable; testing RSS fallback'
-          fi
-
-          feed='https://news.google.com/rss/search?q=Oracle%20ORCL%20stock%20when%3A1d&hl=en-US&gl=US&ceid=US%3Aen'
-          encoded="$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=""))' "$feed")"
-          rss="https://api.rss2json.com/v1/api.json?rss_url=$encoded"
-          fallback=0
-          if cors_ok "$rss" /tmp/rss2json && jq -e '.status=="ok" and ((.items // []) | length > 0)' /tmp/rss2json.body >/dev/null; then
-            echo 'RSS2JSON browser CORS fallback: OK'
-            fallback=1
-          fi
-
-          if [ "$primary" -ne 1 ] && [ "$fallback" -ne 1 ]; then
-            echo 'No browser-callable fresh news source available' >&2
-            exit 1
-          fi
-
-          ugc1='https://api.tickertick.com/feed?q=%28and%20tt%3Aorcl%20T%3Augc%29&n=200'
-          ugc2='https://api.tickertick.com/feed?q=%28and%20E%3Aoracle%20T%3Augc%29&n=200'
-          if ! cors_ok "$ugc1" /tmp/ugc1 || ! jq -e '(.stories // []) | type=="array"' /tmp/ugc1.body >/dev/null; then
-            echo 'TickerTick ORCL UGC browser CORS unavailable' >&2
-            exit 1
-          fi
-          if ! cors_ok "$ugc2" /tmp/ugc2 || ! jq -e '(.stories // []) | type=="array"' /tmp/ugc2.body >/dev/null; then
-            echo 'TickerTick Oracle Entity UGC browser CORS unavailable' >&2
-            exit 1
-          fi
-          echo "TickerTick social browser CORS: OK · ORCL $(jq '(.stories // [])|length' /tmp/ugc1.body) · entity $(jq '(.stories // [])|length' /tmp/ugc2.body)"
+      - name: Refresh same-origin source snapshot
+        run: node tools/refresh-fresh-sources.mjs
 
       - name: Fail-closed validation
         shell: bash
@@ -165,12 +120,12 @@ jobs:
           grep -q "fetchJson('watchlist-data.json'" index.html
           grep -q "fetchJson('intrinsic-orcl.json'" index.html
           grep -q "fetchJson('eurusd-history.json'" index.html
-          grep -q 'fetchTickerTick' index.html
+          grep -q "fetch('fresh-sources.json" index.html
           grep -q 'refreshFreshSignals' index.html
           grep -q 'lastBrowserSyncAt=s.at' index.html
-          grep -q 'TickerTick ORCL UGC' index.html
-          grep -q "T:ugc)',200" index.html
-          grep -q "E:oracle T:ugc" index.html
+          grep -q 'TickerTick ORCL UGC' tools/refresh-fresh-sources.mjs
+          grep -q "T:ugc)" tools/refresh-fresh-sources.mjs
+          grep -q "E:oracle T:ugc" tools/refresh-fresh-sources.mjs
           grep -q 'minSocial=50' index.html
           grep -q 'id="sentimentRelation"' index.html
           grep -q 'function hdrRelationSeries' index.html
@@ -389,7 +344,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git add stockstrend-data.json watchlist-data.json watchlist.json \
+          git add fresh-sources.json stockstrend-data.json watchlist-data.json watchlist.json \
             orcl-minute.json orcl-history.json orcl-sentiment-history.json eurusd-history.json \
             runtime-status.json microstructure-current.json
 
