@@ -1,4 +1,4 @@
-import { createAlantuBookPhysics } from "./alantu-book-physics-box3d021.js";
+import { createAlantuBookPhysics } from "./alantu-book-physics-box3d022.js";
 
 export function sanitizeAlantuCoverTitle(value,fallback="ALANTU Exposé"){
   const cleaned=String(value??"")
@@ -192,7 +192,7 @@ export function createAlantuBookCore(options){
   const physics=createAlantuBookPhysics({
     getLeaves,
     getPageWidth,
-    getPageHeight=()=>4.80,
+    getPageHeight,
     getTotalLeaves,
     rightZ,
     leftZ,
