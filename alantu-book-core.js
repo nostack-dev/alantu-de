@@ -111,6 +111,19 @@ export function configureAlantuPageTexture(texture,{
   return texture;
 }
 
+export function computeAlantuLeafStackStep(totalLeaves,{
+  preferredStep=.018,
+  maxSpread=.054
+}={}){
+  const count=Math.max(1,Number(totalLeaves)||1);
+  if(count<=1)return preferredStep;
+
+  // Keep the proven 3-leaf main geometry unchanged, but prevent larger
+  // documents from becoming cartoonishly thick just because they contain
+  // more leaves. The whole paper stack may spread by at most maxSpread.
+  return Math.min(preferredStep,maxSpread/(count-1));
+}
+
 export function computeAlantuBookSupportZ({
   totalLeaves,
   rightZ,
