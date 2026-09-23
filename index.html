@@ -1433,6 +1433,7 @@ function connectMicrostructureRelay(){
       var d=JSON.parse(ev.data||'{}');
       if(d&&d.provider==='alpaca'&&d.feed==='sip'&&d.symbol==='ORCL'&&d.mode==='live-relay'){
         microstructureData=d;
+        if(d.wave_forecast){waveForecastState=d.wave_forecast;renderWaveForecasts();}
         lastFlowRenderAt=0;
         try{renderMarketFlowVisual(getMarketWaveVector());}catch(e){}
       }
