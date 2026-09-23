@@ -1,6 +1,5 @@
-# box3d-init-diagnostic: 1790149804605
+# box3d-022-smoke: 1790149911434
 name: box3d-smoke
-# box3d-021-smoke: 1790149686230
 on:
   push:
     paths:
@@ -42,10 +41,10 @@ jobs:
               null,{timeout:30000}
             );
             const resources=await page.evaluate(()=>performance.getEntriesByType("resource").map(x=>x.name));
-            if(!resources.some(x=>x.includes("alantu-book-core-box3d021.js"))){
+            if(!resources.some(x=>x.includes("alantu-book-core-box3d022.js"))){
               failures.push(`${label}: immutable core not loaded`);
             }
-            if(!resources.some(x=>x.includes("alantu-book-physics-box3d021.js"))){
+            if(!resources.some(x=>x.includes("alantu-book-physics-box3d022.js"))){
               failures.push(`${label}: immutable physics not loaded`);
             }
           }
