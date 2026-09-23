@@ -164,7 +164,7 @@ export function createAlantuBookCore(options){
     stage,
     getLeaves,
     getPageWidth,
-    getPageHeight,
+    getPageHeight=()=>4.80,
     getTotalLeaves,
     rightZ,
     leftZ,
