@@ -288,17 +288,29 @@ const sentimentHistoryOut = {
   history: sentimentHistory
 };
 const microstructureBootstrap = {
-  provider: 'alpaca',
-  feed: 'sip',
+  provider: 'yahoo',
+  feed: 'streamer',
   symbol: 'ORCL',
-  mode: 'awaiting_live_stream',
-  configured: false,
+  mode: 'shadow-live',
+  configured: true,
   at,
-  quality: {status:'unavailable', reasons:['awaiting_railway_sse']},
+  quality: {usable:false, reasons:['awaiting_railway_sse']},
   minutes: [],
   live_signal: null,
-  wave_forecast: {status:'blocked', reason:'awaiting_railway_sse'},
-  l2: {status:'retired', provider:'databento', reason:'replaced_by_raw_alpaca_sip'}
+  shadow_signal: null,
+  wave: {
+    provider:'yahoo',
+    feed:'streamer',
+    input_contract:'yahoo_stream_events_no_bar_aggregation',
+    status:'shadow',
+    model_id:'yahoo-shadow-yahoo-shadow-hdr-dt-v1',
+    feature_version:'yahoo-shadow-hdr-dt-v1',
+    production_enabled:false,
+    shadow_only:true,
+    horizons:[1,5,15,30].map(h=>({horizon_minutes:h,status:'shadow',proof:{n:0,hit:null,mean_gross_bps:null,mode:'shadow_only'}}))
+  },
+  wave_forecast: {status:'blocked', reason:'awaiting_railway_sse', source:'yahoo_shadow'},
+  l2: {status:'retired', provider:'databento', reason:'replaced_by_event_wave'}
 };
 
 await Promise.all([
