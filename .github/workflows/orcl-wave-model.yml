@@ -1,15 +1,6 @@
 name: Train ORCL wave model
 
 on:
-  push:
-    branches: ["main"]
-    paths:
-      - "wave-model-core.js"
-      - "tools/train-orcl-wave-model.mjs"
-      - ".github/workflows/orcl-wave-model.yml"
-  schedule:
-    - cron: "17 12 * * 1-5"
-    - cron: "47 19 * * 1-5"
   workflow_dispatch:
 
 permissions:
