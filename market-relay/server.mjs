@@ -4,6 +4,7 @@ import WebSocket from 'ws';
 import { aggregateMicrostructure, microstructureQuality } from '../tools/microstructure-core.mjs';
 import { currentMicroSignal } from '../tools/microstructure-signal.mjs';
 import { forecastL2Event, validateL2ModelContract } from '../tools/l2-event-signal.mjs';
+import { barsFromYahoo, forecastLatest as forecastWaveLatest } from '../wave-model-core.js';
 
 const PORT=Number(process.env.PORT||8080);
 const KEY=process.env.APCA_API_KEY_ID||'',SECRET=process.env.APCA_API_SECRET_KEY||'';
@@ -25,6 +26,7 @@ const raw=Object.fromEntries(SYMBOLS.map(s=>[s,{trades:[],quotes:[]}]));
 const l2Raw=Object.fromEntries(SYMBOLS.map(s=>[s,[]]));
 const clients=new Set();
 let upstream=null,edgeModel=null,l2Model=null,waveModel=null,lastUpstreamAt=0,lastL2At=0,reconnectTimer=null;
+let waveLive={status:'blocked',reason:'not_fetched'},lastWaveFetchAt=0;
 
 function cors(req,res){
   const o=req.headers.origin;
@@ -70,6 +72,28 @@ function waveStatus(){
     production_enabled:waveModel?.production?.enabled===true,
     generated_at:waveModel?.generated_at||null
   };
+}
+async function fetchWaveLive(){
+  if(!waveModel){waveLive={status:'blocked',reason:'model_unavailable'};return;}
+  const urls=[
+    'https://query1.finance.yahoo.com/v8/finance/chart/ORCL?range=5d&interval=2m&includePrePost=false&events=div%2Csplits',
+    'https://query2.finance.yahoo.com/v8/finance/chart/ORCL?range=5d&interval=2m&includePrePost=false&events=div%2Csplits'
+  ];
+  let lastErr=null;
+  for(const url of urls){
+    try{
+      const r=await fetch(url,{headers:{'user-agent':'Mozilla/5.0'},cache:'no-store'});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const payload=await r.json(),rows=barsFromYahoo(payload),fc=forecastWaveLatest(rows,waveModel);
+      waveLive={provider:'yahoo',symbol:'ORCL',fetched_at:new Date().toISOString(),...fc};
+      lastWaveFetchAt=Date.now();
+      return;
+    }catch(e){lastErr=e;}
+  }
+  const age=Date.now()-lastWaveFetchAt;
+  if(!(age<180000&&waveLive&&waveLive.status==='ok')){
+    waveLive={status:'blocked',reason:'wave_source_error',error:String(lastErr?.message||lastErr||'unknown')};
+  }
 }
 function eventNs(x,key){
   try{return BigInt(String(x?.[key]??''));}catch{return null;}
@@ -147,7 +171,7 @@ function snapshot(symbol){
   return {
     provider:'alpaca',feed:FEED,symbol,mode:'live-relay',at:new Date().toISOString(),quality,
     edge_status:edgeModel?.status||'unavailable',edge_model_id:edgeModel?.model_id||null,live_signal,minutes,
-    wave:waveStatus(),l2:l2Snapshot(symbol)
+    wave:waveStatus(),wave_forecast:waveLive,l2:l2Snapshot(symbol)
   };
 }
 function sendEvent(res,obj,eventName='market'){res.write('event: '+eventName+'\ndata: '+JSON.stringify(obj)+'\n\n');}
@@ -190,7 +214,7 @@ const server=http.createServer((req,res)=>{
   if(req.method==='OPTIONS'){res.statusCode=204;return res.end();}
   const u=new URL(req.url,'http://localhost');
   if(u.pathname==='/health'){
-    return json(res,200,{ok:true,configured:!!(KEY&&SECRET),feed:FEED,symbols:SYMBOLS,upstream_fresh:Date.now()-lastUpstreamAt<15000,edge_status:edgeModel?.status||'unavailable',primary_runtime:'validated-yahoo-wave',wave:waveStatus(),
+    return json(res,200,{ok:true,configured:!!(KEY&&SECRET),feed:FEED,symbols:SYMBOLS,upstream_fresh:Date.now()-lastUpstreamAt<15000,edge_status:edgeModel?.status||'unavailable',primary_runtime:'validated-yahoo-wave',wave:waveStatus(),wave_runtime:{status:waveLive?.status||'blocked',asof:waveLive?.asof||null,fetched_at:waveLive?.fetched_at||null},
       l2:{
         configured:!!L2_INGEST_TOKEN,
         collector_mode:process.env.MARKET_RUNTIME_RELAY_ONLY==='1'?'disabled':'enabled',
@@ -235,6 +259,6 @@ const server=http.createServer((req,res)=>{
   }
   json(res,404,{error:'not_found'});
 });
-await loadEdge();await loadL2Model();await loadWaveModel();setInterval(loadEdge,60000).unref();setInterval(loadL2Model,60000).unref();setInterval(loadWaveModel,60000).unref();setInterval(broadcast,1000).unref();setInterval(()=>{if(KEY&&SECRET&&Date.now()-lastUpstreamAt>15000)connect();},15000).unref();
+await loadEdge();await loadL2Model();await loadWaveModel();await fetchWaveLive();setInterval(loadEdge,60000).unref();setInterval(loadL2Model,60000).unref();setInterval(loadWaveModel,60000).unref();setInterval(fetchWaveLive,20000).unref();setInterval(broadcast,1000).unref();setInterval(()=>{if(KEY&&SECRET&&Date.now()-lastUpstreamAt>15000)connect();},15000).unref();
 connect();
 server.listen(PORT,'0.0.0.0',()=>console.log(JSON.stringify({service:'alantu-market-relay',port:PORT,primary_runtime:'validated-yahoo-wave',wave:waveStatus(),alpaca_configured:!!(KEY&&SECRET),feed:FEED,symbols:SYMBOLS,l2_dataset:L2_DATASET})));
