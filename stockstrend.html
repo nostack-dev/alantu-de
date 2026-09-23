@@ -1417,6 +1417,10 @@ function microstructureTransportUsable(){
     var liveAt=Date.parse(d.at||'');
     return dq.status==='usable'&&isFinite(liveAt)&&Math.abs(Date.now()-liveAt)<=15000;
   }
+  if(d.mode==='shadow-live'){
+    var shadowAt=Date.parse(d.at||'');
+    return dq.usable===true&&isFinite(shadowAt)&&Math.abs(Date.now()-shadowAt)<=15000;
+  }
   var q=s.quality||{};
   if(s.mode!=='shadow'||s.configured!==true||q.status!=='usable'||dq.status!=='usable')return false;
   var rows=Array.isArray(d.minutes)?d.minutes:[],last=rows.length?Date.parse(rows[rows.length-1].at||''):NaN;
@@ -1431,7 +1435,9 @@ function connectMicrostructureRelay(){
   es.addEventListener('market',function(ev){
     try{
       var d=JSON.parse(ev.data||'{}');
-      if(d&&d.provider==='alpaca'&&d.feed==='sip'&&d.symbol==='ORCL'&&d.mode==='raw-sip-live'){
+      var alpaca=d&&d.provider==='alpaca'&&d.feed==='sip'&&d.symbol==='ORCL'&&d.mode==='raw-sip-live';
+      var yahoo=d&&d.provider==='yahoo'&&d.feed==='streamer'&&d.symbol==='ORCL'&&d.mode==='shadow-live';
+      if(alpaca||yahoo){
         microstructureData=d;
         if(d.wave)orclWaveModel=d.wave;
         if(d.wave_forecast){waveForecastState=d.wave_forecast;renderWaveForecasts();}
@@ -1475,7 +1481,7 @@ function waveSocialContext(dir){
   return 'Social neutral';
 }
 function refreshWaveForecasts(){
-  if(!(microstructureData&&microstructureData.wave_forecast))waveForecastState={status:'blocked',reason:'waiting_raw_sip'};
+  if(!(microstructureData&&microstructureData.wave_forecast))waveForecastState={status:'blocked',reason:'waiting_event_stream'};
   else waveForecastState=microstructureData.wave_forecast;
   renderWaveForecasts();
   return waveForecastState;
@@ -1503,10 +1509,16 @@ function renderWaveForecasts(){
       if(Number(f.dir)>0){cls='up';v='↑ BUY';}else if(Number(f.dir)<0){cls='down';v='↓ SELL';}else v='— KEIN SIGNAL';
       var hit=Number(mh.holdout_hit);meta=(isFinite(hit)&&hit>0?('OOS '+Math.round(hit*100)+' %'):'validiert')+' · '+waveSocialContext(Number(f.dir)||0);
     }else if(mh.status==='validated'){v='— WARTEN';meta='Roh-SIP validiert';}
-    else if(model.status==='awaiting_credentials'){v='KEY FEHLT';meta='Alpaca API-Key in Railway eintragen';}
+    else if(mh.status==='shadow'){
+      var proof=(f&&f.proof)||mh.proof||{},n=Number(proof.n)||0,hit=Number(proof.hit);
+      if(f&&Number(f.dir)>0){cls='up';v='SHADOW ↑';}
+      else if(f&&Number(f.dir)<0){cls='down';v='SHADOW ↓';}
+      else v='SHADOW —';
+      meta=n?('Test '+n+' · Treffer '+Math.round(hit*100)+' %'):'Live-Test sammelt Beweise';
+    }else if(model.status==='awaiting_credentials'){v='KEY FEHLT';meta='Alpaca API-Key in Railway eintragen';}
     else if(model.status==='collecting'){v='TRAINIERT';meta='Historische Rohdaten werden aufgebaut';}
     else if(mh.status==='unproven'){v='NICHT FREI';meta='OOS-Gate nicht bestanden';}
-    else{v='WARTEN';meta='Roh-SIP Modell';}
+    else{v='WARTEN';meta=model.status==='shadow'?'No-Key Event-Stream':'Roh-SIP Modell';}
     return '<div class="wave-forecast '+cls+'"><div class="wf-h">≈ '+h+' Min</div><div class="wf-v">'+v+'</div><div class="wf-m">'+meta+'</div></div>';
   }).join('');
 }

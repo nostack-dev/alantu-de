@@ -1,25 +1,79 @@
 {
-  "provider": "alpaca",
-  "feed": "sip",
+  "provider": "yahoo",
+  "feed": "streamer",
   "symbol": "ORCL",
-  "mode": "awaiting_live_stream",
-  "configured": false,
-  "at": "2026-09-23T11:54:45+02:00",
+  "mode": "shadow-live",
+  "configured": true,
+  "at": "2026-09-23T11:56:45+02:00",
   "quality": {
-    "status": "unavailable",
+    "usable": false,
     "reasons": [
       "awaiting_railway_sse"
     ]
   },
   "minutes": [],
   "live_signal": null,
+  "shadow_signal": null,
+  "wave": {
+    "provider": "yahoo",
+    "feed": "streamer",
+    "input_contract": "yahoo_stream_events_no_bar_aggregation",
+    "status": "shadow",
+    "model_id": "yahoo-shadow-yahoo-shadow-hdr-dt-v1",
+    "feature_version": "yahoo-shadow-hdr-dt-v1",
+    "production_enabled": false,
+    "shadow_only": true,
+    "horizons": [
+      {
+        "horizon_minutes": 1,
+        "status": "shadow",
+        "proof": {
+          "n": 0,
+          "hit": null,
+          "mean_gross_bps": null,
+          "mode": "shadow_only"
+        }
+      },
+      {
+        "horizon_minutes": 5,
+        "status": "shadow",
+        "proof": {
+          "n": 0,
+          "hit": null,
+          "mean_gross_bps": null,
+          "mode": "shadow_only"
+        }
+      },
+      {
+        "horizon_minutes": 15,
+        "status": "shadow",
+        "proof": {
+          "n": 0,
+          "hit": null,
+          "mean_gross_bps": null,
+          "mode": "shadow_only"
+        }
+      },
+      {
+        "horizon_minutes": 30,
+        "status": "shadow",
+        "proof": {
+          "n": 0,
+          "hit": null,
+          "mean_gross_bps": null,
+          "mode": "shadow_only"
+        }
+      }
+    ]
+  },
   "wave_forecast": {
     "status": "blocked",
-    "reason": "awaiting_railway_sse"
+    "reason": "awaiting_railway_sse",
+    "source": "yahoo_shadow"
   },
   "l2": {
     "status": "retired",
     "provider": "databento",
-    "reason": "replaced_by_raw_alpaca_sip"
+    "reason": "replaced_by_event_wave"
   }
 }
