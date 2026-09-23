@@ -44,7 +44,7 @@ if(sessions.length<40)throw new Error(`need >=40 usable sessions, got ${sessions
 const dayKeys=sessions.map(s=>s.day),a=Math.floor(dayKeys.length*.60),b=Math.floor(dayKeys.length*.80),trainDays=new Set(dayKeys.slice(0,a)),valDays=new Set(dayKeys.slice(a,b)),holdDays=dayKeys.slice(b),holdSet=new Set(holdDays);
 const horizons=[];
 for(const H of HORIZONS){
-  const rows=[];for(const s of sessions){for(let i=31;i<s.bars.length;i++){const f=featureAt(s.bars,i);if(!f)continue;const y=futureReturnBps(s.bars,i,H);if(!Number.isFinite(y))continue;rows.push({day:s.day,at:f.at,x:f.x,y});}}
+  const rows=[];for(const s of sessions){for(let i=36;i<s.bars.length;i++){const f=featureAt(s.bars,i);if(!f)continue;const y=futureReturnBps(s.bars,i,H);if(!Number.isFinite(y))continue;rows.push({day:s.day,at:f.at,x:f.x,y});}}
   const tr=rows.filter(r=>trainDays.has(r.day)),va=rows.filter(r=>valDays.has(r.day)),ho=rows.filter(r=>holdSet.has(r.day));if(tr.length<500||va.length<100||ho.length<100)throw new Error(`insufficient rows h${H}: ${tr.length}/${va.length}/${ho.length}`);
   const std=standardization(tr),beta=fit(tr,std),abs=va.map(r=>Math.abs(score(r,std,beta))),qs=[.5,.6,.7,.75,.8,.85,.9,.925,.95,.97,.98];let best=null;
   for(const q of qs){const thr=quantile(abs,q),ev=signals(va,std,beta,thr,H),s=stats(ev);if(s.n<20)continue;const objective=(s.hit||0)*4+Math.max(-2,Math.min(5,s.mean_net_bps||-9))*.12+Math.log1p(s.n)*.015;if(!best||objective>best.objective)best={q,thr,validation:s,objective};}
