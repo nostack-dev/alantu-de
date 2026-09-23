@@ -26,9 +26,11 @@ process.on('SIGTERM',()=>shutdown(0));
 process.on('SIGINT',()=>shutdown(0));
 
 run('node',['market-relay/server.mjs'],'relay');
+run('node',['market-runtime/trainer-loop.mjs'],'raw-sip-trainer');
 console.log(JSON.stringify({
   service:'alantu-market-runtime',
-  primary:'validated-yahoo-wave',
-  databento:'not-required',
+  primary:'raw-sip-wave',
+  provider:'alpaca-sip',
+  databento:'retired',
   principle:'timing beats speed; precision beats power'
 }));
