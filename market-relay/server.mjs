@@ -25,8 +25,17 @@ let shadowState={predictions:[],outcomes:[],proof:{},updated_at:null};
 let eventBuffer=[];
 const SHADOW_PATH=DATA_DIR+'/yahoo-shadow-state.json';
 const YAHOO_DIR=DATA_DIR+'/yahoo-events';
-const SOURCE_REFRESH_MS=Math.max(30000,Number(process.env.SOURCE_REFRESH_MS||60000));
-let sourceState={status:'warming',at:null,checked_at:null,score:null,bull:null,bear:null,mixed:null,net:null,news_count:0,social_count:0,coverage:'none',providers:[],source_counts:{news:0,reddit:0,x:0,social:0},items:[],error:null};
+const SOURCE_REFRESH_MS=Math.max(15000,Number(process.env.SOURCE_REFRESH_MS||20000));
+const SOURCE_LIVE_WINDOW_MS=15*60*1000;
+const SOURCE_ARCHIVE_WINDOW_MS=36*3600000;
+let sourceRefreshBusy=false;
+let sourceState={
+  status:'warming',at:null,checked_at:null,window_start:null,window_end:null,live_window_minutes:15,
+  score:null,bull:null,bear:null,mixed:null,net:null,news_count:0,social_count:0,live_count:0,archive_count:0,
+  archive_news_count:0,archive_social_count:0,coverage:'none',providers:[],
+  source_counts:{news:0,reddit:0,x:0,bluesky:0,social:0},
+  archive_source_counts:{news:0,reddit:0,x:0,bluesky:0,social:0},items:[],error:null
+};
 
 function cors(req,res){const o=req.headers.origin;if(o&&ALLOWED.has(o)){res.setHeader('Access-Control-Allow-Origin',o);res.setHeader('Vary','Origin');}}
 function json(res,code,obj){res.statusCode=code;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(obj));}
@@ -48,9 +57,9 @@ function termScore(title){
   for(const k of SENT_NEG)if(hit(k)){if(negated(k))pos++;else neg++;}
   return pos>neg?1:neg>pos?-1:0;
 }
-function recencyWeight(ms){
-  const age=Math.max(0,Date.now()-Number(ms||0));
-  return age<=2*3600000?1.5:age<=8*3600000?1.25:age<=24*3600000?1:0.65;
+function recencyWeight(ms,now=Date.now()){
+  const age=Math.max(0,now-Number(ms||0));
+  return age<=60000?1.35:age<=5*60000?1.2:age<=SOURCE_LIVE_WINDOW_MS?1:0;
 }
 function dedupeStories(items){
   const seen=new Set(),out=[];
@@ -63,21 +72,28 @@ function dedupeStories(items){
 async function tickerTick(query,n){
   const u=new URL('https://api.tickertick.com/feed');u.searchParams.set('q',query);u.searchParams.set('n',String(n));
   const r=await fetch(u,{signal:AbortSignal.timeout(15000)});if(!r.ok)throw new Error('TickerTick HTTP '+r.status);
-  const j=await r.json(),cut=Date.now()-36*3600000;
+  const j=await r.json(),cut=Date.now()-SOURCE_ARCHIVE_WINDOW_MS;
   return (j.stories||[]).map(x=>({title:String(x.title||''),url:String(x.url||''),site:String(x.site||''),time:Number(x.time)}))
     .filter(x=>x.title&&Number.isFinite(x.time)&&x.time>=cut&&x.time<=Date.now()+60000);
 }
-async function redditRecent(){
+async function redditSearch(q){
   const u=new URL('https://www.reddit.com/search.json');
-  u.searchParams.set('q','ORCL OR Oracle stock');
-  u.searchParams.set('sort','new');u.searchParams.set('t','day');u.searchParams.set('limit','50');u.searchParams.set('raw_json','1');
+  u.searchParams.set('q',q);
+  u.searchParams.set('sort','new');u.searchParams.set('t','day');u.searchParams.set('limit','100');u.searchParams.set('raw_json','1');
   const r=await fetch(u,{headers:{'user-agent':'alantu-market/1.0 (+https://alantu.de)'},signal:AbortSignal.timeout(12000)});
   if(!r.ok)throw new Error('Reddit HTTP '+r.status);
-  const j=await r.json(),cut=Date.now()-36*3600000;
+  const j=await r.json(),cut=Date.now()-SOURCE_ARCHIVE_WINDOW_MS;
   return (j?.data?.children||[]).map(x=>x?.data||{}).map(x=>({
     title:String(x.title||''),url:x.permalink?'https://www.reddit.com'+x.permalink:String(x.url||''),
     site:'reddit.com',time:Number(x.created_utc)*1000
   })).filter(x=>x.title&&Number.isFinite(x.time)&&x.time>=cut&&/\borcl\b|oracle/i.test(x.title));
+}
+async function redditRecent(){
+  const [ticker,entity]=await Promise.all([
+    optionalSource(()=>redditSearch('ORCL')),
+    optionalSource(()=>redditSearch('"Oracle" stock OR shares OR earnings OR cloud OR AI'))
+  ]);
+  return dedupeStories(ticker.concat(entity)).slice(0,160);
 }
 async function xRecent(){
   const token=String(process.env.X_BEARER_TOKEN||'').trim();if(!token)return [];
@@ -86,13 +102,33 @@ async function xRecent(){
   u.searchParams.set('max_results','50');u.searchParams.set('tweet.fields','created_at');
   const r=await fetch(u,{headers:{authorization:'Bearer '+token},signal:AbortSignal.timeout(12000)});
   if(!r.ok)throw new Error('X HTTP '+r.status);
-  const j=await r.json(),cut=Date.now()-36*3600000;
+  const j=await r.json(),cut=Date.now()-SOURCE_ARCHIVE_WINDOW_MS;
   return (j.data||[]).map(x=>({
     title:String(x.text||''),url:'https://x.com/i/web/status/'+x.id,site:'x.com',time:Date.parse(x.created_at||'')
   })).filter(x=>x.title&&Number.isFinite(x.time)&&x.time>=cut);
 }
-async function googleNewsRecent(){
-  const u='https://news.google.com/rss/search?q=%28Oracle+OR+ORCL%29+stock+when%3A1d&hl=en-US&gl=US&ceid=US%3Aen';
+async function blueskySearch(q){
+  const u=new URL('https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts');
+  u.searchParams.set('q',q);u.searchParams.set('limit','100');u.searchParams.set('sort','latest');
+  const r=await fetch(u,{headers:{'user-agent':'alantu-market/1.0 (+https://alantu.de)'},signal:AbortSignal.timeout(12000)});
+  if(!r.ok)throw new Error('Bluesky HTTP '+r.status);
+  const j=await r.json(),cut=Date.now()-SOURCE_ARCHIVE_WINDOW_MS;
+  return (j.posts||[]).map(x=>{
+    const text=String(x?.record?.text||''),time=Date.parse(x?.record?.createdAt||''),uri=String(x?.uri||'');
+    const rkey=uri.split('/').pop()||'',handle=String(x?.author?.handle||'');
+    return {title:text,url:handle&&rkey?'https://bsky.app/profile/'+handle+'/post/'+rkey:'',site:'bsky.app',time};
+  }).filter(x=>x.title&&Number.isFinite(x.time)&&x.time>=cut&&/\borcl\b|oracle/i.test(x.title));
+}
+async function blueskyRecent(){
+  const [ticker,entity]=await Promise.all([
+    optionalSource(()=>blueskySearch('ORCL')),
+    optionalSource(()=>blueskySearch('"Oracle" stock shares earnings cloud AI'))
+  ]);
+  return dedupeStories(ticker.concat(entity)).slice(0,160);
+}
+async function googleNewsQuery(q){
+  const u=new URL('https://news.google.com/rss/search');
+  u.searchParams.set('q',q);u.searchParams.set('hl','en-US');u.searchParams.set('gl','US');u.searchParams.set('ceid','US:en');
   const r=await fetch(u,{headers:{'user-agent':'Mozilla/5.0 alantu-market/1.0'},signal:AbortSignal.timeout(12000)});
   if(!r.ok)throw new Error('Google News HTTP '+r.status);
   const xml=await r.text(),items=xml.match(/<item>[\s\S]*?<\/item>/gi)||[],out=[];
@@ -101,9 +137,16 @@ async function googleNewsRecent(){
     const title=dec((item.match(/<title>([\s\S]*?)<\/title>/i)||[])[1]||'').trim();
     const url=dec((item.match(/<link>([\s\S]*?)<\/link>/i)||[])[1]||'').trim();
     const time=Date.parse(dec((item.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)||[])[1]||''));
-    if(title&&url&&Number.isFinite(time)&&Date.now()-time<=36*3600000)out.push({title,url,site:'news.google.com',time});
+    if(title&&url&&Number.isFinite(time)&&Date.now()-time<=SOURCE_ARCHIVE_WINDOW_MS)out.push({title,url,site:'news.google.com',time});
   }
-  return dedupeStories(out).slice(0,60);
+  return out;
+}
+async function googleNewsRecent(){
+  const [market,company]=await Promise.all([
+    optionalSource(()=>googleNewsQuery('(Oracle OR ORCL) stock when:1d')),
+    optionalSource(()=>googleNewsQuery('Oracle (cloud OR AI OR earnings OR contract OR capex) when:1d'))
+  ]);
+  return dedupeStories(market.concat(company)).slice(0,160);
 }
 async function optionalSource(fn){try{return await fn();}catch{return [];}}
 function sourceChannel(x,type){
@@ -111,14 +154,16 @@ function sourceChannel(x,type){
   const u=(String(x.url||'')+' '+String(x.site||'')).toLowerCase();
   if(u.includes('reddit.com'))return 'reddit';
   if(u.includes('x.com')||u.includes('twitter.com'))return 'x';
+  if(u.includes('bsky.app')||u.includes('bluesky'))return 'bluesky';
   return 'social';
 }
-function sourceItem(x,type){
-  const channel=sourceChannel(x,type),lean=termScore(x.title);
+function sourceItem(x,type,now=Date.now()){
+  const channel=sourceChannel(x,type),lean=termScore(x.title),time=Number(x.time),age=Math.max(0,now-time);
   return {
-    type,channel,title:String(x.title||'').slice(0,240),
-    summary:String(x.title||'').replace(/\s+/g,' ').trim().slice(0,180),
-    url:String(x.url||''),site:String(x.site||''),time:Number(x.time),
+    type,channel,title:String(x.title||'').slice(0,320),
+    summary:String(x.title||'').replace(/\s+/g,' ').trim().slice(0,260),
+    url:String(x.url||''),site:String(x.site||''),time,
+    live:age<=SOURCE_LIVE_WINDOW_MS,age_ms:age,
     lean:lean>0?'bull':lean<0?'bear':'mixed'
   };
 }
@@ -126,18 +171,50 @@ function sourceSummary(){
   const {items,...rest}=sourceState;
   return {...rest,item_count:Array.isArray(items)?items.length:0};
 }
-function deriveSourceState(news,social,providers,status='ok'){
+function channelPulse(items,now){
   let bp=0,bn=0,bm=0;
-  const add=(x,w)=>{const v=termScore(x.title),rw=w*recencyWeight(x.time);if(v>0)bp+=rw;else if(v<0)bn+=rw;else bm+=rw;};
-  news.forEach(x=>add(x,1));social.forEach(x=>add(x,1.5));
-  const total=Math.max(1,bp+bn+bm),bull=Math.round(100*bp/total),bear=Math.round(100*bn/total),mixed=Math.max(0,100-bull-bear),net=bull-bear;
-  const coverage=social.length>=50&&news.length>=8?'high':social.length>=10&&news.length>=5?'medium':news.length>=3||social.length>=3?'low':'very_low';
-  const items=[...news.map(x=>sourceItem(x,'news')),...social.map(x=>sourceItem(x,'social'))].sort((x,y)=>y.time-x.time).slice(0,80);
-  const source_counts=items.reduce((m,x)=>(m[x.channel]=(m[x.channel]||0)+1,m),{news:0,reddit:0,x:0,social:0});
+  for(const x of items){
+    const w=recencyWeight(x.time,now);if(!w)continue;
+    const v=termScore(x.title);if(v>0)bp+=w;else if(v<0)bn+=w;else bm+=w;
+  }
+  const total=bp+bn+bm;if(!total)return null;
+  return {bull:100*bp/total,bear:100*bn/total,mixed:100*bm/total,net:100*(bp-bn)/total,count:items.length};
+}
+function deriveSourceState(news,social,providers,status='ok'){
+  const now=Date.now(),cut=now-SOURCE_LIVE_WINDOW_MS;
+  const newsArchive=dedupeStories(news).filter(x=>Number(x.time)>=now-SOURCE_ARCHIVE_WINDOW_MS);
+  const socialArchive=dedupeStories(social).filter(x=>Number(x.time)>=now-SOURCE_ARCHIVE_WINDOW_MS);
+  const liveNews=newsArchive.filter(x=>Number(x.time)>=cut&&Number(x.time)<=now+60000);
+  const liveSocial=socialArchive.filter(x=>Number(x.time)>=cut&&Number(x.time)<=now+60000);
+  const archiveItems=[
+    ...newsArchive.map(x=>sourceItem(x,'news',now)),
+    ...socialArchive.map(x=>sourceItem(x,'social',now))
+  ].sort((a,b)=>b.time-a.time).slice(0,240);
+  const liveItems=archiveItems.filter(x=>x.live);
+  const groups={};
+  for(const x of liveItems){if(!groups[x.channel])groups[x.channel]=[];groups[x.channel].push(x);}
+  const weights={news:1.25,reddit:1,x:1,bluesky:1,social:1};
+  let wb=0,wr=0,wm=0,wt=0;
+  for(const [channel,items] of Object.entries(groups)){
+    const p=channelPulse(items,now);if(!p)continue;
+    const w=weights[channel]||1;wb+=p.bull*w;wr+=p.bear*w;wm+=p.mixed*w;wt+=w;
+  }
+  const bull=wt?Math.round(wb/wt):null,bear=wt?Math.round(wr/wt):null;
+  const mixed=wt?Math.max(0,100-bull-bear):null,net=wt?bull-bear:null;
+  const liveCount=liveItems.length,activeChannels=Object.keys(groups).length;
+  const coverage=liveCount>=24&&activeChannels>=3?'high':liveCount>=8&&activeChannels>=2?'medium':liveCount>=1?'low':'quiet';
+  const source_counts=liveItems.reduce((m,x)=>(m[x.channel]=(m[x.channel]||0)+1,m),{news:0,reddit:0,x:0,bluesky:0,social:0});
+  const archive_source_counts=archiveItems.reduce((m,x)=>(m[x.channel]=(m[x.channel]||0)+1,m),{news:0,reddit:0,x:0,bluesky:0,social:0});
+  const newestLive=liveItems.length?Math.max(...liveItems.map(x=>x.time)):null;
   return {
-    status,at:new Date().toISOString(),checked_at:new Date().toISOString(),
-    score:Math.max(0,Math.min(100,Math.round(50+net/2))),bull,bear,mixed,net,
-    news_count:news.length,social_count:social.length,coverage,providers,source_counts,items,error:null
+    status:liveCount?status:'quiet',
+    at:newestLive?new Date(newestLive).toISOString():null,
+    checked_at:new Date(now).toISOString(),
+    window_start:new Date(cut).toISOString(),window_end:new Date(now).toISOString(),live_window_minutes:15,
+    score:net==null?null:Math.max(0,Math.min(100,Math.round(50+net/2))),bull,bear,mixed,net,
+    news_count:liveNews.length,social_count:liveSocial.length,live_count:liveCount,archive_count:archiveItems.length,
+    archive_news_count:newsArchive.length,archive_social_count:socialArchive.length,
+    coverage,providers,source_counts,archive_source_counts,items:archiveItems,error:null
   };
 }
 function broadcastSources(){
@@ -145,30 +222,38 @@ function broadcastSources(){
   for(const c of [...clients]){try{sendEvent(c.res,payload,'sources');}catch{clients.delete(c);try{c.res.end();}catch{}}}
 }
 async function refreshSources(){
+  if(sourceRefreshBusy)return;
+  sourceRefreshBusy=true;
   try{
-    const [ttNews,ticker,entity,reddit,x]=await Promise.all([
-      optionalSource(()=>tickerTick('(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))',100)),
-      optionalSource(()=>tickerTick('(and tt:orcl T:ugc)',200)),
-      optionalSource(()=>tickerTick('(and E:oracle T:ugc)',200)),
+    const [ttNews,ticker,entity,reddit,x,bluesky,gnews]=await Promise.all([
+      optionalSource(()=>tickerTick('(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))',160)),
+      optionalSource(()=>tickerTick('(and tt:orcl T:ugc)',300)),
+      optionalSource(()=>tickerTick('(and E:oracle T:ugc)',300)),
       optionalSource(redditRecent),
-      optionalSource(xRecent)
+      optionalSource(xRecent),
+      optionalSource(blueskyRecent),
+      optionalSource(googleNewsRecent)
     ]);
-    const news=ttNews.length?ttNews:await optionalSource(googleNewsRecent);
-    const relevant=entity.filter(x=>/\$orcl\b|\borcl\b/i.test(x.title)||(/oracle/i.test(x.title)&&/stock|share|earn|cloud|ai|market|bull|bear|buy|sell|valuation|price/i.test(x.title)));
-    const social=dedupeStories(ticker.concat(relevant,reddit,x)).slice(0,300);
-    if(!news.length&&!social.length)throw new Error('No live sentiment sources available');
+    const news=dedupeStories(ttNews.concat(gnews)).slice(0,240);
+    const relevant=entity.filter(x=>/\$orcl\b|\borcl\b/i.test(x.title)||(/oracle/i.test(x.title)&&/stock|share|earn|cloud|ai|market|bull|bear|buy|sell|valuation|price|contract|capex/i.test(x.title)));
+    const social=dedupeStories(ticker.concat(relevant,reddit,x,bluesky)).slice(0,600);
+    if(!news.length&&!social.length)throw new Error('No sentiment sources available');
     const providers=[];
-    if(ttNews.length)providers.push('TickerTick News');else if(news.length)providers.push('Google News RSS');
+    if(ttNews.length)providers.push('TickerTick News');
+    if(gnews.length)providers.push('Google News RSS');
     if(ticker.length||relevant.length)providers.push('TickerTick UGC');
     if(reddit.length)providers.push('Reddit live');
+    if(bluesky.length)providers.push('Bluesky public');
     if(x.length)providers.push('X live');
-    const degraded=!news.length||(!ticker.length&&!relevant.length&&!reddit.length&&!x.length);
-    sourceState=deriveSourceState(dedupeStories(news).slice(0,100),social,providers,degraded?'degraded':'ok');
+    const degraded=providers.length<2;
+    sourceState=deriveSourceState(news,social,providers,degraded?'degraded':'ok');
   }catch(e){
-    const age=sourceState.at?Date.now()-Date.parse(sourceState.at):Infinity;
-    sourceState={...sourceState,status:age>5*60000?'stale':'degraded',checked_at:new Date().toISOString(),error:String(e?.message||e)};
+    const age=sourceState.checked_at?Date.now()-Date.parse(sourceState.checked_at):Infinity;
+    sourceState={...sourceState,status:age>2*60000?'stale':'degraded',checked_at:new Date().toISOString(),error:String(e?.message||e)};
+  }finally{
+    sourceRefreshBusy=false;
+    broadcastSources();
   }
-  broadcastSources();
 }
 
 async function writeJsonAtomic(file,obj){
@@ -475,7 +560,7 @@ await fs.mkdir(DATA_DIR,{recursive:true}).catch(()=>{});
 await loadRawModel();
 await loadYahooEvents();
 await loadShadow();
-await refreshSources();
+refreshSources().catch(()=>{});
 if(!KEY||!SECRET){
   console.log(JSON.stringify({
     type:'yahoo-shadow-proof-startup',
