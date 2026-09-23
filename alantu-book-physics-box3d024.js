@@ -173,7 +173,6 @@ export function createAlantuBookPhysics({
       rootJoint:root,
       target:flipped?1:0,
       commanded:flipped?1:0,
-      settledFrames:0,
       thickness,
       sw
     };
@@ -305,7 +304,6 @@ export function createAlantuBookPhysics({
     const leaf=leafModels[index];
     if(!leaf)return;
     const p=clamp(progress,0,1);
-    if(Math.abs(leaf.target-p)>.0005)leaf.settledFrames=0;
     leaf.commanded=p;
     leaf.target=p;
     const joint=leaf.rootJoint;
@@ -341,28 +339,14 @@ export function createAlantuBookPhysics({
     const leaf=leafModels[index];
     if(!leaf)return true;
 
-    const progress=getLeafProgress(index);
-    const atTarget=Math.abs(progress-target)<.022;
+    const p=getLeafProgress(index);
 
-    let endpointSpeed=0;
-    try{
-      const first=leaf.bodies[0];
-      const last=leaf.bodies[leaf.bodies.length-1];
-      endpointSpeed=Math.max(
-        length3(first.getAngularVelocity()),
-        length3(first.getLinearVelocity()),
-        length3(last.getAngularVelocity()),
-        length3(last.getLinearVelocity())
-      );
-    }catch{}
-
-    if(atTarget && endpointSpeed<1.15){
-      leaf.settledFrames=(leaf.settledFrames||0)+1;
-    }else{
-      leaf.settledFrames=0;
-    }
-
-    return leaf.settledFrames>=4;
+    // The logical page turn is complete when the physical hinge reaches its
+    // landing angle. The flexible strip chain may still dissipate tiny
+    // residual motion afterwards; Box3D keeps simulating that naturally.
+    // Waiting for every paper segment to become nearly motionless can deadlock
+    // the book state on invisible contact jitter.
+    return Math.abs(p-target)<.012;
   }
 
   function edgePoint(body,localX){
