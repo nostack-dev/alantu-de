@@ -1,6 +1,7 @@
-export const FEATURE_VERSION='wave-hdr-dt-v1';
-export const BAR_MINUTES=5;
-export const HORIZONS=[5,15,30];
+export const FEATURE_VERSION='wave-hdr-dt-v2';
+export const BAR_MINUTES=2;
+export const HORIZONS=[2,6,10,20,30];
+export const MIN_CONTEXT_BARS=Math.ceil(180/BAR_MINUTES);
 export const FEATURE_NAMES=[
   'ret_bps','log_dt_min','velocity_bps_min','accel_bps_min2',
   'price_slope_15','price_slope_60','price_slope_180','hdr_price_local','hdr_price_global',
@@ -64,9 +65,9 @@ function realizedVol(bars,i,mins){const a=windowRows(bars,i,mins);if(a.length<3)
 function vwap(bars,i,mins){const a=windowRows(bars,i,mins);let pv=0,v=0;for(const r of a){const x=Math.max(0,Number(r.volume)||0);pv+=Number(r.close)*x;v+=x;}return v?pv/v:Number(bars[i].close);}
 
 export function featureAt(bars,i){
-  if(!bars||i<36||i>=bars.length)return null;
+  if(!bars||i<MIN_CONTEXT_BARS||i>=bars.length)return null;
   const cur=bars[i],prev=bars[i-1],prev2=bars[i-2];
-  if(sessionKey(cur.at)!==sessionKey(bars[i-36].at))return null;
+  if(sessionKey(cur.at)!==sessionKey(bars[i-MIN_CONTEXT_BARS].at))return null;
   const dt=Math.max(1/60,(Date.parse(cur.at)-Date.parse(prev.at))/60000),pdt=Math.max(1/60,(Date.parse(prev.at)-Date.parse(prev2.at))/60000);
   const ret=Math.log(cur.close/prev.close)*10000,pret=Math.log(prev.close/prev2.close)*10000,vel=ret/dt,pvel=pret/pdt,accel=(vel-pvel)/Math.max(1/60,(dt+pdt)/2);
   const p15=trendFit(bars,i,15),p60=trendFit(bars,i,60),p180=trendFit(bars,i,180),v15=volumeFlow(bars,i,15),v60=volumeFlow(bars,i,60),v180=volumeFlow(bars,i,180);
@@ -97,7 +98,7 @@ export function scoreHorizon(features,h){const z=zscore(features.x,h),b=h.coeffi
 export function forecastLatest(rows,model){
   if(!model||model.feature_version!==FEATURE_VERSION||model.bar_minutes!==BAR_MINUTES)return {status:'blocked',reason:'model_contract'};
   const f=latestFeatures(rows);if(!f)return {status:'blocked',reason:'insufficient_live_history'};
-  const age=Date.now()-Date.parse(f.at);if(!Number.isFinite(age)||age>5*60000)return {status:'blocked',reason:'stale_live_bar',asof:f.at};
+  const age=Date.now()-Date.parse(f.at);if(!Number.isFinite(age)||age>3*60000)return {status:'blocked',reason:'stale_live_bar',asof:f.at};
   const forecasts=[];
   for(const h of model.horizons||[]){
     if(!h||h.status!=='validated')continue;const score=scoreHorizon(f,h),thr=Number(h.threshold)||Infinity,dir=Math.abs(score)>=thr?Math.sign(score):0;
