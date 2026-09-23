@@ -278,6 +278,15 @@ await fs.mkdir(DATA_DIR,{recursive:true}).catch(()=>{});
 await loadRawModel();
 await loadYahooEvents();
 await loadShadow();
+if(!KEY||!SECRET){
+  console.log(JSON.stringify({
+    type:'yahoo-shadow-proof-startup',
+    at:new Date().toISOString(),
+    pending:shadowState.predictions.length,
+    evaluated:shadowState.outcomes.length,
+    proof:shadowProof()
+  }));
+}
 setInterval(loadRawModel,30000).unref();
 setInterval(refreshForecast,5000).unref();
 setInterval(()=>flushYahooEvents().catch(()=>{}),1000).unref();
