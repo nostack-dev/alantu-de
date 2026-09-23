@@ -1465,10 +1465,16 @@ function sentimentMass(h){
   return Math.max(0,voice||alt||0);
 }
 function sentimentWave(){
-  var x=currentContext(),all=mergedSentimentHistory(x.orcl.history||[]);
+  var live=liveSourceState||{},liveAt=Date.parse(live.at||''),now=Date.now();
+  if(Number(live.live_count||0)<=0||!isFinite(liveAt)||liveAt>now+60000||now-liveAt>15*60*1000){
+    return {dir:0,reliable:false,reason:'no_time_aligned_live_sentiment'};
+  }
+  var x=currentContext(),all=mergedSentimentHistory(x.orcl.history||[]).filter(function(h){
+    var t=Date.parse(h&&h.at||'');return isFinite(t)&&t<=liveAt;
+  });
   var pts=all.map(function(h){return {at:h.at,y:stimmungNorm(h),mass:sentimentMass(h)};})
     .filter(function(p){return p.at&&isFinite(Number(p.y));}).sort(function(a,b){return new Date(a.at)-new Date(b.at);});
-  if(pts.length<4)return {dir:0,reliable:false};
+  if(pts.length<4)return {dir:0,reliable:false,reason:'insufficient_time_aligned_sentiment_history'};
   var f90=trendFit(pts,function(p){return p.at;},function(p){return p.y;},90*60000);
   var f360=trendFit(pts,function(p){return p.at;},function(p){return p.y;},360*60000);
   var dir=0;
@@ -1476,9 +1482,9 @@ function sentimentWave(){
     if(f360&&f360.dir===f90.dir)dir=f90.dir;
     else if(Math.abs(f90.net)>=5&&f90.persist>=.67)dir=f90.dir;
   }
-  var now=Date.now(),massPts=pts.filter(function(p){return now-new Date(p.at).getTime()<=6*3600000&&p.mass>0;});
+  var massPts=pts.filter(function(p){var t=new Date(p.at).getTime();return t<=liveAt&&liveAt-t<=6*3600000&&p.mass>0;});
   var massFit=trendFit(massPts,function(p){return p.at;},function(p){return Math.log1p(p.mass);},180*60000);
-  return {dir:dir,reliable:!!dir,short:f90,long:f360,massDir:massFit&&massFit.eff>=.2?massFit.dir:0,massPersist:massFit?massFit.persist:0};
+  return {dir:dir,reliable:!!dir,asof:new Date(liveAt).toISOString(),short:f90,long:f360,massDir:massFit&&massFit.eff>=.2?massFit.dir:0,massPersist:massFit?massFit.persist:0};
 }
 function hdrRelativeImpulse(localValue,globalValue){
   var local=Number(localValue),global=Number(globalValue);

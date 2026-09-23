@@ -158,6 +158,7 @@ jobs:
           grep -q "field===9" index.html
           grep -q "f.kind==='wave'" index.html
           grep -q 'function marketWaveVector' index.html
+          grep -q "reason:'no_time_aligned_live_sentiment'" index.html
           grep -q 'function hdrImpulseVector' index.html
           grep -q 'function runHdrFreshAsync' index.html
           grep -q 'function microstructureShadowUsable' index.html
