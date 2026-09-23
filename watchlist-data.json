@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-23T15:00:12+02:00",
+  "updated_at": "2026-09-23T15:33:23+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,12 +9,12 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-23T15:00:12+02:00",
+        "at": "2026-09-23T15:33:23+02:00",
         "signal": "hold",
-        "social_impulse": -4,
-        "hype_bull": 14,
+        "social_impulse": -3,
+        "hype_bull": 18,
         "hype_bear": 32,
-        "hype_net": -18,
+        "hype_net": -14,
         "confidence": 73
       },
       "history": [
@@ -3626,6 +3626,20 @@
           "voice_bear": 6,
           "voice_mixed": 13,
           "price": 148.9
+        },
+        {
+          "at": "2026-09-23T15:33:23+02:00",
+          "hype_bull": 18,
+          "hype_bear": 32,
+          "hype_net": -14,
+          "social_impulse": -3,
+          "signal": "hold",
+          "confidence": 73,
+          "hype_mixed": 50,
+          "voice_bull": 4,
+          "voice_bear": 6,
+          "voice_mixed": 12,
+          "price": 147.35000610351562
         }
       ],
       "voices_archive": [
@@ -3941,15 +3955,15 @@
         }
       ],
       "signal": "hold",
-      "social_impulse": -4,
-      "impulse": -4,
-      "hype_bull": 14,
+      "social_impulse": -3,
+      "impulse": -3,
+      "hype_bull": 18,
       "hype_bear": 32,
-      "hype_net": -18,
+      "hype_net": -14,
       "confidence": 73,
-      "hype_state": "bearish",
-      "updated_at": "2026-09-23T15:00:12+02:00",
-      "why": "Reddit 0% positiv bei 3 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $148.90.",
+      "hype_state": "mixed",
+      "updated_at": "2026-09-23T15:33:23+02:00",
+      "why": "Reddit 0% positiv bei 3 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $147.35.",
       "evidence": {
         "x_posts": 0,
         "reddit_posts": 3,
@@ -3957,19 +3971,19 @@
         "snippets": [
           "ApeWisdom: 3 Mentions/24h, Sentiment 0%",
           "What's Going On With Oracle Stock Wednesday?",
-          "Prediction: Oracle Could Have 50% Upside From Here",
-          "ORCL Stock Gains After Google’s Gemini Joins Meta, OpenAI, xAI In Oracle’s AI Model Lineup"
+          "ORCL Stock Gains After Google’s Gemini Joins Meta, OpenAI, xAI In Oracle’s AI Model Lineup",
+          "Oracle: The Most Mispriced AI Opportunity On The Market Today"
         ]
       },
       "voices": {
-        "bull": 3,
+        "bull": 4,
         "bear": 6,
-        "mixed": 13,
-        "updated_at": "2026-09-23T15:00:12+02:00"
+        "mixed": 12,
+        "updated_at": "2026-09-23T15:33:23+02:00"
       },
-      "hype_mixed": 54,
+      "hype_mixed": 50,
       "sentiment_unit": "percent_all_classified",
-      "price": 148.9
+      "price": 147.35000610351562
     }
   }
 }
