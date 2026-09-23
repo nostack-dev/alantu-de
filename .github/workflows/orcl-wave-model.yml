@@ -16,7 +16,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: orcl-wave-model
+  group: orcl-wave-model-v2
   cancel-in-progress: true
 
 jobs:
