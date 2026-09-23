@@ -250,9 +250,8 @@ jobs:
           grep -q 'id="waveForecasts"' index.html
           grep -q 'function validatedWaveForecast' index.html
           grep -q 'function scheduleWaveForecast' index.html
-          grep -q "fetchJson('orcl-wave-model.json',true)" index.html
-          grep -q "waveCore=await import('./wave-model-core.js" index.html
-          grep -Fq "var hs=[5,15,30]" index.html
+          grep -q "fetchJson('orcl-raw-sip-model.json',true)" index.html
+          grep -Fq "var hs=[1,5,15,30]" index.html
           grep -q "field===9" index.html
           grep -q "f.kind==='wave'" index.html
           grep -q 'function marketWaveVector' index.html
@@ -278,8 +277,8 @@ jobs:
           grep -q 'streamer.finance.yahoo.com' index.html
           grep -q "fetchJson('microstructure-edge-status.json',true)" index.html
           grep -q "f.kind==='micro'" index.html
-          grep -q 'd.edge_model_id!==e.model_id' index.html
-          grep -q 's.model_id!==e.model_id' index.html
+          grep -q "if(m.model_id&&s.model_id!==m.model_id)return null" index.html
+          grep -q "source:'raw_sip'" index.html
           ! grep -q 'APCA_API_SECRET_KEY' index.html
           ! grep -q 'APCA_API_KEY_ID' index.html
           grep -q 'new Worker(url)' index.html
