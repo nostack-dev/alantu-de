@@ -48,7 +48,7 @@ jobs:
           done
           jq -e '.ok==true and (.provider=="yahoo" or .provider=="alpaca") and (.primary_runtime=="yahoo-shadow-wave" or .primary_runtime=="raw-sip-wave")' /tmp/health.json >/dev/null
           curl -fsS http://127.0.0.1:18080/v1/source-state -o /tmp/source-state.json
-          jq -e 'has("status") and has("coverage") and has("providers") and has("items") and has("checked_at") and has("at") and .live_window_minutes==15 and has("live_count") and has("archive_count") and has("source_counts") and has("archive_source_counts")' /tmp/source-state.json >/dev/null
+          jq -e 'has("status") and has("coverage") and has("providers") and has("items") and has("checked_at") and has("at") and .event_mode=="new_since_last_poll" and (.poll_interval_seconds<=20) and (.max_live_delay_seconds<=90) and (.market_match_tolerance_seconds<=60) and has("live_count") and has("new_count") and has("delayed_count") and has("archive_count") and has("source_counts") and has("archive_source_counts")' /tmp/source-state.json >/dev/null
           curl -fsS http://127.0.0.1:18080/v1/shadow-history -o /tmp/shadow-history.json
           jq -e 'has("version") and (.proof|type=="object") and (.pending|type=="array") and (.outcomes|type=="array")' /tmp/shadow-history.json >/dev/null
           curl -fsS 'http://127.0.0.1:18080/v1/snapshot?symbol=ORCL' -o /tmp/snapshot.json

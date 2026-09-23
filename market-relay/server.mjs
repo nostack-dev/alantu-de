@@ -25,16 +25,19 @@ let shadowState={predictions:[],outcomes:[],proof:{},updated_at:null};
 let eventBuffer=[];
 const SHADOW_PATH=DATA_DIR+'/yahoo-shadow-state.json';
 const YAHOO_DIR=DATA_DIR+'/yahoo-events';
-const SOURCE_REFRESH_MS=Math.max(15000,Number(process.env.SOURCE_REFRESH_MS||20000));
-const SOURCE_LIVE_WINDOW_MS=15*60*1000;
+const SOURCE_REFRESH_MS=Math.max(8000,Number(process.env.SOURCE_REFRESH_MS||12000));
+const SOURCE_MAX_LIVE_LAG_MS=90*1000;
+const SOURCE_MARKET_MATCH_MS=60*1000;
 const SOURCE_ARCHIVE_WINDOW_MS=36*3600000;
-let sourceRefreshBusy=false,sourceLastLogAt=0,sourceLastEventAt=null;
+let sourceRefreshBusy=false,sourceLastLogAt=0,sourceLastEventAt=null,sourcePrimed=false;
+const sourceSeen=new Map();
 let sourceState={
-  status:'warming',at:null,checked_at:null,window_start:null,window_end:null,live_window_minutes:15,
-  score:null,bull:null,bear:null,mixed:null,net:null,news_count:0,social_count:0,live_count:0,archive_count:0,
+  status:'warming',at:null,checked_at:null,event_mode:'new_since_last_poll',
+  poll_interval_seconds:SOURCE_REFRESH_MS/1000,max_live_delay_seconds:SOURCE_MAX_LIVE_LAG_MS/1000,market_match_tolerance_seconds:SOURCE_MARKET_MATCH_MS/1000,
+  score:null,bull:null,bear:null,mixed:null,net:null,news_count:0,social_count:0,live_count:0,new_count:0,delayed_count:0,archive_count:0,
   archive_news_count:0,archive_social_count:0,coverage:'none',providers:[],
   source_counts:{news:0,reddit:0,x:0,bluesky:0,social:0},
-  archive_source_counts:{news:0,reddit:0,x:0,bluesky:0,social:0},items:[],error:null
+  archive_source_counts:{news:0,reddit:0,x:0,bluesky:0,social:0},latest_published_at:null,market_anchor:null,items:[],error:null
 };
 
 function cors(req,res){const o=req.headers.origin;if(o&&ALLOWED.has(o)){res.setHeader('Access-Control-Allow-Origin',o);res.setHeader('Vary','Origin');}}
@@ -59,7 +62,7 @@ function termScore(title){
 }
 function recencyWeight(ms,now=Date.now()){
   const age=Math.max(0,now-Number(ms||0));
-  return age<=60000?1.35:age<=5*60000?1.2:age<=SOURCE_LIVE_WINDOW_MS?1:0;
+  return age<=15000?1.35:age<=45000?1.15:age<=SOURCE_MAX_LIVE_LAG_MS?1:0;
 }
 function dedupeStories(items){
   const seen=new Set(),out=[];
@@ -157,13 +160,42 @@ function sourceChannel(x,type){
   if(u.includes('bsky.app')||u.includes('bluesky'))return 'bluesky';
   return 'social';
 }
-function sourceItem(x,type,now=Date.now()){
-  const channel=sourceChannel(x,type),lean=termScore(x.title),time=Number(x.time),age=Math.max(0,now-time);
+function storyKey(x,type){
+  const channel=sourceChannel(x,type),url=String(x.url||'').trim(),title=normalizedText(x.title);
+  return channel+'|'+(url||title+'|'+String(Number(x.time)||0));
+}
+function alignedMarketAt(ms){
+  ms=Number(ms);if(!Number.isFinite(ms))return null;
+  let a,provider;
+  if(KEY&&SECRET){
+    a=(raw.ORCL?.trades||[]).map(x=>({t:Date.parse(x.t||x.timestamp||''),p:Number(x.p||x.price)})).filter(x=>Number.isFinite(x.t)&&x.p>0);
+    provider='alpaca_sip';
+  }else{
+    a=(yahooSeries.ORCL||[]).map(x=>({t:Number(x.t),p:Number(x.p)})).filter(x=>Number.isFinite(x.t)&&x.p>0);
+    provider='yahoo_streamer';
+  }
+  if(!a.length)return null;
+  let lo=0,hi=a.length-1,before=-1;
+  while(lo<=hi){const m=(lo+hi)>>1;if(a[m].t<=ms){before=m;lo=m+1;}else hi=m-1;}
+  const after=before+1<a.length?before+1:-1;
+  const b=before>=0&&ms-a[before].t<=SOURCE_MARKET_MATCH_MS?a[before]:null;
+  const n=after>=0&&a[after].t-ms<=SOURCE_MARKET_MATCH_MS?a[after]:null;
+  return {
+    provider,
+    before:b?{at:new Date(b.t).toISOString(),price:b.p,lag_ms:ms-b.t}:null,
+    after:n?{at:new Date(n.t).toISOString(),price:n.p,lag_ms:n.t-ms}:null
+  };
+}
+function sourceItem(x,type,now=Date.now(),liveKeys=new Set(),delayedKeys=new Set()){
+  const channel=sourceChannel(x,type),lean=termScore(x.title),time=Number(x.time),age=Math.max(0,now-time),key=storyKey(x,type),seen=sourceSeen.get(key);
   return {
     type,channel,title:String(x.title||'').slice(0,320),
     summary:String(x.title||'').replace(/\s+/g,' ').trim().slice(0,260),
-    url:String(x.url||''),site:String(x.site||''),time,
-    live:age<=SOURCE_LIVE_WINDOW_MS,age_ms:age,
+    url:String(x.url||''),site:String(x.site||''),time,key,
+    live:liveKeys.has(key),new:liveKeys.has(key)||delayedKeys.has(key),delayed:delayedKeys.has(key),
+    discovered_at:seen?.first_seen_at?new Date(seen.first_seen_at).toISOString():null,
+    discovery_delay_ms:seen?Math.max(0,seen.first_seen_at-time):null,age_ms:age,
+    market:alignedMarketAt(time),
     lean:lean>0?'bull':lean<0?'bear':'mixed'
   };
 }
@@ -181,15 +213,27 @@ function channelPulse(items,now){
   return {bull:100*bp/total,bear:100*bn/total,mixed:100*bm/total,net:100*(bp-bn)/total,count:items.length};
 }
 function deriveSourceState(news,social,providers,status='ok'){
-  const now=Date.now(),cut=now-SOURCE_LIVE_WINDOW_MS;
-  const newsArchive=dedupeStories(news).filter(x=>Number(x.time)>=now-SOURCE_ARCHIVE_WINDOW_MS);
-  const socialArchive=dedupeStories(social).filter(x=>Number(x.time)>=now-SOURCE_ARCHIVE_WINDOW_MS);
-  const liveNews=newsArchive.filter(x=>Number(x.time)>=cut&&Number(x.time)<=now+60000);
-  const liveSocial=socialArchive.filter(x=>Number(x.time)>=cut&&Number(x.time)<=now+60000);
-  const archiveItems=[
-    ...newsArchive.map(x=>sourceItem(x,'news',now)),
-    ...socialArchive.map(x=>sourceItem(x,'social',now))
-  ].sort((a,b)=>b.time-a.time).slice(0,240);
+  const now=Date.now();
+  const newsArchive=dedupeStories(news).filter(x=>Number(x.time)>=now-SOURCE_ARCHIVE_WINDOW_MS).map(x=>({...x,_type:'news'}));
+  const socialArchive=dedupeStories(social).filter(x=>Number(x.time)>=now-SOURCE_ARCHIVE_WINDOW_MS).map(x=>({...x,_type:'social'}));
+  const archiveRaw=[...newsArchive,...socialArchive].sort((a,b)=>Number(b.time)-Number(a.time));
+
+  const liveKeys=new Set(),delayedKeys=new Set();
+  let newCount=0;
+  for(const x of archiveRaw){
+    const key=storyKey(x,x._type);
+    if(sourceSeen.has(key))continue;
+    sourceSeen.set(key,{first_seen_at:now,published_at:Number(x.time)});
+    if(sourcePrimed){
+      newCount++;
+      const lag=now-Number(x.time);
+      if(lag>=0&&lag<=SOURCE_MAX_LIVE_LAG_MS)liveKeys.add(key);else delayedKeys.add(key);
+    }
+  }
+  for(const [key,v] of sourceSeen)if(now-Number(v.published_at||0)>SOURCE_ARCHIVE_WINDOW_MS)sourceSeen.delete(key);
+  if(!sourcePrimed)sourcePrimed=true;
+
+  const archiveItems=archiveRaw.map(x=>sourceItem(x,x._type,now,liveKeys,delayedKeys)).slice(0,240);
   const liveItems=archiveItems.filter(x=>x.live);
   const groups={};
   for(const x of liveItems){if(!groups[x.channel])groups[x.channel]=[];groups[x.channel].push(x);}
@@ -202,19 +246,24 @@ function deriveSourceState(news,social,providers,status='ok'){
   const bull=wt?Math.round(wb/wt):null,bear=wt?Math.round(wr/wt):null;
   const mixed=wt?Math.max(0,100-bull-bear):null,net=wt?bull-bear:null;
   const liveCount=liveItems.length,activeChannels=Object.keys(groups).length;
-  const coverage=liveCount>=24&&activeChannels>=3?'high':liveCount>=8&&activeChannels>=2?'medium':liveCount>=1?'low':'quiet';
+  const coverage=liveCount>=8&&activeChannels>=3?'high':liveCount>=3&&activeChannels>=2?'medium':liveCount>=1?'low':'quiet';
   const source_counts=liveItems.reduce((m,x)=>(m[x.channel]=(m[x.channel]||0)+1,m),{news:0,reddit:0,x:0,bluesky:0,social:0});
   const archive_source_counts=archiveItems.reduce((m,x)=>(m[x.channel]=(m[x.channel]||0)+1,m),{news:0,reddit:0,x:0,bluesky:0,social:0});
-  const newestLive=liveItems.length?Math.max(...liveItems.map(x=>x.time)):null;
+  const newestLive=liveItems.length?liveItems.reduce((a,b)=>a.time>b.time?a:b):null;
+  const newestArchive=archiveItems.length?archiveItems[0]:null;
+  const marketAnchor=newestLive?.market?.before||newestLive?.market?.after||null;
   return {
     status:liveCount?status:'quiet',
-    at:newestLive?new Date(newestLive).toISOString():null,
-    checked_at:new Date(now).toISOString(),
-    window_start:new Date(cut).toISOString(),window_end:new Date(now).toISOString(),live_window_minutes:15,
+    at:newestLive?new Date(newestLive.time).toISOString():null,
+    checked_at:new Date(now).toISOString(),event_mode:'new_since_last_poll',
+    poll_interval_seconds:SOURCE_REFRESH_MS/1000,max_live_delay_seconds:SOURCE_MAX_LIVE_LAG_MS/1000,market_match_tolerance_seconds:SOURCE_MARKET_MATCH_MS/1000,
     score:net==null?null:Math.max(0,Math.min(100,Math.round(50+net/2))),bull,bear,mixed,net,
-    news_count:liveNews.length,social_count:liveSocial.length,live_count:liveCount,archive_count:archiveItems.length,
+    news_count:liveItems.filter(x=>x.type==='news').length,social_count:liveItems.filter(x=>x.type==='social').length,
+    live_count:liveCount,new_count:newCount,delayed_count:delayedKeys.size,archive_count:archiveItems.length,
     archive_news_count:newsArchive.length,archive_social_count:socialArchive.length,
-    coverage,providers,source_counts,archive_source_counts,items:archiveItems,error:null
+    coverage,providers,source_counts,archive_source_counts,
+    latest_published_at:newestArchive?new Date(newestArchive.time).toISOString():null,
+    market_anchor:marketAnchor,items:archiveItems,error:null
   };
 }
 function broadcastSources(){
@@ -250,9 +299,10 @@ async function refreshSources(){
     const eventChanged=sourceState.at!==sourceLastEventAt,logDue=Date.now()-sourceLastLogAt>=60000;
     if(eventChanged||logDue){
       console.log(JSON.stringify({
-        type:'source-refresh',status:sourceState.status,event_at:sourceState.at,checked_at:sourceState.checked_at,
-        window_start:sourceState.window_start,window_end:sourceState.window_end,live_window_minutes:sourceState.live_window_minutes,
-        live_count:sourceState.live_count,archive_count:sourceState.archive_count,news_count:sourceState.news_count,social_count:sourceState.social_count,
+        type:'source-refresh',status:sourceState.status,event_at:sourceState.at,checked_at:sourceState.checked_at,event_mode:sourceState.event_mode,
+        poll_interval_seconds:sourceState.poll_interval_seconds,max_live_delay_seconds:sourceState.max_live_delay_seconds,
+        live_count:sourceState.live_count,new_count:sourceState.new_count,delayed_count:sourceState.delayed_count,archive_count:sourceState.archive_count,
+        news_count:sourceState.news_count,social_count:sourceState.social_count,market_anchor:sourceState.market_anchor,
         providers:sourceState.providers,source_counts:sourceState.source_counts,archive_source_counts:sourceState.archive_source_counts
       }));
       sourceLastEventAt=sourceState.at;sourceLastLogAt=Date.now();
