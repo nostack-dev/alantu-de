@@ -1,4 +1,7 @@
-name: Keep Stockstrend current
+name: Keep ALANTU runtime current
+
+# UI/code source of truth: this repository (alantu-de/main).
+# This workflow may refresh runtime JSON only. It must never copy UI/code from kurzlernen-de.
 
 on:
   push:
@@ -40,7 +43,6 @@ on:
       - ".github/workflows/microstructure-shadow.yml"
       - ".github/workflows/microstructure-edge.yml"
       - ".github/workflows/market-relay-image.yml"
-      - ".stockstrend-source-sha"
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
@@ -66,71 +68,6 @@ jobs:
           set -euo pipefail
           git fetch origin main
           git reset --hard origin/main
-
-      - name: Resolve pinned UI upstream
-        id: upstream
-        shell: bash
-        run: |
-          set -euo pipefail
-          SHA="$(git ls-remote https://github.com/nostack-dev/kurzlernen-de.git refs/heads/main | awk '{print $1}')"
-          test -n "$SHA"
-          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
-
-      - name: Mirror exact Stockstrend UI source
-        env:
-          UPSTREAM_SHA: ${{ steps.upstream.outputs.sha }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          base="https://raw.githubusercontent.com/nostack-dev/kurzlernen-de/$UPSTREAM_SHA"
-          get() {
-            curl -fsSL --retry 3 --connect-timeout 10 --max-time 45 "$base/$1" -o "$2.tmp"
-            test -s "$2.tmp"
-            mv "$2.tmp" "$2"
-          }
-
-          get stockstrend.html index.html
-          cp index.html stockstrend.html
-          get methodik.html methodik.html
-          get market-clock-core.js market-clock-core.js
-          get price-shock-core.js price-shock-core.js
-          get wave-model-core.js wave-model-core.js
-          get intrinsic-orcl.json intrinsic-orcl.json
-          printf '%s\n' "$UPSTREAM_SHA" > .stockstrend-source-sha
-
-      - name: Prefer raw main fallback snapshot
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          old="""async function fetchJson(url,optional){
-            try{var r=await fetch(url+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json();}
-            catch(e){if(optional)return null;throw e;}
-          }"""
-          new="""async function fetchJson(url,optional){
-            var remote='https://raw.githubusercontent.com/nostack-dev/alantu-de/main/'+url+'?t='+Date.now();
-            var local=url+'?t='+Date.now();
-            var candidates=[remote,local];
-            var lastErr=null;
-            for(var i=0;i<candidates.length;i++){
-              try{
-                var r=await fetch(candidates[i],{cache:'no-store'});
-                if(!r.ok)throw new Error('HTTP '+r.status);
-                return await r.json();
-              }catch(e){lastErr=e;}
-            }
-            if(optional)return null;
-            throw lastErr||new Error('Daten nicht verfügbar');
-          }"""
-          for name in ("index.html","stockstrend.html"):
-              p=Path(name)
-              s=p.read_text()
-              if old not in s:
-                  raise SystemExit(f"fetchJson contract not found in {name}")
-              p.write_text(s.replace(old,new))
-          PY
-          cmp -s index.html stockstrend.html
 
       - name: Refresh ORCL minute and EURUSD fallback feeds
         shell: bash
@@ -448,16 +385,13 @@ jobs:
           });
           NODE
 
-      - name: Commit only complete validated fallback snapshot
-        env:
-          UPSTREAM_SHA: ${{ steps.upstream.outputs.sha }}
+      - name: Commit only complete validated runtime snapshot
         shell: bash
         run: |
           set -euo pipefail
-          git add index.html stockstrend.html methodik.html market-clock-core.js price-shock-core.js \
-            stockstrend-data.json watchlist-data.json watchlist.json intrinsic-orcl.json \
+          git add stockstrend-data.json watchlist-data.json watchlist.json \
             orcl-minute.json orcl-history.json orcl-sentiment-history.json eurusd-history.json \
-            runtime-status.json microstructure-current.json .stockstrend-source-sha
+            runtime-status.json microstructure-current.json
 
           if git diff --cached --quiet; then
             echo "Already current."
@@ -472,5 +406,5 @@ jobs:
 
           git config user.name "stockstrend-runtime"
           git config user.email "stockstrend-runtime@users.noreply.github.com"
-          git commit -m "Refresh Stockstrend runtime data ${UPSTREAM_SHA:0:12}"
+          git commit -m "Refresh ALANTU runtime data"
           git push origin HEAD:main
