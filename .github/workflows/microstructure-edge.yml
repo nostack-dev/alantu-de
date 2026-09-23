@@ -1,15 +1,6 @@
 name: Validate SIP edge
 
 on:
-  push:
-    branches: ["main"]
-    paths:
-      - "tools/microstructure-core.mjs"
-      - "tools/microstructure-signal.mjs"
-      - "tools/validate-sip-edge.mjs"
-      - ".github/workflows/microstructure-edge.yml"
-  schedule:
-    - cron: "45 22 * * 1-5"
   workflow_dispatch:
 
 permissions:
