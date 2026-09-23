@@ -14,6 +14,7 @@ COPY market-runtime/trainer-loop.mjs ./market-runtime/trainer-loop.mjs
 COPY tools/microstructure-core.mjs ./tools/microstructure-core.mjs
 COPY tools/microstructure-signal.mjs ./tools/microstructure-signal.mjs
 COPY tools/raw-sip-wave-core.mjs ./tools/raw-sip-wave-core.mjs
+COPY tools/yahoo-shadow-wave-core.mjs ./tools/yahoo-shadow-wave-core.mjs
 COPY tools/train-raw-sip-wave.mjs ./tools/train-raw-sip-wave.mjs
 COPY microstructure-edge-status.json ./microstructure-edge-status.json
 COPY orcl-raw-sip-model.json ./orcl-raw-sip-model.json
