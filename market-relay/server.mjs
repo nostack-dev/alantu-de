@@ -25,8 +25,8 @@ let shadowState={predictions:[],outcomes:[],proof:{},updated_at:null};
 let eventBuffer=[];
 const SHADOW_PATH=DATA_DIR+'/yahoo-shadow-state.json';
 const YAHOO_DIR=DATA_DIR+'/yahoo-events';
-const SOURCE_REFRESH_MS=Math.max(30000,Number(process.env.SOURCE_REFRESH_MS||90000));
-let sourceState={status:'warming',at:null,checked_at:null,score:null,bull:null,bear:null,mixed:null,net:null,news_count:0,social_count:0,coverage:'none',providers:[],error:null};
+const SOURCE_REFRESH_MS=Math.max(30000,Number(process.env.SOURCE_REFRESH_MS||60000));
+let sourceState={status:'warming',at:null,checked_at:null,score:null,bull:null,bear:null,mixed:null,net:null,news_count:0,social_count:0,coverage:'none',providers:[],source_counts:{news:0,reddit:0,x:0,social:0},items:[],error:null};
 
 function cors(req,res){const o=req.headers.origin;if(o&&ALLOWED.has(o)){res.setHeader('Access-Control-Allow-Origin',o);res.setHeader('Vary','Origin');}}
 function json(res,code,obj){res.statusCode=code;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(obj));}
@@ -67,28 +67,108 @@ async function tickerTick(query,n){
   return (j.stories||[]).map(x=>({title:String(x.title||''),url:String(x.url||''),site:String(x.site||''),time:Number(x.time)}))
     .filter(x=>x.title&&Number.isFinite(x.time)&&x.time>=cut&&x.time<=Date.now()+60000);
 }
-function deriveSourceState(news,social,providers){
+async function redditRecent(){
+  const u=new URL('https://www.reddit.com/search.json');
+  u.searchParams.set('q','ORCL OR Oracle stock');
+  u.searchParams.set('sort','new');u.searchParams.set('t','day');u.searchParams.set('limit','50');u.searchParams.set('raw_json','1');
+  const r=await fetch(u,{headers:{'user-agent':'alantu-market/1.0 (+https://alantu.de)'},signal:AbortSignal.timeout(12000)});
+  if(!r.ok)throw new Error('Reddit HTTP '+r.status);
+  const j=await r.json(),cut=Date.now()-36*3600000;
+  return (j?.data?.children||[]).map(x=>x?.data||{}).map(x=>({
+    title:String(x.title||''),url:x.permalink?'https://www.reddit.com'+x.permalink:String(x.url||''),
+    site:'reddit.com',time:Number(x.created_utc)*1000
+  })).filter(x=>x.title&&Number.isFinite(x.time)&&x.time>=cut&&/\borcl\b|oracle/i.test(x.title));
+}
+async function xRecent(){
+  const token=String(process.env.X_BEARER_TOKEN||'').trim();if(!token)return [];
+  const u=new URL('https://api.x.com/2/tweets/search/recent');
+  u.searchParams.set('query','(ORCL OR Oracle) (stock OR shares OR earnings OR cloud OR AI) -is:retweet lang:en');
+  u.searchParams.set('max_results','50');u.searchParams.set('tweet.fields','created_at');
+  const r=await fetch(u,{headers:{authorization:'Bearer '+token},signal:AbortSignal.timeout(12000)});
+  if(!r.ok)throw new Error('X HTTP '+r.status);
+  const j=await r.json(),cut=Date.now()-36*3600000;
+  return (j.data||[]).map(x=>({
+    title:String(x.text||''),url:'https://x.com/i/web/status/'+x.id,site:'x.com',time:Date.parse(x.created_at||'')
+  })).filter(x=>x.title&&Number.isFinite(x.time)&&x.time>=cut);
+}
+async function googleNewsRecent(){
+  const u='https://news.google.com/rss/search?q=%28Oracle+OR+ORCL%29+stock+when%3A1d&hl=en-US&gl=US&ceid=US%3Aen';
+  const r=await fetch(u,{headers:{'user-agent':'Mozilla/5.0 alantu-market/1.0'},signal:AbortSignal.timeout(12000)});
+  if(!r.ok)throw new Error('Google News HTTP '+r.status);
+  const xml=await r.text(),items=xml.match(/<item>[\s\S]*?<\/item>/gi)||[],out=[];
+  const dec=v=>String(v||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+  for(const item of items){
+    const title=dec((item.match(/<title>([\s\S]*?)<\/title>/i)||[])[1]||'').trim();
+    const url=dec((item.match(/<link>([\s\S]*?)<\/link>/i)||[])[1]||'').trim();
+    const time=Date.parse(dec((item.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)||[])[1]||''));
+    if(title&&url&&Number.isFinite(time)&&Date.now()-time<=36*3600000)out.push({title,url,site:'news.google.com',time});
+  }
+  return dedupeStories(out).slice(0,60);
+}
+async function optionalSource(fn){try{return await fn();}catch{return [];}}
+function sourceChannel(x,type){
+  if(type==='news')return 'news';
+  const u=(String(x.url||'')+' '+String(x.site||'')).toLowerCase();
+  if(u.includes('reddit.com'))return 'reddit';
+  if(u.includes('x.com')||u.includes('twitter.com'))return 'x';
+  return 'social';
+}
+function sourceItem(x,type){
+  const channel=sourceChannel(x,type),lean=termScore(x.title);
+  return {
+    type,channel,title:String(x.title||'').slice(0,240),
+    summary:String(x.title||'').replace(/\s+/g,' ').trim().slice(0,180),
+    url:String(x.url||''),site:String(x.site||''),time:Number(x.time),
+    lean:lean>0?'bull':lean<0?'bear':'mixed'
+  };
+}
+function sourceSummary(){
+  const {items,...rest}=sourceState;
+  return {...rest,item_count:Array.isArray(items)?items.length:0};
+}
+function deriveSourceState(news,social,providers,status='ok'){
   let bp=0,bn=0,bm=0;
-  const add=(x,w)=>{const s=termScore(x.title),rw=w*recencyWeight(x.time);if(s>0)bp+=rw;else if(s<0)bn+=rw;else bm+=rw;};
+  const add=(x,w)=>{const v=termScore(x.title),rw=w*recencyWeight(x.time);if(v>0)bp+=rw;else if(v<0)bn+=rw;else bm+=rw;};
   news.forEach(x=>add(x,1));social.forEach(x=>add(x,1.5));
   const total=Math.max(1,bp+bn+bm),bull=Math.round(100*bp/total),bear=Math.round(100*bn/total),mixed=Math.max(0,100-bull-bear),net=bull-bear;
   const coverage=social.length>=50&&news.length>=8?'high':social.length>=10&&news.length>=5?'medium':news.length>=3||social.length>=3?'low':'very_low';
-  return {status:'ok',at:new Date().toISOString(),checked_at:new Date().toISOString(),score:Math.max(0,Math.min(100,Math.round(50+net/2))),bull,bear,mixed,net,news_count:news.length,social_count:social.length,coverage,providers,error:null};
+  const items=[...news.map(x=>sourceItem(x,'news')),...social.map(x=>sourceItem(x,'social'))].sort((x,y)=>y.time-x.time).slice(0,80);
+  const source_counts=items.reduce((m,x)=>(m[x.channel]=(m[x.channel]||0)+1,m),{news:0,reddit:0,x:0,social:0});
+  return {
+    status,at:new Date().toISOString(),checked_at:new Date().toISOString(),
+    score:Math.max(0,Math.min(100,Math.round(50+net/2))),bull,bear,mixed,net,
+    news_count:news.length,social_count:social.length,coverage,providers,source_counts,items,error:null
+  };
+}
+function broadcastSources(){
+  const payload={symbol:'ORCL',sentiment:sourceState};
+  for(const c of [...clients]){try{sendEvent(c.res,payload,'sources');}catch{clients.delete(c);try{c.res.end();}catch{}}}
 }
 async function refreshSources(){
   try{
-    const [news,ticker,entity]=await Promise.all([
-      tickerTick('(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))',100),
-      tickerTick('(and tt:orcl T:ugc)',200),
-      tickerTick('(and E:oracle T:ugc)',200)
+    const [ttNews,ticker,entity,reddit,x]=await Promise.all([
+      optionalSource(()=>tickerTick('(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))',100)),
+      optionalSource(()=>tickerTick('(and tt:orcl T:ugc)',200)),
+      optionalSource(()=>tickerTick('(and E:oracle T:ugc)',200)),
+      optionalSource(redditRecent),
+      optionalSource(xRecent)
     ]);
+    const news=ttNews.length?ttNews:await optionalSource(googleNewsRecent);
     const relevant=entity.filter(x=>/\$orcl\b|\borcl\b/i.test(x.title)||(/oracle/i.test(x.title)&&/stock|share|earn|cloud|ai|market|bull|bear|buy|sell|valuation|price/i.test(x.title)));
-    const social=dedupeStories(ticker.concat(relevant)).slice(0,300);
-    sourceState=deriveSourceState(dedupeStories(news).slice(0,100),social,['TickerTick News','TickerTick ORCL UGC','TickerTick Oracle Entity UGC']);
+    const social=dedupeStories(ticker.concat(relevant,reddit,x)).slice(0,300);
+    if(!news.length&&!social.length)throw new Error('No live sentiment sources available');
+    const providers=[];
+    if(ttNews.length)providers.push('TickerTick News');else if(news.length)providers.push('Google News RSS');
+    if(ticker.length||relevant.length)providers.push('TickerTick UGC');
+    if(reddit.length)providers.push('Reddit live');
+    if(x.length)providers.push('X live');
+    const degraded=!news.length||(!ticker.length&&!relevant.length&&!reddit.length&&!x.length);
+    sourceState=deriveSourceState(dedupeStories(news).slice(0,100),social,providers,degraded?'degraded':'ok');
   }catch(e){
     const age=sourceState.at?Date.now()-Date.parse(sourceState.at):Infinity;
-    sourceState={...sourceState,status:age>20*60000?'stale':'degraded',checked_at:new Date().toISOString(),error:String(e?.message||e)};
+    sourceState={...sourceState,status:age>5*60000?'stale':'degraded',checked_at:new Date().toISOString(),error:String(e?.message||e)};
   }
+  broadcastSources();
 }
 
 async function writeJsonAtomic(file,obj){
@@ -294,7 +374,7 @@ function snapshot(symbol){
   const r=raw[symbol];if(!r)return null;
   if(!KEY||!SECRET){
     const m=yahooModelSummary(),best=(yahooForecast?.forecasts||[]).filter(x=>x.dir).sort((a,b)=>(b.margin||0)-(a.margin||0))[0]||null;
-    return {provider:'yahoo',feed:'streamer',symbol,mode:'shadow-live',at:new Date().toISOString(),configured:true,subscription_verified:yahooState==='streaming',auth_state:'no_key_required',auth_error:null,raw:{events:(yahooSeries[symbol]||[]).length,last_upstream_at:yahooLastAt?new Date(yahooLastAt).toISOString():null,persistent:true},quality:yahooForecast?.quality||{status:'warming'},minutes:[],edge_status:'shadow',edge_model_id:m.model_id,live_signal:null,shadow_signal:best?{dir:best.dir,horizon_minutes:best.horizon_minutes,score:best.score,margin:best.margin,asof:yahooForecast.asof,source:'yahoo_shadow'}:null,wave:m,wave_forecast:yahooForecast,sentiment:sourceState,shadow_trail:shadowTrail(),l2:{status:'retired',provider:'databento',reason:'replaced_by_event_wave'}};
+    return {provider:'yahoo',feed:'streamer',symbol,mode:'shadow-live',at:new Date().toISOString(),configured:true,subscription_verified:yahooState==='streaming',auth_state:'no_key_required',auth_error:null,raw:{events:(yahooSeries[symbol]||[]).length,last_upstream_at:yahooLastAt?new Date(yahooLastAt).toISOString():null,persistent:true},quality:yahooForecast?.quality||{status:'warming'},minutes:[],edge_status:'shadow',edge_model_id:m.model_id,live_signal:null,shadow_signal:best?{dir:best.dir,horizon_minutes:best.horizon_minutes,score:best.score,margin:best.margin,asof:yahooForecast.asof,source:'yahoo_shadow'}:null,wave:m,wave_forecast:yahooForecast,sentiment:sourceSummary(),shadow_trail_summary:{version:YAHOO_SHADOW_VERSION,pending:shadowState.predictions.filter(x=>x.version===YAHOO_SHADOW_VERSION).length,evaluated:shadowState.outcomes.filter(x=>x.version===YAHOO_SHADOW_VERSION&&x.status==='evaluated').length,proof:shadowProof(),updated_at:shadowState.updated_at},l2:{status:'retired',provider:'databento',reason:'replaced_by_event_wave'}};
   }
   const minutes=aggregateMicrostructure(r.trades,r.quotes);
   const quality=microstructureQuality(minutes,{symbol,feed:FEED,minMinutes:10});
@@ -306,7 +386,7 @@ function snapshot(symbol){
     quality,minutes,
     edge_status:rawModel?.status||'unavailable',edge_model_id:rawModel?.model_id||null,
     live_signal:best?{dir:best.dir,score_bps:best.score_bps,horizon_minutes:best.horizon_minutes,margin:best.margin,asof:rawForecast.asof,model_id:best.model_id,source:'raw_sip'}:null,
-    wave:modelSummary(),wave_forecast:rawForecast,sentiment:sourceState,shadow_trail:shadowTrail(),
+    wave:modelSummary(),wave_forecast:rawForecast,sentiment:sourceSummary(),shadow_trail_summary:{version:YAHOO_SHADOW_VERSION,pending:shadowState.predictions.filter(x=>x.version===YAHOO_SHADOW_VERSION).length,evaluated:shadowState.outcomes.filter(x=>x.version===YAHOO_SHADOW_VERSION&&x.status==='evaluated').length,proof:shadowProof(),updated_at:shadowState.updated_at},
     l2:{status:'retired',provider:'databento',reason:'replaced_by_raw_alpaca_sip'}
   };
 }
@@ -371,7 +451,7 @@ const server=http.createServer((req,res)=>{
   if(u.pathname==='/v1/stream'){
     const origin=req.headers.origin;if(origin&&!ALLOWED.has(origin))return json(res,403,{error:'origin_not_allowed'});
     const symbol=(u.searchParams.get('symbol')||'ORCL').toUpperCase();if(!raw[symbol])return json(res,404,{error:'unknown_symbol'});
-    res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store','Connection':'keep-alive','X-Accel-Buffering':'no'});res.write(': connected\n\n');const c={res,symbol};clients.add(c);req.on('close',()=>clients.delete(c));return;
+    res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store','Connection':'keep-alive','X-Accel-Buffering':'no'});res.write(': connected\n\n');const c={res,symbol};clients.add(c);sendEvent(res,{symbol,sentiment:sourceState},'sources');req.on('close',()=>clients.delete(c));return;
   }
   json(res,404,{error:'not_found'});
 });

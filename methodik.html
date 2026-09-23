@@ -30,7 +30,8 @@ ul{padding-left:18px}.exact{border-left:3px solid #151517;padding-left:12px}
 <main class="wrap">
 <p class="intro">Diese Seite ist die technische Rechen- und Quellenbeschreibung der Aktienansicht. Sie trennt bewusst <b>Live-Daten im Browser</b>, <b>GitHub-Fallbackdaten</b> und die <b>Intrinsic-Value-Berechnung</b>. Die angezeigten SEC-Werte und Zwischenrechnungen werden direkt aus den produktiven JSON-Daten geladen.</p>
 
-<section id="sentiment"><span id="live"></span>
+<section id="sentiment">
+<p class="small"><b>Live-Betrieb:</b> Die Aktienseite bezieht Stimmung primär vom Railway-Runtime-Service. News/UGC werden laufend neu aggregiert; Reddit wird zusätzlich direkt abgefragt. X/Twitter wird über gelieferte UGC-Links erkannt und kann optional über die offizielle Recent-Search-API ergänzt werden. Jeder sichtbare Eintrag behält Quelle, Original-Link und Zeitstempel; die Darstellung erfolgt in deutscher Zeit.</p><span id="live"></span>
 <h2>1 · Live-Sync: was beim Klick auf „Sync“ wirklich passiert</h2>
 <p>Der Browser lädt nicht nur eine vorhandene Datei neu. Er fragt frische Signalquellen ab, berechnet daraus den aktuellen Stimmungsstand neu und setzt <code>Sync xx:xx</code> erst nach erfolgreichem Abschluss.</p>
 
@@ -39,7 +40,7 @@ ul{padding-left:18px}.exact{border-left:3px solid #151517;padding-left:12px}
 <li><b>News:</b> TickerTick API, Query <code>(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))</code>, bis zu 100 Treffer.</li>
 <li><b>UGC/Social:</b> TickerTick API, Query <code>(and tt:orcl T:ugc)</code>, bis zu 200 Treffer pro Abruf.</li>
 <li><b>Zusätzlicher Social-Abruf:</b> zweiter TickerTick-UGC-Lauf über die Entity <code>E:oracle</code>, ebenfalls bis zu 200 Treffer. Danach werden nur ORCL-/aktienrelevante Treffer behalten und mit dem tickergebundenen Feed dedupliziert.</li>
-<li><b>Mindeststichprobe:</b> mindestens 50 deduplizierte Social-/UGC-Beiträge im 36-Stunden-Fenster. Darunter wird der Live-Sentiment-Sync verworfen statt eine scheinpräzise Stimmung anzuzeigen.</li>
+<li><b>Live-Abdeckung:</b> Railway aggregiert fortlaufend News und Social/UGC. Kleine Stichproben werden nicht als Sicherheit verkauft: Anzahl, Quelle, Datenabdeckung und Zeitstempel bleiben sichtbar; der statische Snapshot dient nur als Fallback.</li>
 <li><b>Freshness-Gate:</b> nur Datensätze mit Zeitstempel innerhalb der letzten 36 Stunden.</li>
 <li><b>News-Fallback:</b> Google News RSS für <code>Oracle ORCL stock when:1d</code>, browserseitig über RSS2JSON gelesen.</li>
 <li><b>Kurs:</b> Yahoo Finance WebSocket <code>wss://streamer.finance.yahoo.com/?version=2</code>, Subscription <code>ORCL</code> und <code>EURUSD=X</code>.</li>
@@ -75,14 +76,14 @@ bear_pct  = round(100 × bear_votes / all_votes)
 mixed_pct = 100 - bull_pct - bear_pct
 net       = bull_pct - bear_pct
 
-confidence = clamp(
+coverage_score = clamp(
   round(42 + 0,55 × min(30, news_count) + 0,28 × min(120, social_count)),
   50, 90
 )
 
-BUY  wenn net ≥ 25 und confidence ≥ 60
-SELL wenn net ≤ -25 und confidence ≥ 60
-sonst HOLD
+coverage_score beschreibt ausschließlich Datenmenge/Abdeckung.
+Er ist keine Trefferwahrscheinlichkeit und erzeugt kein BUY-/SELL-Signal.
+Die sichtbare Stimmung bleibt eine Quellenklassifikation; Handelsprognosen kommen ausschließlich aus separat prospektiv geprüften Modellen.
 
 magnitude = clamp(round(28 + 0.55 × |net|), 25, 75)
 early_signal = |net| ≥ 12</div>
@@ -151,7 +152,7 @@ reddit_weight = clamp(mentions_24h, 4, 40)
 bull += reddit_weight × sentiment
 bear += reddit_weight × (1 - sentiment)
 
-confidence = clamp(
+coverage_score = clamp(
   round(48 + 1.5 × min(12, news_count)
            + 0.6 × min(20, reddit_mentions)
            + 5 falls Reddit-Sentiment vorhanden),
@@ -298,9 +299,8 @@ function liveCalc(news,social){
   news.forEach(x=>v[lean(x.title)]++);
   social.forEach(x=>{v[lean(x.title)]+=2});
   const total=Math.max(1,v.bull+v.bear+v.mixed),bull=Math.round(100*v.bull/total),bear=Math.round(100*v.bear/total),mixed=clamp(100-bull-bear,0,100),net=bull-bear;
-  const confidence=clamp(Math.round(48+Math.min(18,news.length)*1.1+Math.min(12,social.length)*1.4),45,82);
-  const signal=net>=25&&confidence>=60?'BUY':net<=-25&&confidence>=60?'SELL':'HOLD';
-  return {bull,bear,mixed,net,confidence,signal}
+  const coverage=clamp(Math.round(48+Math.min(18,news.length)*1.1+Math.min(12,social.length)*1.4),45,82);
+  return {bull,bear,mixed,net,coverage}
 }
 function storyHtml(x,type){
   const at=new Date(x.time).toLocaleString('de-DE',{timeZone:'Europe/Berlin',dateStyle:'short',timeStyle:'short'});
@@ -313,7 +313,7 @@ async function renderLive(){
     const sufficient=!!news.length&&social.length>=50;
     const x=sufficient?liveCalc(news,social):null;
     stat.innerHTML='<span class="status '+(sufficient?'ok':'bad')+'">Quellensnapshot '+(sufficient?'ausreichend':'unzureichend')+'</span> · erfasst '+esc(new Date(src.fetchedAt).toLocaleString('de-DE',{timeZone:'Europe/Berlin'}))+' · '+esc(src.providers.join(' + '));
-    k.innerHTML='<div class="kpi"><span>News</span><b>'+news.length+'</b></div><div class="kpi"><span>UGC/Social</span><b>'+social.length+'</b></div><div class="kpi"><span>Ergebnis</span><b>'+(sufficient?x.signal+' · '+x.net:'Kein belastbares Signal')+'</b><small>'+(sufficient?x.bull+'% bull / '+x.bear+'% bear / '+x.mixed+'% mixed · Heuristik '+x.confidence:'Mindestens 50 frische Social-Treffer erforderlich')+'</small></div>';
+    k.innerHTML='<div class="kpi"><span>News</span><b>'+news.length+'</b></div><div class="kpi"><span>UGC/Social</span><b>'+social.length+'</b></div><div class="kpi"><span>Stimmung</span><b>'+(sufficient?x.net:'zu wenig Fallback-Daten')+'</b><small>'+(sufficient?x.bull+'% bull / '+x.bear+'% bear / '+x.mixed+'% mixed · Datenabdeckung '+x.coverage:'Primär nutzt die Aktienseite Railway-Livequellen; dies ist nur der Snapshot-Fallback')+'</small></div>';
     stories.innerHTML='<h3>News-Datensätze</h3>'+news.map(x=>storyHtml(x,'News')).join('')+'<h3>UGC/Social-Datensätze</h3>'+social.map(x=>storyHtml(x,'UGC')).join('');
   }catch(e){
     stat.innerHTML='<span class="status bad">Live-Abfrage fehlgeschlagen</span> · '+esc(e.message)+' · Die Aktienseite behält dann den Last-Known-Good-Stand.';
