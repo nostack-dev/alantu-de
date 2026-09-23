@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-23T12:10:39+02:00",
+  "updated_at": "2026-09-23T12:10:57+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,12 +9,12 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-23T12:10:39+02:00",
+        "at": "2026-09-23T12:10:57+02:00",
         "signal": "hold",
         "social_impulse": -3,
-        "hype_bull": 14,
-        "hype_bear": 27,
-        "hype_net": -13,
+        "hype_bull": 18,
+        "hype_bear": 32,
+        "hype_net": -14,
         "confidence": 73
       },
       "history": [
@@ -3458,6 +3458,20 @@
           "voice_bear": 5,
           "voice_mixed": 14,
           "price": 149.45
+        },
+        {
+          "at": "2026-09-23T12:10:57+02:00",
+          "hype_bull": 18,
+          "hype_bear": 32,
+          "hype_net": -14,
+          "social_impulse": -3,
+          "signal": "hold",
+          "confidence": 73,
+          "hype_mixed": 50,
+          "voice_bull": 4,
+          "voice_bear": 6,
+          "voice_mixed": 12,
+          "price": 149.45
         }
       ],
       "voices_archive": [
@@ -3775,12 +3789,12 @@
       "signal": "hold",
       "social_impulse": -3,
       "impulse": -3,
-      "hype_bull": 14,
-      "hype_bear": 27,
-      "hype_net": -13,
+      "hype_bull": 18,
+      "hype_bear": 32,
+      "hype_net": -14,
       "confidence": 73,
       "hype_state": "mixed",
-      "updated_at": "2026-09-23T12:10:39+02:00",
+      "updated_at": "2026-09-23T12:10:57+02:00",
       "why": "Reddit 0% positiv bei 3 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $149.45.",
       "evidence": {
         "x_posts": 0,
@@ -3789,17 +3803,17 @@
         "snippets": [
           "ApeWisdom: 3 Mentions/24h, Sentiment 0%",
           "Prediction: Oracle Could Have 50% Upside From Here",
-          "Oracle: The Most Mispriced AI Opportunity On The Market Today",
-          "ORCL Stock At 14-Month Low Amid High Debt, Execution Risks: Retail Calls $300B OpenAI Deal A 'Liability'"
+          "ORCL Stock Drops Amid Lower-Than-Expected Q1 Earnings, Unchanged Sales Outlook",
+          "Oracle: The Most Mispriced AI Opportunity On The Market Today"
         ]
       },
       "voices": {
-        "bull": 3,
-        "bear": 5,
-        "mixed": 14,
-        "updated_at": "2026-09-23T12:10:39+02:00"
+        "bull": 4,
+        "bear": 6,
+        "mixed": 12,
+        "updated_at": "2026-09-23T12:10:57+02:00"
       },
-      "hype_mixed": 59,
+      "hype_mixed": 50,
       "sentiment_unit": "percent_all_classified",
       "price": 149.45
     }
