@@ -1,4 +1,4 @@
-# hinge-angle-diagnostic: 1790149552107
+# box3d-021-smoke: 1790149686230
 on:
   push:
     paths:
@@ -37,10 +37,10 @@ jobs:
               null,{timeout:30000}
             );
             const resources=await page.evaluate(()=>performance.getEntriesByType("resource").map(x=>x.name));
-            if(!resources.some(x=>x.includes("alantu-book-core-box3d020.js"))){
+            if(!resources.some(x=>x.includes("alantu-book-core-box3d021.js"))){
               failures.push(`${label}: immutable core not loaded`);
             }
-            if(!resources.some(x=>x.includes("alantu-book-physics-box3d020.js"))){
+            if(!resources.some(x=>x.includes("alantu-book-physics-box3d021.js"))){
               failures.push(`${label}: immutable physics not loaded`);
             }
           }
