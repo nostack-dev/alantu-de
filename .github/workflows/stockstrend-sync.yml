@@ -146,6 +146,10 @@ jobs:
           grep -q 'function railwaySourcesUsable' index.html
           grep -q "function priceSegmentColor(){return '#000000';}" index.html
           grep -q 'function trajectoryDatasets' index.html
+          grep -q "addEventListener('shadow'" index.html
+          ! grep -q "fetch(base+'/v1/source-state" index.html
+          ! grep -q "fetch(base+'/v1/shadow-history" index.html
+          grep -q 'trajectoryGuessCloud' index.html
           grep -q "label:'Gesamtprojektion'" index.html
           grep -q 'function validatedWaveForecast' index.html
           grep -q 'function scheduleWaveForecast' index.html

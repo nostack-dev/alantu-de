@@ -292,7 +292,15 @@ function targetYahooEvent(targetMs,horizonMinutes){
   }
   return {event:best,max_late_ms:late};
 }
-async function persistShadow(){shadowState.proof=shadowProof();shadowState.updated_at=new Date().toISOString();await writeJsonAtomic(SHADOW_PATH,shadowState);}
+function broadcastShadow(){
+  const payload={symbol:'ORCL',trail:shadowTrail()};
+  for(const c of [...clients]){try{sendEvent(c.res,payload,'shadow');}catch{clients.delete(c);try{c.res.end();}catch{}}}
+}
+async function persistShadow(){
+  shadowState.proof=shadowProof();shadowState.updated_at=new Date().toISOString();
+  await writeJsonAtomic(SHADOW_PATH,shadowState);
+  broadcastShadow();
+}
 async function loadShadow(){
   const x=await readJson(SHADOW_PATH);
   if(x&&Array.isArray(x.predictions)&&Array.isArray(x.outcomes)){
@@ -451,7 +459,7 @@ const server=http.createServer((req,res)=>{
   if(u.pathname==='/v1/stream'){
     const origin=req.headers.origin;if(origin&&!ALLOWED.has(origin))return json(res,403,{error:'origin_not_allowed'});
     const symbol=(u.searchParams.get('symbol')||'ORCL').toUpperCase();if(!raw[symbol])return json(res,404,{error:'unknown_symbol'});
-    res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store','Connection':'keep-alive','X-Accel-Buffering':'no'});res.write(': connected\n\n');const c={res,symbol};clients.add(c);sendEvent(res,{symbol,sentiment:sourceState},'sources');req.on('close',()=>clients.delete(c));return;
+    res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store','Connection':'keep-alive','X-Accel-Buffering':'no'});res.write(': connected\n\n');const c={res,symbol};clients.add(c);sendEvent(res,{symbol,sentiment:sourceState},'sources');sendEvent(res,{symbol,trail:shadowTrail()},'shadow');req.on('close',()=>clients.delete(c));return;
   }
   json(res,404,{error:'not_found'});
 });
