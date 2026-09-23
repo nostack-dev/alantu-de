@@ -28,7 +28,7 @@ const YAHOO_DIR=DATA_DIR+'/yahoo-events';
 const SOURCE_REFRESH_MS=Math.max(15000,Number(process.env.SOURCE_REFRESH_MS||20000));
 const SOURCE_LIVE_WINDOW_MS=15*60*1000;
 const SOURCE_ARCHIVE_WINDOW_MS=36*3600000;
-let sourceRefreshBusy=false;
+let sourceRefreshBusy=false,sourceLastLogAt=0,sourceLastEventAt=null;
 let sourceState={
   status:'warming',at:null,checked_at:null,window_start:null,window_end:null,live_window_minutes:15,
   score:null,bull:null,bear:null,mixed:null,net:null,news_count:0,social_count:0,live_count:0,archive_count:0,
@@ -247,6 +247,16 @@ async function refreshSources(){
     if(x.length)providers.push('X live');
     const degraded=providers.length<2;
     sourceState=deriveSourceState(news,social,providers,degraded?'degraded':'ok');
+    const eventChanged=sourceState.at!==sourceLastEventAt,logDue=Date.now()-sourceLastLogAt>=60000;
+    if(eventChanged||logDue){
+      console.log(JSON.stringify({
+        type:'source-refresh',status:sourceState.status,event_at:sourceState.at,checked_at:sourceState.checked_at,
+        window_start:sourceState.window_start,window_end:sourceState.window_end,live_window_minutes:sourceState.live_window_minutes,
+        live_count:sourceState.live_count,archive_count:sourceState.archive_count,news_count:sourceState.news_count,social_count:sourceState.social_count,
+        providers:sourceState.providers,source_counts:sourceState.source_counts,archive_source_counts:sourceState.archive_source_counts
+      }));
+      sourceLastEventAt=sourceState.at;sourceLastLogAt=Date.now();
+    }
   }catch(e){
     const age=sourceState.checked_at?Date.now()-Date.parse(sourceState.checked_at):Infinity;
     sourceState={...sourceState,status:age>2*60000?'stale':'degraded',checked_at:new Date().toISOString(),error:String(e?.message||e)};
