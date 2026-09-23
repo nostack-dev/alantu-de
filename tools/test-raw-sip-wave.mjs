@@ -3,7 +3,8 @@ import {timestampNs,extractRawSamples,RAW_FEATURE_NAMES,forecastRawLatest,RAW_FE
 
 assert.equal(String(timestampNs('2026-09-23T13:30:00.123456789Z')).slice(-9),'123456789');
 
-const start=Date.parse('2026-09-23T13:30:00Z');
+const end=Math.floor(Date.now()/1000)*1000;
+const start=end-(1500-1)*1000;
 const trades=[],quotes=[];
 for(let i=0;i<1500;i++){
   const ms=start+i*1000;
