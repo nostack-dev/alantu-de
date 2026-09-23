@@ -26,11 +26,12 @@ process.on('SIGTERM',()=>shutdown(0));
 process.on('SIGINT',()=>shutdown(0));
 
 run('node',['market-relay/server.mjs'],'relay');
-run('node',['market-runtime/trainer-loop.mjs'],'raw-sip-trainer');
+const hasAlpaca=!!(env.APCA_API_KEY_ID&&env.APCA_API_SECRET_KEY);
+if(hasAlpaca)run('node',['market-runtime/trainer-loop.mjs'],'raw-sip-trainer');
 console.log(JSON.stringify({
   service:'alantu-market-runtime',
-  primary:'raw-sip-wave',
-  provider:'alpaca-sip',
+  primary:hasAlpaca?'raw-sip-wave':'yahoo-shadow-wave',
+  provider:hasAlpaca?'alpaca-sip':'yahoo-streamer-no-key',
   databento:'retired',
   principle:'timing beats speed; precision beats power'
 }));
