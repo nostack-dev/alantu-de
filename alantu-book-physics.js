@@ -337,13 +337,15 @@ export function createAlantuBookPhysics({
   function isLeafSettled(index,target){
     const leaf=leafModels[index];
     if(!leaf)return true;
+
     const p=getLeafProgress(index);
-    if(Math.abs(p-target)>.018)return false;
-    let maxSpeed=0;
-    for(const body of leaf.bodies){
-      try{maxSpeed=Math.max(maxSpeed,length3(body.getAngularVelocity()),length3(body.getLinearVelocity()))}catch{}
-    }
-    return maxSpeed<.22;
+
+    // The logical page turn is complete when the physical hinge reaches its
+    // landing angle. The flexible strip chain may still dissipate tiny
+    // residual motion afterwards; Box3D keeps simulating that naturally.
+    // Waiting for every paper segment to become nearly motionless can deadlock
+    // the book state on invisible contact jitter.
+    return Math.abs(p-target)<.012;
   }
 
   function edgePoint(body,localX){
