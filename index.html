@@ -487,6 +487,29 @@
     .wave-forecast .wf-m{font-size:8px!important}
   }
 
+
+  /* Core information: clean, compact, visible */
+  .core-insights{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;margin:18px 0 2px!important}
+  .core-insight{background:#f5f5f7!important;border-radius:16px!important;padding:15px 16px 14px!important;min-width:0!important}
+  .core-kicker{font-size:11px!important;line-height:1!important;color:#8d8d94!important;font-weight:700!important;margin-bottom:9px!important}
+  .core-value{font-size:26px!important;line-height:1!important;letter-spacing:-.04em!important;color:#111!important;font-weight:790!important;font-variant-numeric:tabular-nums!important}
+  .core-denom{font-size:13px!important;font-weight:700!important;color:#9a9aa1!important;margin-left:3px!important;letter-spacing:0!important}
+  .core-meta{margin-top:8px!important;font-size:11px!important;line-height:1.25!important;color:#818188!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  #sentimentCompactNumber.up{color:#45a944!important}
+  #sentimentCompactNumber.down{color:#d93a31!important}
+  #sentimentCompactNumber.flat{color:#111!important}
+  [data-chart-panel="price"] .chart-head-min{display:flex!important;order:0!important;margin:10px 0 0!important;min-height:20px!important}
+  [data-chart-panel="price"] .chart-head-min .value-summary{font-size:11px!important;color:#8d8d94!important;font-weight:650!important}
+  [data-chart-panel="price"] .chart-head-min .chart-collapse{display:none!important}
+  [data-chart-panel="price"] .chart-head-min .line-toggle{display:inline-flex!important;font-size:11px!important}
+  [data-chart-panel="price"] .chart-panel-body{padding-top:2px!important}
+  @media(max-width:700px){
+    .core-insights{gap:8px!important;margin-top:16px!important}
+    .core-insight{padding:14px 13px 13px!important;border-radius:14px!important}
+    .core-value{font-size:23px!important}
+    .core-meta{font-size:10px!important}
+  }
+
 </style>
 </head>
 <body>
@@ -534,6 +557,19 @@
         <span>Stand <b id="freshAt">—</b></span>
       </div>
       <div class="note" id="freshQuality"></div>
+    </div>
+  </div>
+
+  <div class="core-insights" aria-label="Kernkennzahlen">
+    <div class="core-insight intrinsic-insight">
+      <div class="core-kicker">Innerer Wert</div>
+      <div class="core-value" id="intrinsicHeroValue">—</div>
+      <div class="core-meta" id="intrinsicHeroMeta">wird berechnet</div>
+    </div>
+    <div class="core-insight sentiment-insight">
+      <div class="core-kicker">Stimmung</div>
+      <div class="core-value sentiment-value"><span id="sentimentCompactNumber">—</span><span class="core-denom">/100</span></div>
+      <div class="core-meta" id="sentimentCompactLabel">wird geladen</div>
     </div>
   </div>
 
@@ -1122,6 +1158,9 @@ function updateValueSummary(){
   var base=usdToEur(lat.intrinsic_base_usd||lat.intrinsic_usd,now);
   var buyAt=base!=null?base*0.75:null;
   el.textContent='Wert '+euro(base,0)+' · Kaufen < '+euro(buyAt,0);
+  var heroVal=document.getElementById('intrinsicHeroValue'),heroMeta=document.getElementById('intrinsicHeroMeta');
+  if(heroVal)heroVal.textContent=base!=null?euro(base,0):'—';
+  if(heroMeta)heroMeta.textContent=buyAt!=null?('Kaufen unter '+euro(buyAt,0)):'wird berechnet';
   var pct=base&&price?(price/base-1)*100:null;
   status.className='value-status flat';
   if(price!=null&&buyAt!=null&&base!=null){
