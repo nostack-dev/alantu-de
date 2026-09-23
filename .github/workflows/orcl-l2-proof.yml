@@ -1,22 +1,6 @@
 name: Prove ORCL 100-event L2 model
 
 on:
-  push:
-    branches: ["main"]
-    paths:
-      - "tools/databento-orcl-mbp10-backfill.py"
-      - "tools/databento-orcl-cost.py"
-      - "tools/train-orcl-l2-100.py"
-      - "tools/l2-event-signal.mjs"
-      - "tools/test-l2-event-signal.mjs"
-      - "tools/test_l2_feature_parity.py"
-      - "tools/dump-l2-feature-fixture.mjs"
-      - "tools/l2_temporal_features.py"
-      - "tools/databento-orcl-mbp10-live.py"
-      - "tools/finalize-l2-model.mjs"
-      - ".github/workflows/orcl-l2-proof.yml"
-  schedule:
-    - cron: "35 22 * * 1-5"
   workflow_dispatch:
     inputs:
       dataset:
