@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-23T11:57:02+02:00",
+  "updated_at": "2026-09-23T12:03:55+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,12 +9,12 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-23T11:57:02+02:00",
+        "at": "2026-09-23T12:03:55+02:00",
         "signal": "hold",
-        "social_impulse": -2,
-        "hype_bull": 18,
+        "social_impulse": -3,
+        "hype_bull": 14,
         "hype_bear": 27,
-        "hype_net": -9,
+        "hype_net": -13,
         "confidence": 73
       },
       "history": [
@@ -3430,6 +3430,20 @@
           "voice_bear": 5,
           "voice_mixed": 13,
           "price": 149.3
+        },
+        {
+          "at": "2026-09-23T12:03:55+02:00",
+          "hype_bull": 14,
+          "hype_bear": 27,
+          "hype_net": -13,
+          "social_impulse": -3,
+          "signal": "hold",
+          "confidence": 73,
+          "hype_mixed": 59,
+          "voice_bull": 3,
+          "voice_bear": 5,
+          "voice_mixed": 14,
+          "price": 149.31
         }
       ],
       "voices_archive": [
@@ -3745,15 +3759,15 @@
         }
       ],
       "signal": "hold",
-      "social_impulse": -2,
-      "impulse": -2,
-      "hype_bull": 18,
+      "social_impulse": -3,
+      "impulse": -3,
+      "hype_bull": 14,
       "hype_bear": 27,
-      "hype_net": -9,
+      "hype_net": -13,
       "confidence": 73,
       "hype_state": "mixed",
-      "updated_at": "2026-09-23T11:57:02+02:00",
-      "why": "Reddit 0% positiv bei 3 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $149.30.",
+      "updated_at": "2026-09-23T12:03:55+02:00",
+      "why": "Reddit 0% positiv bei 3 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $149.31.",
       "evidence": {
         "x_posts": 0,
         "reddit_posts": 3,
@@ -3762,18 +3776,18 @@
           "ApeWisdom: 3 Mentions/24h, Sentiment 0%",
           "Prediction: Oracle Could Have 50% Upside From Here",
           "Oracle: The Most Mispriced AI Opportunity On The Market Today",
-          "Oracle helps a 23,500-capacity arena track food demand and finances"
+          "ORCL Stock At 14-Month Low Amid High Debt, Execution Risks: Retail Calls $300B OpenAI Deal A 'Liability'"
         ]
       },
       "voices": {
-        "bull": 4,
+        "bull": 3,
         "bear": 5,
-        "mixed": 13,
-        "updated_at": "2026-09-23T11:57:02+02:00"
+        "mixed": 14,
+        "updated_at": "2026-09-23T12:03:55+02:00"
       },
-      "hype_mixed": 55,
+      "hype_mixed": 59,
       "sentiment_unit": "percent_all_classified",
-      "price": 149.3
+      "price": 149.31
     }
   }
 }
