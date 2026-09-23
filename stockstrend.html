@@ -328,36 +328,159 @@
   header h1{font-size:15px!important;font-weight:760!important;letter-spacing:-.02em!important}
   header .info-link{display:none!important}
   .wrap{max-width:680px!important;padding:0 20px 34px!important;display:block!important}
-  .aux-card,.sentiment-hero-card,#shockCard,.secondary-section,[data-chart-panel="sentiment"],[data-chart-panel="magnitude"],[data-chart-panel="opinions"]{display:none!important}
+
+  /* Keep the data engine, remove dashboard noise */
+  .aux-card,
+  .sentiment-hero-card,
+  #shockCard,
+  .secondary-section,
+  [data-chart-panel="sentiment"],
+  [data-chart-panel="magnitude"],
+  [data-chart-panel="opinions"]{display:none!important}
+
   .row3{display:block!important;border:0!important}
-  .row3>.card:not(.aux-card){padding:18px 0 4px!important;border:0!important;min-width:0!important}
-  .row3>.card:not(.aux-card)>.label{min-height:0!important;margin:0 0 5px!important;font-size:17px!important;line-height:1.2!important;color:#111!important;font-weight:760!important;letter-spacing:-.02em!important}
-  .row3 .live-state{font-size:11px!important;color:#7d7d84!important;font-weight:650!important;margin-left:5px!important}
+  .row3>.card:not(.aux-card){
+    padding:18px 0 4px!important;
+    border:0!important;
+    min-width:0!important
+  }
+  .row3>.card:not(.aux-card)>.label{
+    min-height:0!important;
+    margin:0 0 5px!important;
+    font-size:17px!important;
+    line-height:1.2!important;
+    color:#111!important;
+    font-weight:760!important;
+    letter-spacing:-.02em!important
+  }
+  .row3 .live-state{
+    font-size:11px!important;
+    color:#7d7d84!important;
+    font-weight:650!important;
+    margin-left:5px!important
+  }
   .row3 .market-clock{display:none!important}
-  .row3 .hero-price{font-size:48px!important;line-height:1!important;margin:14px 0 8px!important;letter-spacing:-.055em!important;font-weight:780!important;color:#111!important}
-  .row3 .hero-change{font-size:16px!important;line-height:1.2!important;margin:0!important;font-weight:700!important}
+  .row3 .hero-price{
+    font-size:48px!important;
+    line-height:1!important;
+    margin:14px 0 8px!important;
+    letter-spacing:-.055em!important;
+    font-weight:780!important;
+    color:#111!important
+  }
+  .row3 .hero-change{
+    font-size:16px!important;
+    line-height:1.2!important;
+    margin:0!important;
+    font-weight:700!important
+  }
   .oracle-secondary,#orclWhy,#orclLinks{display:none!important}
-  .chart-card-lg[data-chart-panel="price"]{padding:10px 0 22px!important;border:0!important;border-radius:0!important;margin:0!important}
-  [data-chart-panel="price"] .chart-head-min,[data-chart-panel="price"] .value-status,[data-chart-panel="price"] .market-flow,[data-chart-panel="price"] .chart-sub{display:none!important}
-  [data-chart-panel="price"] .chart-panel-body{display:flex!important;flex-direction:column!important}
-  [data-chart-panel="price"] .chart-wrap-lg{order:1!important;height:300px!important;margin:4px -8px 0!important;width:calc(100% + 16px)!important}
-  [data-chart-panel="price"] .chart-wrap-lg canvas{height:300px!important;max-height:none!important}
-  [data-chart-panel="price"] .mini-range{order:2!important;margin:10px 0 0!important;padding:0!important;display:grid!important;grid-template-columns:repeat(6,1fr)!important;gap:0!important}
-  [data-chart-panel="price"] .mini-range button{padding:9px 0!important;border:0!important;background:transparent!important;color:#a0a0a6!important;font-size:12px!important;font-weight:680!important;border-radius:0!important}
-  [data-chart-panel="price"] .mini-range button.active{color:#111!important;font-weight:800!important;background:transparent!important}
-  .wave-forecast-strip{order:3!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;margin:22px 0 0!important}
-  .wave-forecast{min-width:0!important;padding:10px 6px 9px!important;text-align:center!important;background:#f5f5f7!important;border:0!important;border-radius:12px!important}
-  .wave-forecast .wf-h{font-size:10px!important;line-height:1!important;font-weight:700!important;color:#929299!important}
-  .wave-forecast .wf-v{margin-top:6px!important;font-size:14px!important;line-height:1.05!important;font-weight:820!important;letter-spacing:-.01em!important;overflow:hidden!important;text-overflow:ellipsis!important}
-  .wave-forecast .wf-m{margin-top:5px!important;font-size:9px!important;line-height:1!important;color:#a0a0a6!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
-  .sync-footer{max-width:680px!important;padding:12px 20px 24px!important;border-top:1px solid #f0f0f2!important;font-size:10px!important;color:#a0a0a6!important}
+
+  /* Price chart visually belongs to the hero */
+  .chart-card-lg[data-chart-panel="price"]{
+    padding:10px 0 22px!important;
+    border:0!important;
+    border-radius:0!important;
+    margin:0!important
+  }
+  [data-chart-panel="price"] .chart-head-min,
+  [data-chart-panel="price"] .value-status,
+  [data-chart-panel="price"] .market-flow,
+  [data-chart-panel="price"] .chart-sub{display:none!important}
+  [data-chart-panel="price"] .chart-panel-body{
+    display:flex!important;
+    flex-direction:column!important
+  }
+  [data-chart-panel="price"] .chart-wrap-lg{
+    order:1!important;
+    height:300px!important;
+    margin:4px -8px 0!important;
+    width:calc(100% + 16px)!important
+  }
+  [data-chart-panel="price"] .chart-wrap-lg canvas{
+    height:300px!important;
+    max-height:none!important
+  }
+  [data-chart-panel="price"] .mini-range{
+    order:2!important;
+    margin:10px 0 0!important;
+    padding:0!important;
+    display:grid!important;
+    grid-template-columns:repeat(6,1fr)!important;
+    gap:0!important
+  }
+  [data-chart-panel="price"] .mini-range button{
+    padding:9px 0!important;
+    border:0!important;
+    background:transparent!important;
+    color:#a0a0a6!important;
+    font-size:12px!important;
+    font-weight:680!important;
+    border-radius:0!important
+  }
+  [data-chart-panel="price"] .mini-range button.active{
+    color:#111!important;
+    font-weight:800!important;
+    background:transparent!important
+  }
+
+  /* One compact decision strip; four horizons always fit */
+  .wave-forecast-strip{
+    order:3!important;
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:8px!important;
+    margin:22px 0 0!important
+  }
+  .wave-forecast{
+    min-width:0!important;
+    padding:10px 6px 9px!important;
+    text-align:center!important;
+    background:#f5f5f7!important;
+    border:0!important;
+    border-radius:12px!important
+  }
+  .wave-forecast .wf-h{
+    font-size:10px!important;
+    line-height:1!important;
+    font-weight:700!important;
+    color:#929299!important
+  }
+  .wave-forecast .wf-v{
+    margin-top:6px!important;
+    font-size:14px!important;
+    line-height:1.05!important;
+    font-weight:820!important;
+    letter-spacing:-.01em!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important
+  }
+  .wave-forecast .wf-m{
+    margin-top:5px!important;
+    font-size:9px!important;
+    line-height:1!important;
+    color:#a0a0a6!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important
+  }
+
+  .sync-footer{
+    max-width:680px!important;
+    padding:12px 20px 24px!important;
+    border-top:1px solid #f0f0f2!important;
+    font-size:10px!important;
+    color:#a0a0a6!important
+  }
   .sync-footer button{font-size:10px!important;color:#77777e!important}
+
   @media(max-width:700px){
     header{padding:16px 18px 6px!important}
     .wrap{padding:0 18px 30px!important}
     .row3>.card:not(.aux-card){padding-top:16px!important}
     .row3 .hero-price{font-size:44px!important}
-    [data-chart-panel="price"] .chart-wrap-lg,[data-chart-panel="price"] .chart-wrap-lg canvas{height:270px!important}
+    [data-chart-panel="price"] .chart-wrap-lg,
+    [data-chart-panel="price"] .chart-wrap-lg canvas{height:270px!important}
     .wave-forecast-strip{gap:6px!important;margin-top:18px!important}
     .wave-forecast{padding:9px 4px 8px!important;border-radius:10px!important}
     .wave-forecast .wf-v{font-size:12px!important}
