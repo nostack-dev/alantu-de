@@ -192,7 +192,7 @@ export function createAlantuBookCore(options){
   const physics=createAlantuBookPhysics({
     getLeaves,
     getPageWidth,
-    getPageHeight=()=>4.80,
+    getPageHeight,
     getTotalLeaves,
     rightZ,
     leftZ,
