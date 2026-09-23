@@ -47,6 +47,20 @@ jobs:
             sleep .25
           done
           jq -e '.ok==true and (.provider=="yahoo" or .provider=="alpaca") and (.primary_runtime=="yahoo-shadow-wave" or .primary_runtime=="raw-sip-wave")' /tmp/health.json >/dev/null
+          curl -fsS http://127.0.0.1:18080/v1/source-state -o /tmp/source-state.json
+          jq -e 'has("status") and has("coverage") and has("providers") and has("items")' /tmp/source-state.json >/dev/null
+          curl -fsS http://127.0.0.1:18080/v1/shadow-history -o /tmp/shadow-history.json
+          jq -e 'has("version") and (.proof|type=="object") and (.pending|type=="array") and (.outcomes|type=="array")' /tmp/shadow-history.json >/dev/null
+          curl -fsS 'http://127.0.0.1:18080/v1/snapshot?symbol=ORCL' -o /tmp/snapshot.json
+          jq -e '.symbol=="ORCL" and (.provider=="yahoo" or .provider=="alpaca")' /tmp/snapshot.json >/dev/null
+          set +e
+          curl -sS -N --max-time 3 'http://127.0.0.1:18080/v1/stream?symbol=ORCL' -o /tmp/stream.txt
+          rc=$?
+          set -e
+          test "$rc" -eq 0 || test "$rc" -eq 28
+          grep -q '^event: sources' /tmp/stream.txt
+          grep -q '^event: shadow' /tmp/stream.txt
+          grep -q '^event: market' /tmp/stream.txt
           docker inspect -f '{{.State.Running}}' "$cid" | grep -qx true
       - name: Login to GHCR
         uses: docker/login-action@v3
