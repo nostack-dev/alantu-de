@@ -453,7 +453,7 @@
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas } from "./alantu-book-core.js?v=a0eeadf5";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=8a805934";
 
     const canvas = document.getElementById("bookCanvas");
     const stage = document.getElementById("stage");
@@ -666,8 +666,9 @@
     const totalLeaves=Math.ceil(totalPages/2);
     const PAGE_W=3.52;
     const PAGE_H=4.80;
-    const rightZ=i=>.17-i*.018;
-    const leftZ=i=>.17+i*.018;
+    const leafZStep=computeAlantuLeafStackStep(totalLeaves);
+    const rightZ=i=>.17-i*leafZStep;
+    const leftZ=i=>.17+i*leafZStep;
 
     const support=computeAlantuBookSupportZ({
       totalLeaves,
