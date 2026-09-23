@@ -1,4 +1,4 @@
-# box3d-022-smoke: 1790149911434
+# box3d-022-smoke: 1790149964375
 name: box3d-smoke
 on:
   push:
@@ -30,9 +30,9 @@ jobs:
 
           function watch(page,label){
             page.on("pageerror",err=>failures.push(`${label}: pageerror: ${err.message}`));
-  page.on("console",msg=>{
-    if(msg.type()==="error")failures.push(`${label}: console: ${msg.text()}`);
-  });
+            page.on("console",msg=>{
+              if(msg.type()==="error")failures.push(`${label}: console: ${msg.text()}`);
+            });
           }
 
           async function assertPhysics(page,label){
