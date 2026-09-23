@@ -41,7 +41,7 @@ jobs:
               null,{timeout:30000}
             );
             const resources=await page.evaluate(()=>performance.getEntriesByType("resource").map(x=>x.name));
-            if(!resources.some(x=>x.includes("alantu-book-core-box3d022.js"))){
+            if(!resources.some(x=>x.includes("alantu-book-core-box3d023.js"))){
               failures.push(`${label}: immutable core not loaded`);
             }
             if(!resources.some(x=>x.includes("alantu-book-physics-box3d022.js"))){
