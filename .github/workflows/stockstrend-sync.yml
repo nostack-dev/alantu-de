@@ -136,7 +136,7 @@ jobs:
           ! grep -q 'id="hypeChart3d"' index.html
           ! grep -q 'function sentimentReliability' index.html
           grep -q 'function latestBerlinTradingWindow' index.html
-          grep -q 'var end=isFinite(lastRow)?lastRow:session.open+60000' index.html
+          grep -Fq 'var end=Math.min(session.close,Math.max(session.open+60000,ms))' index.html
           grep -q 'function updateLivePriceChart1d' index.html
           grep -q 'id="marketFlow"' index.html
           grep -q 'id="waveForecasts"' index.html
