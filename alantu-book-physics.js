@@ -35,7 +35,7 @@ function disposeHandle(h){
 export function createAlantuBookPhysics({
   getLeaves,
   getPageWidth,
-  getPageHeight,
+  getPageHeight=()=>4.80,
   getTotalLeaves,
   rightZ,
   leftZ,
