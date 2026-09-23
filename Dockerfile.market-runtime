@@ -10,13 +10,13 @@ RUN cd market-relay && npm install --omit=dev
 
 COPY market-relay/server.mjs ./market-relay/server.mjs
 COPY market-runtime/supervisor.mjs ./market-runtime/supervisor.mjs
+COPY market-runtime/trainer-loop.mjs ./market-runtime/trainer-loop.mjs
 COPY tools/microstructure-core.mjs ./tools/microstructure-core.mjs
 COPY tools/microstructure-signal.mjs ./tools/microstructure-signal.mjs
-COPY tools/l2-event-signal.mjs ./tools/l2-event-signal.mjs
-COPY wave-model-core.js ./wave-model-core.js
+COPY tools/raw-sip-wave-core.mjs ./tools/raw-sip-wave-core.mjs
+COPY tools/train-raw-sip-wave.mjs ./tools/train-raw-sip-wave.mjs
 COPY microstructure-edge-status.json ./microstructure-edge-status.json
-COPY orcl-l2-model.json ./orcl-l2-model.json
-COPY orcl-wave-model.json ./orcl-wave-model.json
+COPY orcl-raw-sip-model.json ./orcl-raw-sip-model.json
 
 EXPOSE 8080
 
