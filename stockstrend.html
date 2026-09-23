@@ -723,7 +723,7 @@
     <div class="value-status flat" id="ivStatus"></div>
     <div class="market-flow" id="marketFlow" aria-live="polite"><div class="flow-head"><span class="flow-phase flat">WIRD BERECHNET</span></div></div>
     <div class="wave-forecast-strip" id="waveForecasts" aria-live="polite"></div>
-    <div class="trajectory-note" id="trajectoryNote"><span><strong>1T Projektion</strong> · 1 / 5 / 15 / 30 Min + Gesamtvektor</span><span>Shadow · keine Kurszusage</span></div>
+    <div class="trajectory-note" id="trajectoryNote"><span><strong>1T Projektionspfad</strong> · Konsenspfad + Unsicherheitsband</span><span>Shadow · keine Kurszusage</span></div>
     <div class="forecast-proof" id="forecastProof">
       <div class="forecast-proof-head"><span class="forecast-proof-title">Prognose-Verlauf</span><span class="forecast-proof-summary" id="forecastProofSummary">sammelt prospektive Treffer</span></div>
       <div class="proof-strip" id="forecastProofStrip" aria-live="polite"></div>
@@ -1752,33 +1752,102 @@ function collectTrajectoryGuesses(pts,session){
   var cut=Date.now()-6*3600000;
   trajectoryGuessCloud=trajectoryGuessCloud.filter(function(g){return g.created_at>=cut;}).slice(-1200);
 }
-function guessCloudDataset(pts){
-  if(priceRange!=='1d')return null;
-  var now=Date.now(),out=trajectoryGuessCloud.map(function(g){
-    var actual=nearestPriceAt(pts,g.target_at,90000),err=(isFinite(actual)&&actual>0)?Math.abs(Math.log(actual/g.guess))*10000:null;
-    var age=Math.max(0,now-g.created_at),alpha=Math.max(.12,Math.min(.72,1-age/(6*3600000)));
-    var hit=isFinite(err)?err<=8:null;
-    return {x:g.target_at,y:g.guess,_alpha:alpha,_hit:hit,_err:err,_h:g.horizon};
+function projectionDispersionBpsAt(h,rows,vol){
+  var center=consensusBpsAt(h,rows,vol),vals=[];
+  rows.forEach(function(f){vals.push(projectionBps(f,vol));});
+  var dev=vals.map(function(v){return Math.abs(v-center);}),mad=medianNum(dev);
+  var floor=vol*Math.sqrt(Math.max(1,h))*.42;
+  return Math.max(2,Math.min(90,Math.max(isFinite(mad)?mad:0,floor)));
+}
+function guessPathDataset(pts){
+  if(priceRange!=='1d'||!trajectoryGuessCloud.length)return null;
+  var buckets={},ordered=[];
+  trajectoryGuessCloud.forEach(function(g){
+    var target=Number(g.target_at),guess=Number(g.guess),created=Number(g.created_at);
+    if(!isFinite(target)||!(guess>0)||!isFinite(created))return;
+    var key=Math.round(target/120000)*120000,b=buckets[key];
+    if(!b)b=buckets[key]={x:key,values:[],latest:0};
+    b.values.push(guess);b.latest=Math.max(b.latest,created);
   });
-  return {label:'Guess-Cluster',data:out,parsing:false,showLine:false,pointRadius:function(c){return c.raw&&c.raw._h===1?1.7:2.1;},pointHoverRadius:4,pointBorderWidth:0,pointBackgroundColor:function(c){var r=c.raw||{},a=r._alpha||.2;if(r._hit===true)return 'rgba(83,201,102,'+a+')';if(r._hit===false)return 'rgba(217,75,75,'+a+')';return 'rgba(140,147,156,'+a+')';}};
+  Object.keys(buckets).forEach(function(k){
+    var b=buckets[k],y=medianNum(b.values);
+    if(isFinite(y)&&y>0)ordered.push({x:b.x,y:y,_latest:b.latest});
+  });
+  ordered.sort(function(a,b){return a.x-b.x;});
+  if(ordered.length<2)return null;
+  return {
+    label:'Tages-Projektionsspur',data:ordered,parsing:false,spanGaps:false,
+    borderColor:'rgba(104,111,120,.42)',backgroundColor:'rgba(104,111,120,.04)',
+    fill:false,tension:.28,pointRadius:0,pointHoverRadius:3,borderWidth:1.15
+  };
+}
+function trajectoryPathMeta(path,bands,rows){
+  if(!path||path.length<2)return null;
+  var start=path[0],last=path[path.length-1],endBps=Math.log(last.y/start.y)*10000;
+  var turn=null,prev=null;
+  for(var i=1;i<path.length;i++){
+    var d=path[i].y-path[i-1].y,s=Math.abs(d)<1e-10?0:(d>0?1:-1);
+    if(prev&&s&&s!==prev){turn=path[i-1]._h||null;break;}
+    if(s)prev=s;
+  }
+  var agree=0,dir=endBps>1?1:endBps<-1?-1:0;
+  rows.forEach(function(f){if(dir&&Number(f.projection_dir||f.dir)===dir)agree++;});
+  var band=bands&&bands.length?bands[bands.length-1]:null;
+  return {dir:dir,end_bps:endBps,agree:agree,total:rows.length,turn:turn,band_bps:band?band.bps:null};
+}
+function renderTrajectoryNote(meta){
+  var el=document.getElementById('trajectoryNote');if(!el)return;
+  if(!meta){el.innerHTML='<span><strong>1T Projektionspfad</strong> · wartet auf Live-Modell</span><span>Shadow · keine Kurszusage</span>';return;}
+  var dir=meta.dir>0?'aufwärts':meta.dir<0?'abwärts':'seitwärts';
+  var move=(meta.end_bps>=0?'+':'')+meta.end_bps.toFixed(1)+' bp';
+  var turn=meta.turn?(' · Dreht ~'+meta.turn+'m'):'';
+  var band=isFinite(meta.band_bps)?(' · Band ±'+meta.band_bps.toFixed(1)+' bp'):'';
+  el.innerHTML='<span><strong>'+dir+' '+move+'</strong> · Konsens '+meta.agree+'/'+meta.total+turn+band+'</span><span>Pfad statt Punktwolke · Shadow</span>';
 }
 function trajectoryDatasets(pts,session){
-  if(priceRange!=='1d'||!pts||!pts.length)return [];
-  var rows=trajectoryForecastRows();if(!rows.length)return [];
-  var a=pts[pts.length-1],x0=Number(a.x),y0=Number(a.y);if(!isFinite(x0)||!(y0>0))return [];
+  if(priceRange!=='1d'||!pts||!pts.length){renderTrajectoryNote(null);return [];}
+  var rows=trajectoryForecastRows();if(!rows.length){renderTrajectoryNote(null);return [];}
+  var a=pts[pts.length-1],x0=Number(a.x),y0=Number(a.y);if(!isFinite(x0)||!(y0>0)){renderTrajectoryNote(null);return [];}
   collectTrajectoryGuesses(pts,session);
-  var vol=recentVolBps(pts),dashes=[[2,5],[4,5],[7,5],[10,5]],sets=[],cloud=guessCloudDataset(pts);if(cloud)sets.push(cloud);
-  rows.forEach(function(f,i){
-    var h=Number(f.horizon_minutes),x1=x0+h*60000;if(session&&isFinite(session.close))x1=Math.min(x1,session.close);
-    var bps=projectionBps(f,vol),y1=y0*Math.exp(bps/10000);
-    sets.push({label:'Projektion '+h+'m',data:[{x:x0,y:y0},{x:x1,y:y1}],parsing:false,spanGaps:false,borderColor:'#BCC2CA',backgroundColor:'#BCC2CA',fill:false,tension:.18,pointRadius:[0,2.4],pointHoverRadius:4,borderWidth:1.25,borderDash:dashes[i%4]});
-  });
-  var hs=[1,5,15,30],path=[{x:x0,y:y0}];
+  var vol=recentVolBps(pts),sets=[],history=guessPathDataset(pts);if(history)sets.push(history);
+  var hs=[1,5,15,30],path=[{x:x0,y:y0,_h:0}],lower=[{x:x0,y:y0,_h:0}],upper=[{x:x0,y:y0,_h:0}],bands=[];
   hs.forEach(function(h){
     var x=x0+h*60000;if(session&&isFinite(session.close))x=Math.min(x,session.close);
-    var bps=consensusBpsAt(h,rows,vol);path.push({x:x,y:y0*Math.exp(bps/10000)});
+    var bps=consensusBpsAt(h,rows,vol),band=projectionDispersionBpsAt(h,rows,vol);
+    path.push({x:x,y:y0*Math.exp(bps/10000),_h:h,_bps:bps});
+    lower.push({x:x,y:y0*Math.exp((bps-band)/10000),_h:h});
+    upper.push({x:x,y:y0*Math.exp((bps+band)/10000),_h:h});
+    bands.push({h:h,bps:band});
   });
-  sets.push({label:'Gesamtprojektion',data:path,parsing:false,spanGaps:false,borderColor:'#000000',backgroundColor:'#000000',fill:false,tension:.24,pointRadius:function(ctx){return ctx.dataIndex===path.length-1?3:0;},pointHoverRadius:4,borderWidth:2,borderDash:[2,3]});
+  sets.push({
+    label:'Projektionsband unten',data:lower,parsing:false,spanGaps:false,
+    borderColor:'rgba(0,0,0,0)',backgroundColor:'rgba(0,0,0,0)',fill:false,
+    tension:.28,pointRadius:0,borderWidth:0
+  });
+  sets.push({
+    label:'Unsicherheitsband',data:upper,parsing:false,spanGaps:false,
+    borderColor:'rgba(0,0,0,0)',backgroundColor:'rgba(70,75,82,.09)',fill:'-1',
+    tension:.28,pointRadius:0,borderWidth:0
+  });
+  var turns={};
+  var prev=null;
+  for(var i=1;i<path.length;i++){
+    var delta=path[i].y-path[i-1].y,s=Math.abs(delta)<1e-10?0:(delta>0?1:-1);
+    if(prev&&s&&s!==prev)turns[i-1]=true;
+    if(s)prev=s;
+  }
+  sets.push({
+    label:'Projektionspfad',data:path,parsing:false,spanGaps:false,
+    borderColor:'#151517',backgroundColor:'#151517',fill:false,tension:.28,
+    pointRadius:function(ctx){
+      if(ctx.dataIndex===path.length-1)return 4;
+      return turns[ctx.dataIndex]?3.4:0;
+    },
+    pointStyle:function(ctx){return turns[ctx.dataIndex]?'triangle':'circle';},
+    pointRotation:function(ctx){return turns[ctx.dataIndex]?90:0;},
+    pointHoverRadius:5,borderWidth:2.35
+  });
+  renderTrajectoryNote(trajectoryPathMeta(path,bands,rows));
   return sets;
 }
 function trajectoryAxisMax(pts,session){

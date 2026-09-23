@@ -150,7 +150,11 @@ jobs:
           ! grep -q "fetch(base+'/v1/source-state" index.html
           ! grep -q "fetch(base+'/v1/shadow-history" index.html
           grep -q 'trajectoryGuessCloud' index.html
-          grep -q "label:'Gesamtprojektion'" index.html
+          grep -q 'function guessPathDataset' index.html
+          grep -q 'function projectionDispersionBpsAt' index.html
+          grep -q "label:'Projektionspfad'" index.html
+          ! grep -q "label:'Guess-Cluster'" index.html
+          ! grep -q "label:'Gesamtprojektion'" index.html
           grep -q 'function validatedWaveForecast' index.html
           grep -q 'function scheduleWaveForecast' index.html
           grep -q "fetchJson('orcl-raw-sip-model.json',true)" index.html
