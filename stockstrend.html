@@ -1413,7 +1413,7 @@ document.addEventListener('visibilitychange',function(){if(!document.hidden)conn
 
 function microstructureTransportUsable(){
   var s=microstructureStatus||{},d=microstructureData||{},dq=d.quality||{};
-  if(d.mode==='live-relay'){
+  if(d.mode==='raw-sip-live'){
     var liveAt=Date.parse(d.at||'');
     return dq.status==='usable'&&isFinite(liveAt)&&Math.abs(Date.now()-liveAt)<=15000;
   }
@@ -1431,8 +1431,9 @@ function connectMicrostructureRelay(){
   es.addEventListener('market',function(ev){
     try{
       var d=JSON.parse(ev.data||'{}');
-      if(d&&d.provider==='alpaca'&&d.feed==='sip'&&d.symbol==='ORCL'&&d.mode==='live-relay'){
+      if(d&&d.provider==='alpaca'&&d.feed==='sip'&&d.symbol==='ORCL'&&d.mode==='raw-sip-live'){
         microstructureData=d;
+        if(d.wave)orclWaveModel=d.wave;
         if(d.wave_forecast){waveForecastState=d.wave_forecast;renderWaveForecasts();}
         lastFlowRenderAt=0;
         try{renderMarketFlowVisual(getMarketWaveVector());}catch(e){}
@@ -1460,13 +1461,12 @@ function validatedL2Forecast(){
   return Object.assign({},s,{source:'l2'});
 }
 function validatedMicrostructureSignal(){
-  var l2=validatedL2Forecast();if(l2)return l2;
-  var e=microstructureEdgeStatus||{},d=microstructureData||{},s=d.live_signal||null;
-  if(!microstructureTransportUsable()||e.status!=='validated'||!s)return null;
-  if(!e.model_id||d.edge_model_id!==e.model_id||s.model_id!==e.model_id)return null;
-  var at=Date.parse(s.asof||'');if(!isFinite(at)||Math.abs(Date.now()-at)>15*60*1000)return null;
+  var d=microstructureData||{},m=d.wave||{},s=d.live_signal||null;
+  if(!microstructureTransportUsable()||m.status!=='validated'||m.production_enabled!==true||!s)return null;
+  if(m.model_id&&s.model_id!==m.model_id)return null;
+  var at=Date.parse(s.asof||'');if(!isFinite(at)||Math.abs(Date.now()-at)>5000)return null;
   var dir=Number(s.dir);if(dir!==1&&dir!==-1)return null;
-  return Object.assign({},s,{source:'sip'});
+  return Object.assign({},s,{source:'raw_sip'});
 }
 function waveSocialContext(dir){
   var s=sentimentWave(),sd=Number(s&&s.dir)||0,md=Number(s&&s.massDir)||0;
@@ -1475,8 +1475,8 @@ function waveSocialContext(dir){
   return 'Social neutral';
 }
 function refreshWaveForecasts(){
-  if(!waveCore||!orclWaveModel||!Array.isArray(orclMinuteBars)){waveForecastState=null;renderWaveForecasts();return null;}
-  try{waveForecastState=waveCore.forecastLatest(orclMinuteBars,orclWaveModel);}catch(e){waveForecastState={status:'blocked',reason:'runtime_error'};}
+  if(!(microstructureData&&microstructureData.wave_forecast))waveForecastState={status:'blocked',reason:'waiting_raw_sip'};
+  else waveForecastState=microstructureData.wave_forecast;
   renderWaveForecasts();
   return waveForecastState;
 }
@@ -1485,28 +1485,28 @@ function scheduleWaveForecast(){
   waveForecastTimer=setTimeout(function(){waveForecastTimer=null;refreshWaveForecasts();try{renderMarketFlowVisual(getMarketWaveVector());}catch(e){}},8000);
 }
 function validatedWaveForecast(){
-  var s=waveForecastState||{},a=Array.isArray(s.forecasts)?s.forecasts.filter(function(x){return Number(x.dir)===1||Number(x.dir)===-1;}):[];
-  if(s.status!=='ok'||!a.length||!orclWaveModel||orclWaveModel.status!=='validated'||orclWaveModel.production?.enabled!==true)return null;
-  a.sort(function(x,y){
-    var dm=Number(y.margin||0)-Number(x.margin||0);if(Math.abs(dm)>.12)return dm;
-    return Number(x.horizon_minutes)-Number(y.horizon_minutes);
-  });
-  var f=a[0],hit=Number(f.holdout&&f.holdout.hit);
-  return Object.assign({},f,{source:'wave',asof:s.asof,social_context:waveSocialContext(Number(f.dir)),holdout_hit:isFinite(hit)?hit:null});
+  var s=waveForecastState||{},m=(microstructureData&&microstructureData.wave)||orclWaveModel||{},a=Array.isArray(s.forecasts)?s.forecasts.filter(function(x){return Number(x.dir)===1||Number(x.dir)===-1;}):[];
+  if(s.status!=='ok'||!a.length||m.status!=='validated'||m.production_enabled!==true)return null;
+  a=a.filter(function(x){return !m.model_id||x.model_id===m.model_id;});if(!a.length)return null;
+  a.sort(function(x,y){var dm=Number(y.margin||0)-Number(x.margin||0);if(Math.abs(dm)>.12)return dm;return Number(x.horizon_minutes)-Number(y.horizon_minutes);});
+  var f=a[0],hit=Number(f.proof&&f.proof.holdout&&f.proof.holdout.hit);
+  return Object.assign({},f,{source:'raw_sip',asof:s.asof,social_context:waveSocialContext(Number(f.dir)),holdout_hit:isFinite(hit)?hit:null});
 }
 function renderWaveForecasts(){
   var el=document.getElementById('waveForecasts');if(!el)return;
-  var model=orclWaveModel||{},state=waveForecastState||{},live={};
+  var model=(microstructureData&&microstructureData.wave)||orclWaveModel||{},state=waveForecastState||{},live={};
   (state.forecasts||[]).forEach(function(x){live[String(x.horizon_minutes)]=x;});
-  var hs=[5,15,30];
+  var hs=[1,5,15,30];
   el.innerHTML=hs.map(function(h){
     var mh=(model.horizons||[]).find(function(x){return Number(x.horizon_minutes)===h;})||{},f=live[String(h)]||null,cls='flat',v='WARTEN',meta='';
     if(mh.status==='validated'&&f){
       if(Number(f.dir)>0){cls='up';v='↑ BUY';}else if(Number(f.dir)<0){cls='down';v='↓ SELL';}else v='— KEIN SIGNAL';
-      var hit=Number(mh.holdout&&mh.holdout.hit);meta=(isFinite(hit)?('Test '+Math.round(hit*100)+' %'):'validiert')+' · '+waveSocialContext(Number(f.dir)||0);
-    }else if(mh.status==='validated'){v='— WARTEN';meta='validiert';}
-    else if(mh.status==='unproven'){v='NICHT FREI';meta='Holdout nicht bestanden';}
-    else{v='LÄDT';meta='Modelltraining';}
+      var hit=Number(mh.holdout_hit);meta=(isFinite(hit)&&hit>0?('OOS '+Math.round(hit*100)+' %'):'validiert')+' · '+waveSocialContext(Number(f.dir)||0);
+    }else if(mh.status==='validated'){v='— WARTEN';meta='Roh-SIP validiert';}
+    else if(model.status==='awaiting_credentials'){v='KEY FEHLT';meta='Alpaca API-Key in Railway eintragen';}
+    else if(model.status==='collecting'){v='TRAINIERT';meta='Historische Rohdaten werden aufgebaut';}
+    else if(mh.status==='unproven'){v='NICHT FREI';meta='OOS-Gate nicht bestanden';}
+    else{v='WARTEN';meta='Roh-SIP Modell';}
     return '<div class="wave-forecast '+cls+'"><div class="wf-h">≈ '+h+' Min</div><div class="wf-v">'+v+'</div><div class="wf-m">'+meta+'</div></div>';
   }).join('');
 }
@@ -2055,8 +2055,8 @@ async function load(){
     var me=await fetchJson('microstructure-edge-status.json',true);
     var ml=await fetchJson('microstructure-live-config.json',true);
     var l2m=await fetchJson('orcl-l2-model.json',true);
-    var wm=await fetchJson('orcl-wave-model.json',true);
-    try{waveCore=await import('./wave-model-core.js?t='+Date.now());}catch(e){waveCore=null;}
+    var wm=await fetchJson('orcl-raw-sip-model.json',true);
+    waveCore=null;
     tickData=a; wlData=b; ivData=c; fxData=d||fxData; orclMinutePayload=m||orclMinutePayload; orclHistoryPayload=h||orclHistoryPayload; sentimentBackfillData=sb||sentimentBackfillData;
     microstructureStatus=ms||microstructureStatus; microstructureData=md||microstructureData; microstructureEdgeStatus=me||microstructureEdgeStatus; microstructureLiveConfig=ml||microstructureLiveConfig; orclL2Model=l2m||orclL2Model; orclWaveModel=wm||orclWaveModel;
     fallbackMarket();
