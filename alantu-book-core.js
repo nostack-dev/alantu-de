@@ -14,8 +14,8 @@ export function createAlantuCoverCanvas({
   title,
   brand="ALANTU",
   subtitle="Exposé",
-  width=1200,
-  height=1600
+  width=1800,
+  height=2400
 }={}){
   const canvas=document.createElement("canvas");
   canvas.width=width;
@@ -834,6 +834,10 @@ export function createAlantuBookCore(options){
 
   notify();
 
+  function cancelDrag(){
+    if(dragState)releaseDrag(true);
+  }
+
   return {
     next,
     prev,
@@ -842,6 +846,7 @@ export function createAlantuBookCore(options){
     normalize,
     deformLeaf,
     shownLeaf,
-    state
+    state,
+    cancelDrag
   };
 }

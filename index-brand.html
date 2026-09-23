@@ -159,8 +159,15 @@
       transform:scale(1.003);
     }
     .stage.is-book-dragging,
-    .stage.is-book-dragging *{
+    .stage.is-book-dragging *,
+    .stage.is-view-pinching,
+    .stage.is-view-pinching *{
       cursor:none!important;
+    }
+    .stage.is-view-pinching #bookCanvas{
+      filter:
+        drop-shadow(0 20px 30px rgba(28,22,16,.22))
+        drop-shadow(0 0 14px rgba(184,154,99,.18));
     }
     .stage-ui{position:absolute;inset:0;z-index:2;pointer-events:none}
     .stage-top{
@@ -193,8 +200,9 @@
       -webkit-backdrop-filter:blur(12px);
       padding:9px 12px;
       border-radius:999px;
-      font-size:11px;
-      letter-spacing:.06em;
+      font-size:12px;
+      font-weight:650;
+      letter-spacing:.045em;
       color:#474139;
     }
     .stage-control{
@@ -226,7 +234,8 @@
       border:1px solid rgba(13,13,11,.12);
       border-radius:999px;
       padding:10px 13px;
-      font-size:11px;
+      font-size:12px;
+      font-weight:650;
       font-variant-numeric:tabular-nums;
       color:#4d473f;
     }
@@ -372,6 +381,11 @@
               <span class="badge">LIVE · 3D EXPOSÉ</span>
               <div class="stage-top-actions">
                 <span class="badge">VILLA AM SEE</span>
+                <button class="stage-control" id="fitViewBtn" type="button" aria-label="Ansicht einpassen" title="Ansicht einpassen">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5M4 4l5 5M20 4l-5 5M4 20l5-5M20 20l-5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
                 <button class="stage-control stage-fullscreen" id="fullscreenBtn" type="button" aria-label="Vollbild öffnen" title="Vollbild">
                   <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
@@ -453,7 +467,8 @@
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand306";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand307";
+    import { createAlantuBookViewControls } from "./alantu-book-view.js?v=view401";
 
     const canvas = document.getElementById("bookCanvas");
     canvas.addEventListener("contextmenu",e=>e.preventDefault());
@@ -465,10 +480,11 @@
     const pageCount = document.getElementById("pageCount");
     const experienceBtn = document.getElementById("experienceBtn");
     const fullscreenBtn = document.getElementById("fullscreenBtn");
+    const fitViewBtn = document.getElementById("fitViewBtn");
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const renderer = new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:"high-performance"});
-    renderer.setPixelRatio(Math.min(Math.max(window.devicePixelRatio || 1,1.5),2.5));
+    renderer.setPixelRatio(Math.min(Math.max(window.devicePixelRatio || 1,2),3));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -491,9 +507,9 @@
     scene.add(rim);
 
     const root = new THREE.Group();
-    root.rotation.x = -0.13;
-    root.rotation.y = -0.24;
-    root.rotation.z = -0.018;
+    root.rotation.x = -0.075;
+    root.rotation.y = -0.105;
+    root.rotation.z = -0.008;
     scene.add(root);
 
     const coverMat = new THREE.MeshStandardMaterial({color:0x171713,roughness:.68,metalness:.06});
@@ -560,6 +576,8 @@
       const TEX_SCALE=2.5;
       c.width=Math.round(900*TEX_SCALE);c.height=Math.round(1220*TEX_SCALE);
       const ctx=c.getContext("2d");
+      ctx.imageSmoothingEnabled=true;
+      ctx.imageSmoothingQuality="high";
       ctx.scale(TEX_SCALE,TEX_SCALE);
       ctx.fillStyle="#f4f0e8";ctx.fillRect(0,0,900,1220);
 
@@ -810,6 +828,18 @@
       ignorePointerSelector:".stage-control"
     });
 
+    const viewControls=createAlantuBookViewControls({
+      THREE,
+      stage,
+      renderer,
+      camera,
+      root,
+      getPageWidth:()=>PAGE_W,
+      getPageHeight:()=>PAGE_H,
+      fitButton:fitViewBtn,
+      onPinchStart:()=>bookCore.cancelDrag()
+    });
+
     experienceBtn.addEventListener("click",()=>{
       document.getElementById("demo").scrollIntoView({behavior:prefersReduced?"auto":"smooth",block:"center"});
       setTimeout(()=>{
@@ -841,29 +871,10 @@
     document.addEventListener("fullscreenchange",syncFullscreenButton);
     document.addEventListener("webkitfullscreenchange",syncFullscreenButton);
 
-    function resize(){
-      const r=stage.getBoundingClientRect();
-      const w=Math.max(1,Math.round(r.width));
-      const h=Math.max(1,Math.round(r.height));
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2.5));
-      renderer.setSize(w,h,false);
-      camera.aspect=w/h;
-
-      const fullscreen=document.fullscreenElement===stage||document.webkitFullscreenElement===stage;
-      if(w<560 && !fullscreen){
-        camera.fov=31;
-        root.scale.setScalar(.72);
-        root.position.set(.58,.08,0);
-        root.rotation.y=-.16;
-      }else{
-        camera.fov=30;
-        root.scale.setScalar(fullscreen?.86:.76);
-        root.position.set(1.34,.02,0);
-        root.rotation.y=-.18;
-      }
-      camera.updateProjectionMatrix();
-    }
-    const ro=new ResizeObserver(resize);ro.observe(stage);resize();
+    function resize(){viewControls.resize()}
+    const ro=new ResizeObserver(resize);
+    ro.observe(stage);
+    resize();
 
     function render(now){
       bookCore.step(now||performance.now());

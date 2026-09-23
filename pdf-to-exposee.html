@@ -214,8 +214,15 @@
       transform:scale(1.003);
     }
     .stage.is-book-dragging,
-    .stage.is-book-dragging *{
+    .stage.is-book-dragging *,
+    .stage.is-view-pinching,
+    .stage.is-view-pinching *{
       cursor:none!important;
+    }
+    .stage.is-view-pinching #bookCanvas{
+      filter:
+        drop-shadow(0 20px 30px rgba(28,22,16,.22))
+        drop-shadow(0 0 14px rgba(184,154,99,.18));
     }
     .empty{
       position:absolute;inset:0;z-index:2;
@@ -237,7 +244,7 @@
       backdrop-filter:blur(10px);
       -webkit-backdrop-filter:blur(10px);
       padding:9px 11px;border-radius:999px;
-      font-size:10px;letter-spacing:.07em;
+      font-size:12px;font-weight:650;letter-spacing:.045em;
       white-space:nowrap;max-width:46vw;overflow:hidden;text-overflow:ellipsis;
     }
     .circle{
@@ -259,7 +266,7 @@
       background:rgba(244,240,232,.78);
       border:1px solid rgba(13,13,11,.12);
       backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-      font-size:10px;font-variant-numeric:tabular-nums;
+      font-size:12px;font-weight:650;font-variant-numeric:tabular-nums;
     }
     .tapzone{
       position:absolute;top:66px;bottom:66px;width:39%;z-index:3;
@@ -333,7 +340,7 @@
             <input id="brandInput" type="text" value="ALANTU" maxlength="42" autocomplete="organization" spellcheck="false">
           </label>
           <label class="branding-field">
-            <span>Bezeichnung</span>
+            <span>Text statt „Exposé“</span>
             <input id="subtitleInput" type="text" value="Exposé" maxlength="42" spellcheck="false">
           </label>
         </div>
@@ -372,6 +379,11 @@
           <div class="stage-top">
             <span class="badge" id="viewerTitle">ALANTU · PDF EXPOSÉ</span>
             <div class="stage-actions">
+              <button class="circle" id="fitViewBtn" type="button" aria-label="Ansicht einpassen" title="Ansicht einpassen">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5M4 4l5 5M20 4l-5 5M4 20l5-5M20 20l-5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
               <button class="circle" id="fullscreenBtn" type="button" aria-label="Vollbild öffnen" title="Vollbild">
                 <svg viewBox="0 0 24 24" fill="none"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </button>
@@ -400,13 +412,14 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand306";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand307";
+    import { createAlantuBookViewControls } from "./alantu-book-view.js?v=view401";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
     const MAX_PAGES=40;
-    const MAX_TEXTURE_EDGE_DESKTOP=2560;
-    const MAX_TEXTURE_EDGE_MOBILE=2048;
+    const MAX_TEXTURE_EDGE_DESKTOP=3072;
+    const MAX_TEXTURE_EDGE_MOBILE=2560;
 
     const stage=document.getElementById("stage");
     const canvas=document.getElementById("bookCanvas");
@@ -431,9 +444,11 @@
     const tapNext=document.getElementById("tapNext");
     const pageCount=document.getElementById("pageCount");
     const fullscreenBtn=document.getElementById("fullscreenBtn");
+    const fitViewBtn=document.getElementById("fitViewBtn");
     const prefersReduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:"high-performance"});
+    renderer.setPixelRatio(Math.min(Math.max(window.devicePixelRatio||1,2),3));
     renderer.outputColorSpace=THREE.SRGBColorSpace;
     renderer.shadowMap.enabled=true;
     renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -456,9 +471,9 @@
     scene.add(rim);
 
     const root=new THREE.Group();
-    root.rotation.x=-.13;
-    root.rotation.y=-.24;
-    root.rotation.z=-.018;
+    root.rotation.x=-.075;
+    root.rotation.y=-.105;
+    root.rotation.z=-.008;
     scene.add(root);
 
     const coverMaterial=new THREE.MeshStandardMaterial({color:0x171713,roughness:.68,metalness:.06});
@@ -640,6 +655,8 @@
       const out=document.createElement("canvas");
       out.width=targetW;out.height=targetH;
       const ctx=out.getContext("2d",{alpha:false});
+      ctx.imageSmoothingEnabled=true;
+      ctx.imageSmoothingQuality="high";
       ctx.fillStyle="#fff";ctx.fillRect(0,0,targetW,targetH);
       const scale=Math.min(targetW/source.width,targetH/source.height);
       const w=source.width*scale,h=source.height*scale;
@@ -711,6 +728,18 @@
       nextTap:tapNext,
       prevTap:tapPrev,
       ignorePointerSelector:".stage-control,.circle"
+    });
+
+    const viewControls=createAlantuBookViewControls({
+      THREE,
+      stage,
+      renderer,
+      camera,
+      root,
+      getPageWidth:()=>PAGE_W,
+      getPageHeight:()=>PAGE_H,
+      fitButton:fitViewBtn,
+      onPinchStart:()=>bookCore.cancelDrag()
     });
 
     function buildBook(renderedPages){
@@ -957,30 +986,7 @@
     document.addEventListener("fullscreenchange",syncFullscreen);
     document.addEventListener("webkitfullscreenchange",syncFullscreen);
 
-    function resize(){
-      const r=stage.getBoundingClientRect();
-      const w=Math.max(1,Math.round(r.width));
-      const h=Math.max(1,Math.round(r.height));
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2.5));
-      renderer.setSize(w,h,false);
-      camera.aspect=w/h;
-
-      const fullscreen=document.fullscreenElement===stage||document.webkitFullscreenElement===stage;
-      const widthFit=Math.min(1,3.52/Math.max(3.52,PAGE_W));
-
-      if(w<560&&!fullscreen){
-        camera.fov=31;
-        root.scale.setScalar(.72*widthFit);
-        root.position.set(.58,.08,0);
-        root.rotation.y=-.16;
-      }else{
-        camera.fov=30;
-        root.scale.setScalar((fullscreen?.86:.76)*widthFit);
-        root.position.set(1.34,.02,0);
-        root.rotation.y=-.18;
-      }
-      camera.updateProjectionMatrix();
-    }
+    function resize(){viewControls.resize()}
     new ResizeObserver(resize).observe(stage);
     resize();
     updateUI();
