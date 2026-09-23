@@ -1,0 +1,83 @@
+name: Train ORCL wave model
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "wave-model-core.js"
+      - "tools/train-orcl-wave-model.mjs"
+      - ".github/workflows/orcl-wave-model.yml"
+  schedule:
+    - cron: "17 12 * * 1-5"
+    - cron: "47 19 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: orcl-wave-model
+  cancel-in-progress: true
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Start from current main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
+
+      - name: Fetch 60d ORCL 2-minute history
+        shell: bash
+        run: |
+          set -euo pipefail
+          url1='https://query1.finance.yahoo.com/v8/finance/chart/ORCL?range=60d&interval=2m&includePrePost=false&events=div%2Csplits'
+          url2='https://query2.finance.yahoo.com/v8/finance/chart/ORCL?range=60d&interval=2m&includePrePost=false&events=div%2Csplits'
+          if ! curl -fsSL --retry 3 --connect-timeout 10 --max-time 60 -A 'Mozilla/5.0' "$url1" -o /tmp/orcl-wave-history.json; then
+            curl -fsSL --retry 3 --connect-timeout 10 --max-time 60 -A 'Mozilla/5.0' "$url2" -o /tmp/orcl-wave-history.json
+          fi
+          jq -e '.chart.result[0].timestamp | length > 5000' /tmp/orcl-wave-history.json >/dev/null
+
+      - name: Train and validate 2m / 10m / 30m
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check wave-model-core.js
+          node --check tools/train-orcl-wave-model.mjs
+          node tools/train-orcl-wave-model.mjs /tmp/orcl-wave-history.json /tmp/orcl-wave-model.json | tee /tmp/orcl-wave-model.log
+          jq -e '
+            .symbol=="ORCL" and
+            .feature_version=="wave-hdr-dt-v1" and
+            .bar_minutes==2 and
+            (.horizons|length)==3 and
+            ([.horizons[].horizon_minutes]|sort)==[2,10,30] and
+            (.status=="validated" or .status=="unproven")
+          ' /tmp/orcl-wave-model.json >/dev/null
+
+      - name: Publish exact model result
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp /tmp/orcl-wave-model.json orcl-wave-model.json
+          git add orcl-wave-model.json
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name "orcl-wave-trainer"
+          git config user.email "orcl-wave-trainer@users.noreply.github.com"
+          git commit -m "Update ORCL multi-horizon wave model"
+          git push origin HEAD:main
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: orcl-wave-model-${{ github.run_id }}
+          path: |
+            /tmp/orcl-wave-model.json
+            /tmp/orcl-wave-model.log
+          retention-days: 90
