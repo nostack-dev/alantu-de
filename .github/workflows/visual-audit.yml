@@ -1,5 +1,5 @@
 name: visual-audit
-# pdf-cover-audit: 1790088606432
+# frame-audit-10-leaves: 1790146227963
 on:
   push:
     paths:
@@ -8,7 +8,7 @@ on:
 jobs:
   screenshots:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,10 +19,10 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install playwright@1.55.0 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null
-      - name: Capture
+      - name: Capture frame-by-frame
         run: |
           python3 -m http.server 4173 > /tmp/alantu-http.log 2>&1 &
-          mkdir -p screenshots
+          mkdir -p screenshots/pdf screenshots/main
           cat > audit.mjs <<'JS'
           import { chromium } from "playwright";
           import fs from "node:fs";
@@ -31,85 +31,115 @@ jobs:
           const wait=ms=>new Promise(r=>setTimeout(r,ms));
           const diagnostics=[];
 
-          async function diag(page,label){
+          async function click(page,id){
+            await page.evaluate(id=>document.querySelector(id)?.click(),id);
+          }
+
+          async function state(page,label){
             diagnostics.push({
               label,
               count:await page.locator("#pageCount").textContent().catch(()=>null),
               prevDisabled:await page.locator("#prevBtn").isDisabled().catch(()=>null),
-              nextDisabled:await page.locator("#nextBtn").isDisabled().catch(()=>null)
+              nextDisabled:await page.locator("#nextBtn").isDisabled().catch(()=>null),
+              dragging:await page.evaluate(()=>document.querySelector(".stage")?.classList.contains("is-book-dragging"))
             });
           }
 
-          async function click(page,id){
-            await page.evaluate(id=>document.querySelector(id)?.click(),id);
-            await wait(1200);
+          async function burst(page,prefix,frames=14,interval=70){
+            for(let f=0;f<frames;f++){
+              await page.screenshot({path:`screenshots/${prefix}-f${String(f).padStart(2,"0")}.png`});
+              if(f<frames-1) await wait(interval);
+            }
           }
 
-          async function shotMain(viewport,namePrefix){
-            const page=await browser.newPage({viewport});
-            await page.goto("http://127.0.0.1:4173/index-brand.html?audit=2",{waitUntil:"networkidle"});
-            await wait(800);
-
-            await page.screenshot({path:`screenshots/${namePrefix}-open.png`});
-            await diag(page,`${namePrefix}-open`);
-
-            await click(page,"#prevBtn");
-            await page.screenshot({path:`screenshots/${namePrefix}-front-closed.png`});
-            await diag(page,`${namePrefix}-front-closed`);
-
-            await click(page,"#nextBtn");
-            for(let i=0;i<3;i++) await click(page,"#nextBtn");
-            await page.screenshot({path:`screenshots/${namePrefix}-last-open.png`});
-            await diag(page,`${namePrefix}-last-open`);
-
-            await click(page,"#nextBtn");
-            await page.screenshot({path:`screenshots/${namePrefix}-end-closed.png`});
-            await diag(page,`${namePrefix}-end-closed`);
-
-            await page.close();
-          }
-
-          async function makePdf(){
+          async function makePdf20(){
             const page=await browser.newPage({viewport:{width:900,height:1200}});
-            let html='<style>@page{size:A4;margin:0}body{margin:0;font-family:Arial}section{height:1122px;padding:90px;box-sizing:border-box;page-break-after:always;background:#f4f0e8;color:#171713}h1{font:64px Georgia;margin-top:250px}p{font-size:28px;line-height:1.45}</style>';
-            const titles=["Villa am See","Lage","Architektur","Wohnen","Grundriss","Kontakt"];
-            for(let i=0;i<titles.length;i++) html+=`<section><div style="letter-spacing:.2em;color:#8d7347">ALANTU</div><h1>${titles[i]}</h1><p>Premium Exposé · Seite ${i+1}</p></section>`;
+            let html='<style>@page{size:A4;margin:0}body{margin:0;font-family:Arial}section{height:1122px;padding:90px;box-sizing:border-box;page-break-after:always;background:#f4f0e8;color:#171713}h1{font:64px Georgia;margin-top:220px}p{font-size:28px;line-height:1.45}.stripe{height:18px;background:#d6252e;margin-top:70px;width:70%}</style>';
+            for(let i=0;i<20;i++){
+              html+=`<section><div style="letter-spacing:.2em;color:#8d7347">ALANTU</div><h1>Blatt-Test ${i+1}</h1><div class="stripe"></div><p>Premium Exposé · Seite ${i+1} / 20</p></section>`;
+            }
             await page.setContent(html);
-            await page.pdf({path:"/tmp/sample.pdf",format:"A4",printBackground:true});
+            await page.pdf({path:"/tmp/sample-20.pdf",format:"A4",printBackground:true});
             await page.close();
           }
 
-          async function shotPdf(viewport,namePrefix){
-            const page=await browser.newPage({viewport});
-            await page.goto("http://127.0.0.1:4173/pdf-to-exposee.html?audit=2",{waitUntil:"networkidle"});
-            await page.locator("#pdfInput").setInputFiles("/tmp/sample.pdf");
-            await page.waitForFunction(()=>document.querySelector("#status")?.textContent?.includes("Seiten bereit"),null,{timeout:30000});
+          async function auditPdf(){
+            const page=await browser.newPage({viewport:{width:1600,height:1100}});
+            await page.goto("http://127.0.0.1:4173/pdf-to-exposee.html?frameAudit=10",{waitUntil:"networkidle"});
+            await page.locator("#pdfInput").setInputFiles("/tmp/sample-20.pdf");
+            await page.waitForFunction(()=>document.querySelector("#status")?.textContent?.includes("Seiten bereit"),null,{timeout:45000});
+            await wait(900);
+
+            await page.screenshot({path:"screenshots/pdf/00-open-start.png"});
+            await state(page,"pdf-open-start");
+
+            // Verify closed front and reopen.
+            await click(page,"#prevBtn"); await wait(900);
+            await page.screenshot({path:"screenshots/pdf/00-front-closed.png"});
+            await state(page,"pdf-front-closed");
+            await click(page,"#nextBtn"); await wait(900);
+
+            // 10 leaves. Each transition gets 14 frames over ~910 ms.
+            for(let leaf=1;leaf<=10;leaf++){
+              await state(page,`pdf-leaf-${leaf}-before`);
+              await click(page,"#nextBtn");
+              await burst(page,`pdf/leaf-${String(leaf).padStart(2,"0")}`,14,70);
+              await wait(350);
+              await page.screenshot({path:`screenshots/pdf/leaf-${String(leaf).padStart(2,"0")}-settled.png`});
+              await state(page,`pdf-leaf-${leaf}-settled`);
+            }
+
+            await page.screenshot({path:"screenshots/pdf/99-last-open.png"});
+            await click(page,"#nextBtn");
+            await burst(page,"pdf/end-cover",14,70);
+            await wait(350);
+            await page.screenshot({path:"screenshots/pdf/99-end-closed.png"});
+            await state(page,"pdf-end-closed");
+
+            // Drag feedback sample on reopened end cover.
+            await page.evaluate(()=>document.querySelector("#prevBtn")?.click());
             await wait(800);
-
-            await page.screenshot({path:`screenshots/${namePrefix}-open.png`});
-            await diag(page,`${namePrefix}-open`);
-
-            await click(page,"#prevBtn");
-            await page.screenshot({path:`screenshots/${namePrefix}-front-closed.png`});
-            await diag(page,`${namePrefix}-front-closed`);
-
-            await click(page,"#nextBtn");
-            for(let i=0;i<3;i++) await click(page,"#nextBtn");
-            await page.screenshot({path:`screenshots/${namePrefix}-last-open.png`});
-            await diag(page,`${namePrefix}-last-open`);
-
-            await click(page,"#nextBtn");
-            await page.screenshot({path:`screenshots/${namePrefix}-end-closed.png`});
-            await diag(page,`${namePrefix}-end-closed`);
+            const stage=page.locator(".stage");
+            const box=await stage.boundingBox();
+            if(box){
+              const x=box.x+box.width*.62, y=box.y+box.height*.56;
+              await page.mouse.move(x,y);
+              await page.mouse.down();
+              await page.mouse.move(x-100,y,{steps:6});
+              await page.screenshot({path:"screenshots/pdf/drag-feedback.png"});
+              await page.mouse.up();
+            }
 
             await page.close();
           }
 
-          await makePdf();
-          await shotMain({width:1600,height:1100},"main-desktop");
-          await shotPdf({width:1600,height:1100},"pdf-desktop");
-          await shotMain({width:390,height:844},"main-mobile");
-          await shotPdf({width:390,height:844},"pdf-mobile");
+          async function auditMain(){
+            const page=await browser.newPage({viewport:{width:1600,height:1100}});
+            await page.goto("http://127.0.0.1:4173/index-brand.html?frameAudit=main",{waitUntil:"networkidle"});
+            await wait(900);
+            await page.screenshot({path:"screenshots/main/00-open-start.png"});
+
+            await click(page,"#prevBtn"); await burst(page,"main/front-cover",10,80); await wait(300);
+            await page.screenshot({path:"screenshots/main/00-front-closed.png"});
+            await click(page,"#nextBtn"); await wait(700);
+
+            for(let leaf=1;leaf<=3;leaf++){
+              await click(page,"#nextBtn");
+              await burst(page,`main/leaf-${String(leaf).padStart(2,"0")}`,12,75);
+              await wait(300);
+              await page.screenshot({path:`screenshots/main/leaf-${String(leaf).padStart(2,"0")}-settled.png`});
+            }
+
+            await click(page,"#nextBtn");
+            await burst(page,"main/end-cover",12,75);
+            await wait(300);
+            await page.screenshot({path:"screenshots/main/99-end-closed.png"});
+            await page.close();
+          }
+
+          await makePdf20();
+          await auditPdf();
+          await auditMain();
 
           fs.writeFileSync("screenshots/diagnostics.json",JSON.stringify(diagnostics,null,2));
           await browser.close();
@@ -117,6 +147,6 @@ jobs:
           node audit.mjs
       - uses: actions/upload-artifact@v4
         with:
-          name: visual-audit
+          name: visual-audit-frame-by-frame
           path: screenshots/
           if-no-files-found: error
