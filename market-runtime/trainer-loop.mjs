@@ -4,7 +4,7 @@ const INTERVAL_HOURS=Math.max(1,Number(process.env.RAW_EDGE_TRAIN_INTERVAL_HOURS
 let running=false,stopping=false,timer=null,child=null;
 
 function log(obj){console.log(JSON.stringify({service:'raw-sip-trainer-loop',...obj}));}
-function schedule(ms){if(stopping)return;clearTimeout(timer);timer=setTimeout(run,ms);timer.unref?.();}
+function schedule(ms){if(stopping)return;clearTimeout(timer);timer=setTimeout(run,ms);}
 function run(){
   if(stopping||running)return;
   running=true;
