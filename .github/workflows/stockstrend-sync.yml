@@ -457,8 +457,8 @@ jobs:
           set -euo pipefail
           git add index.html stockstrend.html methodik.html market-clock-core.js price-shock-core.js \
             stockstrend-data.json watchlist-data.json watchlist.json intrinsic-orcl.json \
-            orcl-minute.json orcl-history.json eurusd-history.json runtime-status.json .stockstrend-source-sha
-          if [ -f orcl-sentiment-history.json ]; then git add orcl-sentiment-history.json; fi
+            orcl-minute.json orcl-history.json orcl-sentiment-history.json eurusd-history.json \
+            runtime-status.json microstructure-current.json .stockstrend-source-sha
 
           if git diff --cached --quiet; then
             echo "Already current."
