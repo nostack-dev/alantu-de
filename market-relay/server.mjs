@@ -120,8 +120,15 @@ function latestYahooPrice(){
 function shadowProof(){
   const out={};
   for(const h of YAHOO_HORIZONS){
-    const a=shadowState.outcomes.filter(x=>Number(x.horizon_minutes)===h),n=a.length,hits=a.filter(x=>x.hit).length;
-    out[String(h)]={n,hit:n?hits/n:null,mean_gross_bps:n?a.reduce((s,x)=>s+Number(x.gross_bps||0),0)/n:null,mode:'shadow_only'};
+    const a=shadowState.outcomes.filter(x=>Number(x.horizon_minutes)===h&&x.version===YAHOO_SHADOW_VERSION);
+    const n=a.length,hits=a.filter(x=>x.hit).length;
+    out[String(h)]={
+      n,
+      hit:n?hits/n:null,
+      mean_gross_bps:n?a.reduce((s,x)=>s+Number(x.gross_bps||0),0)/n:null,
+      mode:'shadow_only',
+      version:YAHOO_SHADOW_VERSION
+    };
   }
   return out;
 }
