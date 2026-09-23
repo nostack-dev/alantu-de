@@ -358,8 +358,8 @@ export function createAlantuBookCore(options){
   }
 
   function springStep(item,dt){
-    const stiffness=prefersReduced?900:120;
-    const damping=prefersReduced?80:18;
+    const stiffness=prefersReduced?1100:220;
+    const damping=prefersReduced?90:29;
     const error=item.target-item.progress;
 
     item.velocity+=(error*stiffness-item.velocity*damping)*dt;
@@ -375,7 +375,49 @@ export function createAlantuBookCore(options){
   }
 
   function settled(item){
-    return Math.abs(item.target-item.progress)<.0015&&Math.abs(item.velocity)<.045;
+    return Math.abs(item.target-item.progress)<.0012&&Math.abs(item.velocity)<.035;
+  }
+
+  function pushSwipeSample(x,t){
+    if(!dragState)return;
+    dragState.samples.push({x,t});
+    const cutoff=t-110;
+    while(dragState.samples.length>2&&dragState.samples[0].t<cutoff){
+      dragState.samples.shift();
+    }
+  }
+
+  function recentSwipeVelocity(progressDirection){
+    const samples=dragState?.samples||[];
+    if(samples.length<2)return dragState?.velocity||0;
+
+    const last=samples[samples.length-1];
+    let first=samples[0];
+    for(let i=samples.length-2;i>=0;i--){
+      if(last.t-samples[i].t>=45){
+        first=samples[i];
+        break;
+      }
+    }
+
+    const dt=Math.max(.016,(last.t-first.t)/1000);
+    const distance=Math.max(160,stage.clientWidth*.56);
+    return progressDirection*(last.x-first.x)/distance/dt;
+  }
+
+  function releaseTarget(progress,startProgress,velocity,cancelled){
+    if(cancelled)return startProgress>=.5?1:0;
+
+    const displacement=progress-startProgress;
+    const decisiveFlick=Math.abs(velocity)>=.55&&
+      (Math.abs(displacement)<.025||Math.sign(velocity)===Math.sign(displacement));
+
+    if(decisiveFlick)return velocity>0?1:0;
+
+    const projected=clamp(progress+velocity*.16,0,1);
+    return startProgress<.5
+      ? (projected>=.30?1:0)
+      : (projected<=.70?0:1);
   }
 
   function step(now){
@@ -489,6 +531,7 @@ export function createAlantuBookCore(options){
       index:activeTurn?.index??null,
       startProgress:activeBoundary?.progress??activeTurn?.progress??null,
       velocity:activeBoundary?.velocity??activeTurn?.velocity??0,
+      samples:[{x:e.clientX,t:now}],
       moved:false
     };
 
@@ -546,6 +589,7 @@ export function createAlantuBookCore(options){
     const now=performance.now();
     const dt=Math.max(.008,(now-dragState.lastTime)/1000);
     const deltaX=e.clientX-dragState.lastX;
+    pushSwipeSample(e.clientX,now);
 
     if(dragState.mode==="boundary"){
       const dir=dragState.side==="start"?1:-1;
@@ -580,10 +624,16 @@ export function createAlantuBookCore(options){
     const totalLeaves=getTotalLeaves();
 
     if(dragState.mode==="boundary"&&activeBoundary){
-      const projected=activeBoundary.progress+(cancelled?0:dragState.velocity*.12);
-      const target=projected>=.5?1:0;
+      const direction=activeBoundary.side==="start"?1:-1;
+      const velocity=cancelled?0:recentSwipeVelocity(direction);
+      const target=releaseTarget(
+        activeBoundary.progress,
+        dragState.startProgress,
+        velocity,
+        cancelled
+      );
       activeBoundary.target=target;
-      activeBoundary.velocity=cancelled?0:dragState.velocity;
+      activeBoundary.velocity=cancelled?0:clamp(velocity,-3.5,3.5);
 
       if(activeBoundary.side==="start"){
         desiredPosition=target===1?-1:0;
@@ -593,10 +643,15 @@ export function createAlantuBookCore(options){
 
       if(target===0)closedSide=null;
     }else if(dragState.mode==="leaf"&&activeTurn){
-      const projected=activeTurn.progress+(cancelled?0:dragState.velocity*.12);
-      const target=projected>=.5?1:0;
+      const velocity=cancelled?0:recentSwipeVelocity(-1);
+      const target=releaseTarget(
+        activeTurn.progress,
+        dragState.startProgress,
+        velocity,
+        cancelled
+      );
       activeTurn.target=target;
-      activeTurn.velocity=cancelled?0:dragState.velocity;
+      activeTurn.velocity=cancelled?0:clamp(velocity,-3.5,3.5);
       desiredPosition=target?activeTurn.index+1:activeTurn.index;
     }
 

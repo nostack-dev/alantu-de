@@ -1,4 +1,4 @@
-import { createAlantuBookPhysics } from "./box3d-physics.js";
+import { createAlantuBookPhysics } from "./box2d-physics.js";
 
 export function sanitizeAlantuCoverTitle(value,fallback="ALANTU Exposé"){
   const cleaned=String(value??"")
@@ -200,7 +200,7 @@ export function createAlantuBookCore(options){
     getCoverSetup,
     getGravityVector
   });
-  stage.dataset.physics=`box3d-${physics.engineVersion||"active"}`;
+  stage.dataset.physics=`${String(physics.engine||"physics").toLowerCase()}-${physics.engineVersion||"active"}`;
 
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const smoothstep=(a,b,x)=>{
@@ -719,6 +719,6 @@ export function createAlantuBookCore(options){
     shownLeaf,
     state,
     physics,
-    physicsEngine:"Box3D"
+    physicsEngine:physics.engine||"Box2D"
   };
 }

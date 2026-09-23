@@ -453,7 +453,7 @@
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=swipe301";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./box2d-core.js";
 
     const canvas = document.getElementById("bookCanvas");
     const stage = document.getElementById("stage");
@@ -705,18 +705,24 @@
     const endCoverOpenZ=support.backCoverCenterZ;
     const endCoverClosedZ=leftZ(totalLeaves-1)+.010+COVER_T/2;
 
-    function setStartCoverProgress(progress){
-      const p=Math.max(0,Math.min(1,progress));
-      frontCoverPivot.rotation.y=-Math.PI*(1-p);
-      frontCoverPivot.position.z=startCoverOpenZ+(startCoverClosedZ-startCoverOpenZ)*p;
+    function getCoverSetup(){
+      return {
+        frontPivot:frontCoverPivot,
+        endPivot:endCoverPivot,
+        frontCover,
+        backCover,
+        spine,
+        coverWidth:COVER_W,
+        coverHeight:5.15,
+        coverThickness:COVER_T,
+        hingeX:HINGE_X,
+        startOpenZ:startCoverOpenZ,
+        startClosedZ:startCoverClosedZ,
+        endOpenZ:endCoverOpenZ,
+        endClosedZ:endCoverClosedZ
+      };
     }
-
-    function setEndCoverProgress(progress){
-      const p=Math.max(0,Math.min(1,progress));
-      endCoverPivot.rotation.y=-Math.PI*p;
-      endCoverPivot.position.z=endCoverOpenZ+(endCoverClosedZ-endCoverOpenZ)*p;
-    }
-    const basePageGeom=new THREE.PlaneGeometry(PAGE_W,PAGE_H,30,1);
+    const basePageGeom=new THREE.PlaneGeometry(PAGE_W,PAGE_H,20,1);
     basePageGeom.translate(PAGE_W/2,0,0);
 
     function backTextureFor(pageIndex){
@@ -787,23 +793,114 @@
       }
     }
 
+    const dragRaycaster=new THREE.Raycaster();
+    const dragPointer=new THREE.Vector2();
+
+    let grabRayDistance=null;
+
+    function setPointerRay(clientX,clientY){
+      const rect=canvas.getBoundingClientRect();
+      if(!rect.width||!rect.height)return false;
+      dragPointer.set(
+        ((clientX-rect.left)/rect.width)*2-1,
+        -((clientY-rect.top)/rect.height)*2+1
+      );
+      scene.updateMatrixWorld(true);
+      root.updateMatrixWorld(true);
+      dragRaycaster.setFromCamera(dragPointer,camera);
+      return true;
+    }
+
+    function outerEdgeWorld(type,index,side){
+      if(type==="cover"){
+        const mesh=side==="start"?frontCover:backCover;
+        if(!mesh)return null;
+        return mesh.localToWorld(new THREE.Vector3(COVER_W/2,0,0));
+      }
+
+      const pageRoot=pageRoots[index];
+      const geometry=pageRoot?.userData?.geometry;
+      if(!pageRoot||!geometry)return null;
+
+      const base=geometry.userData.basePosition;
+      const pos=geometry.attributes.position.array;
+      let best=-1;
+      let bestBase=-Infinity;
+      for(let i=0;i<geometry.attributes.position.count;i++){
+        const bx=base[i*3];
+        if(bx>bestBase){
+          bestBase=bx;
+          best=i;
+        }
+      }
+      if(best<0)return null;
+
+      return pageRoot.localToWorld(new THREE.Vector3(
+        pos[best*3],
+        pos[best*3+1],
+        pos[best*3+2]
+      ));
+    }
+
+    function resolveGrabU({clientX,clientY,type,index,side}){
+      if(!setPointerRay(clientX,clientY))return .995;
+      const edge=outerEdgeWorld(type,index,side);
+      if(edge){
+        grabRayDistance=dragRaycaster.ray.origin.distanceTo(edge);
+      }else{
+        const origin=new THREE.Vector3();
+        root.getWorldPosition(origin);
+        grabRayDistance=dragRaycaster.ray.origin.distanceTo(origin);
+      }
+      return .995;
+    }
+
+    function resolveGrabTarget({clientX,clientY}){
+      if(!setPointerRay(clientX,clientY)||!Number.isFinite(grabRayDistance))return null;
+      const worldPoint=new THREE.Vector3();
+      dragRaycaster.ray.at(grabRayDistance,worldPoint);
+      const local=root.worldToLocal(worldPoint.clone());
+      return {x:local.x,y:local.y,z:local.z};
+    }
+
+    function getGravityVector(){
+      const forward=new THREE.Vector3();
+      const rootQ=new THREE.Quaternion();
+      camera.getWorldDirection(forward);
+      root.getWorldQuaternion(rootQ);
+      forward.applyQuaternion(rootQ.invert());
+
+      // Box2D simulates the X/Z page-turn plane. Project camera-forward into
+      // that plane and keep full earth-gravity magnitude.
+      let x=forward.x;
+      let z=forward.z;
+      const m=Math.hypot(x,z)||1;
+      x/=m;
+      z/=m;
+      return {x:x*9.81,y:0,z:z*9.81};
+    }
+
     bookCore=createAlantuBookCore({
       stage,
       getLeaves:()=>pageRoots,
       getPageWidth:()=>PAGE_W,
+      getPageHeight:()=>PAGE_H,
       getTotalLeaves:()=>totalLeaves,
       rightZ,
       leftZ,
-      setStartCoverProgress,
-      setEndCoverProgress,
+      getCoverSetup,
       prefersReduced,
       onStateChange:updateUI,
       nextButton:nextBtn,
       prevButton:prevBtn,
       nextTap:tapNext,
       prevTap:tapPrev,
-      ignorePointerSelector:".stage-control"
+      ignorePointerSelector:".stage-control",
+      resolveGrabU,
+      resolveGrabTarget,
+      getGravityVector
     });
+    window.__alantuBookCore=bookCore;
 
     experienceBtn.addEventListener("click",()=>{
       document.getElementById("demo").scrollIntoView({behavior:prefersReduced?"auto":"smooth",block:"center"});
