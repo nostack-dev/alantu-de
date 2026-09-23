@@ -13,6 +13,8 @@ const EDGE_PATH=process.env.EDGE_STATUS_PATH||'/app/microstructure-edge-status.j
 const EDGE_URL=process.env.EDGE_STATUS_URL||'https://www.alantu.de/microstructure-edge-status.json';
 const L2_MODEL_PATH=process.env.L2_MODEL_PATH||'/app/orcl-l2-model.json';
 const L2_MODEL_URL=process.env.L2_MODEL_URL||'https://www.alantu.de/orcl-l2-model.json';
+const WAVE_MODEL_PATH=process.env.WAVE_MODEL_PATH||'/app/orcl-wave-model.json';
+const WAVE_MODEL_URL=process.env.WAVE_MODEL_URL||'https://www.alantu.de/orcl-wave-model.json';
 const L2_INGEST_TOKEN=process.env.L2_INGEST_TOKEN||'';
 const L2_DATASET=process.env.L2_DATASET||'XNAS.ITCH';
 const L2_MAX_PROVIDER_CAPTURE_MS=Number(process.env.L2_MAX_PROVIDER_CAPTURE_MS||50);
@@ -22,7 +24,7 @@ const ALLOWED=new Set((process.env.ALLOWED_ORIGINS||'https://www.alantu.de,https
 const raw=Object.fromEntries(SYMBOLS.map(s=>[s,{trades:[],quotes:[]}]));
 const l2Raw=Object.fromEntries(SYMBOLS.map(s=>[s,[]]));
 const clients=new Set();
-let upstream=null,edgeModel=null,l2Model=null,lastUpstreamAt=0,lastL2At=0,reconnectTimer=null;
+let upstream=null,edgeModel=null,l2Model=null,waveModel=null,lastUpstreamAt=0,lastL2At=0,reconnectTimer=null;
 
 function cors(req,res){
   const o=req.headers.origin;
@@ -49,6 +51,25 @@ async function loadL2Model(){
     if(r.ok){l2Model=await r.json();return;}
   }catch{}
   try{l2Model=JSON.parse(await fs.readFile(L2_MODEL_PATH,'utf8'));}catch{l2Model=null;}
+}
+async function loadWaveModel(){
+  try{
+    const r=await fetch(WAVE_MODEL_URL,{cache:'no-store'});
+    if(r.ok){waveModel=await r.json();return;}
+  }catch{}
+  try{waveModel=JSON.parse(await fs.readFile(WAVE_MODEL_PATH,'utf8'));}catch{waveModel=null;}
+}
+function waveStatus(){
+  const horizons=Array.isArray(waveModel?.horizons)?waveModel.horizons:[];
+  return {
+    provider:waveModel?.provider||'yahoo',
+    status:waveModel?.status||'unavailable',
+    model_id:waveModel?.model_id||null,
+    bar_minutes:Number(waveModel?.bar_minutes)||null,
+    validated_horizons:horizons.filter(x=>x?.status==='validated').map(x=>Number(x.horizon_minutes)).filter(Number.isFinite),
+    production_enabled:waveModel?.production?.enabled===true,
+    generated_at:waveModel?.generated_at||null
+  };
 }
 function eventNs(x,key){
   try{return BigInt(String(x?.[key]??''));}catch{return null;}
@@ -126,7 +147,7 @@ function snapshot(symbol){
   return {
     provider:'alpaca',feed:FEED,symbol,mode:'live-relay',at:new Date().toISOString(),quality,
     edge_status:edgeModel?.status||'unavailable',edge_model_id:edgeModel?.model_id||null,live_signal,minutes,
-    l2:l2Snapshot(symbol)
+    wave:waveStatus(),l2:l2Snapshot(symbol)
   };
 }
 function sendEvent(res,obj,eventName='market'){res.write('event: '+eventName+'\ndata: '+JSON.stringify(obj)+'\n\n');}
@@ -169,7 +190,7 @@ const server=http.createServer((req,res)=>{
   if(req.method==='OPTIONS'){res.statusCode=204;return res.end();}
   const u=new URL(req.url,'http://localhost');
   if(u.pathname==='/health'){
-    return json(res,200,{ok:true,configured:!!(KEY&&SECRET),feed:FEED,symbols:SYMBOLS,upstream_fresh:Date.now()-lastUpstreamAt<15000,edge_status:edgeModel?.status||'unavailable',
+    return json(res,200,{ok:true,configured:!!(KEY&&SECRET),feed:FEED,symbols:SYMBOLS,upstream_fresh:Date.now()-lastUpstreamAt<15000,edge_status:edgeModel?.status||'unavailable',primary_runtime:'validated-yahoo-wave',wave:waveStatus(),
       l2:{
         configured:!!L2_INGEST_TOKEN,
         collector_mode:process.env.MARKET_RUNTIME_RELAY_ONLY==='1'?'disabled':'enabled',
@@ -201,6 +222,7 @@ const server=http.createServer((req,res)=>{
     });
     return;
   }
+  if(u.pathname==='/v1/wave-model')return json(res,200,waveModel||{status:'unavailable'});
   if(u.pathname==='/v1/snapshot'){
     const symbol=(u.searchParams.get('symbol')||'ORCL').toUpperCase(),s=snapshot(symbol);
     return s?json(res,200,s):json(res,404,{error:'unknown_symbol'});
@@ -213,6 +235,6 @@ const server=http.createServer((req,res)=>{
   }
   json(res,404,{error:'not_found'});
 });
-await loadEdge();await loadL2Model();setInterval(loadEdge,60000).unref();setInterval(loadL2Model,60000).unref();setInterval(broadcast,1000).unref();setInterval(()=>{if(KEY&&SECRET&&Date.now()-lastUpstreamAt>15000)connect();},15000).unref();
+await loadEdge();await loadL2Model();await loadWaveModel();setInterval(loadEdge,60000).unref();setInterval(loadL2Model,60000).unref();setInterval(loadWaveModel,60000).unref();setInterval(broadcast,1000).unref();setInterval(()=>{if(KEY&&SECRET&&Date.now()-lastUpstreamAt>15000)connect();},15000).unref();
 connect();
-server.listen(PORT,'0.0.0.0',()=>console.log(JSON.stringify({service:'alantu-market-relay',port:PORT,configured:!!(KEY&&SECRET),feed:FEED,symbols:SYMBOLS,l2_dataset:L2_DATASET})));
+server.listen(PORT,'0.0.0.0',()=>console.log(JSON.stringify({service:'alantu-market-relay',port:PORT,primary_runtime:'validated-yahoo-wave',wave:waveStatus(),alpaca_configured:!!(KEY&&SECRET),feed:FEED,symbols:SYMBOLS,l2_dataset:L2_DATASET})));
