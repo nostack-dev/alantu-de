@@ -489,20 +489,72 @@
 
 
   /* Core information: clean, compact, visible */
-  .core-insights{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;margin:18px 0 2px!important}
-  .core-insight{background:#f5f5f7!important;border-radius:16px!important;padding:15px 16px 14px!important;min-width:0!important}
-  .core-kicker{font-size:11px!important;line-height:1!important;color:#8d8d94!important;font-weight:700!important;margin-bottom:9px!important}
-  .core-value{font-size:26px!important;line-height:1!important;letter-spacing:-.04em!important;color:#111!important;font-weight:790!important;font-variant-numeric:tabular-nums!important}
-  .core-denom{font-size:13px!important;font-weight:700!important;color:#9a9aa1!important;margin-left:3px!important;letter-spacing:0!important}
-  .core-meta{margin-top:8px!important;font-size:11px!important;line-height:1.25!important;color:#818188!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .core-insights{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:10px!important;
+    margin:18px 0 2px!important
+  }
+  .core-insight{
+    background:#f5f5f7!important;
+    border-radius:16px!important;
+    padding:15px 16px 14px!important;
+    min-width:0!important
+  }
+  .core-kicker{
+    font-size:11px!important;
+    line-height:1!important;
+    color:#8d8d94!important;
+    font-weight:700!important;
+    margin-bottom:9px!important
+  }
+  .core-value{
+    font-size:26px!important;
+    line-height:1!important;
+    letter-spacing:-.04em!important;
+    color:#111!important;
+    font-weight:790!important;
+    font-variant-numeric:tabular-nums!important
+  }
+  .core-denom{
+    font-size:13px!important;
+    font-weight:700!important;
+    color:#9a9aa1!important;
+    margin-left:3px!important;
+    letter-spacing:0!important
+  }
+  .core-meta{
+    margin-top:8px!important;
+    font-size:11px!important;
+    line-height:1.25!important;
+    color:#818188!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important
+  }
   #sentimentCompactNumber.up{color:#45a944!important}
   #sentimentCompactNumber.down{color:#d93a31!important}
   #sentimentCompactNumber.flat{color:#111!important}
-  [data-chart-panel="price"] .chart-head-min{display:flex!important;order:0!important;margin:10px 0 0!important;min-height:20px!important}
-  [data-chart-panel="price"] .chart-head-min .value-summary{font-size:11px!important;color:#8d8d94!important;font-weight:650!important}
+
+  /* Intrinsic value remains accessible directly on the price chart */
+  [data-chart-panel="price"] .chart-head-min{
+    display:flex!important;
+    order:0!important;
+    margin:10px 0 0!important;
+    min-height:20px!important
+  }
+  [data-chart-panel="price"] .chart-head-min .value-summary{
+    font-size:11px!important;
+    color:#8d8d94!important;
+    font-weight:650!important
+  }
   [data-chart-panel="price"] .chart-head-min .chart-collapse{display:none!important}
-  [data-chart-panel="price"] .chart-head-min .line-toggle{display:inline-flex!important;font-size:11px!important}
+  [data-chart-panel="price"] .chart-head-min .line-toggle{
+    display:inline-flex!important;
+    font-size:11px!important
+  }
   [data-chart-panel="price"] .chart-panel-body{padding-top:2px!important}
+
   @media(max-width:700px){
     .core-insights{gap:8px!important;margin-top:16px!important}
     .core-insight{padding:14px 13px 13px!important;border-radius:14px!important}
@@ -1771,6 +1823,9 @@ function renderOverview(){
     shn.className='sentiment-hero-number '+moodCls;
     shn.textContent=sentimentScore!=null?String(sentimentScore):'—';
     shl.className='hero-change '+moodCls;shl.textContent=mood;
+    var scn=document.getElementById('sentimentCompactNumber'),scl=document.getElementById('sentimentCompactLabel');
+    if(scn){scn.className=moodCls;scn.textContent=sentimentScore!=null?String(sentimentScore):'—';}
+    if(scl)scl.textContent=mood||'wird geladen';
     shm.textContent=sentimentHeroMetaText(t);
     var sat=fr.freshest_absolute||updated;
     shst.className='live-state'+(sat?' live':'');
