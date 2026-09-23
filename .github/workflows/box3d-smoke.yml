@@ -1,3 +1,4 @@
+# box3d-init-diagnostic: 1790149804605
 name: box3d-smoke
 # box3d-021-smoke: 1790149686230
 on:
@@ -30,6 +31,9 @@ jobs:
 
           function watch(page,label){
             page.on("pageerror",err=>failures.push(`${label}: pageerror: ${err.message}`));
+  page.on("console",msg=>{
+    if(msg.type()==="error")failures.push(`${label}: console: ${msg.text()}`);
+  });
           }
 
           async function assertPhysics(page,label){
