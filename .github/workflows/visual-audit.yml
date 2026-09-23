@@ -1,5 +1,5 @@
 name: visual-audit
-# box3d-smoke: 1790149035433
+# box3d-smoke-fixed: 1790149152186
 on:
   push:
     paths:
