@@ -1768,10 +1768,10 @@ function renderWaveForecasts(){
     }else if(mh.status==='validated'){v='— WARTEN';meta='Roh-SIP validiert';}
     else if(mh.status==='shadow'){
       var proof=(f&&f.proof)||mh.proof||{},n=Number(proof.n)||0,hit=Number(proof.hit);
-      if(f&&Number(f.dir)>0){cls='up';v='TEST ↑';}
-      else if(f&&Number(f.dir)<0){cls='down';v='TEST ↓';}
-      else v='TEST —';
-      meta=n?('n='+n+' · '+Math.round(hit*100)+' %'):'wird geprüft';
+      if(f&&Number(f.dir)>0){cls='up';v='↑ STEIGT';}
+      else if(f&&Number(f.dir)<0){cls='down';v='↓ FÄLLT';}
+      else v='WARTEN';
+      meta=n?('Shadow · '+n+' geprüft · '+Math.round(hit*100)+' %'):'Shadow · sammelt Beweise';
     }else if(model.status==='awaiting_credentials'){v='KEY FEHLT';meta='Alpaca API-Key in Railway eintragen';}
     else if(model.status==='collecting'){v='TRAINIERT';meta='Historische Rohdaten werden aufgebaut';}
     else if(mh.status==='unproven'){v='NICHT FREI';meta='OOS-Gate nicht bestanden';}
