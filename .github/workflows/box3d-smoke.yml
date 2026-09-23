@@ -1,4 +1,4 @@
-# verify-024: 1790150325051
+# verify-026: 1790150477746
 name: box3d-smoke
 
 on:
@@ -22,7 +22,7 @@ jobs:
           npm install playwright@1.55.0 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null
 
-      - name: Verify Box3D 024
+      - name: Verify Box3D 026
         run: |
           python3 -m http.server 4173 >/tmp/alantu-http.log 2>&1 &
           cat > smoke.mjs <<'JS'
@@ -49,7 +49,7 @@ jobs:
           async function verifyRuntime(page,label){
             await page.waitForFunction(()=>document.querySelector(".stage")?.dataset?.physics==="box3d-0.2.0",null,{timeout:30000});
             const resources=await page.evaluate(()=>performance.getEntriesByType("resource").map(r=>r.name));
-            if(!resources.some(x=>x.includes("alantu-book-core-box3d024.js")))throw new Error(label+" missing core 024");
+            if(!resources.some(x=>x.includes("alantu-book-core-box3d026.js")))throw new Error(label+" missing core 024");
             if(!resources.some(x=>x.includes("alantu-book-physics-box3d024.js")))throw new Error(label+" missing physics 024");
           }
 
@@ -72,7 +72,7 @@ jobs:
           {
             const page=await browser.newPage({viewport:{width:1600,height:1100}});
             const assertNoErrors=await attachGuards(page,"main");
-            await page.goto("http://127.0.0.1:4173/index-brand.html?smoke=024",{waitUntil:"networkidle"});
+            await page.goto("http://127.0.0.1:4173/index-brand.html?smoke=026",{waitUntil:"networkidle"});
             await verifyRuntime(page,"main");
             for(const target of ["02–03 / 06","04–05 / 06","06 / 06"])await advance(page,target,"main");
             assertNoErrors();
@@ -84,7 +84,7 @@ jobs:
           {
             const page=await browser.newPage({viewport:{width:1600,height:1100}});
             const assertNoErrors=await attachGuards(page,"pdf");
-            await page.goto("http://127.0.0.1:4173/pdf-to-exposee.html?smoke=024",{waitUntil:"networkidle"});
+            await page.goto("http://127.0.0.1:4173/pdf-to-exposee.html?smoke=026",{waitUntil:"networkidle"});
             await verifyRuntime(page,"pdf");
             await page.locator("#pdfInput").setInputFiles("/tmp/alantu-20.pdf");
             await page.waitForFunction(()=>document.querySelector("#status")?.textContent?.includes("Seiten bereit"),null,{timeout:45000});
