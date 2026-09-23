@@ -1,39 +1,39 @@
 {
-  "updated_at": "2026-09-23T20:21:31+02:00",
+  "updated_at": "2026-09-23T23:39:02+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-23T20:21:31+02:00",
-    "scraped_at": "2026-09-23T20:21:31+02:00",
+    "tick_id": "2026-09-23T23:39:02+02:00",
+    "scraped_at": "2026-09-23T23:39:02+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "PublicReddit": {
         "status": "ok",
-        "items": 2,
+        "items": 3,
         "provider": "apewisdom.io",
         "window": "24h aggregate snapshot",
-        "freshest": "2026-09-23T20:21:31+02:00",
-        "sentiment_pct_bullish": 0,
-        "upvotes_24h": 5
+        "freshest": "2026-09-23T23:39:02+02:00",
+        "sentiment_pct_bullish": 100,
+        "upvotes_24h": 6
       },
       "NewsRSS": {
         "status": "ok",
         "items": 20,
         "provider": "news.google.com",
         "window": "last 36h, fetched now",
-        "freshest": "2026-09-23T20:21:31+02:00",
+        "freshest": "2026-09-23T23:39:02+02:00",
         "notes": [
-          "Oracle’s Project Jupiter Loans Are Trading at 90 Cents. Here’s What the Q1 Numbers Say",
-          "What's Going On With Oracle Stock Wednesday?",
-          "Oracle: Reality Check Incoming (NYSE:ORCL)"
+          "Trump Downplayed AI Safety Concerns, but His Investment Portfolio Bought Cybersecurity Stocks",
+          "Oracle Drops as AI Debt Carries a 37-Basis-Point Premium",
+          "Oracle (NYSE:ORCL) Stock Price Down 3.2% - Should You Sell?"
         ]
       },
       "Yahoo": {
         "status": "ok",
         "items": 1,
         "prices": {
-          "ORCL": 145.76499938964844
+          "ORCL": 144.4
         },
-        "price_at": "2026-09-23T18:21:28.000Z",
+        "price_at": "2026-09-23T21:38:57.000Z",
         "note": "Yahoo chart 5d/1m fallback feed"
       }
     },
@@ -49,20 +49,20 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-23T20:21:31+02:00",
+      "freshest_absolute": "2026-09-23T23:39:02+02:00",
       "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
       "quality": "medium-high public sources",
-      "scrape_berlin": "2026-09-23T20:21:31+02:00",
+      "scrape_berlin": "2026-09-23T23:39:02+02:00",
       "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
       "freshest_item_age": "snapshot fetched now",
-      "oldest_usable_signal": "Oracle: Reality Check Incoming (NYSE:ORCL)"
+      "oldest_usable_signal": "Oracle (NYSE:ORCL) Stock Price Down 3.2% - Should You Sell?"
     },
     "vector": {
-      "direction": "leicht_bearish_risk_off",
-      "magnitude": 36,
-      "confidence": 72,
-      "early_signal": true,
-      "early_signal_note": "Reddit 0% positiv bei 2 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $145.76."
+      "direction": "mixed_cautious",
+      "magnitude": 31,
+      "confidence": 73,
+      "early_signal": false,
+      "early_signal_note": "Reddit 100% positiv bei 3 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $144.40."
     },
     "top_themes": [
       {
@@ -481,28 +481,28 @@
         "name": "Oracle",
         "hype_state": "mixed",
         "signal": "hold",
-        "confidence": 72,
-        "social_impulse": -3,
-        "hype_bull": 9,
+        "confidence": 73,
+        "social_impulse": -1,
+        "hype_bull": 18,
         "hype_bear": 23,
-        "hype_net": -14,
-        "why": "Reddit 0% positiv bei 2 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $145.76.",
+        "hype_net": -5,
+        "why": "Reddit 100% positiv bei 3 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $144.40.",
         "evidence": {
           "x_posts": 0,
-          "reddit_posts": 2,
+          "reddit_posts": 3,
           "news": 20,
           "snippets": [
-            "ApeWisdom: 2 Mentions/24h, Sentiment 0%",
-            "Oracle’s Project Jupiter Loans Are Trading at 90 Cents. Here’s What the Q1 Numbers Say",
-            "What's Going On With Oracle Stock Wednesday?",
-            "Oracle: Reality Check Incoming (NYSE:ORCL)"
+            "ApeWisdom: 3 Mentions/24h, Sentiment 100%",
+            "Trump Downplayed AI Safety Concerns, but His Investment Portfolio Bought Cybersecurity Stocks",
+            "Oracle Drops as AI Debt Carries a 37-Basis-Point Premium",
+            "Oracle (NYSE:ORCL) Stock Price Down 3.2% - Should You Sell?"
           ]
         },
         "links": {
           "tradingview": "https://www.tradingview.com/symbols/ORCL/",
           "yahoo": "https://finance.yahoo.com/quote/ORCL"
         },
-        "price": 145.76499938964844
+        "price": 144.4
       }
     ],
     "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
@@ -511,13 +511,13 @@
   "signals_disclaimer": "",
   "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
   "freshness": {
-    "freshest_absolute": "2026-09-23T20:21:31+02:00",
+    "freshest_absolute": "2026-09-23T23:39:02+02:00",
     "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
     "quality": "medium-high public sources",
-    "scrape_berlin": "2026-09-23T20:21:31+02:00",
+    "scrape_berlin": "2026-09-23T23:39:02+02:00",
     "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
     "freshest_item_age": "snapshot fetched now",
-    "oldest_usable_signal": "Oracle: Reality Check Incoming (NYSE:ORCL)"
+    "oldest_usable_signal": "Oracle (NYSE:ORCL) Stock Price Down 3.2% - Should You Sell?"
   },
   "history": [
     {
@@ -2647,6 +2647,15 @@
       "direction": "leicht_bearish_risk_off",
       "items": 21,
       "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-23T23:39:02+02:00",
+      "scraped_at": "2026-09-23T23:39:02+02:00",
+      "magnitude": 31,
+      "confidence": 73,
+      "direction": "mixed_cautious",
+      "items": 21,
+      "early_signal": false
     }
   ],
   "disclaimer": ""

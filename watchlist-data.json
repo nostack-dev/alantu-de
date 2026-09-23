@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-23T20:21:31+02:00",
+  "updated_at": "2026-09-23T23:39:02+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,13 +9,13 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-23T20:21:31+02:00",
+        "at": "2026-09-23T23:39:02+02:00",
         "signal": "hold",
-        "social_impulse": -3,
-        "hype_bull": 9,
+        "social_impulse": -1,
+        "hype_bull": 18,
         "hype_bear": 23,
-        "hype_net": -14,
-        "confidence": 72
+        "hype_net": -5,
+        "confidence": 73
       },
       "history": [
         {
@@ -3738,6 +3738,20 @@
           "voice_bear": 4,
           "voice_mixed": 16,
           "price": 145.76499938964844
+        },
+        {
+          "at": "2026-09-23T23:39:02+02:00",
+          "hype_bull": 18,
+          "hype_bear": 23,
+          "hype_net": -5,
+          "social_impulse": -1,
+          "signal": "hold",
+          "confidence": 73,
+          "hype_mixed": 59,
+          "voice_bull": 3,
+          "voice_bear": 5,
+          "voice_mixed": 14,
+          "price": 144.4
         }
       ],
       "voices_archive": [
@@ -4053,35 +4067,35 @@
         }
       ],
       "signal": "hold",
-      "social_impulse": -3,
-      "impulse": -3,
-      "hype_bull": 9,
+      "social_impulse": -1,
+      "impulse": -1,
+      "hype_bull": 18,
       "hype_bear": 23,
-      "hype_net": -14,
-      "confidence": 72,
+      "hype_net": -5,
+      "confidence": 73,
       "hype_state": "mixed",
-      "updated_at": "2026-09-23T20:21:31+02:00",
-      "why": "Reddit 0% positiv bei 2 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $145.76.",
+      "updated_at": "2026-09-23T23:39:02+02:00",
+      "why": "Reddit 100% positiv bei 3 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $144.40.",
       "evidence": {
         "x_posts": 0,
-        "reddit_posts": 2,
+        "reddit_posts": 3,
         "news": 20,
         "snippets": [
-          "ApeWisdom: 2 Mentions/24h, Sentiment 0%",
-          "Oracle’s Project Jupiter Loans Are Trading at 90 Cents. Here’s What the Q1 Numbers Say",
-          "What's Going On With Oracle Stock Wednesday?",
-          "Oracle: Reality Check Incoming (NYSE:ORCL)"
+          "ApeWisdom: 3 Mentions/24h, Sentiment 100%",
+          "Trump Downplayed AI Safety Concerns, but His Investment Portfolio Bought Cybersecurity Stocks",
+          "Oracle Drops as AI Debt Carries a 37-Basis-Point Premium",
+          "Oracle (NYSE:ORCL) Stock Price Down 3.2% - Should You Sell?"
         ]
       },
       "voices": {
-        "bull": 2,
-        "bear": 4,
-        "mixed": 16,
-        "updated_at": "2026-09-23T20:21:31+02:00"
+        "bull": 3,
+        "bear": 5,
+        "mixed": 14,
+        "updated_at": "2026-09-23T23:39:02+02:00"
       },
-      "hype_mixed": 68,
+      "hype_mixed": 59,
       "sentiment_unit": "percent_all_classified",
-      "price": 145.76499938964844
+      "price": 144.4
     }
   }
 }
