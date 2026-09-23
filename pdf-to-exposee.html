@@ -347,7 +347,7 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle } from "./alantu-book-core.js?v=a0eeadf5";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=8a805934";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
@@ -563,8 +563,9 @@
       return out;
     }
 
-    function rightZ(i){return .18-i*.018}
-    function leftZ(i){return .18+i*.018}
+    let leafZStep=.018;
+    function rightZ(i){return .18-i*leafZStep}
+    function leftZ(i){return .18+i*leafZStep}
 
     function setStartCoverProgress(progress){
       if(!frontCoverPivot||!coverSupport)return;
@@ -671,6 +672,7 @@
 
       totalPages=renderedPages.length;
       totalLeaves=Math.ceil(totalPages/2);
+      leafZStep=computeAlantuLeafStackStep(totalLeaves);
 
       const first=renderedPages[0];
       const portrait=first.height>=first.width;
