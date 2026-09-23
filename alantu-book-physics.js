@@ -124,7 +124,7 @@ export function createAlantuBookPhysics({
       createBox(body,{
         halfExtents:{x:sw*.5,y:H*.5,z:thickness*.5},
         density:.32,
-        friction:.72,
+        friction:.42,
         restitution:0,
         enableContactEvents:false
       });
@@ -137,12 +137,15 @@ export function createAlantuBookPhysics({
       localFrameB:localFrame({x:-sw/2,y:0,z:0}),
       collideConnected:false,
       enableSpring:true,
-      hertz:7.2,
+      hertz:8.5,
       dampingRatio:1.0,
       targetAngle:rootTarget,
       enableLimit:true,
       lowerAngle:-PI*.99,
-      upperAngle:.035
+      upperAngle:.035,
+      enableMotor:true,
+      motorSpeed:0,
+      maxMotorTorque:18
     });
     joints.push(root);
 
@@ -303,10 +306,23 @@ export function createAlantuBookPhysics({
     leaf.commanded=p;
     leaf.target=p;
     const joint=leaf.rootJoint;
+    const targetAngle=-OPEN_ANGLE*p;
+    let angle=0;
+    try{angle=joint.getAngle()}catch{}
+    const error=targetAngle-angle;
+
     joint.enableSpring(true);
-    joint.setSpringHertz(dragging?19:7.2);
+    joint.setSpringHertz(dragging?20:8.5);
     joint.setSpringDampingRatio(dragging ? .92 : 1.0);
-    joint.setTargetAngle(-OPEN_ANGLE*p);
+    joint.setTargetAngle(targetAngle);
+
+    // A page does not turn without an external force. This motor is that
+    // force (mouse/finger or automated turn), capped so collisions remain
+    // authoritative instead of being teleported through other geometry.
+    joint.enableMotor(true);
+    joint.setMaxMotorTorque(dragging?34:22);
+    joint.setMotorSpeed(Math.abs(error)<.012?0:clamp(error*8,-14,14));
+
     for(const body of leaf.bodies)body.setAwake(true);
   }
 
