@@ -1,13 +1,6 @@
 name: Microstructure data audit
 
 on:
-  push:
-    branches: ["main"]
-    paths:
-      - "tools/microstructure-core.mjs"
-      - "tools/alpaca-microstructure-backfill.mjs"
-      - "tools/alpaca-microstructure-live.mjs"
-      - ".github/workflows/microstructure-data.yml"
   workflow_dispatch:
     inputs:
       symbol:
@@ -20,8 +13,6 @@ on:
       end:
         description: RFC3339 end
         required: true
-  schedule:
-    - cron: "20 22 * * 1-5"
 
 permissions:
   contents: read
