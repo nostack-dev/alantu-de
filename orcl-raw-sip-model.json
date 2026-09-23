@@ -1,0 +1,33 @@
+{
+  "status": "awaiting_credentials",
+  "provider": "alpaca",
+  "feed": "sip",
+  "symbol": "ORCL",
+  "input_contract": "raw_sip_trades_quotes_no_bar_aggregation",
+  "feature_version": "raw-sip-hdr-dt-v1",
+  "model_id": null,
+  "horizons": [
+    {
+      "horizon_minutes": 1,
+      "status": "unproven"
+    },
+    {
+      "horizon_minutes": 5,
+      "status": "unproven"
+    },
+    {
+      "horizon_minutes": 15,
+      "status": "unproven"
+    },
+    {
+      "horizon_minutes": 30,
+      "status": "unproven"
+    }
+  ],
+  "production": {
+    "enabled": false,
+    "validated_horizons": [],
+    "principle": "timing beats speed; precision beats power"
+  },
+  "generated_at": null
+}
