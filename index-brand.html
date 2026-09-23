@@ -453,7 +453,7 @@
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core-box3d031.js";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core-box3d101.js";
 
     const canvas = document.getElementById("bookCanvas");
     const stage = document.getElementById("stage");
@@ -705,18 +705,6 @@
     const endCoverOpenZ=support.backCoverCenterZ;
     const endCoverClosedZ=leftZ(totalLeaves-1)+.010+COVER_T/2;
 
-    function setStartCoverProgress(progress){
-      const p=Math.max(0,Math.min(1,progress));
-      frontCoverPivot.rotation.y=-Math.PI*(1-p);
-      frontCoverPivot.position.z=startCoverOpenZ+(startCoverClosedZ-startCoverOpenZ)*p;
-    }
-
-    function setEndCoverProgress(progress){
-      const p=Math.max(0,Math.min(1,progress));
-      endCoverPivot.rotation.y=-Math.PI*p;
-      endCoverPivot.position.z=endCoverOpenZ+(endCoverClosedZ-endCoverOpenZ)*p;
-    }
-
     function getCoverSetup(){
       return {
         frontPivot:frontCoverPivot,
@@ -845,8 +833,6 @@
       rightZ,
       leftZ,
       getCoverSetup,
-      setStartCoverProgress,
-      setEndCoverProgress,
       prefersReduced,
       onStateChange:updateUI,
       nextButton:nextBtn,
