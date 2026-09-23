@@ -251,6 +251,12 @@
   .flow-labels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:0}
   .flow-label{text-align:center;font-size:10px;font-weight:720;color:#777780;white-space:nowrap}
   .flow-label.up{color:#3f9d3e}.flow-label.down{color:#c9362e}.flow-label.flat{color:#777780}
+  .wave-forecast-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:7px 0 2px}
+  .wave-forecast{border:1px solid #ececf0;border-radius:9px;padding:6px 7px;min-width:0;background:#fafafa}
+  .wave-forecast .wf-h{font-size:9px;font-weight:700;color:#8a8a92}
+  .wave-forecast .wf-v{font-size:12px;font-weight:800;margin-top:1px;white-space:nowrap}
+  .wave-forecast .wf-m{font-size:8px;color:#9a9aa2;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wave-forecast.up .wf-v{color:#45a944}.wave-forecast.down .wf-v{color:#d93a31}.wave-forecast.flat .wf-v{color:#777780}
   @media(max-width:700px){
     .market-flow{margin-top:6px}
     .flow-phase{font-size:14px}
@@ -385,6 +391,7 @@
     <div class="chart-panel-body">
     <div class="value-status flat" id="ivStatus"></div>
     <div class="market-flow" id="marketFlow" aria-live="polite"><div class="flow-head"><span class="flow-phase flat">WIRD BERECHNET</span></div></div>
+    <div class="wave-forecast-strip" id="waveForecasts" aria-live="polite"></div>
     <div class="chart-sub"><span id="ivCoverage"></span></div>
     <div class="chart-wrap chart-wrap-lg"><canvas id="ivChart"></canvas></div>
     <div class="mini-range" id="priceRange" aria-label="Zeitraum Kurs und Wert">
@@ -481,11 +488,11 @@ function initChartPanels(){
     };
   });
 }
-var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null, orclHistoryPayload=null, sentimentBackfillData=null, microstructureStatus=null, microstructureData=null, microstructureEdgeStatus=null, microstructureLiveConfig=null, orclL2Model=null;
+var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null, orclHistoryPayload=null, sentimentBackfillData=null, microstructureStatus=null, microstructureData=null, microstructureEdgeStatus=null, microstructureLiveConfig=null, orclL2Model=null, orclWaveModel=null, waveCore=null, waveForecastState=null;
 var hypeChart=null, magChart=null, ivChart=null, pieChart=null;
 var fxBars=[], orclMinuteBars=[], orclDailyBars=[];
 var liveMarket={orclUsd:null,eurusd:null,prevOrclUsd:null,prevEurusd:null,at:null,connected:false,lastRenderedEur:null};
-var livePriceTicks=[],liveWs=null,liveHeartbeat=null,liveReconnect=null,liveShockTimer=null,lastFlowRenderAt=0,lastLiveTickPruneAt=0,microLiveEventSource=null;
+var livePriceTicks=[],liveWs=null,liveHeartbeat=null,liveReconnect=null,liveShockTimer=null,waveForecastTimer=null,lastFlowRenderAt=0,lastLiveTickPruneAt=0,microLiveEventSource=null;
 function loadAccOpen(){ try{ return JSON.parse(localStorage.getItem(LS_ACC)||'{}'); }catch(e){ return {}; } }
 function saveAccOpen(map){ try{ localStorage.setItem(LS_ACC, JSON.stringify(map)); }catch(e){} }
 function loadLocalSentimentHistory(){
@@ -957,15 +964,15 @@ function updateValueSummary(){
     else {status.className='value-status down';status.textContent=(pct>0?'+':'')+pct.toLocaleString('de-DE',{maximumFractionDigits:0})+' % über innerem Wert · Kaufen unter '+euro(buyAt,0);}
   }else status.textContent='';
 }
-function appendLiveMinute(price,at){
-  var t=at||Date.now(),minute=Math.floor(t/60000)*60000,iso=new Date(minute).toISOString();
+function appendLiveMinute(price,at,volumeDelta){
+  var t=at||Date.now(),minute=Math.floor(t/60000)*60000,iso=new Date(minute).toISOString(),vd=Math.max(0,Number(volumeDelta)||0);
   var last=orclMinuteBars.length?orclMinuteBars[orclMinuteBars.length-1]:null;
   var lastMinute=last?Math.floor(new Date(last.at).getTime()/60000)*60000:null;
   if(last&&lastMinute===minute){
-    last.close=price;
+    last.close=price;last.high=Math.max(Number(last.high)||price,price);last.low=Math.min(Number(last.low)||price,price);last.volume=(Number(last.volume)||0)+vd;
     return;
   }
-  orclMinuteBars.push({at:iso,close:price,volume:null});
+  orclMinuteBars.push({at:iso,open:price,high:price,low:price,close:price,volume:vd});
   var cut=Date.now()-6*864e5,firstKeep=0;
   while(firstKeep<orclMinuteBars.length&&new Date(orclMinuteBars[firstKeep].at).getTime()<cut)firstKeep++;
   if(firstKeep>0)orclMinuteBars.splice(0,firstKeep);
@@ -986,7 +993,7 @@ function decodePricingBase64(raw){
     var tag=readPbVarint(bytes,state),field=Number(tag>>3n),wire=Number(tag&7n);
     if(wire===0){
       var v=readPbVarint(bytes,state);
-      if(field===3){var sv=(v>>1n)^(-(v&1n));var n=Number(sv);out.time=n<1e12?n*1000:n;}
+      if(field===3){var sv=(v>>1n)^(-(v&1n));var n=Number(sv);out.time=n<1e12?n*1000:n;} else if(field===9){out.dayVolume=Number(v);}
     }else if(wire===1){
       if(state.i+8>bytes.length)break; state.i+=8;
     }else if(wire===2){
@@ -1026,7 +1033,14 @@ async function handleYahooFrame(data){
       if(firstKeep>0)livePriceTicks.splice(0,firstKeep);
       lastLiveTickPruneAt=tickNow;
     }
-    appendLiveMinute(liveMarket.orclUsd,liveMarket.at);
+    var volumeDelta=0;
+    if(isFinite(Number(q.dayVolume))){
+      var dv=Number(q.dayVolume),prevDv=Number(liveMarket.dayVolume);
+      if(isFinite(prevDv)&&dv>=prevDv)volumeDelta=dv-prevDv;
+      liveMarket.dayVolume=dv;
+    }
+    appendLiveMinute(liveMarket.orclUsd,liveMarket.at,volumeDelta);
+    scheduleWaveForecast();
     renderLiveMarket(true);
     scheduleLiveChartUpdate();
     scheduleLiveShock();
@@ -1193,12 +1207,14 @@ function hdrImpulseVector(p,v,s){
   };
 }
 function marketWaveVector(){
-  var p=priceWave(),v=volumeWave(),s=sentimentWave(),label='',dir=0,kind='',micro=validatedMicrostructureSignal();
+  var p=priceWave(),v=volumeWave(),s=sentimentWave(),label='',dir=0,kind='',micro=validatedMicrostructureSignal(),wave=validatedWaveForecast();
   var crowd=s.dir,price=p.dir,vol=v.dir;
   var impulse=hdrImpulseVector(p,v,s);
   var massSupports=crowd&&((vol===crowd)||(s.massDir===crowd)||(v.ratio!=null&&v.ratio>=1.15&&Math.sign(v.pressure)===crowd));
 
-  if(crowd&&massSupports&&(!price||price!==crowd)){
+  if(wave){
+    label='Wave Forecast';dir=wave.dir;kind='wave';
+  }else if(crowd&&massSupports&&(!price||price!==crowd)){
     label='Welle baut sich auf';dir=crowd;kind='build';
   }else if(crowd&&price===crowd&&(vol===crowd||massSupports)){
     label='Welle bestätigt';dir=crowd;kind='confirm';
@@ -1211,18 +1227,14 @@ function marketWaveVector(){
   }
 
   var evidence=(crowd?1:0)+(price?1:0)+(vol?1:0)+(massSupports?1:0);
-  if(evidence<2){label='';dir=0;kind='';}
+  if(!wave&&evidence<2){label='';dir=0;kind='';}
   if(!label&&micro){label=micro.source==='l2'?'100E Forecast':'SIP Edge';dir=micro.dir;kind=micro.source==='l2'?'l2':'micro';}
 
-  // Kein unvalidierter Vorimpuls als Richtungsclaim.
-  // Der Impuls bleibt als beobachtbare Komponente verfügbar, aber ein
-  // handelbarer Richtungszustand wird erst gezeigt, wenn die Welle selbst
-  // durch mehrere Ebenen bestätigt ist.
   return {
     label:label,dir:dir,kind:kind,crowdDir:crowd,priceDir:price,volumeDir:vol,
     volumeRatio:v.ratio,volumePressure:v.pressure,pricePersist:p.persist||0,
     priceEfficiency:p.eff||0,priceAccel:p.accel||0,sentPersist:s.short?s.short.persist:0,
-    massDir:s.massDir||0,evidence:evidence,impulse:impulse,microSignal:micro
+    massDir:s.massDir||0,evidence:evidence,impulse:impulse,microSignal:micro,waveForecast:wave
   };
 }
 function getMarketWaveVector(){
@@ -1261,7 +1273,12 @@ function renderMarketFlowVisual(f){
   f=f||{};
   var counter=!!(f.label&&f.impulse&&f.impulse.reliable&&f.impulse.dir&&f.dir&&f.impulse.dir!==f.dir);
   var phase='NEUTRAL / WARTEN',dir=0,sub='keine klare Mehrfach-Bestätigung';
-  if(f.kind==='l2'){
+  if(f.kind==='wave'){
+    dir=f.dir;
+    phase=dir>0?'BUY-POTENZIAL':'SELL-POTENZIAL';
+    var wf=f.waveForecast||{},hh=Number(wf.horizon_minutes)||0,hit=Number(wf.holdout_hit);
+    sub='HDR-Δt · ≈ '+hh+' Min'+(isFinite(hit)?' · Test '+Math.round(hit*100)+' %':'')+' · '+(wf.social_context||'Social neutral');
+  }else if(f.kind==='l2'){
     dir=f.dir;
     phase=dir>0?'BUY-POTENZIAL':'SELL-POTENZIAL';
     var eta=f.microSignal&&Number(f.microSignal.eta_seconds);
@@ -1338,7 +1355,7 @@ function renderMarketFlowVisual(f){
     '</div>';
 }
 function flowPointStyle(f){
-  return f&&(f.kind==='impulse'||f.kind==='micro'||f.kind==='l2')?'rectRot':'triangle';
+  return f&&(f.kind==='impulse'||f.kind==='micro'||f.kind==='l2'||f.kind==='wave')?'rectRot':'triangle';
 }
 function flowPoint(pricePts,f){
   if(!f||!f.label||!pricePts||!pricePts.length)return [];
@@ -1449,6 +1466,48 @@ function validatedMicrostructureSignal(){
   var at=Date.parse(s.asof||'');if(!isFinite(at)||Math.abs(Date.now()-at)>15*60*1000)return null;
   var dir=Number(s.dir);if(dir!==1&&dir!==-1)return null;
   return Object.assign({},s,{source:'sip'});
+}
+function waveSocialContext(dir){
+  var s=sentimentWave(),sd=Number(s&&s.dir)||0,md=Number(s&&s.massDir)||0;
+  if(sd===dir||md===dir)return 'Social bestätigt';
+  if(sd===-dir||md===-dir)return 'Social widerspricht';
+  return 'Social neutral';
+}
+function refreshWaveForecasts(){
+  if(!waveCore||!orclWaveModel||!Array.isArray(orclMinuteBars)){waveForecastState=null;renderWaveForecasts();return null;}
+  try{waveForecastState=waveCore.forecastLatest(orclMinuteBars,orclWaveModel);}catch(e){waveForecastState={status:'blocked',reason:'runtime_error'};}
+  renderWaveForecasts();
+  return waveForecastState;
+}
+function scheduleWaveForecast(){
+  if(waveForecastTimer)return;
+  waveForecastTimer=setTimeout(function(){waveForecastTimer=null;refreshWaveForecasts();try{renderMarketFlowVisual(getMarketWaveVector());}catch(e){}},8000);
+}
+function validatedWaveForecast(){
+  var s=waveForecastState||{},a=Array.isArray(s.forecasts)?s.forecasts.filter(function(x){return Number(x.dir)===1||Number(x.dir)===-1;}):[];
+  if(s.status!=='ok'||!a.length||!orclWaveModel||orclWaveModel.status!=='validated'||orclWaveModel.production?.enabled!==true)return null;
+  a.sort(function(x,y){
+    var dm=Number(y.margin||0)-Number(x.margin||0);if(Math.abs(dm)>.12)return dm;
+    return Number(x.horizon_minutes)-Number(y.horizon_minutes);
+  });
+  var f=a[0],hit=Number(f.holdout&&f.holdout.hit);
+  return Object.assign({},f,{source:'wave',asof:s.asof,social_context:waveSocialContext(Number(f.dir)),holdout_hit:isFinite(hit)?hit:null});
+}
+function renderWaveForecasts(){
+  var el=document.getElementById('waveForecasts');if(!el)return;
+  var model=orclWaveModel||{},state=waveForecastState||{},live={};
+  (state.forecasts||[]).forEach(function(x){live[String(x.horizon_minutes)]=x;});
+  var hs=[5,15,30];
+  el.innerHTML=hs.map(function(h){
+    var mh=(model.horizons||[]).find(function(x){return Number(x.horizon_minutes)===h;})||{},f=live[String(h)]||null,cls='flat',v='WARTEN',meta='';
+    if(mh.status==='validated'&&f){
+      if(Number(f.dir)>0){cls='up';v='↑ BUY';}else if(Number(f.dir)<0){cls='down';v='↓ SELL';}else v='— KEIN SIGNAL';
+      var hit=Number(mh.holdout&&mh.holdout.hit);meta=(isFinite(hit)?('Test '+Math.round(hit*100)+' %'):'validiert')+' · '+waveSocialContext(Number(f.dir)||0);
+    }else if(mh.status==='validated'){v='— WARTEN';meta='validiert';}
+    else if(mh.status==='unproven'){v='NICHT FREI';meta='Holdout nicht bestanden';}
+    else{v='LÄDT';meta='Modelltraining';}
+    return '<div class="wave-forecast '+cls+'"><div class="wf-h">≈ '+h+' Min</div><div class="wf-v">'+v+'</div><div class="wf-m">'+meta+'</div></div>';
+  }).join('');
 }
 function currentContext(){
   var t=(tickData&&tickData.tick)||{},v=t.vector||{},fr=t.freshness||{},orcl=((wlData&&wlData.stocks)||{}).ORCL||{};
@@ -1971,6 +2030,8 @@ function applyFreshSignal(s){
   renderSentimentChart();
   renderMagnitudeChart();
   renderOpinions();
+  renderWaveForecasts();
+  try{renderMarketFlowVisual(getMarketWaveVector());}catch(e){}
   renderSyncFooter(false);
 }
 async function refreshFreshSignals(){
@@ -1993,9 +2054,12 @@ async function load(){
     var me=await fetchJson('microstructure-edge-status.json',true);
     var ml=await fetchJson('microstructure-live-config.json',true);
     var l2m=await fetchJson('orcl-l2-model.json',true);
+    var wm=await fetchJson('orcl-wave-model.json',true);
+    try{waveCore=await import('./wave-model-core.js?t='+Date.now());}catch(e){waveCore=null;}
     tickData=a; wlData=b; ivData=c; fxData=d||fxData; orclMinutePayload=m||orclMinutePayload; orclHistoryPayload=h||orclHistoryPayload; sentimentBackfillData=sb||sentimentBackfillData;
-    microstructureStatus=ms||microstructureStatus; microstructureData=md||microstructureData; microstructureEdgeStatus=me||microstructureEdgeStatus; microstructureLiveConfig=ml||microstructureLiveConfig; orclL2Model=l2m||orclL2Model;
+    microstructureStatus=ms||microstructureStatus; microstructureData=md||microstructureData; microstructureEdgeStatus=me||microstructureEdgeStatus; microstructureLiveConfig=ml||microstructureLiveConfig; orclL2Model=l2m||orclL2Model; orclWaveModel=wm||orclWaveModel;
     fallbackMarket();
+    refreshWaveForecasts();
     syncRangeButtons();
     renderAll();
     renderSyncFooter(false);
