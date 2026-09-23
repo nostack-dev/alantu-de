@@ -1,4 +1,4 @@
-import { createAlantuBookPhysics } from "./alantu-book-physics-box3d023.js";
+import { createAlantuBookPhysics } from "./alantu-book-physics-box3d024.js";
 
 export function sanitizeAlantuCoverTitle(value,fallback="ALANTU Exposé"){
   const cleaned=String(value??"")
