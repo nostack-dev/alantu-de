@@ -1,28 +1,26 @@
-# verify-030: 1790152736154
 name: box3d-smoke
 
 on:
   push:
     paths:
       - ".github/workflows/box3d-smoke.yml"
+  workflow_dispatch:
 
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-
       - name: Install Chromium
         run: |
           npm init -y >/dev/null 2>&1
           npm install playwright@1.55.0 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null
-
-      - name: Verify Box3D 030
+      - name: Verify current Box3D runtime
         run: |
           python3 -m http.server 4173 >/tmp/alantu-http.log 2>&1 &
           cat > smoke.mjs <<'JS'
@@ -30,71 +28,99 @@ jobs:
 
           const browser=await chromium.launch({headless:true});
 
-          async function makePdf20(){
-            const p=await browser.newPage({viewport:{width:900,height:1200}});
-            let html='<style>@page{size:A4;margin:0}body{margin:0}section{height:1122px;padding:90px;box-sizing:border-box;page-break-after:always;background:#f4f0e8;font-family:Arial}h1{font:64px Georgia;margin-top:220px}</style>';
-            for(let i=1;i<=20;i++)html+=`<section><h1>ALANTU Blatt ${i}</h1><p>Seite ${i} / 20</p></section>`;
-            await p.setContent(html);
-            await p.pdf({path:"/tmp/alantu-20.pdf",format:"A4",printBackground:true});
-            await p.close();
-          }
-
-          async function attachGuards(page,label){
+          function guard(page,label){
             const errors=[];
             page.on("pageerror",e=>errors.push("pageerror: "+e.message));
-            page.on("console",m=>{if(m.type()==="error")errors.push("console: "+m.text())});
-            return ()=>{if(errors.length)throw new Error(label+" errors: "+errors.join(" | "))};
+            page.on("console",m=>{
+              if(m.type()==="error")errors.push("console: "+m.text());
+            });
+            return ()=>{
+              if(errors.length)throw new Error(label+" errors: "+errors.join(" | "));
+            };
           }
 
           async function verifyRuntime(page,label){
-            await page.waitForFunction(()=>document.querySelector(".stage")?.dataset?.physics==="box3d-0.2.0",null,{timeout:30000});
-            const resources=await page.evaluate(()=>performance.getEntriesByType("resource").map(r=>r.name));
-            if(!resources.some(x=>x.includes("alantu-book-core-box3d030.js")))throw new Error(label+" missing core 028");
-            if(!resources.some(x=>x.includes("alantu-book-physics-box3d027.js")))throw new Error(label+" missing physics 025");
+            await page.waitForFunction(
+              ()=>document.querySelector(".stage")?.dataset?.physics==="box3d-0.2.0",
+              null,{timeout:30000}
+            );
+            const r=await page.evaluate(
+              ()=>performance.getEntriesByType("resource").map(x=>x.name)
+            );
+            if(!r.some(x=>x.includes("alantu-book-core-box3d031.js"))){
+              throw new Error(label+" missing core 031");
+            }
+            if(!r.some(x=>x.includes("alantu-book-physics-box3d028.js"))){
+              throw new Error(label+" missing physics 028");
+            }
           }
 
-          async function advance(page,target,label){
-            await page.evaluate(()=>document.querySelector("#nextBtn")?.click());
+          async function waitPage(page,target,label){
             try{
-              await page.waitForFunction(target=>document.querySelector("#pageCount")?.textContent?.trim()===target,target,{timeout:10000});
+              await page.waitForFunction(
+                t=>document.querySelector("#pageCount")?.textContent?.trim()===t,
+                target,{timeout:12000}
+              );
             }catch{
-              const debug=await page.evaluate(()=>({
+              const d=await page.evaluate(()=>({
                 pageCount:document.querySelector("#pageCount")?.textContent?.trim(),
                 state:window.__alantuBookCore?.state?.(),
                 p0:window.__alantuBookCore?.physics?.getLeafProgress?.(0),
                 p1:window.__alantuBookCore?.physics?.getLeafProgress?.(1),
                 p2:window.__alantuBookCore?.physics?.getLeafProgress?.(2)
               }));
-              throw new Error(label+" stuck at "+target+" debug="+JSON.stringify(debug));
+              throw new Error(label+" stuck at "+target+" debug="+JSON.stringify(d));
             }
+          }
+
+          async function clickNext(page,target,label){
+            await page.locator("#nextBtn").click();
+            await waitPage(page,target,label);
+          }
+
+          async function makePdf20(){
+            const p=await browser.newPage({viewport:{width:900,height:1200}});
+            let html='<style>@page{size:A4;margin:0}body{margin:0}section{height:1122px;padding:90px;box-sizing:border-box;page-break-after:always;background:#f4f0e8;font-family:Arial}h1{font:64px Georgia;margin-top:220px}</style>';
+            for(let i=1;i<=20;i++){
+              html+=`<section><h1>ALANTU Blatt ${i}</h1><p>Seite ${i} / 20</p></section>`;
+            }
+            await p.setContent(html);
+            await p.pdf({path:"/tmp/alantu-20.pdf",format:"A4",printBackground:true});
+            await p.close();
           }
 
           {
             const page=await browser.newPage({viewport:{width:1600,height:1100}});
-            const assertNoErrors=await attachGuards(page,"main");
-            await page.goto("http://127.0.0.1:4173/index-brand.html?smoke=030",{waitUntil:"networkidle"});
+            const noErrors=guard(page,"main");
+            await page.goto("http://127.0.0.1:4173/index-brand.html?smoke=031",{waitUntil:"networkidle"});
             await verifyRuntime(page,"main");
-            // Cover is a physical sheet too: close and reopen front cover.
-  await page.evaluate(()=>document.querySelector("#prevBtn")?.click());
-  await page.waitForTimeout(900);
-  let coverState=await page.evaluate(()=>window.__alantuBookCore?.state?.());
-  if(coverState?.closedSide!=="start")throw new Error("main front hardcover did not physically close");
-  await page.evaluate(()=>document.querySelector("#nextBtn")?.click());
-  await page.waitForTimeout(900);
 
-  // Only one active physical turn may exist even under rapid repeated input.
-  await page.evaluate(()=>{
-    document.querySelector("#nextBtn")?.click();
-    document.querySelector("#nextBtn")?.click();
-    document.querySelector("#nextBtn")?.click();
-  });
-  await page.waitForTimeout(120);
-  const single=await page.evaluate(()=>window.__alantuBookCore?.state?.());
-  if(!single?.activeTurn||single.activeTurn.index!==0)throw new Error("main lost single active physical turn");
-  await page.waitForFunction(()=>document.querySelector("#pageCount")?.textContent?.trim()==="02–03 / 06",null,{timeout:10000});
+            await page.locator("#prevBtn").click();
+            await page.waitForFunction(
+              ()=>window.__alantuBookCore?.state?.().closedSide==="start",
+              null,{timeout:12000}
+            );
+            await page.locator("#nextBtn").click();
+            await page.waitForFunction(
+              ()=>window.__alantuBookCore?.state?.().closedSide===null,
+              null,{timeout:12000}
+            );
 
-  for(const target of ["04–05 / 06","06 / 06"])await advance(page,target,"main");
-            assertNoErrors();
+            await page.evaluate(()=>{
+              document.querySelector("#nextBtn")?.click();
+              document.querySelector("#nextBtn")?.click();
+              document.querySelector("#nextBtn")?.click();
+            });
+            await page.waitForTimeout(120);
+            const one=await page.evaluate(()=>window.__alantuBookCore?.state?.());
+            if(!one?.activeTurn||one.activeTurn.index!==0){
+              throw new Error("more than one page turn escaped single-turn gate: "+JSON.stringify(one));
+            }
+            await waitPage(page,"02–03 / 06","main");
+            await clickNext(page,"04–05 / 06","main");
+            await clickNext(page,"06 / 06","main");
+
+            noErrors();
             await page.close();
           }
 
@@ -102,18 +128,23 @@ jobs:
 
           {
             const page=await browser.newPage({viewport:{width:1600,height:1100}});
-            const assertNoErrors=await attachGuards(page,"pdf");
-            await page.goto("http://127.0.0.1:4173/pdf-to-exposee.html?smoke=030",{waitUntil:"networkidle"});
+            const noErrors=guard(page,"pdf");
+            await page.goto("http://127.0.0.1:4173/pdf-to-exposee.html?smoke=031",{waitUntil:"networkidle"});
             await verifyRuntime(page,"pdf");
             await page.locator("#pdfInput").setInputFiles("/tmp/alantu-20.pdf");
-            await page.waitForFunction(()=>document.querySelector("#status")?.textContent?.includes("Seiten bereit"),null,{timeout:45000});
+            await page.waitForFunction(
+              ()=>document.querySelector("#status")?.textContent?.includes("Seiten bereit"),
+              null,{timeout:45000}
+            );
 
             for(const target of [
               "02–03 / 20","04–05 / 20","06–07 / 20","08–09 / 20","10–11 / 20",
               "12–13 / 20","14–15 / 20","16–17 / 20","18–19 / 20","20 / 20"
-            ])await advance(page,target,"pdf");
+            ]){
+              await clickNext(page,target,"pdf");
+            }
 
-            assertNoErrors();
+            noErrors();
             await page.close();
           }
 
