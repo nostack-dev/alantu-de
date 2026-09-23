@@ -453,7 +453,7 @@
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core-box3d028.js";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core-box3d029.js";
 
     const canvas = document.getElementById("bookCanvas");
     const stage = document.getElementById("stage");
@@ -727,7 +727,11 @@
         coverWidth:COVER_W,
         coverHeight:5.15,
         coverThickness:COVER_T,
-        hingeX:HINGE_X
+        hingeX:HINGE_X,
+        startOpenZ:startCoverOpenZ,
+        startClosedZ:startCoverClosedZ,
+        endOpenZ:endCoverOpenZ,
+        endClosedZ:endCoverClosedZ
       };
     }
     const basePageGeom=new THREE.PlaneGeometry(PAGE_W,PAGE_H,20,1);
