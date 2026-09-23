@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-09-23T15:56:06+02:00",
+  "updated_at": "2026-09-23T17:56:37+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-23T15:56:06+02:00",
-    "scraped_at": "2026-09-23T15:56:06+02:00",
+    "tick_id": "2026-09-23T17:56:37+02:00",
+    "scraped_at": "2026-09-23T17:56:37+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "PublicReddit": {
@@ -11,29 +11,29 @@
         "items": 2,
         "provider": "apewisdom.io",
         "window": "24h aggregate snapshot",
-        "freshest": "2026-09-23T15:56:06+02:00",
+        "freshest": "2026-09-23T17:56:37+02:00",
         "sentiment_pct_bullish": 0,
-        "upvotes_24h": 3
+        "upvotes_24h": 4
       },
       "NewsRSS": {
         "status": "ok",
         "items": 20,
         "provider": "news.google.com",
         "window": "last 36h, fetched now",
-        "freshest": "2026-09-23T15:56:06+02:00",
+        "freshest": "2026-09-23T17:56:37+02:00",
         "notes": [
           "What's Going On With Oracle Stock Wednesday?",
-          "ORCL Stock Gains After Google’s Gemini Joins Meta, OpenAI, xAI In Oracle’s AI Model Lineup",
-          "Oracle: The Most Mispriced AI Opportunity On The Market Today"
+          "Oracle: Reality Check Incoming (NYSE:ORCL)",
+          "ORCL Stock Gains After Google’s Gemini Joins Meta, OpenAI, xAI In Oracle’s AI Model Lineup"
         ]
       },
       "Yahoo": {
         "status": "ok",
         "items": 1,
         "prices": {
-          "ORCL": 146.98500061035156
+          "ORCL": 147.375
         },
-        "price_at": "2026-09-23T13:56:03.000Z",
+        "price_at": "2026-09-23T15:56:32.000Z",
         "note": "Yahoo chart 5d/1m fallback feed"
       }
     },
@@ -49,20 +49,20 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-23T15:56:06+02:00",
+      "freshest_absolute": "2026-09-23T17:56:37+02:00",
       "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
       "quality": "medium-high public sources",
-      "scrape_berlin": "2026-09-23T15:56:06+02:00",
+      "scrape_berlin": "2026-09-23T17:56:37+02:00",
       "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
       "freshest_item_age": "snapshot fetched now",
-      "oldest_usable_signal": "Oracle: The Most Mispriced AI Opportunity On The Market Today"
+      "oldest_usable_signal": "ORCL Stock Gains After Google’s Gemini Joins Meta, OpenAI, xAI In Oracle’s AI Model Lineup"
     },
     "vector": {
       "direction": "leicht_bearish_risk_off",
       "magnitude": 38,
       "confidence": 72,
       "early_signal": true,
-      "early_signal_note": "Reddit 0% positiv bei 2 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $146.99."
+      "early_signal_note": "Reddit 0% positiv bei 2 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $147.38."
     },
     "top_themes": [
       {
@@ -483,10 +483,10 @@
         "signal": "hold",
         "confidence": 72,
         "social_impulse": -4,
-        "hype_bull": 14,
-        "hype_bear": 32,
+        "hype_bull": 9,
+        "hype_bear": 27,
         "hype_net": -18,
-        "why": "Reddit 0% positiv bei 2 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $146.99.",
+        "why": "Reddit 0% positiv bei 2 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $147.38.",
         "evidence": {
           "x_posts": 0,
           "reddit_posts": 2,
@@ -494,15 +494,15 @@
           "snippets": [
             "ApeWisdom: 2 Mentions/24h, Sentiment 0%",
             "What's Going On With Oracle Stock Wednesday?",
-            "ORCL Stock Gains After Google’s Gemini Joins Meta, OpenAI, xAI In Oracle’s AI Model Lineup",
-            "Oracle: The Most Mispriced AI Opportunity On The Market Today"
+            "Oracle: Reality Check Incoming (NYSE:ORCL)",
+            "ORCL Stock Gains After Google’s Gemini Joins Meta, OpenAI, xAI In Oracle’s AI Model Lineup"
           ]
         },
         "links": {
           "tradingview": "https://www.tradingview.com/symbols/ORCL/",
           "yahoo": "https://finance.yahoo.com/quote/ORCL"
         },
-        "price": 146.98500061035156
+        "price": 147.375
       }
     ],
     "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
@@ -511,13 +511,13 @@
   "signals_disclaimer": "",
   "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
   "freshness": {
-    "freshest_absolute": "2026-09-23T15:56:06+02:00",
+    "freshest_absolute": "2026-09-23T17:56:37+02:00",
     "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
     "quality": "medium-high public sources",
-    "scrape_berlin": "2026-09-23T15:56:06+02:00",
+    "scrape_berlin": "2026-09-23T17:56:37+02:00",
     "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
     "freshest_item_age": "snapshot fetched now",
-    "oldest_usable_signal": "Oracle: The Most Mispriced AI Opportunity On The Market Today"
+    "oldest_usable_signal": "ORCL Stock Gains After Google’s Gemini Joins Meta, OpenAI, xAI In Oracle’s AI Model Lineup"
   },
   "history": [
     {
@@ -2597,6 +2597,15 @@
     {
       "tick_id": "2026-09-23T15:56:06+02:00",
       "scraped_at": "2026-09-23T15:56:06+02:00",
+      "magnitude": 38,
+      "confidence": 72,
+      "direction": "leicht_bearish_risk_off",
+      "items": 21,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-23T17:56:37+02:00",
+      "scraped_at": "2026-09-23T17:56:37+02:00",
       "magnitude": 38,
       "confidence": 72,
       "direction": "leicht_bearish_risk_off",
