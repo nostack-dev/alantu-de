@@ -1,0 +1,40 @@
+name: Raw SIP runtime
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/raw-sip-wave-core.mjs"
+      - "tools/train-raw-sip-wave.mjs"
+      - "tools/test-raw-sip-wave.mjs"
+      - "market-relay/server.mjs"
+      - "market-runtime/**"
+      - "Dockerfile.market-runtime"
+      - "railway.json"
+      - ".github/workflows/raw-sip-runtime.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax
+        run: |
+          node --check tools/raw-sip-wave-core.mjs
+          node --check tools/train-raw-sip-wave.mjs
+          node --check tools/test-raw-sip-wave.mjs
+          node --check market-relay/server.mjs
+          node --check market-runtime/supervisor.mjs
+          node --check market-runtime/trainer-loop.mjs
+      - name: Raw SIP invariants
+        run: node tools/test-raw-sip-wave.mjs
+      - name: Fail closed without credentials
+        env:
+          RAW_SIP_DATA_DIR: /tmp/alantu-raw-sip-test
+        run: |
+          node tools/train-raw-sip-wave.mjs
+          jq -e '.status=="awaiting_credentials" and .configured==false' /tmp/alantu-raw-sip-test/orcl-raw-sip-status.json >/dev/null
