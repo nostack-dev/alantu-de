@@ -108,6 +108,44 @@
     .drop-icon svg{width:20px;height:20px}
     .drop-title{font-size:15px;font-weight:650}
     .drop-copy{font-size:12px;color:var(--muted);margin-top:7px;line-height:1.45}
+    .branding{
+      margin-top:18px;
+      padding:16px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:rgba(255,255,255,.30);
+    }
+    .branding-title{
+      margin:0 0 12px;
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+    .branding-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+    .branding-field{display:grid;gap:6px}
+    .branding-field span{font-size:11px;color:var(--muted)}
+    .branding-field input{
+      width:100%;
+      min-width:0;
+      border:1px solid var(--line);
+      border-radius:11px;
+      background:rgba(255,255,255,.72);
+      color:var(--ink);
+      padding:10px 11px;
+      outline:none;
+      transition:border-color .16s ease,box-shadow .16s ease,background .16s ease;
+    }
+    .branding-field input:focus{
+      border-color:rgba(184,154,99,.72);
+      box-shadow:0 0 0 3px rgba(184,154,99,.10);
+      background:#fff;
+    }
     .status{
       margin-top:14px;
       min-height:20px;
@@ -262,12 +300,13 @@
       .stage-top{top:11px}.stage-bottom{bottom:11px}
       .badge{max-width:45vw}
       .circle{width:44px;height:44px}
+      .branding-grid{grid-template-columns:1fr}
     }
   </style>
 </head>
 <body>
   <header class="shell topbar">
-    <div class="brand"><span class="mark" aria-hidden="true"><i></i></span><span>ALANTU</span></div>
+    <div class="brand"><span class="mark" aria-hidden="true"><i></i></span><span id="brandPreview">ALANTU</span></div>
     <div class="top-note">PDF → interaktives 3D-Exposé</div>
   </header>
 
@@ -285,6 +324,20 @@
         <span class="drop-title">PDF hier ablegen oder auswählen</span>
         <span class="drop-copy">Ideal für bestehende Makler-Exposés · bis 40 Seiten</span>
       </label>
+
+      <div class="branding" aria-label="Cover-Branding">
+        <div class="branding-title">Cover-Branding</div>
+        <div class="branding-grid">
+          <label class="branding-field">
+            <span>Firma / Marke</span>
+            <input id="brandInput" type="text" value="ALANTU" maxlength="42" autocomplete="organization" spellcheck="false">
+          </label>
+          <label class="branding-field">
+            <span>Bezeichnung</span>
+            <input id="subtitleInput" type="text" value="Exposé" maxlength="42" spellcheck="false">
+          </label>
+        </div>
+      </div>
 
       <div class="status" id="status"><span class="dot"></span><span>Bereit</span></div>
       <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
@@ -347,7 +400,7 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=input305";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand306";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
@@ -359,6 +412,9 @@
     const canvas=document.getElementById("bookCanvas");
     canvas.addEventListener("contextmenu",e=>e.preventDefault());
     const input=document.getElementById("pdfInput");
+    const brandInput=document.getElementById("brandInput");
+    const subtitleInput=document.getElementById("subtitleInput");
+    const brandPreview=document.getElementById("brandPreview");
     const dropzone=document.getElementById("dropzone");
     const statusEl=document.getElementById("status");
     const progressBar=document.getElementById("progressBar");
@@ -383,34 +439,38 @@
     renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 
     const scene=new THREE.Scene();
-    const camera=new THREE.PerspectiveCamera(30,1,.1,100);
-    camera.position.set(.1,1.22,10.8);
+    const camera=new THREE.PerspectiveCamera(29,1,.1,100);
+    camera.position.set(.1,1.35,10.8);
     camera.lookAt(0,0,0);
 
-    scene.add(new THREE.HemisphereLight(0xfffbf3,0x66594b,2.5));
-    const key=new THREE.DirectionalLight(0xffffff,4.3);
+    scene.add(new THREE.HemisphereLight(0xfffbf3,0x66594b,2.35));
+    const key=new THREE.DirectionalLight(0xffffff,4.4);
     key.position.set(-3.5,7,7);
     key.castShadow=true;
     key.shadow.mapSize.set(1024,1024);
     key.shadow.normalBias=.035;
     key.shadow.bias=-.00015;
     scene.add(key);
-    const rim=new THREE.DirectionalLight(0xcdb88e,2.0);
+    const rim=new THREE.DirectionalLight(0xcdb88e,2.1);
     rim.position.set(5,2,-3);
     scene.add(rim);
 
     const root=new THREE.Group();
     root.rotation.x=-.13;
-    root.rotation.y=-.18;
-    root.rotation.z=-.012;
+    root.rotation.y=-.24;
+    root.rotation.z=-.018;
     scene.add(root);
 
-    const coverMaterial=new THREE.MeshStandardMaterial({color:0x171713,roughness:.68,metalness:.05});
-    const edgeMaterial=new THREE.MeshStandardMaterial({color:0xeee7dc,roughness:.94});
+    const coverMaterial=new THREE.MeshStandardMaterial({color:0x171713,roughness:.68,metalness:.06});
+    const edgeMaterial=new THREE.MeshStandardMaterial({color:0xece5d8,roughness:.92});
     const spineMaterial=new THREE.MeshStandardMaterial({color:0xb89a63,roughness:.4,metalness:.35});
 
     function hardcoverMaterials(title){
-      const canvas=createAlantuCoverCanvas({title});
+      const canvas=createAlantuCoverCanvas({
+        title,
+        brand:currentBrand,
+        subtitle:currentSubtitle
+      });
       const texture=configureAlantuPageTexture(new THREE.CanvasTexture(canvas),{
         renderer,
         linearFilter:THREE.LinearFilter,
@@ -431,6 +491,25 @@
       return [side(),side(),side(),side(),exterior,interior];
     }
 
+    function cleanBrandValue(value,fallback){
+      const text=String(value??"").replace(/[\r\n\t]+/g," ").replace(/\s+/g," ").trim();
+      return text||fallback;
+    }
+
+    function refreshBranding(){
+      currentBrand=cleanBrandValue(brandInput?.value,"ALANTU");
+      currentSubtitle=cleanBrandValue(subtitleInput?.value,"Exposé");
+      if(brandPreview)brandPreview.textContent=currentBrand;
+
+      if(frontCover){
+        disposeMaterial(frontCover.material);
+        frontCover.material=hardcoverMaterials(currentCoverTitle);
+      }
+
+      viewerTitle.textContent=
+        (currentBrand+" · "+currentCoverTitle).toUpperCase();
+    }
+
     let pageTextures=[];
     let leafRoots=[];
     let frontCover=null;
@@ -445,7 +524,9 @@
     let PAGE_W=3.52;
     let PAGE_H=4.80;
     let bookAspect=PAGE_W/PAGE_H;
-    let currentCoverTitle="ALANTU Exposé";
+    let currentCoverTitle="Exposé";
+    let currentBrand="ALANTU";
+    let currentSubtitle="Exposé";
     let loadToken=0;
 
     function setStatus(text,type=""){
@@ -588,44 +669,7 @@
         (coverSupport.endClosedZ-coverSupport.endOpenZ)*p;
     }
 
-    function syncSpineToBook(state){
-      if(!spine||!coverSupport||!totalLeaves)return;
-
-      // The binding must span the real book thickness, not a fixed 3-leaf demo
-      // thickness. Keep its back edge at the back cover and grow it toward
-      // whichever stack/cover is physically highest at the hinge.
-      const backOutside=coverSupport.endOpenZ-coverSupport.coverThickness/2;
-      let frontOutside=coverSupport.startOpenZ+coverSupport.coverThickness/2;
-
-      const shownLeaf=state?.activeTurn
-        ? Math.max(0,Math.min(totalLeaves,
-            state.activeTurn.index+(state.activeTurn.progress>=.5?1:0)))
-        : Math.max(0,Math.min(totalLeaves,state?.currentLeaf??0));
-
-      if(shownLeaf>0){
-        frontOutside=Math.max(frontOutside,leftZ(shownLeaf-1)+.010);
-      }
-      if(state?.activeBoundary?.side==="end"){
-        const p=Math.max(0,Math.min(1,state.activeBoundary.progress));
-        const endCenter=
-          coverSupport.endOpenZ+
-          (coverSupport.endClosedZ-coverSupport.endOpenZ)*p;
-        frontOutside=Math.max(frontOutside,endCenter+coverSupport.coverThickness/2);
-      }else if(state?.closedSide==="end"){
-        frontOutside=Math.max(
-          frontOutside,
-          coverSupport.endClosedZ+coverSupport.coverThickness/2
-        );
-      }
-
-      const depth=Math.max(.12,frontOutside-backOutside);
-      spine.scale.z=depth;
-      spine.position.z=(frontOutside+backOutside)/2;
-    }
-
     function updateUI(state){
-      syncSpineToBook(state);
-
       if(!totalPages){
         pageCount.textContent="— / —";
         fullscreenBtn.disabled=true;
@@ -666,7 +710,7 @@
       prevButton:prevBtn,
       nextTap:tapNext,
       prevTap:tapPrev,
-      ignorePointerSelector:".circle"
+      ignorePointerSelector:".stage-control,.circle"
     });
 
     function buildBook(renderedPages){
@@ -747,38 +791,25 @@
       backCover.receiveShadow=true;
       endCoverPivot.add(backCover);
 
-      // The demo's .37 spine depth happens to match its 3 leaves. PDFs can
-      // have many more, so use unit depth and scale it to the real stack.
+      // Same fixed physical spine used by index-brand.html.
       spine=new THREE.Mesh(
-        new THREE.BoxGeometry(.12,Math.max(.2,COVER_H-.05),1),
+        new THREE.BoxGeometry(.12,Math.max(.2,COVER_H-.05),.37),
         spineMaterial.clone()
       );
-      spine.position.set(HINGE_X-.06,0,0);
+      spine.position.set(HINGE_X-.06,0,support.backCoverCenterZ);
       spine.castShadow=true;
       spine.receiveShadow=true;
       root.add(spine);
 
-      const OPEN_COVER_GAP=.052;
       coverSupport={
         coverThickness:COVER_T,
-
-        // Match the main viewer: its open front cover sits ~.052 below
-        // the first left leaf. Keep that visual gap constant regardless
-        // of PDF page count instead of tying it to the deepest right leaf.
-        startOpenZ:leftZ(0)-OPEN_COVER_GAP-COVER_T/2,
-
-        // Closed at the start it sits directly above the right-hand top leaf.
+        startOpenZ:support.backCoverCenterZ,
         startClosedZ:rightZ(0)+.010+COVER_T/2,
-
-        // The back cover remains below the deepest right-hand leaf while open.
         endOpenZ:support.backCoverCenterZ,
-
-        // At the end it closes directly above the highest flipped leaf.
         endClosedZ:leftZ(totalLeaves-1)+.010+COVER_T/2
       };
       setStartCoverProgress(0);
       setEndCoverProgress(0);
-      syncSpineToBook({currentLeaf:0});
 
       const baseGeometry=new THREE.PlaneGeometry(PAGE_W,PAGE_H,30,1);
       baseGeometry.translate(PAGE_W/2,0,0);
@@ -794,7 +825,7 @@
 
         const frontMat=new THREE.MeshStandardMaterial({
           map:pageTextures[frontIndex],
-          roughness:.9,
+          roughness:.88,
           metalness:0,
           side:THREE.FrontSide
         });
@@ -804,8 +835,8 @@
 
         const backMat=new THREE.MeshStandardMaterial({
           map:backMap,
-          color:backMap?0xffffff:0xeee7dc,
-          roughness:.92,
+          color:backMap?0xffffff:0xeee7db,
+          roughness:.9,
           metalness:0,
           side:THREE.BackSide
         });
@@ -846,7 +877,7 @@
       metaFile.textContent=file.name;
       metaPages.textContent="…";
       currentCoverTitle=sanitizeAlantuCoverTitle(file.name);
-      viewerTitle.textContent=currentCoverTitle.toUpperCase();
+      refreshBranding();
 
       try{
         const buffer=await file.arrayBuffer();
@@ -879,13 +910,16 @@
         console.error(err);
         setStatus(err?.message||"PDF konnte nicht verarbeitet werden.","error");
         metaPages.textContent="—";
-        viewerTitle.textContent="ALANTU · PDF EXPOSÉ";
+        currentCoverTitle="Exposé";
+        refreshBranding();
       }finally{
         if(token===loadToken)loadingMask.classList.remove("show");
       }
     }
 
     input.addEventListener("change",()=>loadPdf(input.files?.[0]));
+    brandInput.addEventListener("input",refreshBranding);
+    subtitleInput.addEventListener("input",refreshBranding);
 
     ["dragenter","dragover"].forEach(type=>dropzone.addEventListener(type,e=>{
       e.preventDefault();dropzone.classList.add("drag");
@@ -927,31 +961,26 @@
       const r=stage.getBoundingClientRect();
       const w=Math.max(1,Math.round(r.width));
       const h=Math.max(1,Math.round(r.height));
-      renderer.setPixelRatio(Math.min(Math.max(window.devicePixelRatio||1,1.5),2.5));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2.5));
       renderer.setSize(w,h,false);
       camera.aspect=w/h;
 
       const fullscreen=document.fullscreenElement===stage||document.webkitFullscreenElement===stage;
+      const widthFit=Math.min(1,3.52/Math.max(3.52,PAGE_W));
+
       if(w<560&&!fullscreen){
         camera.fov=31;
-
-        // Mobile portrait fit is derived from the full physical turn envelope,
-        // not just the resting page. This keeps the outer edge visible even
-        // around 75–100% of a turn on 320–430 px devices.
-        const mobileScale=Math.max(.52,Math.min(.69,.56+(w-300)*.001636));
-        const mobileX=Math.max(.96,Math.min(1.20,.96+Math.max(0,w-300)*.00218));
-
-        root.scale.setScalar(mobileScale);
-        root.position.set(mobileX,.07,0);
+        root.scale.setScalar(.72*widthFit);
+        root.position.set(.58,.08,0);
+        root.rotation.y=-.16;
       }else{
         camera.fov=30;
-        const aspectComp=bookAspect>.85?.70:.76;
-        root.scale.setScalar(fullscreen?aspectComp+.08:aspectComp);
-        root.position.set(1.28,.02,0);
+        root.scale.setScalar((fullscreen?.86:.76)*widthFit);
+        root.position.set(1.34,.02,0);
+        root.rotation.y=-.18;
       }
       camera.updateProjectionMatrix();
     }
-
     new ResizeObserver(resize).observe(stage);
     resize();
     updateUI();
@@ -961,6 +990,7 @@
       renderer.render(scene,camera);
       requestAnimationFrame(render);
     }
+    refreshBranding();
     bookCore.reset(0);
     render();
   </script>
