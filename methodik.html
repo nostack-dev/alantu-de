@@ -313,7 +313,7 @@ async function renderLive(){
     const sufficient=!!news.length&&social.length>=50;
     const x=sufficient?liveCalc(news,social):null;
     stat.innerHTML='<span class="status '+(sufficient?'ok':'bad')+'">Quellensnapshot '+(sufficient?'ausreichend':'unzureichend')+'</span> · erfasst '+esc(new Date(src.fetchedAt).toLocaleString('de-DE',{timeZone:'Europe/Berlin'}))+' · '+esc(src.providers.join(' + '));
-    k.innerHTML='<div class="kpi"><span>News</span><b>'+news.length+'</b></div><div class="kpi"><span>UGC/Social</span><b>'+social.length+'</b></div><div class="kpi"><span>Ergebnis</span><b>'+x.signal+' · '+x.net+'</b><small>'+x.bull+'% bull / '+x.bear+'% bear / '+x.mixed+'% mixed · Sicherheit '+x.confidence+'</small></div>';
+    k.innerHTML='<div class="kpi"><span>News</span><b>'+news.length+'</b></div><div class="kpi"><span>UGC/Social</span><b>'+social.length+'</b></div><div class="kpi"><span>Ergebnis</span><b>'+(sufficient?x.signal+' · '+x.net:'Kein belastbares Signal')+'</b><small>'+(sufficient?x.bull+'% bull / '+x.bear+'% bear / '+x.mixed+'% mixed · Heuristik '+x.confidence:'Mindestens 50 frische Social-Treffer erforderlich')+'</small></div>';
     stories.innerHTML='<h3>News-Datensätze</h3>'+news.map(x=>storyHtml(x,'News')).join('')+'<h3>UGC/Social-Datensätze</h3>'+social.map(x=>storyHtml(x,'UGC')).join('');
   }catch(e){
     stat.innerHTML='<span class="status bad">Live-Abfrage fehlgeschlagen</span> · '+esc(e.message)+' · Die Aktienseite behält dann den Last-Known-Good-Stand.';
