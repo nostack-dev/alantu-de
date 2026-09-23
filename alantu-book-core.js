@@ -479,6 +479,11 @@ export function createAlantuBookCore(options){
       moved:false
     };
 
+    // Direct-manipulation feedback: while the user physically holds the
+    // draggable book surface, hide the pointer and let the view highlight
+    // the rendered book itself.
+    stage.classList.add("is-book-dragging");
+
     if(stage.setPointerCapture)stage.setPointerCapture(e.pointerId);
   }
 
@@ -584,6 +589,7 @@ export function createAlantuBookCore(options){
 
     if(dragState.moved)suppressTapUntil=performance.now()+260;
     dragState=null;
+    stage.classList.remove("is-book-dragging");
     ensureTurn();
     notify();
   }
