@@ -1,4 +1,4 @@
-export const YAHOO_SHADOW_VERSION='yahoo-shadow-hdr-dt-v2';
+export const YAHOO_SHADOW_VERSION='yahoo-shadow-hdr-dt-v3';
 export const YAHOO_HORIZONS=[1,5,15,30];
 export const YAHOO_LOCAL=['MSFT','AMZN','GOOGL','NVDA','IGV'];
 export const YAHOO_GLOBAL=['QQQ','SPY'];

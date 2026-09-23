@@ -25,10 +25,71 @@ let shadowState={predictions:[],outcomes:[],proof:{},updated_at:null};
 let eventBuffer=[];
 const SHADOW_PATH=DATA_DIR+'/yahoo-shadow-state.json';
 const YAHOO_DIR=DATA_DIR+'/yahoo-events';
+const SOURCE_REFRESH_MS=Math.max(30000,Number(process.env.SOURCE_REFRESH_MS||90000));
+let sourceState={status:'warming',at:null,checked_at:null,score:null,bull:null,bear:null,mixed:null,net:null,news_count:0,social_count:0,coverage:'none',providers:[],error:null};
 
 function cors(req,res){const o=req.headers.origin;if(o&&ALLOWED.has(o)){res.setHeader('Access-Control-Allow-Origin',o);res.setHeader('Vary','Origin');}}
 function json(res,code,obj){res.statusCode=code;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(obj));}
 async function readJson(file){try{return JSON.parse(await fs.readFile(file,'utf8'));}catch{return null;}}
+
+const SENT_POS=['beat','growth','surge','rally','rise','gain','upgrade','outperform','strong','record','backlog','contract','deal','boost','expand','demand','win','bullish','buy rating'];
+const SENT_NEG=['debt','risk','fall','drop','decline','downgrade','concern','lawsuit','probe','headwind','cost','capex','stress','junk bond','layoff','slump','miss','bearish','sell rating'];
+function normalizedText(s){return String(s||'').toLowerCase().replace(/[^a-z0-9$]+/g,' ').replace(/\s+/g,' ').trim();}
+function termScore(title){
+  const s=' '+normalizedText(title)+' ';
+  let pos=0,neg=0;
+  const hit=(term)=>s.includes(' '+term+' ')||term.includes(' ')&&s.includes(term);
+  const negated=(term)=>{
+    const i=s.indexOf(term);if(i<0)return false;
+    const pre=s.slice(Math.max(0,i-18),i);
+    return /\b(no|not|never|without|cuts?|falls?)\s+$/.test(pre);
+  };
+  for(const k of SENT_POS)if(hit(k)){if(negated(k))neg++;else pos++;}
+  for(const k of SENT_NEG)if(hit(k)){if(negated(k))pos++;else neg++;}
+  return pos>neg?1:neg>pos?-1:0;
+}
+function recencyWeight(ms){
+  const age=Math.max(0,Date.now()-Number(ms||0));
+  return age<=2*3600000?1.5:age<=8*3600000?1.25:age<=24*3600000?1:0.65;
+}
+function dedupeStories(items){
+  const seen=new Set(),out=[];
+  for(const x of items||[]){
+    const key=normalizedText(x.title);if(!key||seen.has(key))continue;
+    seen.add(key);out.push(x);
+  }
+  return out.sort((a,b)=>Number(b.time||0)-Number(a.time||0));
+}
+async function tickerTick(query,n){
+  const u=new URL('https://api.tickertick.com/feed');u.searchParams.set('q',query);u.searchParams.set('n',String(n));
+  const r=await fetch(u,{signal:AbortSignal.timeout(15000)});if(!r.ok)throw new Error('TickerTick HTTP '+r.status);
+  const j=await r.json(),cut=Date.now()-36*3600000;
+  return (j.stories||[]).map(x=>({title:String(x.title||''),url:String(x.url||''),site:String(x.site||''),time:Number(x.time)}))
+    .filter(x=>x.title&&Number.isFinite(x.time)&&x.time>=cut&&x.time<=Date.now()+60000);
+}
+function deriveSourceState(news,social,providers){
+  let bp=0,bn=0,bm=0;
+  const add=(x,w)=>{const s=termScore(x.title),rw=w*recencyWeight(x.time);if(s>0)bp+=rw;else if(s<0)bn+=rw;else bm+=rw;};
+  news.forEach(x=>add(x,1));social.forEach(x=>add(x,1.5));
+  const total=Math.max(1,bp+bn+bm),bull=Math.round(100*bp/total),bear=Math.round(100*bn/total),mixed=Math.max(0,100-bull-bear),net=bull-bear;
+  const coverage=social.length>=50&&news.length>=8?'high':social.length>=10&&news.length>=5?'medium':news.length>=3||social.length>=3?'low':'very_low';
+  return {status:'ok',at:new Date().toISOString(),checked_at:new Date().toISOString(),score:Math.max(0,Math.min(100,Math.round(50+net/2))),bull,bear,mixed,net,news_count:news.length,social_count:social.length,coverage,providers,error:null};
+}
+async function refreshSources(){
+  try{
+    const [news,ticker,entity]=await Promise.all([
+      tickerTick('(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))',100),
+      tickerTick('(and tt:orcl T:ugc)',200),
+      tickerTick('(and E:oracle T:ugc)',200)
+    ]);
+    const relevant=entity.filter(x=>/\$orcl\b|\borcl\b/i.test(x.title)||(/oracle/i.test(x.title)&&/stock|share|earn|cloud|ai|market|bull|bear|buy|sell|valuation|price/i.test(x.title)));
+    const social=dedupeStories(ticker.concat(relevant)).slice(0,300);
+    sourceState=deriveSourceState(dedupeStories(news).slice(0,100),social,['TickerTick News','TickerTick ORCL UGC','TickerTick Oracle Entity UGC']);
+  }catch(e){
+    const age=sourceState.at?Date.now()-Date.parse(sourceState.at):Infinity;
+    sourceState={...sourceState,status:age>20*60000?'stale':'degraded',checked_at:new Date().toISOString(),error:String(e?.message||e)};
+  }
+}
 
 async function writeJsonAtomic(file,obj){
   const tmp=file+'.tmp';await fs.mkdir(DATA_DIR,{recursive:true});await fs.writeFile(tmp,JSON.stringify(obj,null,2)+'\n');await fs.rename(tmp,file);
@@ -120,21 +181,44 @@ function latestYahooPrice(){
 function shadowProof(){
   const out={};
   for(const h of YAHOO_HORIZONS){
-    const a=shadowState.outcomes.filter(x=>Number(x.horizon_minutes)===h&&x.version===YAHOO_SHADOW_VERSION);
-    const n=a.length,hits=a.filter(x=>x.hit).length;
+    const a=shadowState.outcomes.filter(x=>Number(x.horizon_minutes)===h&&x.version===YAHOO_SHADOW_VERSION&&x.status==='evaluated');
+    const n=a.length,hits=a.filter(x=>x.hit===true).length;
     out[String(h)]={
       n,
       hit:n?hits/n:null,
       mean_gross_bps:n?a.reduce((s,x)=>s+Number(x.gross_bps||0),0)/n:null,
-      mode:'shadow_only',
+      invalid:shadowState.outcomes.filter(x=>Number(x.horizon_minutes)===h&&x.version===YAHOO_SHADOW_VERSION&&x.status==='invalid').length,
+      mode:'prospective_nonoverlap_target_time',
       version:YAHOO_SHADOW_VERSION
     };
   }
   return out;
 }
+function shadowTrail(){
+  const outcomes=shadowState.outcomes.filter(x=>x.version===YAHOO_SHADOW_VERSION).slice(-36).reverse().map(x=>({
+    id:x.id,horizon_minutes:x.horizon_minutes,at:x.at,target_at:x.target_at,entry_price:x.entry_price,dir:x.dir,
+    exit_at:x.exit_at||null,exit_price:x.exit_price??null,gross_bps:x.gross_bps??null,hit:x.hit??null,
+    status:x.status||'legacy',timing_error_ms:x.timing_error_ms??null,reason:x.reason||null,version:x.version
+  }));
+  const pending=shadowState.predictions.filter(x=>x.version===YAHOO_SHADOW_VERSION).slice(-12).reverse();
+  return {version:YAHOO_SHADOW_VERSION,proof:shadowProof(),pending,outcomes,updated_at:shadowState.updated_at};
+}
+function targetYahooEvent(targetMs,horizonMinutes){
+  const a=yahooSeries.ORCL||[],late=Math.min(120000,Math.max(30000,Number(horizonMinutes||1)*6000));
+  let best=null;
+  for(const e of a){
+    const t=Number(e.t);if(t<targetMs)continue;if(t>targetMs+late)break;
+    if(Number(e.p)>0){best=e;break;}
+  }
+  return {event:best,max_late_ms:late};
+}
 async function persistShadow(){shadowState.proof=shadowProof();shadowState.updated_at=new Date().toISOString();await writeJsonAtomic(SHADOW_PATH,shadowState);}
 async function loadShadow(){
-  const x=await readJson(SHADOW_PATH);if(x&&Array.isArray(x.predictions)&&Array.isArray(x.outcomes))shadowState=x;
+  const x=await readJson(SHADOW_PATH);
+  if(x&&Array.isArray(x.predictions)&&Array.isArray(x.outcomes)){
+    shadowState=x;
+    shadowState.predictions=shadowState.predictions.filter(p=>p.version===YAHOO_SHADOW_VERSION);
+  }
 }
 function maybeCreateShadowPredictions(fc){
   if(fc?.status!=='ok')return;
@@ -142,31 +226,39 @@ function maybeCreateShadowPredictions(fc){
   const now=Date.now();
   for(const f of fc.forecasts||[]){
     const h=Number(f.horizon_minutes),dir=Number(f.dir);if(!YAHOO_HORIZONS.includes(h)||!dir)continue;
-    const gap=Math.max(30000,Math.min(360000,h*12000));
-    const last=[...shadowState.predictions,...shadowState.outcomes].filter(x=>Number(x.horizon_minutes)===h).sort((a,b)=>Date.parse(b.at)-Date.parse(a.at))[0];
+    const gap=h*60000;
+    const last=[...shadowState.predictions,...shadowState.outcomes].filter(x=>Number(x.horizon_minutes)===h&&x.version===YAHOO_SHADOW_VERSION).sort((a,b)=>Date.parse(b.at)-Date.parse(a.at))[0];
     if(last&&now-Date.parse(last.at)<gap)continue;
     shadowState.predictions.push({
       id:'ys-'+h+'-'+now,horizon_minutes:h,at:new Date(now).toISOString(),target_at:new Date(now+h*60000).toISOString(),
-      entry_price:entry,dir,score:Number(f.score),threshold:Number(f.threshold),margin:Number(f.margin),version:YAHOO_SHADOW_VERSION
+      entry_price:entry,dir,score:Number(f.score),threshold:Number(f.threshold),margin:Number(f.margin),
+      evaluation_contract:'first_event_at_or_after_target_with_bounded_lateness',version:YAHOO_SHADOW_VERSION
     });
   }
   if(shadowState.predictions.length>1000)shadowState.predictions=shadowState.predictions.slice(-1000);
 }
 function evaluateShadows(){
-  const now=Date.now(),price=latestYahooPrice();if(!(price>0))return;
-  const keep=[];
+  const now=Date.now(),keep=[];
   for(const p of shadowState.predictions){
-    if(now<Date.parse(p.target_at)){keep.push(p);continue;}
-    const gross=Number(p.dir)*Math.log(price/Number(p.entry_price))*10000;
-    shadowState.outcomes.push({...p,exit_at:new Date(now).toISOString(),exit_price:price,gross_bps:gross,hit:gross>0});
+    const target=Date.parse(p.target_at);
+    if(now<target){keep.push(p);continue;}
+    const pick=targetYahooEvent(target,p.horizon_minutes),e=pick.event;
+    if(!e){
+      if(now<=target+pick.max_late_ms){keep.push(p);continue;}
+      shadowState.outcomes.push({...p,status:'invalid',exit_at:new Date(now).toISOString(),exit_price:null,gross_bps:null,hit:null,timing_error_ms:null,reason:'target_price_unavailable'});
+      continue;
+    }
+    const price=Number(e.p),gross=Number(p.dir)*Math.log(price/Number(p.entry_price))*10000;
+    shadowState.outcomes.push({...p,status:'evaluated',exit_at:new Date(Number(e.t)).toISOString(),exit_price:price,gross_bps:gross,hit:gross>0,timing_error_ms:Number(e.t)-target});
   }
   shadowState.predictions=keep;
   if(shadowState.outcomes.length>5000)shadowState.outcomes=shadowState.outcomes.slice(-5000);
 }
 function refreshYahooForecast(){
   if(KEY&&SECRET)return;
+  evaluateShadows();
   yahooForecast=forecastYahooShadow(yahooSeries,Date.now(),shadowProof());
-  maybeCreateShadowPredictions(yahooForecast);evaluateShadows();
+  maybeCreateShadowPredictions(yahooForecast);
 }
 function yahooModelSummary(){
   const p=shadowProof();
@@ -202,7 +294,7 @@ function snapshot(symbol){
   const r=raw[symbol];if(!r)return null;
   if(!KEY||!SECRET){
     const m=yahooModelSummary(),best=(yahooForecast?.forecasts||[]).filter(x=>x.dir).sort((a,b)=>(b.margin||0)-(a.margin||0))[0]||null;
-    return {provider:'yahoo',feed:'streamer',symbol,mode:'shadow-live',at:new Date().toISOString(),configured:true,subscription_verified:yahooState==='streaming',auth_state:'no_key_required',auth_error:null,raw:{events:(yahooSeries[symbol]||[]).length,last_upstream_at:yahooLastAt?new Date(yahooLastAt).toISOString():null,persistent:true},quality:yahooForecast?.quality||{status:'warming'},minutes:[],edge_status:'shadow',edge_model_id:m.model_id,live_signal:null,shadow_signal:best?{dir:best.dir,horizon_minutes:best.horizon_minutes,score:best.score,margin:best.margin,asof:yahooForecast.asof,source:'yahoo_shadow'}:null,wave:m,wave_forecast:yahooForecast,l2:{status:'retired',provider:'databento',reason:'replaced_by_event_wave'}};
+    return {provider:'yahoo',feed:'streamer',symbol,mode:'shadow-live',at:new Date().toISOString(),configured:true,subscription_verified:yahooState==='streaming',auth_state:'no_key_required',auth_error:null,raw:{events:(yahooSeries[symbol]||[]).length,last_upstream_at:yahooLastAt?new Date(yahooLastAt).toISOString():null,persistent:true},quality:yahooForecast?.quality||{status:'warming'},minutes:[],edge_status:'shadow',edge_model_id:m.model_id,live_signal:null,shadow_signal:best?{dir:best.dir,horizon_minutes:best.horizon_minutes,score:best.score,margin:best.margin,asof:yahooForecast.asof,source:'yahoo_shadow'}:null,wave:m,wave_forecast:yahooForecast,sentiment:sourceState,shadow_trail:shadowTrail(),l2:{status:'retired',provider:'databento',reason:'replaced_by_event_wave'}};
   }
   const minutes=aggregateMicrostructure(r.trades,r.quotes);
   const quality=microstructureQuality(minutes,{symbol,feed:FEED,minMinutes:10});
@@ -214,7 +306,7 @@ function snapshot(symbol){
     quality,minutes,
     edge_status:rawModel?.status||'unavailable',edge_model_id:rawModel?.model_id||null,
     live_signal:best?{dir:best.dir,score_bps:best.score_bps,horizon_minutes:best.horizon_minutes,margin:best.margin,asof:rawForecast.asof,model_id:best.model_id,source:'raw_sip'}:null,
-    wave:modelSummary(),wave_forecast:rawForecast,
+    wave:modelSummary(),wave_forecast:rawForecast,sentiment:sourceState,shadow_trail:shadowTrail(),
     l2:{status:'retired',provider:'databento',reason:'replaced_by_raw_alpaca_sip'}
   };
 }
@@ -271,6 +363,8 @@ const server=http.createServer((req,res)=>{
   if(u.pathname==='/health'){
     return json(res,200,KEY&&SECRET?{ok:true,provider:'alpaca',feed:FEED,symbols:SYMBOLS,configured:true,auth_state:authState,subscription_verified:subscriptionVerified,upstream_fresh:Date.now()-lastUpstreamAt<15000,last_upstream_at:lastUpstreamAt?new Date(lastUpstreamAt).toISOString():null,primary_runtime:'raw-sip-wave',model:modelSummary(),forecast:{status:rawForecast?.status||'blocked',asof:rawForecast?.asof||null,last_compute_at:lastForecastAt?new Date(lastForecastAt).toISOString():null},setup:'automatic'}:{ok:true,provider:'yahoo',feed:'streamer',symbols:YAHOO_SYMBOLS,configured:true,auth_state:'no_key_required',subscription_verified:yahooState==='streaming',upstream_fresh:Date.now()-yahooLastAt<15000,last_upstream_at:yahooLastAt?new Date(yahooLastAt).toISOString():null,primary_runtime:'yahoo-shadow-wave',model:yahooModelSummary(),forecast:{status:yahooForecast?.status||'blocked',asof:yahooForecast?.asof||null,last_compute_at:lastForecastAt?new Date(lastForecastAt).toISOString():null},shadow:{pending:shadowState.predictions.length,evaluated:shadowState.outcomes.length,proof:shadowProof()},setup:'zero-cost / zero-key; Alpaca credentials later upgrade provider automatically'});
   }
+  if(u.pathname==='/v1/shadow-history')return json(res,200,shadowTrail());
+  if(u.pathname==='/v1/source-state')return json(res,200,sourceState);
   if(u.pathname==='/v1/raw-wave-model')return json(res,200,rawModel||{status:'unavailable'});
   if(u.pathname==='/v1/wave-model')return json(res,200,rawModel||{status:'unavailable'});
   if(u.pathname==='/v1/snapshot'){const symbol=(u.searchParams.get('symbol')||'ORCL').toUpperCase(),s=snapshot(symbol);return s?json(res,200,s):json(res,404,{error:'unknown_symbol'});}
@@ -285,6 +379,7 @@ await fs.mkdir(DATA_DIR,{recursive:true}).catch(()=>{});
 await loadRawModel();
 await loadYahooEvents();
 await loadShadow();
+await refreshSources();
 if(!KEY||!SECRET){
   console.log(JSON.stringify({
     type:'yahoo-shadow-proof-startup',
@@ -295,6 +390,7 @@ if(!KEY||!SECRET){
   }));
 }
 setInterval(loadRawModel,30000).unref();
+setInterval(()=>refreshSources().catch(()=>{}),SOURCE_REFRESH_MS).unref();
 setInterval(refreshForecast,5000).unref();
 setInterval(()=>flushYahooEvents().catch(()=>{}),1000).unref();
 setInterval(()=>persistShadow().catch(()=>{}),15000).unref();

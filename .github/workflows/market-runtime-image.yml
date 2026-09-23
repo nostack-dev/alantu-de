@@ -10,6 +10,7 @@ on:
       - "market-relay/server.mjs"
       - "tools/microstructure-core.mjs"
       - "tools/microstructure-signal.mjs"
+      - "tools/yahoo-shadow-wave-core.mjs"
       - "tools/l2-event-signal.mjs"
       - "tools/databento-orcl-mbp10-live.py"
       - "orcl-l2-model.json"
@@ -30,6 +31,7 @@ jobs:
           node --check market-relay/server.mjs
           node --check tools/microstructure-core.mjs
           node --check tools/microstructure-signal.mjs
+          node --check tools/yahoo-shadow-wave-core.mjs
           node --check tools/l2-event-signal.mjs
           python -m py_compile tools/databento-orcl-mbp10-live.py
       - name: Build
@@ -44,7 +46,7 @@ jobs:
             if curl -fsS http://127.0.0.1:18080/health -o /tmp/health.json; then break; fi
             sleep .25
           done
-          jq -e '.ok==true and .l2.dataset=="XNAS.ITCH" and .l2.model_status=="unavailable" and .l2.contract=="blocked"' /tmp/health.json >/dev/null
+          jq -e '.ok==true and (.provider=="yahoo" or .provider=="alpaca") and (.primary_runtime=="yahoo-shadow-wave" or .primary_runtime=="raw-sip-wave")' /tmp/health.json >/dev/null
           docker inspect -f '{{.State.Running}}' "$cid" | grep -qx true
       - name: Login to GHCR
         uses: docker/login-action@v3
