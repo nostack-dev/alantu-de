@@ -177,7 +177,8 @@ export function createAlantuBookCore(options){
     prevTap=null,
     ignorePointerSelector=".stage-control,.circle",
     resolveGrabU=()=>null,
-    resolveGrabTarget=()=>null
+    resolveGrabTarget=()=>null,
+    getGravityVector=()=>({x:0,y:0,z:-9.81})
   } = options;
 
   let currentLeaf=0;
@@ -196,7 +197,8 @@ export function createAlantuBookCore(options){
     getTotalLeaves,
     rightZ,
     leftZ,
-    getCoverSetup
+    getCoverSetup,
+    getGravityVector
   });
   stage.dataset.physics=`box3d-${physics.engineVersion||"active"}`;
 
@@ -228,7 +230,7 @@ export function createAlantuBookCore(options){
     });
     dragState.grabU=u;
     physics.ensureBuilt(currentLeaf);
-    physics.beginGrab(index,u);
+    physics.beginGrab(index);
     const target=resolveGrabTarget({clientX,clientY,type:"leaf",index});
     if(target){
       dragState.grabTarget=target;
@@ -242,7 +244,7 @@ export function createAlantuBookCore(options){
     });
     dragState.grabU=u;
     physics.ensureBuilt(currentLeaf);
-    physics.beginCoverGrab(side,u);
+    physics.beginCoverGrab(side);
     const target=resolveGrabTarget({clientX,clientY,type:"cover",side});
     if(target){
       dragState.grabTarget=target;

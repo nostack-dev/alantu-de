@@ -1,7 +1,7 @@
 import Box3DFactory from "https://cdn.jsdelivr.net/npm/box3d-wasm@0.2.0/dist/box3d.mjs";
 
 export const ALANTU_BOX3D_VERSION="0.2.0";
-export const ALANTU_BOX3D_RUNTIME="200";
+export const ALANTU_BOX3D_RUNTIME="201";
 
 const b3=await Box3DFactory();
 
@@ -47,6 +47,7 @@ export function createAlantuBookPhysics({
   rightZ,
   leftZ,
   getCoverSetup,
+  getGravityVector=()=>({x:0,y:0,z:-9.81}),
   segments=12
 }){
   let world=null;
@@ -195,7 +196,6 @@ export function createAlantuBookPhysics({
         gravityScale,
         enableSleep:true,
         isAwake:true,
-        isBullet:true,
         allowFastRotation:false,
         motionLocks:{
           linearY:true,
@@ -388,13 +388,11 @@ export function createAlantuBookPhysics({
 
     builtKey=currentKey();
 
+    const gravity=getGravityVector();
     world=new b3.World({
-      gravity:{x:0,y:0,z:-4.5},
+      gravity,
       enableSleep:true,
-      enableContinuous:true,
-      contactHertz:80,
-      contactDampingRatio:1,
-      maximumLinearSpeed:8
+      enableContinuous:true
     });
 
     buildSpine();
@@ -514,29 +512,44 @@ export function createAlantuBookPhysics({
     };
   }
 
-  function beginModelGrab(model,u,{maxForce=220,maxSpeed=4}={}){
+  function gravityMagnitude(){
+    const g=world?.getGravity?.()||getGravityVector();
+    return Math.max(.001,Math.hypot(g.x||0,g.y||0,g.z||0));
+  }
+
+  function beginModelGrab(model){
     endGrab();
     if(!model||!world)return;
 
-    const clampedU=clamp(u,.04,.99);
-    const segmentIndex=clamp(
-      Math.floor(clampedU*model.segmentCount),
-      0,
-      model.segmentCount-1
-    );
+    // ALANTU handle: always use the segment farthest from the binding.
+    // This is the maximum physical lever arm for both forward and backward
+    // page turns. Which side of the book it appears on is determined by the
+    // actual sheet rotation, not by a separate left/right hack.
+    const segmentIndex=model.segmentCount-1;
     const body=model.bodies[segmentIndex];
-    const localX=
-      clampedU*model.width-(segmentIndex+.5)*model.sw;
+    const localX=model.sw*.495;
     const actualPoint=body.getWorldPoint({x:localX,y:0,z:0});
 
     const driver=world.createBody({
       type:"kinematic",
       position:actualPoint,
       rotation:IDENTITY_Q,
-      linearVelocity:{x:0,y:0,z:0},
       enableSleep:false,
-      name:"alantu-grab-driver"
+      name:"alantu-mouse-body"
     });
+
+    const mass=Math.max(.000001,body.getMass());
+    const mg=mass*gravityMagnitude();
+    const forceScale=100; // same default scale used by Erin Catto's sample
+    const maxSpringForce=forceScale*mg;
+
+    // The wrapper does not expose the full inertia tensor used in sample.cpp,
+    // so estimate the equivalent lever from this strip's box dimensions.
+    const lever=Math.sqrt(
+      (model.sw*model.sw+
+       model.height*model.height+
+       model.thickness*model.thickness)/18
+    );
 
     const joint=world.createMotorJoint(driver,body,{
       localFrameA:{
@@ -548,25 +561,17 @@ export function createAlantuBookPhysics({
         rotation:IDENTITY_Q
       },
       collideConnected:false,
-      linearVelocity:{x:0,y:0,z:0},
-      maxVelocityForce:maxForce,
-      angularVelocity:{x:0,y:0,z:0},
-      maxVelocityTorque:0,
-      linearHertz:22,
+      linearHertz:7.5,
       linearDampingRatio:1,
-      maxSpringForce:maxForce,
-      angularHertz:0,
-      angularDampingRatio:1,
-      maxSpringTorque:0
+      maxSpringForce,
+      maxVelocityTorque:.5*lever*mg
     });
 
     grab={
       model,
-      u:clampedU,
       driver,
       joint,
-      target:{...actualPoint},
-      maxSpeed
+      target:{...actualPoint}
     };
     body.setAwake(true);
   }
@@ -578,47 +583,33 @@ export function createAlantuBookPhysics({
     grab.target={x,y,z};
   }
 
-  function advanceGrabDriver(){
+  function updateMouseBody(){
     if(!grab?.target)return;
 
-    const p=grab.driver.getPosition();
-    const dx=grab.target.x-p.x;
-    const dy=grab.target.y-p.y;
-    const dz=grab.target.z-p.z;
-    const distance=Math.hypot(dx,dy,dz);
-
-    if(distance<.0005){
-      grab.driver.setLinearVelocity({x:0,y:0,z:0});
-      return;
-    }
-
-    // Crucial: never teleport the kinematic mouse body. A capped velocity
-    // lets CCD/contact constraints solve before the dragged sheet can cross
-    // another sheet, and prevents the joint chain from being pulled apart.
-    const speed=Math.min(grab.maxSpeed,distance/FIXED_DT);
-    const scale=speed/distance;
-    grab.driver.setLinearVelocity({
-      x:dx*scale,
-      y:dy*scale,
-      z:dz*scale
-    });
+    // This is the exact pattern used in Erin Catto's 3D sample mouse joint:
+    // drive the kinematic mouse body to the cursor target over one time step.
+    // Box3D computes the velocity; the dynamic sheet is moved only through
+    // the MotorJoint and therefore remains subject to contacts and hinges.
+    grab.driver.setTargetTransform({
+      position:grab.target,
+      rotation:IDENTITY_Q
+    },FIXED_DT,true);
   }
 
-  function beginGrab(index,u){
+  function beginGrab(index){
     const model=leafModels[index];
     if(!model)return;
-    beginModelGrab(model,u,{maxForce:220,maxSpeed:4});
+    beginModelGrab(model);
   }
 
-  function beginCoverGrab(side,u){
+  function beginCoverGrab(side){
     if(!coverModels)return;
     const model=side==="start"?coverModels.front:coverModels.back;
-    beginModelGrab(model,u,{maxForce:650,maxSpeed:3});
+    beginModelGrab(model);
   }
 
   function endGrab(){
     if(!grab)return;
-    try{grab.driver.setLinearVelocity({x:0,y:0,z:0})}catch{}
     safeDelete(grab.joint);
     safeDelete(grab.driver);
     grab=null;
@@ -717,7 +708,9 @@ export function createAlantuBookPhysics({
     let loops=0;
 
     while(accumulator>=FIXED_DT&&loops<4){
-      advanceGrabDriver();
+      const gravity=getGravityVector();
+      world.setGravity(gravity);
+      updateMouseBody();
       world.step(FIXED_DT,12);
       accumulator-=FIXED_DT;
       loops++;

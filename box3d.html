@@ -796,60 +796,79 @@
     const dragRaycaster=new THREE.Raycaster();
     const dragPointer=new THREE.Vector2();
 
-    function resolveGrabU({clientX,clientY,type,index,side}){
+    let grabRayDistance=null;
+
+    function setPointerRay(clientX,clientY){
       const rect=canvas.getBoundingClientRect();
-      if(!rect.width||!rect.height)return null;
+      if(!rect.width||!rect.height)return false;
 
       dragPointer.set(
         ((clientX-rect.left)/rect.width)*2-1,
         -((clientY-rect.top)/rect.height)*2+1
       );
-      scene.updateMatrixWorld(true);
-      dragRaycaster.setFromCamera(dragPointer,camera);
-
-      if(type==="leaf"){
-        const pageRoot=pageRoots[index];
-        if(!pageRoot)return null;
-        const targets=[];
-        pageRoot.traverse(obj=>{if(obj.isMesh)targets.push(obj)});
-        const hit=dragRaycaster.intersectObjects(targets,true)[0];
-        return hit?.uv?Math.max(0,Math.min(1,hit.uv.x)):null;
-      }
-
-      const mesh=side==="start"?frontCover:backCover;
-      if(!mesh)return null;
-      const hit=dragRaycaster.intersectObject(mesh,true)[0];
-      if(!hit)return null;
-      const local=mesh.worldToLocal(hit.point.clone());
-      return Math.max(0,Math.min(1,(local.x+COVER_W/2)/COVER_W));
-    }
-
-    function resolveGrabTarget({clientX,clientY}){
-      const rect=canvas.getBoundingClientRect();
-      if(!rect.width||!rect.height)return null;
-
-      dragPointer.set(
-        ((clientX-rect.left)/rect.width)*2-1,
-        -((clientY-rect.top)/rect.height)*2+1
-      );
-
       scene.updateMatrixWorld(true);
       root.updateMatrixWorld(true);
       dragRaycaster.setFromCamera(dragPointer,camera);
+      return true;
+    }
 
-      const rootOrigin=new THREE.Vector3();
-      const rootQuat=new THREE.Quaternion();
-      root.getWorldPosition(rootOrigin);
-      root.getWorldQuaternion(rootQuat);
+    function resolveGrabU({clientX,clientY,type,index,side}){
+      if(!setPointerRay(clientX,clientY))return .995;
 
-      const normal=new THREE.Vector3(0,1,0).applyQuaternion(rootQuat).normalize();
-      const plane=new THREE.Plane().setFromNormalAndCoplanarPoint(normal,rootOrigin);
+      let hit=null;
+      if(type==="leaf"){
+        const pageRoot=pageRoots[index];
+        if(pageRoot){
+          const targets=[];
+          pageRoot.traverse(obj=>{if(obj.isMesh)targets.push(obj)});
+          hit=dragRaycaster.intersectObjects(targets,true)[0]||null;
+        }
+      }else{
+        const mesh=side==="start"?frontCover:backCover;
+        if(mesh)hit=dragRaycaster.intersectObject(mesh,true)[0]||null;
+      }
+
+      if(hit){
+        grabRayDistance=hit.distance;
+      }else{
+        const rootOrigin=new THREE.Vector3();
+        root.getWorldPosition(rootOrigin);
+        grabRayDistance=dragRaycaster.ray.origin.distanceTo(rootOrigin);
+      }
+
+      // Physical attachment is always the outer edge / maximum lever arm.
+      return .995;
+    }
+
+    function resolveGrabTarget({clientX,clientY}){
+      if(!setPointerRay(clientX,clientY))return null;
+      if(!Number.isFinite(grabRayDistance))return null;
+
+      // Same principle as sample.cpp's m_mouseFraction:
+      // keep the mouse target at the pick ray depth established on mouse-down.
       const worldPoint=new THREE.Vector3();
-
-      if(!dragRaycaster.ray.intersectPlane(plane,worldPoint))return null;
-
+      dragRaycaster.ray.at(grabRayDistance,worldPoint);
       const local=root.worldToLocal(worldPoint.clone());
-      return {x:local.x,y:0,z:local.z};
+      return {x:local.x,y:local.y,z:local.z};
+    }
+
+    function getGravityVector(){
+      // A viewer looking down at a book on a table sees gravity going from
+      // camera toward the book/table. Convert that camera-forward direction
+      // into the local coordinate system used by Box3D.
+      const forward=new THREE.Vector3();
+      const rootWorldQ=new THREE.Quaternion();
+
+      camera.getWorldDirection(forward);
+      root.getWorldQuaternion(rootWorldQ);
+      forward.applyQuaternion(rootWorldQ.invert()).normalize();
+
+      const g=9.81;
+      return {
+        x:forward.x*g,
+        y:forward.y*g,
+        z:forward.z*g
+      };
     }
 
     bookCore=createAlantuBookCore({
@@ -869,7 +888,8 @@
       prevTap:tapPrev,
       ignorePointerSelector:".stage-control",
       resolveGrabU,
-      resolveGrabTarget
+      resolveGrabTarget,
+      getGravityVector
     });
     window.__alantuBookCore=bookCore;
 
