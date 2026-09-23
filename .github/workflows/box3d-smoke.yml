@@ -1,3 +1,4 @@
+name: box3d-smoke
 # box3d-021-smoke: 1790149686230
 on:
   push:
@@ -105,7 +106,7 @@ jobs:
               "02–03 / 20","04–05 / 20","06–07 / 20","08–09 / 20","10–11 / 20",
               "12–13 / 20","14–15 / 20","16–17 / 20","18–19 / 20","20 / 20"
             ];
-            for(const target of targets)await nextAndWait(page,target,"main");
+            for(const target of targets)await nextAndWait(page,target,"pdf");
 
             await page.evaluate(()=>document.querySelector("#nextBtn")?.click());
             await page.waitForFunction(()=>document.querySelector("#nextBtn")?.disabled===true,null,{timeout:8000});
