@@ -1,12 +1,12 @@
 export const FEATURE_VERSION='wave-hdr-dt-v1';
-export const BAR_MINUTES=2;
-export const HORIZONS=[2,10,30];
+export const BAR_MINUTES=5;
+export const HORIZONS=[5,15,30];
 export const FEATURE_NAMES=[
   'ret_bps','log_dt_min','velocity_bps_min','accel_bps_min2',
-  'price_slope_6','price_slope_20','price_slope_60','hdr_price_local','hdr_price_global',
-  'price_eff_6','price_persist_20',
-  'volume_pressure_6','volume_pressure_20','volume_pressure_60','hdr_volume_local','hdr_volume_global',
-  'volume_ratio_log','volume_rate_log','rv_6','rv_60','hdr_volatility','vwap_gap_bps','body_bps','range_bps'
+  'price_slope_15','price_slope_60','price_slope_180','hdr_price_local','hdr_price_global',
+  'price_eff_15','price_persist_60',
+  'volume_pressure_15','volume_pressure_60','volume_pressure_180','hdr_volume_local','hdr_volume_global',
+  'volume_ratio_log','volume_rate_log','rv_15','rv_180','hdr_volatility','vwap_gap_bps','body_bps','range_bps'
 ];
 
 const NY=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
@@ -64,23 +64,23 @@ function realizedVol(bars,i,mins){const a=windowRows(bars,i,mins);if(a.length<3)
 function vwap(bars,i,mins){const a=windowRows(bars,i,mins);let pv=0,v=0;for(const r of a){const x=Math.max(0,Number(r.volume)||0);pv+=Number(r.close)*x;v+=x;}return v?pv/v:Number(bars[i].close);}
 
 export function featureAt(bars,i){
-  if(!bars||i<31||i>=bars.length)return null;
+  if(!bars||i<36||i>=bars.length)return null;
   const cur=bars[i],prev=bars[i-1],prev2=bars[i-2];
-  if(sessionKey(cur.at)!==sessionKey(bars[i-31].at))return null;
+  if(sessionKey(cur.at)!==sessionKey(bars[i-36].at))return null;
   const dt=Math.max(1/60,(Date.parse(cur.at)-Date.parse(prev.at))/60000),pdt=Math.max(1/60,(Date.parse(prev.at)-Date.parse(prev2.at))/60000);
   const ret=Math.log(cur.close/prev.close)*10000,pret=Math.log(prev.close/prev2.close)*10000,vel=ret/dt,pvel=pret/pdt,accel=(vel-pvel)/Math.max(1/60,(dt+pdt)/2);
-  const p6=trendFit(bars,i,6),p20=trendFit(bars,i,20),p60=trendFit(bars,i,60),v6=volumeFlow(bars,i,6),v20=volumeFlow(bars,i,20),v60=volumeFlow(bars,i,60);
-  if(!p6||!p20||!p60||!v6||!v20||!v60)return null;
-  const prior=windowRows(bars,i-1,60).map(r=>Number(r.volume)||0),med=median(prior),ratio=(Number(cur.volume)+1)/(med+1),rv6=realizedVol(bars,i,6),rv60=realizedVol(bars,i,60),vw=vwap(bars,i,60);
+  const p15=trendFit(bars,i,15),p60=trendFit(bars,i,60),p180=trendFit(bars,i,180),v15=volumeFlow(bars,i,15),v60=volumeFlow(bars,i,60),v180=volumeFlow(bars,i,180);
+  if(!p15||!p60||!p180||!v15||!v60||!v180)return null;
+  const prior=windowRows(bars,i-1,180).map(r=>Number(r.volume)||0),med=median(prior),ratio=(Number(cur.volume)+1)/(med+1),rv15=realizedVol(bars,i,15),rv180=realizedVol(bars,i,180),vw=vwap(bars,i,180);
   const x=[
     ret,Math.log1p(dt),signedLog(vel),signedLog(accel),
-    p6.slope,p20.slope,p60.slope,hdr(p6.slope,p20.slope),hdr(p20.slope,p60.slope),
-    p6.eff,p20.persist,
-    v6.pressure,v20.pressure,v60.pressure,hdr(v6.pressure,v20.pressure),hdr(v20.pressure,v60.pressure),
-    Math.log(ratio),Math.log1p(Math.max(0,Number(cur.volume))/dt),rv6,rv60,hdr(rv6,rv60),
+    p15.slope,p60.slope,p180.slope,hdr(p15.slope,p60.slope),hdr(p60.slope,p180.slope),
+    p15.eff,p60.persist,
+    v15.pressure,v60.pressure,v180.pressure,hdr(v15.pressure,v60.pressure),hdr(v60.pressure,v180.pressure),
+    Math.log(ratio),Math.log1p(Math.max(0,Number(cur.volume))/dt),rv15,rv180,hdr(rv15,rv180),
     (cur.close/vw-1)*10000,Math.log(cur.close/cur.open)*10000,Math.log(cur.high/cur.low)*10000
   ];
-  return x.every(Number.isFinite)?{at:cur.at,x,diagnostics:{dt_min:dt,price:{short:p6,local:p20,global:p60},volume:{short:v6,local:v20,global:v60},rv:{short:rv6,global:rv60},vwap_gap_bps:x[21]}}:null;
+  return x.every(Number.isFinite)?{at:cur.at,x,diagnostics:{dt_min:dt,price:{short:p15,local:p60,global:p180},volume:{short:v15,local:v60,global:v180},rv:{short:rv15,global:rv180},vwap_gap_bps:x[21]}}:null;
 }
 
 export function futureReturnBps(bars,i,horizonMinutes){
