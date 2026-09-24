@@ -152,7 +152,7 @@ jobs:
           grep -q "setChartRange('opinions'" index.html
           grep -q "forecast:'alantu_forecast_range_v1'" index.html
           grep -q "setChartRange('forecast'" index.html
-          grep -q 'forecast-event' index.html
+          grep -q 'forecast-bin' index.html
           ! grep -q 'forecast-entry' index.html
           ! grep -q 'forecast-result hit' index.html
           grep -q 'Signal → Zielzeit → war die Richtung richtig?' index.html
