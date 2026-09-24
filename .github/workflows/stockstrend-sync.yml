@@ -94,8 +94,8 @@ jobs:
             local urls=(
               'https://query1.finance.yahoo.com/v8/finance/chart/ORC.F?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
               'https://query2.finance.yahoo.com/v8/finance/chart/ORC.F?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
-              'https://query1.finance.yahoo.com/v8/finance/chart/ORC.DE?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
-              'https://query2.finance.yahoo.com/v8/finance/chart/ORC.DE?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
+              'https://query1.finance.yahoo.com/v8/finance/chart/ORC.F?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
+              'https://query2.finance.yahoo.com/v8/finance/chart/ORC.F?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
             )
             for url in "${urls[@]}"; do
               if curl -fsSL --retry 1 --connect-timeout 10 --max-time 30 -A 'Mozilla/5.0' "$url" -o "$out.tmp"; then
