@@ -496,13 +496,13 @@
                 <div class="axis-group" aria-label="Neigung nach hinten">
                   <span class="axis-label" aria-hidden="true">X</span>
                   <button id="tiltXLess" type="button" aria-label="Weniger nach hinten neigen" title="X-Neigung −1°">−</button>
-                  <output id="tiltXValue" aria-live="polite">5°</output>
+                  <output id="tiltXValue" aria-live="polite">4°</output>
                   <button id="tiltXMore" type="button" aria-label="Mehr nach hinten neigen" title="X-Neigung +1°">+</button>
                 </div>
                 <div class="axis-group" aria-label="Seitliche Neigung">
                   <span class="axis-label" aria-hidden="true">Y</span>
                   <button id="tiltYLess" type="button" aria-label="Weiter nach links drehen" title="Y-Neigung −1°">−</button>
-                  <output id="tiltYValue" aria-live="polite">3°</output>
+                  <output id="tiltYValue" aria-live="polite">2°</output>
                   <button id="tiltYMore" type="button" aria-label="Weiter nach rechts drehen" title="Y-Neigung +1°">+</button>
                 </div>
               </div>
@@ -609,12 +609,12 @@
     const root=new THREE.Group();
     // Presentation controls only rotate the model. Keep scaling uniform so
     // the source PDF/canvas aspect ratio is never stretched on X or Y.
-    root.rotation.x=-THREE.MathUtils.degToRad(5);
-    root.rotation.y=-THREE.MathUtils.degToRad(3);
+    root.rotation.x=-THREE.MathUtils.degToRad(4);
+    root.rotation.y=-THREE.MathUtils.degToRad(2);
     root.rotation.z=-.008;
     scene.add(root);
-    let tiltXDegrees=5;
-    let tiltYDegrees=3;
+    let tiltXDegrees=4;
+    let tiltYDegrees=2;
     const tiltXLess=document.getElementById("tiltXLess");
     const tiltXMore=document.getElementById("tiltXMore");
     const tiltYLess=document.getElementById("tiltYLess");
