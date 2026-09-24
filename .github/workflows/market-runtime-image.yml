@@ -12,6 +12,8 @@ on:
       - "tools/microstructure-signal.mjs"
       - "tools/yahoo-shadow-wave-core.mjs"
       - "tools/yahoo-hypothesis-v4.mjs"
+      - "tools/yahoo-monetary-v5.mjs"
+      - "tools/test-yahoo-monetary-v5.mjs"
       - "tools/test-yahoo-hypothesis-v4.mjs"
       - "tools/l2-event-signal.mjs"
       - "tools/databento-orcl-mbp10-live.py"
@@ -36,6 +38,8 @@ jobs:
           node --check tools/yahoo-shadow-wave-core.mjs
           node --check tools/yahoo-hypothesis-v4.mjs
           node tools/test-yahoo-hypothesis-v4.mjs
+          node --check tools/yahoo-monetary-v5.mjs
+          node tools/test-yahoo-monetary-v5.mjs
           node --check tools/l2-event-signal.mjs
           python -m py_compile tools/databento-orcl-mbp10-live.py
       - name: Build
@@ -57,6 +61,8 @@ jobs:
           jq -e 'has("version") and (.proof|type=="object") and (.pending|type=="array") and (.outcomes|type=="array")' /tmp/shadow-history.json >/dev/null
           curl -fsS http://127.0.0.1:18080/v1/hypothesis-v4 -o /tmp/hypothesis-v4.json
           jq -e '.version=="yahoo-hypothesis-v4" and .production_strategy=="regime" and (.proof|type=="object") and (.pending|type=="array") and (.outcomes|type=="array") and (.recommendation.action=="WAIT" or .recommendation.action=="BUY" or .recommendation.action=="SELL")' /tmp/hypothesis-v4.json >/dev/null
+          curl -fsS http://127.0.0.1:18080/v1/research-v5 -o /tmp/research-v5.json
+          jq -e '.version=="yahoo-monetary-dt-v5" and .contract=="true_dt_residual_barrier_causal_online_v1" and (.proof|type=="object") and (.pending|type=="array") and (.outcomes|type=="array") and (.recommendation.action=="WAIT" or .recommendation.action=="BUY" or .recommendation.action=="SELL")' /tmp/research-v5.json >/dev/null
           curl -fsS 'http://127.0.0.1:18080/v1/snapshot?symbol=ORCL' -o /tmp/snapshot.json
           jq -e '.symbol=="ORCL" and (.provider=="yahoo" or .provider=="alpaca")' /tmp/snapshot.json >/dev/null
           set +e

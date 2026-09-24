@@ -5,6 +5,7 @@ import {aggregateMicrostructure,microstructureQuality} from '../tools/microstruc
 import {forecastRawLatest} from '../tools/raw-sip-wave-core.mjs';
 import {forecastYahooShadow,YAHOO_HORIZONS,YAHOO_LOCAL,YAHOO_GLOBAL,YAHOO_SHADOW_VERSION} from '../tools/yahoo-shadow-wave-core.mjs';
 import {HYPOTHESIS_VERSION,HYPOTHESIS_STRATEGIES,PRODUCTION_STRATEGY,HYPOTHESIS_MIN_MARGIN,DEFAULT_ROUNDTRIP_COST_BPS,signalSessionEligible,strategyDirections,actionableNewsContext,summarizeHypothesisState} from '../tools/yahoo-hypothesis-v4.mjs';
+import {V5_VERSION,V5_HORIZONS,V5_COST_BPS,V5_SAMPLE_GAP_MS,v5SessionEligible,extractV5Features,structuralV5Score,v5BarrierBps,fitV5Logistic,predictV5Logistic,evaluateV5Path,summarizeV5State} from '../tools/yahoo-monetary-v5.mjs';
 
 const PORT=Number(process.env.PORT||8080);
 const KEY=process.env.APCA_API_KEY_ID||'',SECRET=process.env.APCA_API_SECRET_KEY||'';
@@ -24,9 +25,12 @@ const yahooDayVolume=Object.fromEntries(YAHOO_SYMBOLS.map(s=>[s,null]));
 let yahooWs=null,yahooReconnect=null,yahooLastAt=0,yahooState='connecting',yahooForecast={status:'blocked',reason:'starting_yahoo_shadow',source:'yahoo_shadow'};
 let shadowState={predictions:[],outcomes:[],proof:{},updated_at:null};
 let hypothesisState={predictions:[],outcomes:[],updated_at:null};
+let v5State={predictions:[],outcomes:[],started_at:null,updated_at:null};
+let v5SummaryCache=null,v5SummaryCacheAt=0,v5SummaryOutcomeCount=-1;
 let eventBuffer=[],sourceEventBuffer=[];
 const SHADOW_PATH=DATA_DIR+'/yahoo-shadow-state.json';
 const HYPOTHESIS_PATH=DATA_DIR+'/yahoo-hypothesis-v4-state.json';
+const V5_PATH=DATA_DIR+'/yahoo-monetary-v5-state.json';
 const YAHOO_DIR=DATA_DIR+'/yahoo-events';
 const SOURCE_EVENT_DIR=DATA_DIR+'/source-events';
 const HYPOTHESIS_COST_BPS=Math.max(0,Number(process.env.SHADOW_ROUNDTRIP_COST_BPS||DEFAULT_ROUNDTRIP_COST_BPS));
@@ -605,9 +609,88 @@ function refreshYahooForecast(){
   if(KEY&&SECRET)return;
   evaluateShadows();
   evaluateHypotheses();
+  evaluateV5();
   yahooForecast=forecastYahooShadow(yahooSeries,Date.now(),shadowProof());
   maybeCreateShadowPredictions(yahooForecast);
   maybeCreateHypothesisPredictions(yahooForecast);
+  maybeCreateV5Predictions();
+}
+
+function v5Counts(){
+  const rows=v5State.outcomes.filter(x=>x.version===V5_VERSION);
+  return {pending:v5State.predictions.filter(x=>x.version===V5_VERSION).length,evaluated:rows.filter(x=>x.status==='evaluated').length,invalid:rows.filter(x=>x.status==='invalid').length};
+}
+function v5Summary(force=false){
+  const n=v5State.outcomes.length,now=Date.now();
+  if(force||!v5SummaryCache||n!==v5SummaryOutcomeCount||now-v5SummaryCacheAt>30000){
+    v5SummaryCache=summarizeV5State(v5State);v5SummaryOutcomeCount=n;v5SummaryCacheAt=now;
+  }
+  return v5SummaryCache;
+}
+function latestV5Candidate(horizon=null){
+  const a=v5State.predictions.filter(x=>x.version===V5_VERSION&&(horizon==null||Number(x.horizon_minutes)===Number(horizon))).sort((x,y)=>Date.parse(y.at)-Date.parse(x.at));
+  const p=a[0]||null;if(!p||Date.now()-Date.parse(p.at)>75000)return null;
+  return {horizon_minutes:p.horizon_minutes,at:p.at,target_at:p.target_at,barrier_bps:p.barrier_bps,structural_dir:p.structural_dir,structural_score:p.structural_score,
+    learned_dir:p.learned_dir,p_up:p.p_up,confidence:p.confidence,model_n:p.model_n,gate_sample:p.gate_sample,features:p.feature_summary};
+}
+function v5Recommendation(){
+  const s=v5Summary(),h=Number(s.production.selected_horizon),candidate=latestV5Candidate(s.production.enabled?h:null);
+  if(!s.production.enabled||!candidate||!(Number(candidate.learned_dir)===1||Number(candidate.learned_dir)===-1)){
+    return {status:'research',action:'WAIT',reason:s.production.enabled?'waiting_fresh_validated_signal':'prospective_gate_not_passed',candidate};
+  }
+  return {status:'validated',action:candidate.learned_dir>0?'BUY':'SELL',dir:candidate.learned_dir,horizon_minutes:h,at:candidate.at,target_at:candidate.target_at,
+    barrier_bps:candidate.barrier_bps,p_up:candidate.p_up,confidence:candidate.confidence,proof:s.proof[String(h)]?.learned||null,contract:s.contract};
+}
+function v5Trail(){
+  const summary=v5Summary(),pending=v5State.predictions.filter(x=>x.version===V5_VERSION).slice(-24).reverse(),outcomes=v5State.outcomes.filter(x=>x.version===V5_VERSION).slice(-80).reverse();
+  return {...summary,counts:v5Counts(),pending,outcomes,recommendation:v5Recommendation(),candidate:latestV5Candidate()};
+}
+async function loadV5(){
+  const x=await readJson(V5_PATH);
+  if(x&&Array.isArray(x.predictions)&&Array.isArray(x.outcomes)){
+    v5State=x;v5State.predictions=v5State.predictions.filter(x=>x.version===V5_VERSION);v5State.outcomes=v5State.outcomes.filter(x=>x.version===V5_VERSION);
+  }
+  if(!v5State.started_at)v5State.started_at=new Date().toISOString();
+}
+async function persistV5(){v5State.updated_at=new Date().toISOString();v5Summary(true);await writeJsonAtomic(V5_PATH,v5State);}
+function v5LatestPredictionAt(){
+  const a=[...v5State.predictions,...v5State.outcomes].filter(x=>x.version===V5_VERSION).sort((x,y)=>Date.parse(y.at)-Date.parse(x.at));return a[0]?Date.parse(a[0].at):0;
+}
+function maybeCreateV5Predictions(){
+  const now=Date.now(),last=v5LatestPredictionAt();if(last&&now-last<V5_SAMPLE_GAP_MS)return;
+  const entry=latestYahooEvent();if(!entry||!(Number(entry.p)>0))return;
+  const receiveAge=now-Number(entry.recv_at||0),marketAge=now-Number(entry.t||0);if(receiveAge<0||receiveAge>12000||marketAge<0||marketAge>30000)return;
+  const state=extractV5Features(yahooSeries,now);if(state.status!=='ok')return;
+  for(const h of V5_HORIZONS){
+    if(!v5SessionEligible(now,h))continue;
+    const structuralScore=structuralV5Score(state.features,h),structuralDir=Math.abs(structuralScore)>=.14?Math.sign(structuralScore):0;
+    const model=fitV5Logistic(v5State.outcomes,h),learned=predictV5Logistic(model,state.vector),barrier=v5BarrierBps(state,h);
+    const lastGate=[...v5State.predictions,...v5State.outcomes].filter(x=>x.version===V5_VERSION&&Number(x.horizon_minutes)===h&&x.gate_sample===true).sort((a,b)=>Date.parse(b.at)-Date.parse(a.at))[0];
+    const gateSample=!lastGate||now-Date.parse(lastGate.at)>=h*60000;
+    v5State.predictions.push({
+      id:'v5-'+h+'-'+now,version:V5_VERSION,horizon_minutes:h,at:new Date(now).toISOString(),target_at:new Date(now+h*60000).toISOString(),
+      entry_price:Number(entry.p),entry_market_at:new Date(Number(entry.t)).toISOString(),entry_received_at:new Date(Number(entry.recv_at)).toISOString(),
+      entry_delivery_lag_ms:Math.max(0,Number(entry.recv_at)-Number(entry.t)),barrier_bps:barrier,assumed_roundtrip_cost_bps:V5_COST_BPS,gate_sample:gateSample,
+      structural_dir:structuralDir,structural_score:structuralScore,learned_dir:learned.dir,p_up:learned.p_up,confidence:learned.confidence,model_n:learned.model_n||model.n||0,
+      model_ready:model.ready===true,feature_vector:state.vector,feature_summary:{residual_bps:state.diagnostics.residual_bps,coupling:state.diagnostics.coupling,
+        min_coverage:state.diagnostics.min_coverage,median_delivery_lag_ms:state.diagnostics.median_delivery_lag_ms},
+      evaluation_contract:'receiver_time_true_dt_first_barrier_then_horizon_close'
+    });
+  }
+  if(v5State.predictions.length>5000)v5State.predictions=v5State.predictions.slice(-5000);
+}
+function evaluateV5(){
+  const now=Date.now(),keep=[];
+  for(const p of v5State.predictions){
+    const r=evaluateV5Path(p,yahooSeries.ORCL||[],now);
+    if(r.status==='pending'){keep.push(p);continue;}
+    if(r.status==='invalid'){v5State.outcomes.push({...p,status:'invalid',reason:r.reason||'invalid_path'});continue;}
+    v5State.outcomes.push({...p,status:'evaluated',endpoint_price:r.endpoint_price,endpoint_at:r.endpoint_at,endpoint_market_at:r.endpoint_market_at,
+      endpoint_return_bps:r.endpoint_return_bps,timing_error_ms:r.timing_error_ms,barrier_label:r.barrier_label,barrier_hit:r.barrier_hit,barrier_at:r.barrier_at,
+      mfe_bps:r.mfe_bps,mae_bps:r.mae_bps,structural_gross_bps:r.structural.gross_bps,structural_net_bps:r.structural.net_bps,
+      structural_profitable:r.structural.profitable,learned_gross_bps:r.learned.gross_bps,learned_net_bps:r.learned.net_bps,learned_profitable:r.learned.profitable});
+  }
+  v5State.predictions=keep;if(v5State.outcomes.length>20000)v5State.outcomes=v5State.outcomes.slice(-20000);
 }
 function yahooModelSummary(){
   const p=shadowProof();
@@ -643,7 +726,7 @@ function snapshot(symbol){
   const r=raw[symbol];if(!r)return null;
   if(!KEY||!SECRET){
     const m=yahooModelSummary(),best=(yahooForecast?.forecasts||[]).filter(x=>x.dir).sort((a,b)=>(b.margin||0)-(a.margin||0))[0]||null;
-    return {provider:'yahoo',feed:'streamer',symbol,mode:'shadow-live',at:new Date().toISOString(),configured:true,subscription_verified:yahooState==='streaming',auth_state:'no_key_required',auth_error:null,raw:{events:(yahooSeries[symbol]||[]).length,last_upstream_at:yahooLastAt?new Date(yahooLastAt).toISOString():null,persistent:true},quality:yahooForecast?.quality||{status:'warming'},minutes:[],edge_status:'shadow',edge_model_id:m.model_id,live_signal:null,shadow_signal:best?{dir:best.dir,horizon_minutes:best.horizon_minutes,score:best.score,margin:best.margin,asof:yahooForecast.asof,source:'yahoo_shadow'}:null,wave:m,wave_forecast:yahooForecast,sentiment:sourceSummary(),shadow_trail_summary:{version:YAHOO_SHADOW_VERSION,pending:shadowState.predictions.filter(x=>x.version===YAHOO_SHADOW_VERSION).length,evaluated:shadowState.outcomes.filter(x=>x.version===YAHOO_SHADOW_VERSION&&x.status==='evaluated').length,proof:shadowProof(),updated_at:shadowState.updated_at},hypothesis_v4:{...hypothesisSummary(),counts:hypothesisCounts(),recommendation:hypothesisRecommendation()},l2:{status:'retired',provider:'databento',reason:'replaced_by_event_wave'}};
+    return {provider:'yahoo',feed:'streamer',symbol,mode:'shadow-live',at:new Date().toISOString(),configured:true,subscription_verified:yahooState==='streaming',auth_state:'no_key_required',auth_error:null,raw:{events:(yahooSeries[symbol]||[]).length,last_upstream_at:yahooLastAt?new Date(yahooLastAt).toISOString():null,persistent:true},quality:yahooForecast?.quality||{status:'warming'},minutes:[],edge_status:'shadow',edge_model_id:m.model_id,live_signal:null,shadow_signal:best?{dir:best.dir,horizon_minutes:best.horizon_minutes,score:best.score,margin:best.margin,asof:yahooForecast.asof,source:'yahoo_shadow'}:null,wave:m,wave_forecast:yahooForecast,sentiment:sourceSummary(),shadow_trail_summary:{version:YAHOO_SHADOW_VERSION,pending:shadowState.predictions.filter(x=>x.version===YAHOO_SHADOW_VERSION).length,evaluated:shadowState.outcomes.filter(x=>x.version===YAHOO_SHADOW_VERSION&&x.status==='evaluated').length,proof:shadowProof(),updated_at:shadowState.updated_at},hypothesis_v4:{...hypothesisSummary(),counts:hypothesisCounts(),recommendation:hypothesisRecommendation()},research_v5:{...v5Summary(),counts:v5Counts(),recommendation:v5Recommendation(),candidate:latestV5Candidate()},l2:{status:'retired',provider:'databento',reason:'replaced_by_event_wave'}};
   }
   const minutes=aggregateMicrostructure(r.trades,r.quotes);
   const quality=microstructureQuality(minutes,{symbol,feed:FEED,minMinutes:10});
@@ -714,6 +797,7 @@ const server=http.createServer((req,res)=>{
   }
   if(u.pathname==='/v1/shadow-history')return json(res,200,shadowTrail());
   if(u.pathname==='/v1/hypothesis-v4')return json(res,200,hypothesisTrail());
+  if(u.pathname==='/v1/research-v5')return json(res,200,v5Trail());
   if(u.pathname==='/v1/source-state')return json(res,200,sourceState);
   if(u.pathname==='/v1/raw-wave-model')return json(res,200,rawModel||{status:'unavailable'});
   if(u.pathname==='/v1/wave-model')return json(res,200,rawModel||{status:'unavailable'});
@@ -730,6 +814,7 @@ await loadRawModel();
 await loadYahooEvents();
 await loadShadow();
 await loadHypothesis();
+await loadV5();
 await loadSourceEvents();
 refreshSources().catch(()=>{});
 if(!KEY||!SECRET){
@@ -746,6 +831,7 @@ setInterval(refreshForecast,5000).unref();
 setInterval(()=>flushYahooEvents().catch(()=>{}),1000).unref();
 setInterval(()=>persistShadow().catch(()=>{}),15000).unref();
 setInterval(()=>persistHypothesis().catch(()=>{}),15000).unref();
+setInterval(()=>persistV5().catch(()=>{}),15000).unref();
 setInterval(()=>flushSourceEvents().catch(()=>{}),5000).unref();
 setInterval(()=>{
   if(KEY&&SECRET)return;
@@ -760,6 +846,11 @@ setInterval(()=>{
   console.log(JSON.stringify({
     type:'yahoo-hypothesis-v4',at:new Date().toISOString(),...hypothesisCounts(),production:hv.production,
     regime:Object.fromEntries(Object.entries(hv.proof).map(([h,x])=>[h,x.regime]))
+  }));
+  const v5=v5Summary();
+  console.log(JSON.stringify({
+    type:'yahoo-monetary-v5',at:new Date().toISOString(),...v5Counts(),production:v5.production,
+    proof:Object.fromEntries(Object.entries(v5.proof).map(([h,x])=>[h,{model_n:x.model.n,model_ready:x.model.ready,learned:x.learned,structural:x.structural,comparison:x.learned_vs_structural,gate:x.gate}]))
   }));
 },60000).unref();
 setInterval(broadcast,1000).unref();

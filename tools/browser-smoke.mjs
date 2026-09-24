@@ -19,7 +19,7 @@ async function run(name,viewport){
   const state=await page.evaluate(()=>{
     let renderForecastError=null;
     try{ if(typeof renderForecastTrail==='function') renderForecastTrail(); }catch(e){ renderForecastError=String(e?.stack||e); }
-    const ids=['hypothesisDecision','forecastProof','forecastProofStrip','marketFlow'];
+    const ids=['hypothesisDecision','v5Research','forecastProof','forecastProofStrip','marketFlow'];
     const boxes=Object.fromEntries(ids.map(id=>{
       const el=document.getElementById(id),r=el?.getBoundingClientRect(),cs=el?getComputedStyle(el):null;
       return [id,{exists:!!el,visible:!!r&&r.width>0&&r.height>0,width:r?.width||0,height:r?.height||0,text:(el?.textContent||'').trim().slice(0,500),
@@ -40,7 +40,7 @@ async function run(name,viewport){
 
   const allowedHttp=httpErrors.filter(x=>!x.url.includes('favicon'));
   const errors=[];
-  const required=['hypothesisDecision','forecastProof','forecastProofStrip'];
+  const required=['hypothesisDecision','v5Research','forecastProof','forecastProofStrip'];
   const badMarkers=required.map(k=>[k,state.boxes[k]]).filter(([,v])=>!v||!v.exists||!v.visible);
   if(state.renderForecastError)errors.push('forecast-render:'+state.renderForecastError);
   if(consoleErrors.length)errors.push('console:'+JSON.stringify(consoleErrors));
@@ -51,6 +51,7 @@ async function run(name,viewport){
   if(state.width.overflow>4)errors.push('horizontal-overflow:'+state.width.overflow);
   if(!state.bodyText.includes('Prognosen vs. Realität'))errors.push('forecast-label-missing');
   if(!state.bodyText.includes('v4 Regime'))errors.push('v4-label-missing');
+  if(!state.bodyText.includes('v5 ·'))errors.push('v5-label-missing');
 
   console.log(JSON.stringify({name,url,state,consoleErrors,pageErrors,httpErrors:allowedHttp,failed,ok:errors.length===0,errors},null,2));
   await browser.close();
