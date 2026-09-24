@@ -48,6 +48,8 @@ async function run(name,viewport){
   await page.screenshot({path:`${out}/${name}-1d.png`,fullPage:true});
   if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]}).catch(()=>{});
 
+  const wgoCard=page.locator('#wgoCard');
+  if(await wgoCard.count())await wgoCard.evaluate(el=>{el.open=true;});
   const wgoButton=page.locator('#wgoRun');
   if(await wgoButton.count()){
     await wgoButton.click();
@@ -60,7 +62,19 @@ async function run(name,viewport){
     answer:(document.getElementById('wgoAnswer')?.textContent||'').trim(),
     meta:(document.getElementById('wgoMeta')?.textContent||'').trim(),
     disabled:!!document.getElementById('wgoRun')?.disabled,
-    liveChange:(document.getElementById('liveChange')?.textContent||'').trim()
+    liveChange:(document.getElementById('liveChange')?.textContent||'').trim(),
+    open:!!document.getElementById('wgoCard')?.open,
+    ranges:Array.from(document.querySelectorAll('#wgoWindow [data-wgo-range]')).map(x=>x.getAttribute('data-wgo-range')),
+    hasFiveMinute:!!document.querySelector('#wgoWindow [data-wgo-minutes="5"]'),
+    cacheMs:typeof WGO_CACHE_MS==='number'?WGO_CACHE_MS:null
+  }));
+  await page.locator('#wgoWindow [data-wgo-range="1m"]').click();
+  await page.waitForTimeout(450);
+  const wgoMonthState=await page.evaluate(()=>({
+    answer:(document.getElementById('wgoAnswer')?.textContent||'').trim(),
+    meta:(document.getElementById('wgoMeta')?.textContent||'').trim(),
+    range:typeof wgoRange==='undefined'?null:wgoRange,
+    priceRange:typeof priceRange==='undefined'?null:priceRange
   }));
 
   const state=await page.evaluate(()=>{
@@ -125,6 +139,11 @@ async function run(name,viewport){
   if(monthState.range!=='1m'||monthState.points<10)errors.push('month-range-invalid:'+JSON.stringify(monthState));
   if(monthState.overflow>4)errors.push('month-horizontal-overflow:'+monthState.overflow);
   if(wgoState.disabled||/nicht erreichbar|Frontend-Abbruch/i.test(wgoState.answer+' '+wgoState.meta)||!wgoState.answer)errors.push('wgo-live-failed:'+JSON.stringify(wgoState));
+  if(!wgoState.open)errors.push('wgo-not-openable:'+JSON.stringify(wgoState));
+  if(wgoState.hasFiveMinute)errors.push('wgo-five-minute-still-present');
+  if(wgoState.cacheMs!==600000)errors.push('wgo-cache-not-10m:'+wgoState.cacheMs);
+  if(JSON.stringify(wgoState.ranges)!==JSON.stringify(['current','1d','1w','1m','year','5y','all']))errors.push('wgo-ranges-wrong:'+JSON.stringify(wgoState.ranges));
+  if(wgoMonthState.range!=='1m'||wgoMonthState.priceRange!=='1m'||!/1M:/i.test(wgoMonthState.answer))errors.push('wgo-month-summary-not-chart-aligned:'+JSON.stringify(wgoMonthState));
   if(!/heute|Tageskontext|Tagesmove/i.test(wgoState.answer+' '+wgoState.meta))errors.push('wgo-day-context-missing:'+JSON.stringify(wgoState));
   const dayPctMatch=wgoState.answer.match(/Tagesbasis bei\s+([+-]?\d+(?:\.\d+)?)\s*%/i);
   if(dayPctMatch&&Number(dayPctMatch[1])<=-1&&!/stärkste\s+\d+-Minuten-Abverkauf\s+heute/i.test(wgoState.answer))errors.push('wgo-intraday-selloff-missing:'+JSON.stringify(wgoState));
@@ -141,7 +160,7 @@ async function run(name,viewport){
   if(!state.forecastCollapsed)errors.push('forecast-not-collapsed-by-default');
   if(!/MODELLSTATUS: (KAUFSIGNAL|KEIN KAUFSIGNAL|VERKAUFSSIGNAL)/.test(state.modelDecisionText))errors.push('model-decision-missing');
 
-  console.log(JSON.stringify({name,url,state,interactionState,monthState,wgoState,consoleErrors,pageErrors,httpErrors:allowedHttp,failed,ok:errors.length===0,errors},null,2));
+  console.log(JSON.stringify({name,url,state,interactionState,monthState,wgoState,wgoMonthState,consoleErrors,pageErrors,httpErrors:allowedHttp,failed,ok:errors.length===0,errors},null,2));
   await browser.close();
   if(errors.length)throw new Error(name+' smoke failed: '+errors.join(' | '));
 }
