@@ -78,6 +78,7 @@ jobs:
           ! grep -q 'ivoryHardcoverMaterial' "$f"
           ! grep -q 'paperFiber' "$f"
           ! grep -q 'new THREE.ShadowMaterial' "$f"
+          ! grep -q 'color:0xf4f0e8' "$f"
           grep -q '.stage:after{display:none}' "$f"
           ! grep -q 'mipmapFilter:THREE.LinearMipmapLinearFilter' "$f"
           ! grep -Eq 'root\.scale\.(x|y)[[:space:]]*=' "$f"
