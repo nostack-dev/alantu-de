@@ -160,6 +160,10 @@ jobs:
           grep -q "shadowTrail(5000,'history')" market-relay/server.mjs
           grep -q "shadowTrail(180,'update')" market-relay/server.mjs
           grep -q 'id="sentimentPanel"' index.html
+          grep -q 'id="wgoRun"' index.html
+          grep -q 'function runWhatsGoingOn' index.html
+          grep -q "'/v1/whats-going-on'" market-relay/server.mjs
+          grep -q 'WHATS_GOING_ON_PROMPT' market-relay/server.mjs
           grep -q 'function railwaySourcesUsable' index.html
           grep -q "function priceSegmentColor(){return '#000000';}" index.html
           grep -q 'function trajectoryDatasets' index.html
