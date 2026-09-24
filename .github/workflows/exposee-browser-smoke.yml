@@ -45,6 +45,8 @@ jobs:
           grep -q 'id="exposeeFrame"' index-brand.html
           grep -q 'pdf-to-exposee.html?embed=1' index-brand.html
           grep -q 'sunside-living-expose.pdf' index-brand.html
+          grep -q 'enterDemoFauxFullscreen' index-brand.html
+          grep -q 'alantu-fullscreen-toggle' index-brand.html
           ! grep -q 'id="bookCanvas"' index-brand.html
           ! grep -q 'Starnberger See' index-brand.html
           ! grep -q 'PRIVATE RESIDENCE' index-brand.html
@@ -57,6 +59,9 @@ jobs:
           grep -q 'tiltZDegrees=0' "$f"
           grep -q 'id="zoomLess"' "$f"
           grep -q 'class="axis-controls"' "$f"
+          grep -q 'id="debugToggle"' "$f"
+          grep -q 'function setDebugControls' "$f"
+          grep -q 'alantu-fullscreen-toggle' "$f"
           grep -q 'stage:fullscreen .axis-controls' "$f"
           grep -q 'function hardcoverPageMaterials' "$f"
           grep -q 'frontCoverUsesPdf=true' "$f"
@@ -113,7 +118,7 @@ jobs:
 
       - name: Desktop and mobile Exposee console/render smoke
         env:
-          EXPOSEE_URLS: https://www.alantu.de/index-brand.html,https://www.alantu.de/pdf-to-exposee.html?embed=1&controls=1&pdf=%2Fassets%2Fsunside-living-expose.pdf&brand=Sunside%20Living&title=Konstanz%20Wollmatingen%20Expos%C3%A9&subtitle=Konstanz%20Wollmatingen
+          EXPOSEE_URLS: https://www.alantu.de/index-brand.html,https://www.alantu.de/pdf-to-exposee.html?embed=1&pdf=%2Fassets%2Fsunside-living-expose.pdf&brand=Sunside%20Living&title=Konstanz%20Wollmatingen%20Expos%C3%A9&subtitle=Konstanz%20Wollmatingen
           SMOKE_OUT: /tmp/alantu-exposee-smoke
         run: node tools/exposee-browser-smoke.mjs
 
