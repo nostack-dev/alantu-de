@@ -65,6 +65,10 @@ async function run(kind,viewport){
     await page.waitForTimeout(850);
     const reopened=await stage.screenshot({path:`${out}/${marker}-reopened.png`});
     assert(!opened.equals(reopened),'end cover image unchanged');
+    if(viewport.width<=700){
+      assert(reopened.length>Math.min(opened.length*.45,25000),
+        'reopening back cover shows an empty dark page instead of the last sheet');
+    }
     assert.equal(errors.length,0,errors.join('\n'));
     console.log(`${marker}: WebGL, opening, page turns, closing, reverse and screenshots OK`);
   }finally{
