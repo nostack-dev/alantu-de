@@ -175,6 +175,11 @@
       display:flex;justify-content:space-between;align-items:center;gap:10px;
     }
     .stage-top-actions{display:flex;align-items:center;gap:8px;pointer-events:auto}
+    .tilt-controls{position:absolute;right:0;top:54px;display:flex;align-items:center;gap:6px;pointer-events:auto;background:rgba(244,240,232,.86);border:1px solid rgba(13,13,11,.12);border-radius:999px;padding:4px 7px;backdrop-filter:blur(12px)}
+    .tilt-controls button{border:0;background:transparent;color:var(--ink);width:32px;height:32px;border-radius:50%;font-size:20px;font-weight:600;line-height:1;cursor:pointer}
+    .tilt-controls button:hover{background:rgba(255,255,255,.8)}
+    .tilt-controls button:disabled{opacity:.35;cursor:default}
+    .tilt-controls output{min-width:76px;text-align:center;font-size:11px;font-weight:650;color:var(--ink)}
     .stage-fullscreen{width:40px;height:40px;background:rgba(244,240,232,.72)}
     .stage:fullscreen{
       width:100vw;
@@ -490,6 +495,11 @@
                   </svg>
                 </button>
               </div>
+              <div class="tilt-controls" role="group" aria-label="Exposé nach hinten neigen">
+                <button id="tiltLess" type="button" aria-label="Weniger nach hinten neigen" title="Neigung −1°">−</button>
+                <output id="tiltValue" aria-live="polite">Neigung 9°</output>
+                <button id="tiltMore" type="button" aria-label="Mehr nach hinten neigen" title="Neigung +1°">+</button>
+              </div>
             </div>
 <div class="stage-bottom">
               <div class="stage-arrows">
@@ -605,10 +615,23 @@
     scene.add(rim);
 
     const root = new THREE.Group();
-    root.rotation.x = -0.075;
+    root.rotation.x = -0.16;
     root.rotation.y = -0.105;
     root.rotation.z = -0.008;
     scene.add(root);
+    let tiltDegrees=9;
+    const tiltLess=document.getElementById("tiltLess");
+    const tiltMore=document.getElementById("tiltMore");
+    const tiltValue=document.getElementById("tiltValue");
+    function updateTilt(){
+      root.rotation.x=-THREE.MathUtils.degToRad(tiltDegrees);
+      tiltValue.value=`Neigung ${tiltDegrees}°`;
+      tiltLess.disabled=tiltDegrees<=0;
+      tiltMore.disabled=tiltDegrees>=25;
+    }
+    tiltLess.addEventListener("click",()=>{tiltDegrees=Math.max(0,tiltDegrees-1);updateTilt()});
+    tiltMore.addEventListener("click",()=>{tiltDegrees=Math.min(25,tiltDegrees+1);updateTilt()});
+    updateTilt();
 
     const coverMat = new THREE.MeshStandardMaterial({color:0x171713,roughness:.68,metalness:.06});
     const paperEdgeMat = new THREE.MeshStandardMaterial({color:0xece5d8,roughness:.92});
@@ -983,7 +1006,7 @@
       prevButton:prevBtn,
       nextTap:tapNext,
       prevTap:tapPrev,
-      ignorePointerSelector:".stage-control"
+      ignorePointerSelector:".stage-control,.tilt-controls"
     });
 
     viewControls=createAlantuBookViewControls({
