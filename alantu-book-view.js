@@ -7,7 +7,9 @@ export function createAlantuBookViewControls({
   getPageWidth,
   getPageHeight=()=>4.80,
   fitButton=null,
-  onPinchStart=()=>{}
+  onPinchStart=()=>{},
+  minPixelRatio=2,
+  maxPixelRatio=3
 }){
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const pointers=new Map();
@@ -23,7 +25,9 @@ export function createAlantuBookViewControls({
 
   function pixelRatio(){
     const dpr=window.devicePixelRatio||1;
-    return Math.min(Math.max(dpr,2),3);
+    const min=Math.max(1,Number(minPixelRatio)||2);
+    const max=Math.max(min,Number(maxPixelRatio)||3);
+    return Math.min(Math.max(dpr,min),max);
   }
 
   function applyView(){
