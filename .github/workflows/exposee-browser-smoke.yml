@@ -25,10 +25,10 @@ jobs:
       - name: Check viewer sources and sample PDF
         run: |
           test -s assets/sunside-living-expose.pdf
-          grep -q 'view406' index-brand.html
-          grep -q 'view406' pdf-to-exposee.html
-          grep -q 'brand309' index-brand.html
-          grep -q 'brand309' pdf-to-exposee.html
+          grep -q 'view407' index-brand.html
+          grep -q 'view407' pdf-to-exposee.html
+          grep -q 'brand311' index-brand.html
+          grep -q 'brand311' pdf-to-exposee.html
           grep -q 'getCoverWidth' alantu-book-view.js
       - name: Wait for deployed viewers
         shell: bash
@@ -38,9 +38,9 @@ jobs:
             ready=0
             for attempt in $(seq 1 36); do
               if curl -fsSL --max-time 20 "https://www.alantu.de/$path?smoke=${{ github.sha }}" -o /tmp/alantu-live-file; then
-                if { [ "$path" = alantu-book-core.js ] && grep -q 'captured:false' /tmp/alantu-live-file; } || \
-                   { [ "$path" = alantu-book-view.js ] && grep -q 'spreadOffset' /tmp/alantu-live-file; } || \
-                   { grep -q 'view406' /tmp/alantu-live-file && grep -q 'brand309' /tmp/alantu-live-file; }; then
+                if { [ "$path" = alantu-book-core.js ] && grep -q 'velocityBlend' /tmp/alantu-live-file; } || \
+                   { [ "$path" = alantu-book-view.js ] && grep -q 'renderedPixelRatio' /tmp/alantu-live-file; } || \
+                   { grep -q 'view407' /tmp/alantu-live-file && grep -q 'brand311' /tmp/alantu-live-file; }; then
                   ready=1
                   break
                 fi

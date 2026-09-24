@@ -28,7 +28,7 @@ async function run(kind,viewport){
     await page.goto(`${origin}/${path}?smoke=${process.env.GITHUB_SHA||Date.now()}`,{
       waitUntil:'domcontentloaded',timeout:60000
     });
-    assert(await page.locator('script[type="module"]').evaluate(node=>node.textContent.includes('view406')),
+    assert(await page.locator('script[type="module"]').evaluate(node=>node.textContent.includes('view407')),
       'live page did not load the corrected shared view');
     if(kind==='pdf')await page.locator('#pdfInput').setInputFiles(pdf);
     const total=kind==='brand'?6:17;

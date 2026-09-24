@@ -24,6 +24,9 @@ export function createAlantuBookViewControls({
   let spreadFocus=.5;
   let lastViewStep=performance.now();
   let focusTravelX=0;
+  let renderedWidth=0;
+  let renderedHeight=0;
+  let renderedPixelRatio=0;
   const spreadCameraPosition=camera.position.clone();
   const singleCameraZ=Math.max(6,Number(camera.position.z)||10.8);
 
@@ -55,8 +58,17 @@ export function createAlantuBookViewControls({
     const h=Math.max(1,Math.round(rect.height));
     const single=getPresentationMode()==="single";
 
-    renderer.setPixelRatio(pixelRatio());
-    renderer.setSize(w,h,false);
+    const ratio=pixelRatio();
+    // Zoom and pinch change the book scale, not the canvas dimensions.
+    // Reassigning canvas.width/height on every pointer event clears and
+    // reallocates the WebGL backing store, which visibly stalls the turn.
+    if(w!==renderedWidth||h!==renderedHeight||ratio!==renderedPixelRatio){
+      renderer.setPixelRatio(ratio);
+      renderer.setSize(w,h,false);
+      renderedWidth=w;
+      renderedHeight=h;
+      renderedPixelRatio=ratio;
+    }
 
     camera.aspect=w/h;
     // Portrait reading is intentionally telephoto/front-on. This removes the

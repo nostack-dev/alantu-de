@@ -604,8 +604,8 @@
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand309";
-    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view406";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand311";
+    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view407";
 
     const canvas = document.getElementById("bookCanvas");
     canvas.addEventListener("contextmenu",e=>e.preventDefault());
@@ -621,7 +621,7 @@
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const renderer = new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:"high-performance"});
-    renderer.setPixelRatio(Math.min(Math.max(window.devicePixelRatio || 1,2),3));
+    renderer.setPixelRatio(Math.min(Math.max(window.devicePixelRatio || 1,1.5),2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -987,11 +987,15 @@
     let bookCore=null;
     let viewControls=null;
 
-    function updateLeafVisibility(){
-      // Keep the full physical stack rendered. Culling neighbouring sheets
-      // caused the next right-hand page to disappear mid-turn on WebKit.
-      const leaves=pageRoots;
-      for(const leaf of leaves)leaf.visible=true;
+    function updateLeafVisibility(state){
+      const current=Math.max(0,Math.min(totalLeaves,state.currentLeaf));
+      const moving=new Set((state.activeTurns||[]).map(turn=>turn.index));
+      // Keep the moving sheet and both exposed stacks, including the next
+      // sheet underneath. Only deeper, fully covered sheets can be skipped.
+      for(let i=0;i<pageRoots.length;i++){
+        pageRoots[i].visible=moving.has(i)||
+          (i>=current-2&&i<=current+2);
+      }
     }
 
     function portraitFocusForState(state){
@@ -1077,8 +1081,8 @@
       getCoverWidth:()=>COVER_W,
       fitButton:fitViewBtn,
       onPinchStart:()=>bookCore.cancelDrag(),
-      minPixelRatio:singlePageMode?1.5:2,
-      maxPixelRatio:singlePageMode?2:3,
+      minPixelRatio:singlePageMode?1.25:1.5,
+      maxPixelRatio:2,
       getPresentationMode:()=>singlePageMode?"single":"spread"
     });
 

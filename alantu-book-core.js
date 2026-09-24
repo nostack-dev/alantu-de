@@ -743,12 +743,16 @@ export function createAlantuBookCore(options){
     const now=performance.now();
     const dt=Math.max(.008,(now-dragState.lastTime)/1000);
     const deltaX=e.clientX-dragState.lastX;
+    // Pointer events arrive at uneven intervals. Keep the page position
+    // locked to the finger, but smooth the velocity used only for curvature.
+    const velocityBlend=1-Math.exp(-18*dt);
     pushSwipeSample(e.clientX,now);
 
     if(dragState.mode==="boundary"){
       const dir=dragState.side==="start"?1:-1;
       const progress=clamp(dragState.startProgress+dir*dx/distance,0,1);
-      const velocity=dir*deltaX/distance/dt;
+      const velocity=dragState.velocity+
+        (dir*deltaX/distance/dt-dragState.velocity)*velocityBlend;
 
       dragState.velocity=velocity;
       activeBoundary.progress=progress;
@@ -756,7 +760,8 @@ export function createAlantuBookCore(options){
       setBoundaryVisual(dragState.side,progress);
     }else{
       const progress=clamp(dragState.startProgress-dx/distance,0,1);
-      const velocity=-deltaX/distance/dt;
+      const velocity=dragState.velocity+
+        (-deltaX/distance/dt-dragState.velocity)*velocityBlend;
 
       dragState.velocity=velocity;
       activeTurn.progress=progress;
