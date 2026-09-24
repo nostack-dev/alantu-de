@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-09-24T22:09:08+02:00",
+  "updated_at": "2026-09-24T22:10:31+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-24T22:09:08+02:00",
-    "scraped_at": "2026-09-24T22:09:08+02:00",
+    "tick_id": "2026-09-24T22:10:31+02:00",
+    "scraped_at": "2026-09-24T22:10:31+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "PublicReddit": {
@@ -11,7 +11,7 @@
         "items": 40,
         "provider": "apewisdom.io",
         "window": "24h aggregate snapshot",
-        "freshest": "2026-09-24T22:09:08+02:00",
+        "freshest": "2026-09-24T22:10:31+02:00",
         "sentiment_pct_bullish": 71,
         "upvotes_24h": 68
       },
@@ -20,7 +20,7 @@
         "items": 20,
         "provider": "news.google.com",
         "window": "last 36h, fetched now",
-        "freshest": "2026-09-24T22:09:08+02:00",
+        "freshest": "2026-09-24T22:10:31+02:00",
         "notes": [
           "Oracle Corporation (ORCL) Stock Price, News, Quote & History",
           "Oracle Seeks ‘Force Majeure’ on Data Center. Why It’s Sinking the Stock.",
@@ -31,9 +31,9 @@
         "status": "ok",
         "items": 1,
         "prices": {
-          "ORCL": 139.45
+          "ORCL": 139.38
         },
-        "price_at": "2026-09-24T20:09:04.000Z",
+        "price_at": "2026-09-24T20:10:27.000Z",
         "note": "Yahoo chart 5d/1m fallback feed"
       }
     },
@@ -49,20 +49,20 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-24T22:09:08+02:00",
+      "freshest_absolute": "2026-09-24T22:10:31+02:00",
       "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
       "quality": "medium-high public sources",
-      "scrape_berlin": "2026-09-24T22:09:08+02:00",
+      "scrape_berlin": "2026-09-24T22:10:31+02:00",
       "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
       "freshest_item_age": "snapshot fetched now",
       "oldest_usable_signal": "Oracle’s stock is falling as investors fear a data-center setback"
     },
     "vector": {
       "direction": "mixed_cautious",
-      "magnitude": 29,
+      "magnitude": 31,
       "confidence": 80,
       "early_signal": false,
-      "early_signal_note": "Reddit 71% positiv bei 40 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $139.45."
+      "early_signal_note": "Reddit 71% positiv bei 40 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $139.38."
     },
     "top_themes": [
       {
@@ -482,11 +482,11 @@
         "hype_state": "mixed",
         "signal": "hold",
         "confidence": 80,
-        "social_impulse": 0,
-        "hype_bull": 38,
-        "hype_bear": 40,
-        "hype_net": -2,
-        "why": "Reddit 71% positiv bei 40 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $139.45.",
+        "social_impulse": -1,
+        "hype_bull": 36,
+        "hype_bear": 42,
+        "hype_net": -6,
+        "why": "Reddit 71% positiv bei 40 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $139.38.",
         "evidence": {
           "x_posts": 0,
           "reddit_posts": 40,
@@ -502,7 +502,7 @@
           "tradingview": "https://www.tradingview.com/symbols/ORCL/",
           "yahoo": "https://finance.yahoo.com/quote/ORCL"
         },
-        "price": 139.45
+        "price": 139.38
       }
     ],
     "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
@@ -511,10 +511,10 @@
   "signals_disclaimer": "",
   "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
   "freshness": {
-    "freshest_absolute": "2026-09-24T22:09:08+02:00",
+    "freshest_absolute": "2026-09-24T22:10:31+02:00",
     "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
     "quality": "medium-high public sources",
-    "scrape_berlin": "2026-09-24T22:09:08+02:00",
+    "scrape_berlin": "2026-09-24T22:10:31+02:00",
     "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
     "freshest_item_age": "snapshot fetched now",
     "oldest_usable_signal": "Oracle’s stock is falling as investors fear a data-center setback"
@@ -3966,6 +3966,15 @@
       "tick_id": "2026-09-24T22:09:08+02:00",
       "scraped_at": "2026-09-24T22:09:08+02:00",
       "magnitude": 29,
+      "confidence": 80,
+      "direction": "mixed_cautious",
+      "items": 21,
+      "early_signal": false
+    },
+    {
+      "tick_id": "2026-09-24T22:10:31+02:00",
+      "scraped_at": "2026-09-24T22:10:31+02:00",
+      "magnitude": 31,
       "confidence": 80,
       "direction": "mixed_cautious",
       "items": 21,
