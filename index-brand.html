@@ -494,18 +494,18 @@
             <div class="stage-top">
               <span class="badge">LIVE · 3D EXPOSÉ</span>
               <div class="stage-top-actions">
-                <span class="badge">VILLA AM SEE</span>
+                <span class="badge">SUNSIDE LIVING</span>
                 <div class="axis-controls" role="group" aria-label="Exposé-Ausrichtung">
                   <div class="axis-group" aria-label="Neigung nach hinten">
                     <span class="axis-label" aria-hidden="true">X</span>
                     <button id="tiltXLess" type="button" aria-label="Weniger nach hinten neigen" title="X-Neigung −1°">−</button>
-                    <output id="tiltXValue" aria-live="polite">5°</output>
+                    <output id="tiltXValue" aria-live="polite">4°</output>
                     <button id="tiltXMore" type="button" aria-label="Mehr nach hinten neigen" title="X-Neigung +1°">+</button>
                   </div>
                   <div class="axis-group" aria-label="Seitliche Neigung">
                     <span class="axis-label" aria-hidden="true">Y</span>
                     <button id="tiltYLess" type="button" aria-label="Weiter nach links drehen" title="Y-Neigung −1°">−</button>
-                    <output id="tiltYValue" aria-live="polite">3°</output>
+                    <output id="tiltYValue" aria-live="polite">2°</output>
                     <button id="tiltYMore" type="button" aria-label="Weiter nach rechts drehen" title="Y-Neigung +1°">+</button>
                   </div>
                 </div>
@@ -637,12 +637,12 @@
     const root = new THREE.Group();
     // Presentation controls only rotate the model. Keep scaling uniform so
     // the source PDF/canvas aspect ratio is never stretched on X or Y.
-    root.rotation.x = -THREE.MathUtils.degToRad(5);
-    root.rotation.y = -THREE.MathUtils.degToRad(3);
+    root.rotation.x = -THREE.MathUtils.degToRad(4);
+    root.rotation.y = -THREE.MathUtils.degToRad(2);
     root.rotation.z = -0.008;
     scene.add(root);
-    let tiltXDegrees=5;
-    let tiltYDegrees=3;
+    let tiltXDegrees=4;
+    let tiltYDegrees=2;
     const tiltXLess=document.getElementById("tiltXLess");
     const tiltXMore=document.getElementById("tiltXMore");
     const tiltYLess=document.getElementById("tiltYLess");
@@ -708,7 +708,7 @@
 
     const frontCover = new THREE.Mesh(
       new THREE.BoxGeometry(3.85,5.15,.16),
-      hardcoverMaterials("Villa am See")
+      hardcoverMaterials("Konstanz Wollmatingen Exposé")
     );
     frontCover.castShadow = true;
     frontCover.receiveShadow = true;
@@ -740,8 +740,8 @@
         ctx.fillStyle=g;ctx.fillRect(0,0,900,1220);
         ctx.fillStyle="rgba(255,255,255,.055)";
         for(let i=0;i<18;i++){ctx.fillRect(0,70+i*68,900,1)}
-        ctx.fillStyle="#c4a66d";ctx.font="600 27px Arial";ctx.letterSpacing="7px";ctx.fillText("ALANTU",70,88);
-        ctx.fillStyle="#f5f0e6";ctx.font="56px Georgia";ctx.fillText("Villa am See",70,825);
+        ctx.fillStyle="#c4a66d";ctx.font="600 27px Arial";ctx.letterSpacing="7px";ctx.fillText("SUNSIDE LIVING",70,88);
+        ctx.fillStyle="#f5f0e6";ctx.font="56px Georgia";ctx.fillText("Konstanz Wollmatingen Exposé",70,825);
         ctx.font="28px Arial";ctx.fillStyle="#d7cfc1";ctx.fillText("Starnberger See · Bayern",72,875);
         ctx.fillStyle="#c4a66d";ctx.fillRect(72,930,74,3);
         ctx.font="600 18px Arial";ctx.fillStyle="#e8e0d2";ctx.fillText("PRIVATE RESIDENCE",72,987);
