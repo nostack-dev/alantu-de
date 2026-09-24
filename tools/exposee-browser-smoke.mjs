@@ -70,8 +70,8 @@ async function run(url,label,viewport){
   if(failed.length)errors.push('requestfailed:'+JSON.stringify(failed));
   if(!state.axisExists||!state.topExists)errors.push('axis-controls-missing');
   if(!state.sameTopRow)errors.push('axis-controls-not-in-top-row');
-  if(state.xValue!=='5°')errors.push('x-default:'+String(state.xValue));
-  if(state.yValue!=='3°')errors.push('y-default:'+String(state.yValue));
+  if(state.xValue!=='4°')errors.push('x-default:'+String(state.xValue));
+  if(state.yValue!=='2°')errors.push('y-default:'+String(state.yValue));
   if(Object.values(state.controls).some(v=>!v))errors.push('axis-buttons-missing:'+JSON.stringify(state.controls));
   if(state.beforeFullscreen==='none')errors.push('axis-hidden-before-fullscreen');
   if(state.fullscreenDisplay!=='none'&&!String(state.fullscreenDisplay||'').startsWith('fullscreen-api-unavailable:')){
