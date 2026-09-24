@@ -12,6 +12,7 @@ on:
       - "watchlist-data.json"
       - "watchlist.json"
       - "orcl-minute.json"
+      - "orcl-germany-minute.json"
       - "orcl-history.json"
       - "orcl-sentiment-history.json"
       - "eurusd-history.json"
@@ -87,6 +88,11 @@ jobs:
             'https://query1.finance.yahoo.com/v8/finance/chart/ORCL?range=5d&interval=1m&includePrePost=true&events=div%2Csplits' \
             'https://query2.finance.yahoo.com/v8/finance/chart/ORCL?range=5d&interval=1m&includePrePost=true&events=div%2Csplits' \
             orcl-minute.json
+
+          fetch_pair \
+            'https://query1.finance.yahoo.com/v8/finance/chart/ORC.DE?range=5d&interval=1m&includePrePost=true&events=div%2Csplits' \
+            'https://query2.finance.yahoo.com/v8/finance/chart/ORC.DE?range=5d&interval=1m&includePrePost=true&events=div%2Csplits' \
+            orcl-germany-minute.json
 
           fetch_pair \
             'https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?range=10y&interval=1d&includePrePost=false&events=div%2Csplits' \
@@ -198,8 +204,11 @@ jobs:
           grep -q "var phase='NEUTRAL / WARTEN'" index.html
           grep -q 'Number(s.horizon_events)!==100' index.html
           grep -q 'function connectMicrostructureRelay' index.html
-          grep -q "function chartEvents(){return \[\];}" index.html
-          grep -q "enabled:false,mode:'nearest'" index.html
+          grep -Fq "function chartEvents(){return ['mousemove','mouseout','click','touchstart','touchmove'];}" index.html
+          grep -q "enabled:true,mode:'nearest'" index.html
+          grep -q "function compositeDayPriceSession" index.html
+          grep -q "orcl-germany-minute.json" index.html
+          grep -q "Chart.register(currentPriceMarkerPlugin())" index.html
           grep -q 'function pollMicroMarket' index.html
           grep -q 'function pollMicroSources' index.html
           grep -q 'function pollMicroShadow' index.html
@@ -294,6 +303,7 @@ jobs:
             'watchlist.json',
             'intrinsic-orcl.json',
             'orcl-minute.json',
+            'orcl-germany-minute.json',
             'eurusd-history.json',
             'orcl-history.json',
             'runtime-status.json'
@@ -330,6 +340,15 @@ jobs:
           const mgood = mts.filter((_, i) => Number.isFinite(Number(mq.close?.[i])) && Number(mq.close[i]) > 0);
           if (minute?.chart?.error || mgood.length < 25) {
             throw new Error('ORCL minute feed invalid/fewer than 25 valid bars');
+          }
+
+          const german = data['orcl-germany-minute.json'];
+          const gr = german?.chart?.result?.[0];
+          const gts = gr?.timestamp || [];
+          const gq = gr?.indicators?.quote?.[0] || {};
+          const ggood = gts.filter((_, i) => Number.isFinite(Number(gq.close?.[i])) && Number(gq.close[i]) > 0);
+          if (german?.chart?.error || ggood.length < 5) {
+            throw new Error('ORC.DE German minute feed invalid/fewer than 5 valid bars');
           }
 
           const fx = data['eurusd-history.json'];
@@ -381,6 +400,7 @@ jobs:
             reddit: status.sources?.reddit,
             news: status.sources?.news,
             minuteBars: mgood.length,
+            germanMinuteBars: ggood.length,
             dailyBars: hgood.length,
             fxBars: fgood.length
           });
@@ -391,7 +411,7 @@ jobs:
         run: |
           set -euo pipefail
           git add fresh-sources.json stockstrend-data.json watchlist-data.json watchlist.json \
-            orcl-minute.json orcl-history.json orcl-sentiment-history.json eurusd-history.json \
+            orcl-minute.json orcl-germany-minute.json orcl-history.json orcl-sentiment-history.json eurusd-history.json \
             runtime-status.json microstructure-current.json
 
           if git diff --cached --quiet; then
