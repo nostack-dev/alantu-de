@@ -7,6 +7,7 @@ on:
       - "index-brand.html"
       - "pdf-to-exposee.html"
       - "alantu-book-view.js"
+      - "alantu-book-core.js"
       - "assets/sunside-living-expose.pdf"
       - "tools/exposee-browser-smoke.mjs"
       - ".github/workflows/exposee-browser-smoke.yml"
@@ -67,6 +68,10 @@ jobs:
           grep -q 'frontCoverUsesPdf=true' "$f"
           grep -q 'COVER_SCALE=1.055' "$f"
           grep -q 'async function loadPdfFromUrl' "$f"
+          grep -q 'function ivoryHardcoverMaterial' "$f"
+          grep -q 'function paperFinishMaterial' "$f"
+          grep -q 'new THREE.ShadowMaterial' "$f"
+          grep -q 'LinearMipmapLinearFilter' "$f"
           ! grep -Eq 'root\.scale\.(x|y)[[:space:]]*=' "$f"
           ! grep -Eq 'scaleX[[:space:]]*\(' "$f"
           ! grep -Eq 'scaleY[[:space:]]*\(' "$f"
@@ -105,7 +110,7 @@ jobs:
 
           wait_for "https://www.alantu.de/pdf-to-exposee.html?smoke=${{ github.sha }}" /tmp/pdf-to-exposee-live.html \
             'tiltXDegrees=4' 'tiltYDegrees=2' 'function hardcoverPageMaterials' 'async function loadPdfFromUrl' \
-            'id="debugToggle"' 'function setDebugControls' 'alantu-fullscreen-toggle'
+            'id="debugToggle"' 'function setDebugControls' 'alantu-fullscreen-toggle' 'brand309' 'new THREE.ShadowMaterial'
 
           curl -fsSL --max-time 40 \
             "https://www.alantu.de/assets/sunside-living-expose.pdf?smoke=${{ github.sha }}" \
