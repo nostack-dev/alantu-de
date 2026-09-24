@@ -511,7 +511,7 @@
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
     import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand308";
-    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view405";
+    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view403";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
@@ -825,20 +825,11 @@
         (coverSupport.endClosedZ-coverSupport.endOpenZ)*p;
     }
 
-    function updateLeafVisibility(state){
-      if(!leafRoots.length)return;
-      const active=new Set((state.activeTurns||[]).map(t=>Number(t.index)));
-      const current=Math.max(0,Math.min(totalLeaves,Number(state.currentLeaf)||0));
-      for(let i=0;i<leafRoots.length;i++){
-        // Only the exposed top sheet of each stack and moving sheets can
-        // contribute pixels. Hidden stacked sheets still keep their physical
-        // z-state in the model but do not consume fragment/GPU work.
-        leafRoots[i].visible=
-          active.has(i)||
-          i===current-1||
-          i===current||
-          i===current+1;
-      }
+    function updateLeafVisibility(){
+      // Keep the full physical stack rendered. Culling neighbouring sheets
+      // caused the next right-hand page to disappear mid-turn on WebKit.
+      const leaves=leafRoots;
+      for(const leaf of leaves)leaf.visible=true;
     }
 
     function portraitFocusForState(state){
@@ -860,6 +851,28 @@
       return 0;
     }
 
+    function spreadFocusForState(state){
+      if(singlePageMode||!totalLeaves)return 0;
+
+      const turns=state.activeTurns||[];
+      const firstTurn=turns.find(t=>Number(t.index)===0);
+      if(firstTurn){
+        const p=Math.max(0,Math.min(1,Number(firstTurn.progress)||0));
+        return .5*p;
+      }
+
+      const lastTurn=turns.find(t=>Number(t.index)===totalLeaves-1);
+      if(lastTurn){
+        const p=Math.max(0,Math.min(1,Number(lastTurn.progress)||0));
+        return .5+.5*p;
+      }
+
+      const current=Math.max(0,Math.min(totalLeaves,Number(state.currentLeaf)||0));
+      if(current<=0)return 0;
+      if(current>=totalLeaves)return 1;
+      return .5;
+    }
+
     function updateUI(state){
       if(!totalPages){
         pageCount.textContent="— / —";
@@ -872,6 +885,7 @@
         : state.currentLeaf;
       updateLeafVisibility(state);
       viewControls?.setSingleFocus(portraitFocusForState(state));
+      viewControls?.setSpreadFocus(spreadFocusForState(state));
 
       if(singlePageMode){
         const page=Math.max(1,Math.min(totalPages,shownLeaf+1));
