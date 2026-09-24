@@ -14,9 +14,6 @@ export function createAlantuCoverCanvas({
   title,
   brand="ALANTU",
   subtitle="Exposé",
-  brandColor="#b89a63",
-  titleColor="#f4f0e8",
-  subtitleColor="#d9d0c2",
   width=1800,
   height=2400
 }={}){
@@ -35,7 +32,7 @@ export function createAlantuCoverCanvas({
   ctx.textBaseline="alphabetic";
 
   // Brand: small, quiet, spaced.
-  ctx.fillStyle=brandColor;
+  ctx.fillStyle="#b89a63";
   ctx.font=`600 ${Math.round(width*.036)}px Arial, sans-serif`;
   ctx.fillText(brand.toUpperCase(),pad,Math.round(height*.11));
 
@@ -82,14 +79,14 @@ export function createAlantuCoverCanvas({
   const blockHeight=(lines.length-1)*lineHeight;
   let y=Math.round(height*.56-blockHeight/2);
 
-  ctx.fillStyle=titleColor;
+  ctx.fillStyle="#f4f0e8";
   ctx.font=`400 ${fontSize}px Georgia, 'Times New Roman', serif`;
   for(const line of lines){
     ctx.fillText(line,pad,y);
     y+=lineHeight;
   }
 
-  ctx.fillStyle=subtitleColor;
+  ctx.fillStyle="#d9d0c2";
   ctx.font=`400 ${Math.round(width*.031)}px Arial, sans-serif`;
   ctx.fillText(subtitle,pad,Math.round(height*.79));
 
@@ -99,22 +96,17 @@ export function createAlantuCoverCanvas({
 export function configureAlantuPageTexture(texture,{
   renderer,
   linearFilter,
-  mipmapFilter=null,
-  colorSpace,
-  generateMipmaps=!!mipmapFilter
+  colorSpace
 }){
-  // PDF/canvas artwork is display-referred color data. Mark it explicitly as
-  // sRGB and let the renderer convert it once to the sRGB output framebuffer.
   texture.colorSpace=colorSpace;
+  texture.anisotropy=renderer.capabilities.getMaxAnisotropy();
 
-  // Oblique document pages are a classic anisotropic minification case.
-  // Use the GPU maximum: this is precisely what reduces blur along the
-  // compressed texture axis when the page is tilted in 3D.
-  texture.anisotropy=Math.max(1,renderer.capabilities.getMaxAnisotropy());
-
+  // Document text must stay on the full-resolution base level.
+  // Mipmaps are great for generic 3D surfaces, but on a slightly tilted
+  // PDF page they can select a much softer level and make small type muddy.
+  texture.minFilter=linearFilter;
   texture.magFilter=linearFilter;
-  texture.minFilter=mipmapFilter||linearFilter;
-  texture.generateMipmaps=!!generateMipmaps;
+  texture.generateMipmaps=false;
   texture.needsUpdate=true;
   return texture;
 }
