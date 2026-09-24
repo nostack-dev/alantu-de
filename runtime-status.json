@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-24T15:52:01+02:00",
+  "updated_at": "2026-09-24T15:59:09+02:00",
   "sources": {
     "reddit": {
       "ok": true,
@@ -14,16 +14,16 @@
     },
     "yahoo": {
       "ok": true,
-      "price": 134.543701171875,
-      "price_at": "2026-09-24T13:51:59.000Z"
+      "price": 133.6649932861328,
+      "price_at": "2026-09-24T13:59:07.000Z"
     }
   },
   "derived": {
     "signal": "sell",
     "hype_bull": 22,
-    "hype_bear": 56,
-    "hype_mixed": 22,
-    "hype_net": -34,
+    "hype_bear": 49,
+    "hype_mixed": 29,
+    "hype_net": -27,
     "confidence": 80
   }
 }
