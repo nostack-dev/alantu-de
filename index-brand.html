@@ -566,7 +566,7 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand308";
-    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view403";
+    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view404";
 
     const canvas = document.getElementById("bookCanvas");
     canvas.addEventListener("contextmenu",e=>e.preventDefault());
@@ -589,7 +589,7 @@
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(29,1,.1,100);
-    camera.position.set(0.1,1.35,10.8);
+    camera.position.set(0,1.35,10.8);
     camera.lookAt(0,0,0);
 
     scene.add(new THREE.HemisphereLight(0xfffbf3,0x66594b,2.35));
@@ -864,19 +864,17 @@
         ? (frontPage+1<totalPages?frontPage+1:-1)
         : frontPage+1;
 
-      const frontMaterial=new THREE.MeshStandardMaterial({
+      const frontMaterial=new THREE.MeshBasicMaterial({
         map:textureFor(frontPage),
-        roughness:.88,
-        metalness:0,
-        side:THREE.FrontSide
+        side:THREE.FrontSide,
+        toneMapped:false
       });
 
-      const backMaterial=new THREE.MeshStandardMaterial({
+      const backMaterial=new THREE.MeshBasicMaterial({
         map:backPage>=0&&backPage<totalPages?backTextureFor(backPage):null,
         color:backPage>=0&&backPage<totalPages?0xffffff:0xeee7db,
-        roughness:.9,
-        metalness:0,
-        side:THREE.BackSide
+        side:THREE.BackSide,
+        toneMapped:false
       });
 
       const front=new THREE.Mesh(geometry,frontMaterial);
