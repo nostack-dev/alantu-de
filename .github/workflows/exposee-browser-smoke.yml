@@ -64,17 +64,20 @@ jobs:
           grep -q 'function setDebugControls' "$f"
           grep -q 'alantu-fullscreen-toggle' "$f"
           grep -q 'stage:fullscreen .axis-controls' "$f"
-          grep -q 'function hardcoverPageMaterials' "$f"
-          grep -q 'frontCoverUsesPdf=true' "$f"
+          grep -q 'hardcoverMaterials(currentCoverTitle)' "$f"
+          grep -q 'frontCoverUsesPdf=false' "$f"
           grep -q 'COVER_SCALE=1.055' "$f"
           grep -q 'async function loadPdfFromUrl' "$f"
-          grep -q 'function ivoryHardcoverMaterial' "$f"
+          grep -q 'color:0x171713' "$f"
+          grep -q 'titleColor:"#c4a66d"' "$f"
           grep -q 'HemisphereLight(0xfffbf3,0x66594b,2.35)' "$f"
           grep -q 'DirectionalLight(0xffffff,4.4)' "$f"
           grep -q 'roughness:.88' "$f"
-          grep -q 'bumpScale:.00075' "$f"
+          grep -q 'roughness:.9' "$f"
+          ! grep -q 'ivoryHardcoverMaterial' "$f"
+          ! grep -q 'paperFiber' "$f"
           ! grep -q 'new THREE.ShadowMaterial' "$f"
-          ! grep -q 'stage:after{' "$f"
+          grep -q '.stage:after{display:none}' "$f"
           grep -q 'LinearMipmapLinearFilter' "$f"
           ! grep -Eq 'root\.scale\.(x|y)[[:space:]]*=' "$f"
           ! grep -Eq 'scaleX[[:space:]]*\(' "$f"
@@ -113,8 +116,8 @@ jobs:
             'enterDemoFauxFullscreen' 'alantu-fullscreen-toggle'
 
           wait_for "https://www.alantu.de/pdf-to-exposee.html?smoke=${{ github.sha }}" /tmp/pdf-to-exposee-live.html \
-            'tiltXDegrees=4' 'tiltYDegrees=2' 'function hardcoverPageMaterials' 'async function loadPdfFromUrl' \
-            'id="debugToggle"' 'function setDebugControls' 'alantu-fullscreen-toggle' 'brand309'
+            'tiltXDegrees=4' 'tiltYDegrees=2' 'hardcoverMaterials(currentCoverTitle)' 'async function loadPdfFromUrl' \
+            'id="debugToggle"' 'function setDebugControls' 'alantu-fullscreen-toggle' 'brand310'
 
           curl -fsSL --max-time 40 \
             "https://www.alantu.de/assets/sunside-living-expose.pdf?smoke=${{ github.sha }}" \
