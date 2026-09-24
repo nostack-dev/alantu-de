@@ -37,6 +37,12 @@ async function run(name,viewport){
     await page.waitForTimeout(250);
   }
   await page.waitForTimeout(1000);
+  const interactionState=await page.evaluate(()=>({
+    priceTooltipActive:(typeof ivChart!=='undefined'&&ivChart&&ivChart.tooltip)?((ivChart.tooltip._active||[]).length):0,
+    priceTooltipOpacity:(typeof ivChart!=='undefined'&&ivChart&&ivChart.tooltip)?Number(ivChart.tooltip.opacity||0):0
+  }));
+  await page.screenshot({path:`${out}/${name}-1d.png`,fullPage:true});
+
   const wgoButton=page.locator('#wgoRun');
   if(await wgoButton.count()){
     await wgoButton.click();
@@ -83,7 +89,6 @@ async function run(name,viewport){
       bodyText:(document.body?.innerText||'').slice(0,4000)
     };
   });
-  await page.screenshot({path:`${out}/${name}-1d.png`,fullPage:true});
   await page.locator('button[data-price-range="1m"]').click();
   await page.waitForTimeout(900);
   const monthState=await page.evaluate(()=>({
@@ -109,7 +114,7 @@ async function run(name,viewport){
   if(hiddenResearch.length)errors.push('research-visible-while-collapsed:'+JSON.stringify(hiddenResearch));
   if(state.width.overflow>4)errors.push('horizontal-overflow:'+state.width.overflow);
   if(!Array.isArray(state.chartEvents)||!state.chartEvents.includes('mousemove')||!state.chartEvents.includes('touchmove'))errors.push('chart-events-missing:'+JSON.stringify(state.chartEvents));
-  if(state.priceTooltipActive<1&&state.priceTooltipOpacity<=0)errors.push('price-tooltip-not-active');
+  if(interactionState.priceTooltipActive<1&&interactionState.priceTooltipOpacity<=0)errors.push('price-tooltip-not-active:'+JSON.stringify(interactionState));
   if(!state.priceAxis||state.priceAxis.minBerlin!=='08:00'||state.priceAxis.maxBerlin!=='22:00')errors.push('day-axis-not-08-22:'+JSON.stringify(state.priceAxis));
   if(monthState.range!=='1m'||monthState.points<10)errors.push('month-range-invalid:'+JSON.stringify(monthState));
   if(monthState.overflow>4)errors.push('month-horizontal-overflow:'+monthState.overflow);
@@ -119,7 +124,7 @@ async function run(name,viewport){
   if(!state.forecastCollapsed)errors.push('forecast-not-collapsed-by-default');
   if(!/MODELLSTATUS: (KAUFSIGNAL|KEIN KAUFSIGNAL|VERKAUFSSIGNAL)/.test(state.modelDecisionText))errors.push('model-decision-missing');
 
-  console.log(JSON.stringify({name,url,state,monthState,wgoState,consoleErrors,pageErrors,httpErrors:allowedHttp,failed,ok:errors.length===0,errors},null,2));
+  console.log(JSON.stringify({name,url,state,interactionState,monthState,wgoState,consoleErrors,pageErrors,httpErrors:allowedHttp,failed,ok:errors.length===0,errors},null,2));
   await browser.close();
   if(errors.length)throw new Error(name+' smoke failed: '+errors.join(' | '));
 }
