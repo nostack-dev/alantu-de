@@ -2513,6 +2513,12 @@ async function wgoContext(){
   if(!r.ok)throw new Error('HTTP '+r.status);
   var d=await r.json();wgoContextCache={at:Date.now(),data:d};return d;
 }
+async function wgoRangeContext(rng){
+  var base=relayBaseUrl();if(!/^https:\/\//.test(base))throw new Error('Live-Service nicht verfügbar');
+  var r=await fetch(base+'/v1/whats-going-on?range='+encodeURIComponent(rng)+'&_='+Date.now(),{cache:'no-store',headers:{Accept:'application/json'}});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return await r.json();
+}
 function wgoCatalystText(d){
   var c=d&&d.catalyst;if(!c)return '';
   if(c.theme==='project_jupiter')return ' Tageskontext: Project Jupiter / New Mexico bleibt der aktuell stärkste erkannte Oracle-Katalysator.';
@@ -2550,11 +2556,11 @@ async function runWhatsGoingOn(){
       var d=await wgoContext();
       result={at:now,text:wgoCurrentText(d),meta:'Aktuell · 10 Min · Stand '+wgoTime(d.generated_at)+' · max. alle 10 Min neu'};
     }else{
-      var local=wgoLocalSummary(wgoRange),extra='';
-      if(wgoRange==='1d'){
-        try{extra=wgoCatalystText(await wgoContext());}catch(e){}
-      }
-      result={at:now,text:local.text+extra,meta:wgoRangeLabel(wgoRange)+' · '+local.points+' Chartpunkte · Stand '+wgoTime(new Date(now).toISOString())+' · max. alle 10 Min neu'};
+      var local=wgoLocalSummary(wgoRange),bg=null,bgText='';
+      try{bg=await wgoRangeContext(wgoRange);bgText=String(bg&&bg.background||'').trim();}catch(e){}
+      if(!bgText)bgText='Für diesen Zeitraum ist derzeit kein belastbarer Nachrichtenhintergrund abrufbar.';
+      var newsCount=bg&&bg.counts&&isFinite(Number(bg.counts.total))?Number(bg.counts.total):0;
+      result={at:now,text:local.text+' '+bgText,meta:wgoRangeLabel(wgoRange)+' · '+local.points+' Chartpunkte · '+newsCount+' Kontextmeldungen · Stand '+wgoTime((bg&&bg.generated_at)||new Date(now).toISOString())+' · max. alle 10 Min neu'};
     }
     wgoCache[wgoRange]=result;renderWgoResult(result);
   }catch(e){
