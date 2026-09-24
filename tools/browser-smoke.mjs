@@ -148,7 +148,7 @@ async function run(name,viewport){
   if(wgoState.hasFiveMinute)errors.push('wgo-five-minute-still-present');
   if(wgoState.cacheMs!==600000)errors.push('wgo-cache-not-10m:'+wgoState.cacheMs);
   if(JSON.stringify(wgoState.ranges)!==JSON.stringify(['current','1d','1w','1m','year','5y','all']))errors.push('wgo-ranges-wrong:'+JSON.stringify(wgoState.ranges));
-  if(wgoMonthState.range!=='1m'||wgoMonthState.priceRange!=='1m'||!/1M:/i.test(wgoMonthState.answer))errors.push('wgo-month-summary-not-chart-aligned:'+JSON.stringify(wgoMonthState));
+  if(wgoMonthState.range!=='1m'||wgoMonthState.priceRange!=='1m'||!/1M:/i.test(wgoMonthState.answer)||!/Hintergrund 1M:/i.test(wgoMonthState.answer))errors.push('wgo-month-summary-not-chart-aligned:'+JSON.stringify(wgoMonthState));
   if(!/heute|Tageskontext|Tagesmove/i.test(wgoState.answer+' '+wgoState.meta))errors.push('wgo-day-context-missing:'+JSON.stringify(wgoState));
   const dayPctMatch=wgoState.answer.match(/Tagesbasis bei\s+([+-]?\d+(?:\.\d+)?)\s*%/i);
   if(dayPctMatch&&Number(dayPctMatch[1])<=-1&&!/stärkste\s+\d+-Minuten-Abverkauf\s+heute/i.test(wgoState.answer))errors.push('wgo-intraday-selloff-missing:'+JSON.stringify(wgoState));
