@@ -650,6 +650,13 @@
     .forecast-axis{grid-template-columns:30px minmax(0,1fr) 43px;gap:6px}
   }
 
+  .hypothesis-decision{margin:10px 0 2px;padding:12px 13px;border-radius:12px;background:#F7F7F7;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .hypothesis-decision .hd-main{font-size:13px;font-weight:850;color:var(--tr-ink);letter-spacing:-.01em}
+  .hypothesis-decision .hd-main.buy{color:var(--tr-positive)}
+  .hypothesis-decision .hd-main.sell{color:var(--tr-negative)}
+  .hypothesis-decision .hd-meta{font-size:10px;line-height:1.25;color:var(--tr-muted);text-align:right;font-variant-numeric:tabular-nums}
+  @media(max-width:700px){.hypothesis-decision{align-items:flex-start;flex-direction:column;gap:4px}.hypothesis-decision .hd-meta{text-align:left}}
+
   .sync-footer{border-top:1px solid var(--tr-border)!important;color:var(--tr-muted)!important}
   .sync-footer button{display:none!important}
   @media(max-width:700px){
@@ -751,6 +758,7 @@
     <div class="value-status flat" id="ivStatus"></div>
     <div class="market-flow" id="marketFlow" aria-live="polite"><div class="flow-head"><span class="flow-phase flat">WIRD BERECHNET</span></div></div>
     <div class="wave-forecast-strip" id="waveForecasts" aria-live="polite"></div>
+    <div class="hypothesis-decision" id="hypothesisDecision" aria-live="polite"></div>
     <div class="trajectory-note" id="trajectoryNote"><span><strong>1T Projektionspfad</strong> · Konsenspfad + Unsicherheitsband</span><span>Shadow · keine Kurszusage</span></div>
     <div class="forecast-proof" id="forecastProof">
       <div class="forecast-proof-head"><span class="forecast-proof-title">Prognosen vs. Realität</span><span class="forecast-proof-summary" id="forecastProofSummary">sammelt prospektive Vergleiche</span></div>
@@ -2162,6 +2170,18 @@ function validatedWaveForecast(){
   var f=a[0],hit=Number(f.proof&&f.proof.holdout&&f.proof.holdout.hit);
   return Object.assign({},f,{source:'raw_sip',asof:s.asof,social_context:waveSocialContext(Number(f.dir)),holdout_hit:isFinite(hit)?hit:null});
 }
+function renderHypothesisDecision(){
+  var el=document.getElementById('hypothesisDecision');if(!el)return;
+  var h=microstructureData&&microstructureData.hypothesis_v4||{},r=h.recommendation||{},candidate=r.candidate||null;
+  if(r.status==='validated'&&(r.action==='BUY'||r.action==='SELL')){
+    var p=r.proof||{},mean=Number(p.mean_net_bps),n=Number(p.n)||0,pf=Number(p.profit_factor);
+    el.innerHTML='<div class="hd-main '+(r.action==='BUY'?'buy':'sell')+'">'+(r.action==='BUY'?'↑ BUY':'↓ SELL')+' · ≈ '+Number(r.horizon_minutes)+' Min</div>'+
+      '<div class="hd-meta">v4 Regime validiert · '+n+' OOS · Ø '+(isFinite(mean)?mean.toLocaleString('de-DE',{maximumFractionDigits:2})+' bp netto':'—')+(isFinite(pf)?' · PF '+pf.toLocaleString('de-DE',{maximumFractionDigits:2}):'')+'</div>';return;
+  }
+  var h15=h.proof&&h.proof['15']&&h.proof['15'].regime||{},n15=Number(h15.n)||0,mean15=Number(h15.mean_net_bps),gate=h15.gate&&h15.gate.status||'collecting';
+  var cand=candidate&&Number(candidate.dir)?((Number(candidate.dir)>0?'↑ TEST LONG':'↓ TEST SHORT')+' · ≈ '+Number(candidate.horizon_minutes)+' Min'):'WARTEN · KEIN HANDELSSIGNAL';
+  el.innerHTML='<div class="hd-main">'+cand+'</div><div class="hd-meta">v4 Regime · '+gate+' · 15m '+n15+'/180'+(isFinite(mean15)?' · Ø '+mean15.toLocaleString('de-DE',{maximumFractionDigits:2})+' bp netto':'')+' · BUY/SELL erst nach OOS-Gate</div>';
+}
 function renderWaveForecasts(){
   var el=document.getElementById('waveForecasts');if(!el)return;
   var model=(microstructureData&&microstructureData.wave)||orclWaveModel||{},state=waveForecastState||{},live={};
@@ -2175,16 +2195,17 @@ function renderWaveForecasts(){
     }else if(mh.status==='validated'){v='— WARTEN';meta='Roh-SIP validiert';}
     else if(mh.status==='shadow'){
       var proof=(f&&f.proof)||mh.proof||{},n=Number(proof.n)||0,hit=Number(proof.hit);
-      if(f&&Number(f.dir)>0){cls='up';v='↑ STEIGT';}
-      else if(f&&Number(f.dir)<0){cls='down';v='↓ FÄLLT';}
+      if(f&&Number(f.dir)>0){cls='up';v='↑ BASIS';}
+      else if(f&&Number(f.dir)<0){cls='down';v='↓ BASIS';}
       else v='WARTEN';
-      meta=n?('Shadow · '+n+' geprüft · '+Math.round(hit*100)+' %'):'Shadow · sammelt Beweise';
+      meta=n?('v3 Kontrolle · '+n+' geprüft · '+Math.round(hit*100)+' % · kein Handelssignal'):'v3 Kontrolle · sammelt Beweise';
     }else if(model.status==='awaiting_credentials'){v='KEY FEHLT';meta='Alpaca API-Key in Railway eintragen';}
     else if(model.status==='collecting'){v='TRAINIERT';meta='Historische Rohdaten werden aufgebaut';}
     else if(mh.status==='unproven'){v='NICHT FREI';meta='OOS-Gate nicht bestanden';}
     else{v='WARTEN';meta=model.status==='shadow'?'No-Key Event-Stream':'Roh-SIP Modell';}
     return '<div class="wave-forecast '+cls+'"><div class="wf-h">≈ '+h+' Min</div><div class="wf-v">'+v+'</div><div class="wf-m">'+meta+'</div></div>';
   }).join('');
+  renderHypothesisDecision();
   if(ivChart&&priceRange==='1d'){var ds=ivChart.data&&ivChart.data.datasets&&ivChart.data.datasets[0];if(ds)refreshTrajectoryDatasets(ds.data||[],berlinTradingWindowFor(Date.now()));}
 }
 function currentContext(){
