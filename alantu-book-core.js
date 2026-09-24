@@ -96,17 +96,22 @@ export function createAlantuCoverCanvas({
 export function configureAlantuPageTexture(texture,{
   renderer,
   linearFilter,
-  colorSpace
+  mipmapFilter=null,
+  colorSpace,
+  generateMipmaps=!!mipmapFilter
 }){
+  // PDF/canvas artwork is display-referred color data. Mark it explicitly as
+  // sRGB and let the renderer convert it once to the sRGB output framebuffer.
   texture.colorSpace=colorSpace;
-  texture.anisotropy=renderer.capabilities.getMaxAnisotropy();
 
-  // Document text must stay on the full-resolution base level.
-  // Mipmaps are great for generic 3D surfaces, but on a slightly tilted
-  // PDF page they can select a much softer level and make small type muddy.
-  texture.minFilter=linearFilter;
+  // Oblique document pages are a classic anisotropic minification case.
+  // Use the GPU maximum: this is precisely what reduces blur along the
+  // compressed texture axis when the page is tilted in 3D.
+  texture.anisotropy=Math.max(1,renderer.capabilities.getMaxAnisotropy());
+
   texture.magFilter=linearFilter;
-  texture.generateMipmaps=false;
+  texture.minFilter=mipmapFilter||linearFilter;
+  texture.generateMipmaps=!!generateMipmaps;
   texture.needsUpdate=true;
   return texture;
 }
