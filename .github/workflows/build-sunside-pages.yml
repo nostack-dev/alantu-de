@@ -1,0 +1,71 @@
+name: Build Sunside demo pages
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "assets/sunside-living-expose.pdf"
+      - ".github/workflows/build-sunside-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install raster tools
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils webp
+      - name: Rasterize brochure
+        shell: bash
+        run: |
+          set -euo pipefail
+          src="assets/sunside-living-expose.pdf"
+          out="assets/sunside-living-pages"
+          tmp="$(mktemp -d)"
+          rm -rf "$out"
+          mkdir -p "$out"
+
+          # 2304 px on the longest edge: enough headroom for oblique 3D pages
+          # and zoom while keeping the download practical.
+          pdftoppm -png -scale-to 2304 "$src" "$tmp/page"
+
+          i=0
+          pages_json=""
+          for png in "$tmp"/page-*.png; do
+            i=$((i+1))
+            name=$(printf "page-%02d.webp" "$i")
+            cwebp -quiet -q 98 -m 6 -sharp_yuv "$png" -o "$out/$name"
+            if [ -n "$pages_json" ]; then pages_json="$pages_json,"; fi
+            pages_json="$pages_json\"$name\""
+          done
+
+          cat > "$out/manifest.json" <<JSON
+          {
+            "version": 1,
+            "source": "../sunside-living-expose.pdf",
+            "brand": "Sunside Living",
+            "title": "Konstanz Wollmatingen Exposé",
+            "pages": [$pages_json]
+          }
+          JSON
+
+          test "$i" -eq 18
+      - name: Commit generated demo pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "alantu-demo-pages"
+          git config user.email "alantu-demo-pages@users.noreply.github.com"
+          git add assets/sunside-living-pages
+          if git diff --cached --quiet; then
+            echo "Demo pages already current"
+            exit 0
+          fi
+          git commit -m "Build Sunside Living demo pages"
+          git push
