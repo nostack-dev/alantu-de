@@ -18,6 +18,11 @@ export function createAlantuBookViewControls({
   let zoom=1;
   let fitScale=1;
   let pinch=null;
+  let singleFocus=0;
+  let singleFocusTarget=0;
+  let lastViewStep=performance.now();
+  let baseX=0;
+  let focusTravelX=0;
 
   function isFullscreen(){
     return document.fullscreenElement===stage||
@@ -70,9 +75,12 @@ export function createAlantuBookViewControls({
     const scale=fitScale*zoom;
     root.scale.setScalar(scale);
 
-    // Duplex spread is centered around -pageW/2. In single-page mode the
-    // currently exposed right-hand page is centered around x=0.
-    root.position.set(single?0:pageW*.5*scale,.015,0);
+    // Duplex spread is centered around -pageW/2. In portrait single-page
+    // mode focus=0 frames the right page and focus=1 frames the fully turned
+    // left page. The transition is animated in step().
+    baseX=single?0:pageW*.5*scale;
+    focusTravelX=single?pageW*scale:0;
+    root.position.set(baseX+focusTravelX*singleFocus,.015,0);
 
     // Keep portrait pages almost head-on; retain depth on wider displays.
     root.rotation.set(single?-.045:-.075,single?-.045:-.105,single?-.004:-.008);
@@ -86,6 +94,32 @@ export function createAlantuBookViewControls({
   function setZoom(value){
     zoom=clamp(value,.72,1.75);
     applyView();
+  }
+
+  function setSingleFocus(value,{immediate=false}={}){
+    singleFocusTarget=clamp(Number(value)||0,0,1);
+    if(immediate){
+      singleFocus=singleFocusTarget;
+      root.position.x=baseX+focusTravelX*singleFocus;
+    }
+  }
+
+  function step(now=performance.now()){
+    const dt=Math.max(.001,Math.min(.05,(now-lastViewStep)/1000));
+    lastViewStep=now;
+    if(getPresentationMode()!=="single"){
+      singleFocus=singleFocusTarget=0;
+      return;
+    }
+    const delta=singleFocusTarget-singleFocus;
+    if(Math.abs(delta)<.0005){
+      singleFocus=singleFocusTarget;
+    }else{
+      // Fast enough to track the page, slow enough to read as a camera move.
+      const alpha=1-Math.exp(-11*dt);
+      singleFocus+=delta*alpha;
+    }
+    root.position.x=baseX+focusTravelX*singleFocus;
   }
 
   function wheel(e){
@@ -166,8 +200,11 @@ export function createAlantuBookViewControls({
     fit,
     resize:applyView,
     setZoom,
+    setSingleFocus,
+    step,
     get zoom(){return zoom},
-    get fitScale(){return fitScale}
+    get fitScale(){return fitScale},
+    get singleFocus(){return singleFocus}
   };
 }
 
@@ -179,6 +216,7 @@ export function createAlantuFullscreenController({
 }){
   let faux=false;
   let savedScrollY=0;
+  let exitGesture=null;
 
   const nativeActive=()=>document.fullscreenElement===stage||
     document.webkitFullscreenElement===stage;
@@ -252,10 +290,30 @@ export function createAlantuFullscreenController({
     if(e.key==="Escape"&&faux)leaveFaux();
   }
 
+  function gestureDown(e){
+    if(!active()||e.pointerType!=="touch")return;
+    exitGesture={id:e.pointerId,x:e.clientX,y:e.clientY};
+  }
+  function gestureUp(e){
+    if(!exitGesture||exitGesture.id!==e.pointerId)return;
+    const dx=e.clientX-exitGesture.x;
+    const dy=e.clientY-exitGesture.y;
+    exitGesture=null;
+    if(dy>90&&Math.abs(dy)>Math.abs(dx)*1.5){
+      e.preventDefault();
+      e.stopPropagation();
+      toggle();
+    }
+  }
+  function gestureCancel(){exitGesture=null;}
+
   button?.addEventListener("click",toggle);
   document.addEventListener("fullscreenchange",nativeChanged);
   document.addEventListener("webkitfullscreenchange",nativeChanged);
   window.addEventListener("keydown",keydown);
+  stage.addEventListener("pointerdown",gestureDown,true);
+  stage.addEventListener("pointerup",gestureUp,true);
+  stage.addEventListener("pointercancel",gestureCancel,true);
   sync();
 
   return {
@@ -267,6 +325,9 @@ export function createAlantuFullscreenController({
       document.removeEventListener("fullscreenchange",nativeChanged);
       document.removeEventListener("webkitfullscreenchange",nativeChanged);
       window.removeEventListener("keydown",keydown);
+      stage.removeEventListener("pointerdown",gestureDown,true);
+      stage.removeEventListener("pointerup",gestureUp,true);
+      stage.removeEventListener("pointercancel",gestureCancel,true);
       leaveFaux({restoreScroll:false});
     }
   };
