@@ -986,6 +986,7 @@
 
     let bookCore=null;
     let viewControls=null;
+    let endCoverReopened=false;
 
     function updateLeafVisibility(state){
       const current=Math.max(0,Math.min(totalLeaves,state.currentLeaf));
@@ -1001,12 +1002,20 @@
     function portraitFocusForState(state){
       if(!singlePageMode||!totalLeaves)return 0;
 
-      // Keep the camera on the right through the entire final paper turn.
-      // Only the END hardcover may move the framing to the left.
-      if(state.closedSide==="end"&&!state.activeBoundary)return 1;
+      if(state.closedSide==="end"&&!state.activeBoundary){
+        endCoverReopened=true;
+        return 1;
+      }
 
       const boundary=state.activeBoundary;
       if(boundary?.side==="end"){
+        // When reopening, the last page is still on the left. Do not pan
+        // back to the empty right-hand cover until a paper page turns back.
+        if(boundary.target===0){
+          endCoverReopened=true;
+          return 1;
+        }
+        endCoverReopened=false;
         const p=Math.max(0,Math.min(1,Number(boundary.progress)||0));
         // Let the hardcover visibly fall first. Camera movement begins only
         // after ~45% closure, then eases to the left as the cover finishes.
@@ -1014,7 +1023,8 @@
         return t*t*(3-2*t);
       }
 
-      return 0;
+      if(state.currentLeaf<totalLeaves)endCoverReopened=false;
+      return endCoverReopened?1:0;
     }
 
     function spreadFocusForState(state){
