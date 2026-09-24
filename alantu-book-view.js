@@ -6,7 +6,6 @@ export function createAlantuBookViewControls({
   root,
   getPageWidth,
   getPageHeight=()=>4.80,
-  getCoverWidth=()=>getPageWidth(),
   fitButton=null,
   onPinchStart=()=>{},
   minPixelRatio=2,
@@ -21,8 +20,8 @@ export function createAlantuBookViewControls({
   let pinch=null;
   let singleFocus=0;
   let singleFocusTarget=0;
-  let spreadFocus=.5;
-  let spreadFocusTarget=.5;
+  let spreadFocus=0;
+  let spreadFocusTarget=0;
   let lastViewStep=performance.now();
   let focusTravelX=0;
   const spreadCameraPosition=camera.position.clone();
@@ -103,15 +102,10 @@ export function createAlantuBookViewControls({
       camera.position.x=pan;
       camera.lookAt(pan,0,0);
     }else{
-      // Landscape/desktop follows the *visible* hardcover state:
-      // 0   = closed on the start/right side, centred
-      // .5  = open two-page spread, centred
-      // 1   = closed on the end/left side, centred
-      // Account for the real cover overhang, not just PAGE_W.
-      const coverW=Math.max(pageW,Number(getCoverWidth())||pageW);
-      const openX=pageW*scale*.5;
-      const centredX=openX+(spreadFocus-.5)*coverW*scale;
-      root.position.set(centredX,.015,0);
+      // Landscape/desktop: keep the physical two-page spread geometrically
+      // centred in the viewport at all times. PAGE_W/2 is the exact centre
+      // between the left and right sheet around the shared spine.
+      root.position.set(pageW*scale*.5,.015,0);
       camera.position.copy(spreadCameraPosition);
       camera.lookAt(0,0,0);
     }
@@ -150,7 +144,7 @@ export function createAlantuBookViewControls({
     lastViewStep=now;
     const single=getPresentationMode()==="single";
     if(single){
-      spreadFocus=spreadFocusTarget=.5;
+      spreadFocus=spreadFocusTarget=0;
       const delta=singleFocusTarget-singleFocus;
       if(Math.abs(delta)<.0005){
         singleFocus=singleFocusTarget;
@@ -164,20 +158,12 @@ export function createAlantuBookViewControls({
       camera.lookAt(pan,0,0);
     }else{
       singleFocus=singleFocusTarget=0;
-      const delta=spreadFocusTarget-spreadFocus;
-      if(Math.abs(delta)<.0005){
-        spreadFocus=spreadFocusTarget;
-      }else{
-        // Follow the hardcover spring closely, but retain a small cinematic
-        // easing so closing/opening recentres without a visible snap.
-        const alpha=1-Math.exp(-16*dt);
-        spreadFocus+=delta*alpha;
-      }
+      // Never pan the desktop/landscape spread. Only portrait single-page
+      // mode is allowed to move the reading camera between right and left.
+      spreadFocus=spreadFocusTarget=.5;
       const pageW=Math.max(.1,Number(getPageWidth())||3.52);
-      const coverW=Math.max(pageW,Number(getCoverWidth())||pageW);
       const scale=fitScale*zoom;
-      const openX=pageW*scale*.5;
-      root.position.x=openX+(spreadFocus-.5)*coverW*scale;
+      root.position.x=pageW*scale*.5;
     }
   }
 
