@@ -6,6 +6,7 @@ on:
     paths:
       - "index-brand.html"
       - "pdf-to-exposee.html"
+      - "alantu-book-view.js"
       - "tools/exposee-browser-smoke.mjs"
       - ".github/workflows/exposee-browser-smoke.yml"
   workflow_dispatch:
@@ -41,12 +42,18 @@ jobs:
           for f in index-brand.html pdf-to-exposee.html; do
             grep -q 'tiltXDegrees=4' "$f"
             grep -q 'tiltYDegrees=2' "$f"
+            grep -q 'tiltZDegrees=0' "$f"
+            grep -q 'id="zoomLess"' "$f"
+            grep -q 'key==="d"' "$f"
+            grep -q 'key==="f"' "$f"
             grep -q 'class="axis-controls"' "$f"
             grep -q 'stage:fullscreen .axis-controls' "$f"
             ! grep -Eq 'root\.scale\.(x|y)[[:space:]]*=' "$f"
             ! grep -Eq 'scaleX[[:space:]]*\(' "$f"
             ! grep -Eq 'scaleY[[:space:]]*\(' "$f"
           done
+          ! grep -q 'root.rotation.set' alantu-book-view.js
+          grep -q 'root.scale.setScalar(scale)' alantu-book-view.js
 
       - name: Wait for both current live viewers
         shell: bash
@@ -59,6 +66,9 @@ jobs:
               if curl -fsSL --max-time 20 "$url?smoke=${{ github.sha }}" -o "$out" \
                 && grep -q 'tiltXDegrees=4' "$out" \
                 && grep -q 'tiltYDegrees=2' "$out" \
+                && grep -q 'tiltZDegrees=0' "$out" \
+                && grep -q 'id="zoomLess"' "$out" \
+                && grep -q 'view404' "$out" \
                 && grep -q 'class="axis-controls"' "$out"; then
                 return 0
               fi
