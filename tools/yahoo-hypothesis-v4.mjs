@@ -118,7 +118,8 @@ export function summarizeHypothesisState(state,costBps=DEFAULT_ROUNDTRIP_COST_BP
     proof[String(h)].news_strata=newsStrata(outcomes,h);
     const reasons=gateRegime(r,{continuation:proof[String(h)].continuation,reversal:proof[String(h)].reversal});
     r.gate={status:reasons.length?'collecting':'validated',reasons};
-    if(reasons.length&&r.n>=60&&r.days>=3&&r.mean_net_bps>0.5&&r.profit_factor>1.10)r.gate.status='promising';
+    const controlBlocked=reasons.some(x=>x.startsWith('does_not_beat_'));
+    if(reasons.length&&!controlBlocked&&r.n>=60&&r.days>=3&&r.mean_net_bps>0.5&&r.profit_factor>1.10)r.gate.status='promising';
   }
   const validated=PRODUCTION_HORIZON_PRIORITY.filter(h=>proof[String(h)].regime.gate.status==='validated');
   return {
