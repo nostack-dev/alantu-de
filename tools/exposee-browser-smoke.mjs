@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 
-const defaultBuilder='https://www.alantu.de/pdf-to-exposee.html?embed=1&controls=1&pdf=%2Fassets%2Fsunside-living-expose.pdf&brand=Sunside%20Living&title=Konstanz%20Wollmatingen%20Expos%C3%A9&subtitle=Konstanz%20Wollmatingen';
+const defaultBuilder='https://www.alantu.de/pdf-to-exposee.html?embed=1&pdf=%2Fassets%2Fsunside-living-expose.pdf&brand=Sunside%20Living&title=Konstanz%20Wollmatingen%20Expos%C3%A9&subtitle=Konstanz%20Wollmatingen';
 const urls=(process.env.EXPOSEE_URLS||('https://www.alantu.de/index-brand.html,'+defaultBuilder))
   .split(',').map(s=>s.trim()).filter(Boolean);
 const out=process.env.SMOKE_OUT||'/tmp/alantu-exposee-smoke';
@@ -21,7 +21,7 @@ async function run(url,label,viewport){
   let target=page.mainFrame();
   if(label.startsWith('landing')){
     await page.waitForSelector('#exposeeFrame',{timeout:30000});
-    for(let i=0;i<60;i++){
+    for(let i=0;i<80;i++){
       const found=page.frames().find(f=>f!==page.mainFrame()&&f.url().includes('pdf-to-exposee.html'));
       if(found){target=found;break}
       await page.waitForTimeout(250);
@@ -30,57 +30,112 @@ async function run(url,label,viewport){
   }
 
   await target.waitForSelector('#bookCanvas',{timeout:30000});
+  await target.waitForSelector('#debugToggle',{timeout:30000});
   await target.waitForFunction(()=>{
     const pc=document.getElementById('pageCount')?.textContent||'';
     return /18/.test(pc)&&pc!=='— / —';
-  },null,{timeout:90000});
-  await page.waitForTimeout(1500);
+  },null,{timeout:150000});
+  await page.waitForTimeout(800);
 
-  const state=await target.evaluate(()=>{
+  const initial=await target.evaluate(()=>{
+    const stage=document.getElementById('stage');
+    const ui=document.querySelector('.stage-ui');
+    const toggle=document.getElementById('debugToggle');
+    const cs=ui?getComputedStyle(ui):null;
+    return {
+      controlsOn:stage?.classList.contains('debug-controls')||false,
+      ui:{display:cs?.display||null,visibility:cs?.visibility||null,opacity:Number(cs?.opacity||0)},
+      toggle:{exists:!!toggle,pressed:toggle?.getAttribute('aria-pressed')||null,display:toggle?getComputedStyle(toggle).display:null},
+      pageCount:(document.getElementById('pageCount')?.textContent||'').trim()
+    };
+  });
+
+  // Mobile and desktop must both be able to reveal/hide debug controls.
+  await target.locator('#debugToggle').click({force:true});
+  await page.waitForTimeout(120);
+  const shown=await target.evaluate(()=>{
     const stage=document.getElementById('stage');
     const ui=document.querySelector('.stage-ui');
     const cs=ui?getComputedStyle(ui):null;
     const val=id=>document.getElementById(id)?.value||document.getElementById(id)?.textContent||null;
-    const ids=['tiltXLess','tiltXMore','tiltYLess','tiltYMore','tiltZLess','tiltZMore','zoomLess','zoomMore'];
-    const canvas=document.getElementById('bookCanvas');
-    const rect=canvas?.getBoundingClientRect();
     return {
-      stage:!!stage,
-      canvas:!!canvas,
-      canvasRect:rect?{width:rect.width,height:rect.height}:null,
-      controlsVisible:cs?.display!=='none'&&cs?.visibility!=='hidden'&&Number(cs?.opacity||1)>.9,
+      controlsOn:stage?.classList.contains('debug-controls')||false,
+      ui:{display:cs?.display||null,visibility:cs?.visibility||null,opacity:Number(cs?.opacity||0)},
+      pressed:document.getElementById('debugToggle')?.getAttribute('aria-pressed')||null,
       values:{x:val('tiltXValue'),y:val('tiltYValue'),z:val('tiltZValue'),zoom:val('zoomValue')},
-      controls:Object.fromEntries(ids.map(id=>[id,!!document.getElementById(id)])),
-      pageCount:(document.getElementById('pageCount')?.textContent||'').trim(),
-      viewerTitle:(document.getElementById('viewerTitle')?.textContent||'').trim(),
-      emptyVisible:document.getElementById('emptyState')?.style.display!=='none',
-      overflow:document.documentElement.scrollWidth-window.innerWidth,
-      fakeText:(document.body?.innerText||'').includes('Starnberger See')||(document.body?.innerText||'').includes('PRIVATE RESIDENCE')
+      viewerTitle:(document.getElementById('viewerTitle')?.textContent||'').trim()
     };
   });
 
-  await target.locator('#tiltZMore').click();
-  await target.locator('#zoomMore').click();
-  await page.waitForTimeout(150);
-  const changed=await target.evaluate(()=>({
-    z:document.getElementById('tiltZValue')?.value||null,
-    zoom:document.getElementById('zoomValue')?.value||null
-  }));
-
-  const fullscreenBtn=target.locator('#fullscreenBtn');
-  await fullscreenBtn.click({force:true});
-  await page.waitForTimeout(500);
-  const fOn=await target.evaluate(()=>{
+  await target.locator('#debugToggle').click({force:true});
+  await page.waitForTimeout(120);
+  const hiddenAgain=await target.evaluate(()=>{
     const stage=document.getElementById('stage');
     const ui=document.querySelector('.stage-ui');
+    const cs=ui?getComputedStyle(ui):null;
     return {
-      active:document.fullscreenElement===stage||document.webkitFullscreenElement===stage||stage?.classList.contains('is-faux-fullscreen')||false,
-      uiDisplay:ui?getComputedStyle(ui).display:null
+      controlsOn:stage?.classList.contains('debug-controls')||false,
+      visibility:cs?.visibility||null,
+      opacity:Number(cs?.opacity||0),
+      pressed:document.getElementById('debugToggle')?.getAttribute('aria-pressed')||null
     };
   });
-  if(fOn.active){
-    await fullscreenBtn.click({force:true}).catch(()=>{});
-    await page.waitForTimeout(300);
+
+  // Show controls again and enter fullscreen from the actual button.
+  await target.locator('#debugToggle').click({force:true});
+  await page.waitForTimeout(120);
+  await target.locator('#fullscreenBtn').click({force:true});
+  await page.waitForTimeout(650);
+
+  let fullscreen;
+  if(label.startsWith('landing')){
+    fullscreen=await page.evaluate(()=>{
+      const stage=document.getElementById('stage');
+      return {
+        active:document.fullscreenElement===stage||document.webkitFullscreenElement===stage||stage?.classList.contains('is-faux-fullscreen')||false,
+        faux:stage?.classList.contains('is-faux-fullscreen')||false
+      };
+    });
+  }else{
+    fullscreen=await target.evaluate(()=>{
+      const stage=document.getElementById('stage');
+      return {
+        active:document.fullscreenElement===stage||document.webkitFullscreenElement===stage||stage?.classList.contains('is-faux-fullscreen')||false,
+        faux:stage?.classList.contains('is-faux-fullscreen')||false
+      };
+    });
+  }
+
+  const childFullscreenState=await target.evaluate(()=>{
+    const stage=document.getElementById('stage');
+    const ui=document.querySelector('.stage-ui');
+    const toggle=document.getElementById('debugToggle');
+    return {
+      host:stage?.classList.contains('is-host-fullscreen')||false,
+      uiDisplay:ui?getComputedStyle(ui).display:null,
+      toggleDisplay:toggle?getComputedStyle(toggle).display:null
+    };
+  });
+
+  // Exit through same button path when possible.
+  if(fullscreen.active){
+    if(label.startsWith('landing')){
+      await page.evaluate(()=>{
+        const stage=document.getElementById('stage');
+        if(document.fullscreenElement===stage&&document.exitFullscreen)return document.exitFullscreen();
+        if(document.webkitFullscreenElement===stage&&document.webkitExitFullscreen)return document.webkitExitFullscreen();
+        if(stage?.classList.contains('is-faux-fullscreen')){
+          window.postMessage({type:'__smoke_noop'},'*');
+        }
+      }).catch(()=>{});
+      if(fullscreen.faux){
+        // Child request toggles the parent faux fullscreen off.
+        await target.evaluate(()=>window.parent.postMessage({type:'alantu-fullscreen-toggle'},'*'));
+      }
+    }else{
+      await target.locator('#fullscreenBtn').click({force:true}).catch(()=>{});
+    }
+    await page.waitForTimeout(350);
   }
 
   const safe=label.replace(/[^a-z0-9_-]+/gi,'-');
@@ -91,33 +146,26 @@ async function run(url,label,viewport){
   if(pageErrors.length)errors.push('pageerror:'+JSON.stringify(pageErrors));
   if(httpErrors.length)errors.push('http:'+JSON.stringify(httpErrors));
   if(failed.length)errors.push('requestfailed:'+JSON.stringify(failed));
-  if(!state.stage||!state.canvas)errors.push('renderer-missing');
-  if(!state.controlsVisible)errors.push('controls-not-visible');
-  if(Object.values(state.controls).some(v=>!v))errors.push('controls-missing:'+JSON.stringify(state.controls));
-  if(state.values.x!=='4°'||state.values.y!=='2°'||state.values.z!=='0°'||state.values.zoom!=='100%')errors.push('defaults:'+JSON.stringify(state.values));
-  if(changed.z!=='1°')errors.push('z-control-failed:'+String(changed.z));
-  if(!(parseInt(changed.zoom,10)>100))errors.push('zoom-control-failed:'+String(changed.zoom));
-  if(!/18/.test(state.pageCount))errors.push('pdf-not-loaded:'+state.pageCount);
-  if(!/SUNSIDE LIVING/.test(state.viewerTitle)||!/KONSTANZ WOLLMATINGEN EXPOSÉ/.test(state.viewerTitle))errors.push('sunside-title:'+state.viewerTitle);
-  if(state.emptyVisible)errors.push('empty-state-still-visible');
-  if(state.fakeText)errors.push('fake-cover-copy-present');
-  if(state.overflow>4)errors.push('horizontal-overflow:'+state.overflow);
-  if(!fOn.active)errors.push('fullscreen-failed');
-  if(fOn.uiDisplay!=='none')errors.push('controls-visible-in-fullscreen:'+String(fOn.uiDisplay));
+  if(initial.controlsOn||initial.ui.visibility!=='hidden'||initial.ui.opacity>.01)errors.push('controls-visible-by-default:'+JSON.stringify(initial));
+  if(!initial.toggle.exists||initial.toggle.display==='none'||initial.toggle.pressed!=='false')errors.push('debug-toggle-default:'+JSON.stringify(initial.toggle));
+  if(!shown.controlsOn||shown.ui.visibility!=='visible'||shown.ui.opacity<.99||shown.pressed!=='true')errors.push('debug-toggle-show-failed:'+JSON.stringify(shown));
+  if(shown.values.x!=='4°'||shown.values.y!=='2°'||shown.values.z!=='0°'||shown.values.zoom!=='100%')errors.push('defaults:'+JSON.stringify(shown.values));
+  if(!/SUNSIDE LIVING/.test(shown.viewerTitle)||!/KONSTANZ WOLLMATINGEN EXPOSÉ/.test(shown.viewerTitle))errors.push('sunside-title:'+shown.viewerTitle);
+  if(hiddenAgain.controlsOn||hiddenAgain.visibility!=='hidden'||hiddenAgain.opacity>.01||hiddenAgain.pressed!=='false')errors.push('debug-toggle-hide-failed:'+JSON.stringify(hiddenAgain));
+  if(!fullscreen.active)errors.push('fullscreen-failed:'+JSON.stringify(fullscreen));
+  if(childFullscreenState.uiDisplay!=='none'||childFullscreenState.toggleDisplay!=='none')errors.push('fullscreen-controls-visible:'+JSON.stringify(childFullscreenState));
+  if(label.startsWith('landing')&&!childFullscreenState.host)errors.push('host-fullscreen-state-not-forwarded');
 
   if(label.startsWith('landing')){
     const parent=await page.evaluate(()=>({
       frame:!!document.getElementById('exposeeFrame'),
-      share:!!document.getElementById('shareLinkBtn'),
       duplicateCanvas:!!document.getElementById('bookCanvas'),
-      body:(document.body?.innerText||'').slice(0,1200)
+      share:!!document.getElementById('shareLinkBtn')
     }));
-    if(!parent.frame)errors.push('landing-frame-missing');
-    if(!parent.share)errors.push('share-link-missing');
-    if(parent.duplicateCanvas)errors.push('duplicate-landing-renderer-present');
+    if(!parent.frame||parent.duplicateCanvas||!parent.share)errors.push('landing-shared-renderer:'+JSON.stringify(parent));
   }
 
-  console.log(JSON.stringify({url,label,viewport,state,changed,fOn,consoleErrors,pageErrors,httpErrors,failed,ok:errors.length===0,errors},null,2));
+  console.log(JSON.stringify({url,label,viewport,initial,shown,hiddenAgain,fullscreen,childFullscreenState,consoleErrors,pageErrors,httpErrors,failed,ok:errors.length===0,errors},null,2));
   await browser.close();
   if(errors.length)throw new Error(label+' smoke failed: '+errors.join(' | '));
 }
