@@ -197,6 +197,12 @@ jobs:
           grep -q "var phase='NEUTRAL / WARTEN'" index.html
           grep -q 'Number(s.horizon_events)!==100' index.html
           grep -q 'function connectMicrostructureRelay' index.html
+          grep -q "function chartEvents(){return \[\];}" index.html
+          grep -q "enabled:false,mode:'nearest'" index.html
+          grep -q 'function pollMicroMarket' index.html
+          grep -q 'function pollMicroSources' index.html
+          grep -q 'function pollMicroShadow' index.html
+          ! grep -q 'new EventSource' index.html
           grep -q "fetchJson('microstructure-live-config.json',true)" index.html
           grep -q "cfg.transport!=='sse'" index.html
           grep -q "typeof EventSource==='undefined'" index.html

@@ -912,7 +912,7 @@ var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null
 var hypeChart=null, magChart=null, ivChart=null, pieChart=null;
 var fxBars=[], orclMinuteBars=[], orclDailyBars=[];
 var liveMarket={orclUsd:null,eurusd:null,prevOrclUsd:null,prevEurusd:null,at:null,connected:false,lastRenderedEur:null};
-var livePriceTicks=[],liveWs=null,liveHeartbeat=null,liveReconnect=null,liveShockTimer=null,waveForecastTimer=null,lastFlowRenderAt=0,lastLiveTickPruneAt=0,microLiveEventSource=null;
+var livePriceTicks=[],liveWs=null,liveHeartbeat=null,liveReconnect=null,liveShockTimer=null,waveForecastTimer=null,lastFlowRenderAt=0,lastLiveTickPruneAt=0,microLiveEventSource=null,microPollTimer=null,microSourcePollTimer=null,microShadowPollTimer=null,microPollBusy=false,microSourcePollBusy=false,microShadowPollBusy=false;
 function loadAccOpen(){ try{ return JSON.parse(localStorage.getItem(LS_ACC)||'{}'); }catch(e){ return {}; } }
 function saveAccOpen(map){ try{ localStorage.setItem(LS_ACC, JSON.stringify(map)); }catch(e){} }
 function loadLocalSentimentHistory(){
@@ -1107,7 +1107,7 @@ function isTouchChart(){
 }
 function tipBase(kind){
   return {
-    enabled:!isTouchChart(),mode:'nearest',intersect:false,backgroundColor:'#ffffff',titleColor:'#1b1b1f',bodyColor:'#1b1b1f',
+    enabled:false,mode:'nearest',intersect:false,backgroundColor:'#ffffff',titleColor:'#1b1b1f',bodyColor:'#1b1b1f',
     borderColor:'#e8e8ec',borderWidth:1,padding:10,displayColors:true,boxPadding:4,
     titleFont:{size:12,weight:'600'},bodyFont:{size:12},
     callbacks:{
@@ -1214,7 +1214,7 @@ function axisX(rows,getAt,range){
   return {type:'linear',min:b.min,max:b.max,offset:false,bounds:'ticks',ticks:{color:'#6b6b76',maxRotation:0,autoSkip:true,maxTicksLimit:mob?4:6,font:{size:mob?12:11},callback:function(v){return fmtAxisValue(v,range);}},grid:{display:false},border:{display:false}};
 }
 function chartInteract(){return {mode:'nearest',intersect:false,axis:'x'};}
-function chartEvents(){return isTouchChart()?[]:['mousemove','mouseout','click'];}
+function chartEvents(){return [];}
 function clearChartInteraction(chart){
   if(!chart)return;
   try{if(typeof chart.setActiveElements==='function')chart.setActiveElements([]);}catch(e){}
@@ -1997,7 +1997,7 @@ function scheduleLiveShock(){
     try{if(orclMinuteBars.length>=25)renderShock(PriceShock.analyze(orclMinuteBars),null);}catch(e){}
   },1200);
 }
-document.addEventListener('visibilitychange',function(){if(!document.hidden)connectLiveMarket();});
+document.addEventListener('visibilitychange',function(){if(!document.hidden){connectLiveMarket();connectMicrostructureRelay();}});
 
 function microstructureTransportUsable(){
   var s=microstructureStatus||{},d=microstructureData||{},dq=d.quality||{};
@@ -2181,45 +2181,64 @@ function renderForecastTrail(){
   }
 }
 function fetchRelayDetails(){return Promise.resolve();}
-function connectMicrostructureRelay(){
-  var cfg=microstructureLiveConfig||{},endpoint=String(cfg.endpoint||'');
-  if(!cfg.enabled||cfg.transport!=='sse'||!/^https:\/\//.test(endpoint)||typeof EventSource==='undefined')return;
-  if(microLiveEventSource){try{microLiveEventSource.close();}catch(e){}}
-  var es=new EventSource(endpoint);microLiveEventSource=es;
-  es.addEventListener('market',function(ev){
-    try{
-      var d=JSON.parse(ev.data||'{}');
-      var alpaca=d&&d.provider==='alpaca'&&d.feed==='sip'&&d.symbol==='ORCL'&&d.mode==='raw-sip-live';
-      var yahoo=d&&d.provider==='yahoo'&&d.feed==='streamer'&&d.symbol==='ORCL'&&d.mode==='shadow-live';
-      if(alpaca||yahoo){
-        microstructureData=d;
-        if(d.wave)orclWaveModel=d.wave;
-        if(d.wave_forecast){waveForecastState=d.wave_forecast;renderWaveForecasts();}
-        if(d.sentiment)applyRailwaySentiment(d.sentiment);
-        if(ivChart&&priceRange==='1d'){var base=ivChart.data&&ivChart.data.datasets&&ivChart.data.datasets[0];if(base)refreshTrajectoryDatasets(base.data||[],berlinTradingWindowFor(Date.now()),false);}
-        lastFlowRenderAt=0;
-        try{renderMarketFlowVisual(getMarketWaveVector());}catch(e){}
-      }
-    }catch(e){}
-  });
-  es.addEventListener('sources',function(ev){
-    try{var d=JSON.parse(ev.data||'{}');if(d&&d.symbol==='ORCL'&&d.sentiment)applyRailwaySentiment(d.sentiment);}catch(e){}
-  });
-  es.addEventListener('shadow',function(ev){
-    try{var d=JSON.parse(ev.data||'{}');if(d&&d.symbol==='ORCL'&&d.trail){mergeShadowTrail(d.trail);shadowTrailFetchedAt=Date.now();renderForecastTrail();}}catch(e){}
-  });
-  es.addEventListener('l2',function(ev){
-    try{
-      var d=JSON.parse(ev.data||'{}'),l2=d&&d.l2;
-      if(d&&d.symbol==='ORCL'&&l2&&l2.provider==='databento'&&['MEMX.MEMOIR','XNAS.ITCH'].indexOf(l2.dataset)>=0&&l2.schema==='mbp-10'){
-        microstructureData=Object.assign({},microstructureData||{},{l2:l2});
-        lastFlowRenderAt=0;
-        try{renderMarketFlowVisual(getMarketWaveVector());}catch(e){}
-      }
-    }catch(e){}
-  });
+function applyMicroMarketSnapshot(d){
+  if(!d)return;
+  var alpaca=d.provider==='alpaca'&&d.feed==='sip'&&d.symbol==='ORCL'&&d.mode==='raw-sip-live';
+  var yahoo=d.provider==='yahoo'&&d.feed==='streamer'&&d.symbol==='ORCL'&&d.mode==='shadow-live';
+  if(!(alpaca||yahoo))return;
+  microstructureData=d;
+  if(d.wave)orclWaveModel=d.wave;
+  if(d.wave_forecast){waveForecastState=d.wave_forecast;renderWaveForecasts();}
+  if(d.sentiment)applyRailwaySentiment(d.sentiment);
+  if(ivChart&&priceRange==='1d'){
+    var base=ivChart.data&&ivChart.data.datasets&&ivChart.data.datasets[0];
+    if(base)refreshTrajectoryDatasets(base.data||[],berlinTradingWindowFor(Date.now()),false);
+  }
+  lastFlowRenderAt=0;
+  try{renderMarketFlowVisual(getMarketWaveVector());}catch(e){}
 }
-
+async function pollMicroMarket(base){
+  if(microPollBusy||document.hidden)return;
+  microPollBusy=true;
+  try{
+    var r=await fetch(base+'/v1/snapshot?symbol=ORCL&_='+Date.now(),{cache:'no-store',headers:{Accept:'application/json'}});
+    if(!r.ok)throw new Error('snapshot_http_'+r.status);
+    applyMicroMarketSnapshot(await r.json());
+  }catch(e){}finally{microPollBusy=false;}
+}
+async function pollMicroSources(base){
+  if(microSourcePollBusy||document.hidden)return;
+  microSourcePollBusy=true;
+  try{
+    var r=await fetch(base+'/v1/source-state?_='+Date.now(),{cache:'no-store',headers:{Accept:'application/json'}});
+    if(!r.ok)throw new Error('source_http_'+r.status);
+    var s=await r.json();if(s)applyRailwaySentiment(s);
+  }catch(e){}finally{microSourcePollBusy=false;}
+}
+async function pollMicroShadow(base){
+  if(microShadowPollBusy||document.hidden)return;
+  microShadowPollBusy=true;
+  try{
+    var r=await fetch(base+'/v1/shadow-history?_='+Date.now(),{cache:'no-store',headers:{Accept:'application/json'}});
+    if(!r.ok)throw new Error('shadow_http_'+r.status);
+    var t=await r.json();if(t){mergeShadowTrail(t);shadowTrailFetchedAt=Date.now();renderForecastTrail();}
+  }catch(e){}finally{microShadowPollBusy=false;}
+}
+function stopMicrostructureRelay(){
+  if(microLiveEventSource){try{microLiveEventSource.close();}catch(e){}microLiveEventSource=null;}
+  if(microPollTimer){clearInterval(microPollTimer);microPollTimer=null;}
+  if(microSourcePollTimer){clearInterval(microSourcePollTimer);microSourcePollTimer=null;}
+  if(microShadowPollTimer){clearInterval(microShadowPollTimer);microShadowPollTimer=null;}
+}
+function connectMicrostructureRelay(){
+  var cfg=microstructureLiveConfig||{},endpoint=String(cfg.endpoint||''),i=endpoint.indexOf('/v1/stream'),base=i>0?endpoint.slice(0,i):'';
+  if(!cfg.enabled||!/^https:\/\//.test(base))return;
+  stopMicrostructureRelay();
+  pollMicroMarket(base);pollMicroSources(base);pollMicroShadow(base);
+  microPollTimer=setInterval(function(){pollMicroMarket(base);},1000);
+  microSourcePollTimer=setInterval(function(){pollMicroSources(base);},2000);
+  microShadowPollTimer=setInterval(function(){pollMicroShadow(base);},15000);
+}
 function validatedL2Forecast(){
   var d=microstructureData||{},l2=d.l2||{},s=l2.forecast||null,m=orclL2Model||{};
   if(m.status!=='validated'||l2.model_status!=='validated'||l2.contract!=='valid'||!s)return null;
@@ -2642,7 +2661,7 @@ function renderOpinions(){
   voices.forEach(function(v){var l=String(v.lean||'mixed').toLowerCase();if(l!=='bull'&&l!=='bear')l='mixed';counts[l]++;});
   var total=counts.bull+counts.mixed+counts.bear;
   if(pieChart){clearChartInteraction(pieChart);pieChart.data.datasets[0].data=[counts.bull,counts.mixed,counts.bear];pieChart.update('none');}
-  else pieChart=new Chart(document.getElementById('pie'),{type:'doughnut',data:{labels:['Bullisch','Unklar','Bearisch'],datasets:[{data:[counts.bull,counts.mixed,counts.bear],backgroundColor:['#5dcb5b','#ff9500','#ff3b30'],borderWidth:0}]},options:{animation:false,plugins:{legend:{display:false}},cutout:'64%'}});
+  else pieChart=new Chart(document.getElementById('pie'),{type:'doughnut',data:{labels:['Bullisch','Unklar','Bearisch'],datasets:[{data:[counts.bull,counts.mixed,counts.bear],backgroundColor:['#5dcb5b','#ff9500','#ff3b30'],borderWidth:0}]},options:{animation:false,events:[],plugins:{legend:{display:false},tooltip:{enabled:false}},cutout:'64%'}});
   document.getElementById('pieLeg').textContent=total?('Bullisch '+counts.bull+' · Unklar '+counts.mixed+' · Bearisch '+counts.bear):'Keine Meinungen';
   document.getElementById('stimmenRange').textContent='('+rangeLabel(opinionsRange)+')';
   var groups={bull:[],mixed:[],bear:[]};voices.slice().sort(function(a,b){return new Date(b.at||0)-new Date(a.at||0)}).forEach(function(v){var l=String(v.lean||'mixed').toLowerCase();if(l!=='bull'&&l!=='bear')l='mixed';groups[l].push(v)});

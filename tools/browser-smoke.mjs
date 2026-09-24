@@ -14,7 +14,21 @@ async function run(name,viewport){
   page.on('response',r=>{if(r.status()>=400)httpErrors.push({status:r.status(),url:r.url()});});
   page.on('requestfailed',r=>failed.push({url:r.url(),error:r.failure()?.errorText||'failed'}));
   await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});
-  await page.waitForTimeout(10000);
+  await page.waitForTimeout(5000);
+  const canvases=await page.locator('canvas').all();
+  for(const canvas of canvases){
+    try{
+      const box=await canvas.boundingBox();
+      if(!box||box.width<20||box.height<20)continue;
+      for(let i=0;i<12;i++){
+        const x=box.x+10+(box.width-20)*(i/11);
+        const y=box.y+Math.max(10,Math.min(box.height-10,box.height*(.25+.5*((i%3)/2))));
+        await page.mouse.move(x,y);
+        await page.waitForTimeout(120);
+      }
+    }catch{}
+  }
+  await page.waitForTimeout(7000);
 
   const state=await page.evaluate(()=>{
     let renderForecastError=null;
@@ -33,6 +47,7 @@ async function run(name,viewport){
       boxes,renderForecastError,
       shadowTrail:{present:!!st,version:st?.version||null,outcomes:Array.isArray(st?.outcomes)?st.outcomes.length:null,pending:Array.isArray(st?.pending)?st.pending.length:null,
         outcome0:Array.isArray(st?.outcomes)&&st.outcomes.length?st.outcomes[0]:null,pending0:Array.isArray(st?.pending)&&st.pending.length?st.pending[0]:null},
+      chartEvents:typeof chartEvents==='function'?chartEvents():null,
       bodyText:(document.body?.innerText||'').slice(0,4000)
     };
   });
@@ -49,6 +64,7 @@ async function run(name,viewport){
   if(failed.length)errors.push('requestfailed:'+JSON.stringify(failed));
   if(badMarkers.length)errors.push('hidden:'+JSON.stringify(badMarkers));
   if(state.width.overflow>4)errors.push('horizontal-overflow:'+state.width.overflow);
+  if(Array.isArray(state.chartEvents)&&state.chartEvents.length)errors.push('live-chart-events-enabled:'+JSON.stringify(state.chartEvents));
   if(!state.bodyText.includes('Prognosen vs. Realität'))errors.push('forecast-label-missing');
   if(!state.bodyText.includes('v4 Regime'))errors.push('v4-label-missing');
   if(!state.bodyText.includes('v5 ·'))errors.push('v5-label-missing');
