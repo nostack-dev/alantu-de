@@ -100,10 +100,12 @@ jobs:
           }
 
           wait_for "https://www.alantu.de/index-brand.html?smoke=${{ github.sha }}" /tmp/index-brand-live.html \
-            'id="exposeeFrame"' 'pdf-to-exposee.html?embed=1' 'sunside-living-expose.pdf'
+            'id="exposeeFrame"' 'pdf-to-exposee.html?embed=1' 'sunside-living-expose.pdf' \
+            'enterDemoFauxFullscreen' 'alantu-fullscreen-toggle'
 
           wait_for "https://www.alantu.de/pdf-to-exposee.html?smoke=${{ github.sha }}" /tmp/pdf-to-exposee-live.html \
-            'tiltXDegrees=4' 'tiltYDegrees=2' 'function hardcoverPageMaterials' 'async function loadPdfFromUrl'
+            'tiltXDegrees=4' 'tiltYDegrees=2' 'function hardcoverPageMaterials' 'async function loadPdfFromUrl' \
+            'id="debugToggle"' 'function setDebugControls' 'alantu-fullscreen-toggle'
 
           curl -fsSL --max-time 40 \
             "https://www.alantu.de/assets/sunside-living-expose.pdf?smoke=${{ github.sha }}" \
