@@ -423,11 +423,17 @@ function decodeYahoo(raw){
 function pushYahooEvent(q){
   const s=String(q.id||'').toUpperCase();if(!yahooSeries[s])return;
   const t=Number(q.time)||Date.now(),p=Number(q.price);if(!(p>0))return;
+  const a=yahooSeries[s],last=a.at(-1),ctx=(wgoSeries[s]&&wgoSeries[s].length?wgoSeries[s].at(-1):null);
   const prevV=Number(yahooDayVolume[s]),dayV=Number(q.dayVolume);
   const dv=Number.isFinite(dayV)&&Number.isFinite(prevV)&&dayV>=prevV?dayV-prevV:0;
   if(Number.isFinite(dayV))yahooDayVolume[s]=dayV;
-  const e={s,t,p,dv,day_volume:Number.isFinite(dayV)?dayV:null,exchange:q.exchange||null,recv_at:Date.now(),provider:'yahoo_streamer',change_pct:Number.isFinite(Number(q.changePercent))?Number(q.changePercent):null,change:Number.isFinite(Number(q.change))?Number(q.change):null,previous_close:Number.isFinite(Number(q.previousClose))&&Number(q.previousClose)>0?Number(q.previousClose):null};
-  const a=yahooSeries[s],last=a.at(-1);
+  const directPrev=Number(q.previousClose),stickyPrev=Number(last&&last.previous_close)||Number(ctx&&ctx.previous_close);
+  const previousClose=Number.isFinite(directPrev)&&directPrev>0?directPrev:(Number.isFinite(stickyPrev)&&stickyPrev>0?stickyPrev:null);
+  const directPct=Number(q.changePercent),derivedPct=previousClose>0?(p/previousClose-1)*100:null;
+  const e={s,t,p,dv,day_volume:Number.isFinite(dayV)?dayV:null,exchange:q.exchange||null,recv_at:Date.now(),provider:'yahoo_streamer',
+    change_pct:Number.isFinite(directPct)?directPct:(Number.isFinite(derivedPct)?derivedPct:null),
+    change:Number.isFinite(Number(q.change))?Number(q.change):(previousClose>0?p-previousClose:null),
+    previous_close:previousClose};
   if(last&&last.t===e.t&&last.p===e.p&&last.day_volume===e.day_volume)return;
   a.push(e);const cut=Date.now()-3*3600000;while(a.length&&a[0].t<cut)a.shift();
   pushWgoContextEvent(e);
@@ -815,12 +821,19 @@ function wgoTone(items){
   return {positive:pos,negative:neg,mixed};
 }
 function wgoDayPrice(){
-  const a=yahooSeries.ORCL||[],last=a.length?a[a.length-1]:null;if(!last||!(Number(last.p)>0))return {available:false};
-  const p=Number(last.p),prev=Number(last.previous_close),cp=Number(last.change_pct);
-  if(prev>0)return {available:true,current:p,previous_close:prev,pct:(p/prev-1)*100,at:new Date(Number(last.t||last.recv_at)).toISOString()};
-  if(Number.isFinite(cp))return {available:true,current:p,previous_close:null,pct:cp,at:new Date(Number(last.t||last.recv_at)).toISOString()};
-  const cut=Date.now()-14*3600000,rows=a.filter(e=>Number(e.t||e.recv_at)>=cut&&Number(e.p)>0);
-  if(rows.length>1){const first=Number(rows[0].p);return {available:true,current:p,previous_close:null,pct:first>0?(p/first-1)*100:null,at:new Date(Number(last.t||last.recv_at)).toISOString(),basis:'14h_runtime'};}
+  const live=yahooSeries.ORCL||[],ctx=wgoSeries.ORCL||[],a=live.length?live:ctx,last=a.length?a[a.length-1]:null;if(!last||!(Number(last.p)>0))return {available:false};
+  const p=Number(last.p);
+  let prev=null,cp=null;
+  for(let i=ctx.length-1;i>=0&&!(prev>0);i--){const v=Number(ctx[i].previous_close);if(Number.isFinite(v)&&v>0)prev=v;}
+  for(let i=live.length-1;i>=0&&!(prev>0);i--){const v=Number(live[i].previous_close);if(Number.isFinite(v)&&v>0)prev=v;}
+  if(!(prev>0)){
+    for(let i=ctx.length-1;i>=0&&!Number.isFinite(cp);i--){const v=Number(ctx[i].change_pct);if(Number.isFinite(v))cp=v;}
+    for(let i=live.length-1;i>=0&&!Number.isFinite(cp);i--){const v=Number(live[i].change_pct);if(Number.isFinite(v))cp=v;}
+  }
+  if(prev>0)return {available:true,current:p,previous_close:prev,pct:(p/prev-1)*100,at:new Date(Number(last.t||last.recv_at)).toISOString(),basis:'previous_close'};
+  if(Number.isFinite(cp))return {available:true,current:p,previous_close:null,pct:cp,at:new Date(Number(last.t||last.recv_at)).toISOString(),basis:'stream_change_pct'};
+  const cut=Date.now()-14*3600000,rows=ctx.filter(e=>Number(e.t||e.recv_at)>=cut&&Number(e.p)>0);
+  if(rows.length>1){const first=Number(rows[0].p);return {available:true,current:p,previous_close:null,pct:first>0?(p/first-1)*100:null,at:new Date(Number(last.t||last.recv_at)).toISOString(),basis:'14h_runtime_fallback'};}
   return {available:false,current:p,at:new Date(Number(last.t||last.recv_at)).toISOString()};
 }
 function wgoMarketContext(minutes,anchorMs){
