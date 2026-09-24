@@ -160,11 +160,9 @@ jobs:
           grep -q "shadowTrail(5000,'history')" market-relay/server.mjs
           grep -q "shadowTrail(180,'update')" market-relay/server.mjs
           grep -q 'id="sentimentPanel"' index.html
-          grep -q "addEventListener('sources'" index.html
           grep -q 'function railwaySourcesUsable' index.html
           grep -q "function priceSegmentColor(){return '#000000';}" index.html
           grep -q 'function trajectoryDatasets' index.html
-          grep -q "addEventListener('shadow'" index.html
           ! grep -q "fetch(base+'/v1/source-state" index.html
           ! grep -q "fetch(base+'/v1/shadow-history" index.html
           grep -q 'trajectoryGuessCloud' index.html
@@ -186,7 +184,6 @@ jobs:
           grep -q 'function microstructureShadowUsable' index.html
           grep -q 'function validatedMicrostructureSignal' index.html
           grep -q 'function validatedL2Forecast' index.html
-          grep -q "addEventListener('l2'" index.html
           grep -q "name:'Self'" index.html
           grep -q "name:'Lokal'" index.html
           grep -q "name:'Global'" index.html
@@ -202,6 +199,9 @@ jobs:
           grep -q 'function pollMicroMarket' index.html
           grep -q 'function pollMicroSources' index.html
           grep -q 'function pollMicroShadow' index.html
+          grep -q 'microstructureData=d' index.html
+          grep -q "fetch(base+'/v1/source-state" index.html
+          grep -q "fetch(base+'/v1/shadow-history" index.html
           ! grep -q 'new EventSource' index.html
           grep -q "fetchJson('microstructure-live-config.json',true)" index.html
           grep -q "cfg.transport!=='poll'" index.html
