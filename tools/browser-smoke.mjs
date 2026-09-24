@@ -43,7 +43,12 @@ async function run(name,viewport){
     priceTooltipOpacity:(typeof ivChart!=='undefined'&&ivChart&&ivChart.tooltip)?Number(ivChart.tooltip.opacity||0):0,
     scrubActive:typeof priceScrubState!=='undefined'&&!!priceScrubState.active,
     scrubPoint:typeof priceScrubState!=='undefined'&&priceScrubState.point?{x:Number(priceScrubState.point.x),y:Number(priceScrubState.point.y)}:null,
-    scrubSource:typeof priceScrubState!=='undefined'?priceScrubState.source:null
+    scrubSource:typeof priceScrubState!=='undefined'?priceScrubState.source:null,
+    priceAxis:(typeof ivChart!=='undefined'&&ivChart&&ivChart.scales&&ivChart.scales.x)?{
+      min:ivChart.scales.x.min,max:ivChart.scales.x.max,
+      minBerlin:new Date(ivChart.scales.x.min).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'}),
+      maxBerlin:new Date(ivChart.scales.x.max).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'})
+    }:null
   }));
   await page.screenshot({path:`${out}/${name}-1d.png`,fullPage:true});
   if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]}).catch(()=>{});
@@ -135,7 +140,7 @@ async function run(name,viewport){
   if(state.width.overflow>4)errors.push('horizontal-overflow:'+state.width.overflow);
   if(!Array.isArray(state.chartEvents)||!state.chartEvents.includes('mousemove')||!state.chartEvents.includes('touchmove'))errors.push('chart-events-missing:'+JSON.stringify(state.chartEvents));
   if(!interactionState.scrubActive||!interactionState.scrubPoint||!Number.isFinite(interactionState.scrubPoint.y))errors.push('price-scrub-not-active:'+JSON.stringify(interactionState));
-  if(!state.priceAxis||state.priceAxis.minBerlin!=='08:00'||state.priceAxis.maxBerlin!=='22:00')errors.push('day-axis-not-08-22:'+JSON.stringify(state.priceAxis));
+  if(!interactionState.priceAxis||interactionState.priceAxis.minBerlin!=='08:00'||interactionState.priceAxis.maxBerlin!=='22:00')errors.push('day-axis-not-08-22:'+JSON.stringify(interactionState.priceAxis));
   if(monthState.range!=='1m'||monthState.points<10)errors.push('month-range-invalid:'+JSON.stringify(monthState));
   if(monthState.overflow>4)errors.push('month-horizontal-overflow:'+monthState.overflow);
   if(wgoState.disabled||/nicht erreichbar|Frontend-Abbruch/i.test(wgoState.answer+' '+wgoState.meta)||!wgoState.answer)errors.push('wgo-live-failed:'+JSON.stringify(wgoState));
