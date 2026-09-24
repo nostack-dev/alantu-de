@@ -1,39 +1,39 @@
 {
-  "updated_at": "2026-09-24T15:23:32+02:00",
+  "updated_at": "2026-09-24T15:33:25+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-24T15:23:32+02:00",
-    "scraped_at": "2026-09-24T15:23:32+02:00",
+    "tick_id": "2026-09-24T15:33:25+02:00",
+    "scraped_at": "2026-09-24T15:33:25+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "PublicReddit": {
         "status": "ok",
-        "items": 14,
+        "items": 15,
         "provider": "apewisdom.io",
         "window": "24h aggregate snapshot",
-        "freshest": "2026-09-24T15:23:32+02:00",
+        "freshest": "2026-09-24T15:33:25+02:00",
         "sentiment_pct_bullish": 71,
-        "upvotes_24h": 27
+        "upvotes_24h": 28
       },
       "NewsRSS": {
         "status": "ok",
         "items": 20,
         "provider": "news.google.com",
         "window": "last 36h, fetched now",
-        "freshest": "2026-09-24T15:23:32+02:00",
+        "freshest": "2026-09-24T15:33:25+02:00",
         "notes": [
           "Oracle shares drop on report it sent 'force majeure' notice about data center project",
-          "Oracle co-CEO sells $3.4 million in shares as stock falls 56% one year after his appointment",
-          "Oracle’s stock is falling as investors fear a data-center setback"
+          "Oracle’s stock is falling as investors fear a data-center setback",
+          "Oracle co-CEO sells $3.4 million in shares as stock falls 56% one year after his appointment"
         ]
       },
       "Yahoo": {
         "status": "ok",
         "items": 1,
         "prices": {
-          "ORCL": 137.39
+          "ORCL": 136.98500061035156
         },
-        "price_at": "2026-09-24T13:23:27.000Z",
+        "price_at": "2026-09-24T13:33:23.000Z",
         "note": "Yahoo chart 5d/1m fallback feed"
       }
     },
@@ -49,20 +49,20 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-24T15:23:32+02:00",
+      "freshest_absolute": "2026-09-24T15:33:25+02:00",
       "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
       "quality": "medium-high public sources",
-      "scrape_berlin": "2026-09-24T15:23:32+02:00",
+      "scrape_berlin": "2026-09-24T15:33:25+02:00",
       "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
       "freshest_item_age": "snapshot fetched now",
-      "oldest_usable_signal": "Oracle’s stock is falling as investors fear a data-center setback"
+      "oldest_usable_signal": "Oracle co-CEO sells $3.4 million in shares as stock falls 56% one year after his appointment"
     },
     "vector": {
       "direction": "leicht_bearish_risk_off",
-      "magnitude": 43,
-      "confidence": 79,
+      "magnitude": 44,
+      "confidence": 80,
       "early_signal": true,
-      "early_signal_note": "Reddit 71% positiv bei 14 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $137.39."
+      "early_signal_note": "Reddit 71% positiv bei 15 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $136.99."
     },
     "top_themes": [
       {
@@ -481,28 +481,28 @@
         "name": "Oracle",
         "hype_state": "bearish",
         "signal": "sell",
-        "confidence": 79,
-        "social_impulse": -5,
-        "hype_bull": 18,
-        "hype_bear": 45,
-        "hype_net": -27,
-        "why": "Reddit 71% positiv bei 14 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $137.39.",
+        "confidence": 80,
+        "social_impulse": -6,
+        "hype_bull": 19,
+        "hype_bear": 48,
+        "hype_net": -29,
+        "why": "Reddit 71% positiv bei 15 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $136.99.",
         "evidence": {
           "x_posts": 0,
-          "reddit_posts": 14,
+          "reddit_posts": 15,
           "news": 20,
           "snippets": [
-            "ApeWisdom: 14 Mentions/24h, Sentiment 71%",
+            "ApeWisdom: 15 Mentions/24h, Sentiment 71%",
             "Oracle shares drop on report it sent 'force majeure' notice about data center project",
-            "Oracle co-CEO sells $3.4 million in shares as stock falls 56% one year after his appointment",
-            "Oracle’s stock is falling as investors fear a data-center setback"
+            "Oracle’s stock is falling as investors fear a data-center setback",
+            "Oracle co-CEO sells $3.4 million in shares as stock falls 56% one year after his appointment"
           ]
         },
         "links": {
           "tradingview": "https://www.tradingview.com/symbols/ORCL/",
           "yahoo": "https://finance.yahoo.com/quote/ORCL"
         },
-        "price": 137.39
+        "price": 136.98500061035156
       }
     ],
     "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
@@ -511,13 +511,13 @@
   "signals_disclaimer": "",
   "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
   "freshness": {
-    "freshest_absolute": "2026-09-24T15:23:32+02:00",
+    "freshest_absolute": "2026-09-24T15:33:25+02:00",
     "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
     "quality": "medium-high public sources",
-    "scrape_berlin": "2026-09-24T15:23:32+02:00",
+    "scrape_berlin": "2026-09-24T15:33:25+02:00",
     "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
     "freshest_item_age": "snapshot fetched now",
-    "oldest_usable_signal": "Oracle’s stock is falling as investors fear a data-center setback"
+    "oldest_usable_signal": "Oracle co-CEO sells $3.4 million in shares as stock falls 56% one year after his appointment"
   },
   "history": [
     {
@@ -3598,6 +3598,15 @@
       "scraped_at": "2026-09-24T15:23:32+02:00",
       "magnitude": 43,
       "confidence": 79,
+      "direction": "leicht_bearish_risk_off",
+      "items": 21,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-24T15:33:25+02:00",
+      "scraped_at": "2026-09-24T15:33:25+02:00",
+      "magnitude": 44,
+      "confidence": 80,
       "direction": "leicht_bearish_risk_off",
       "items": 21,
       "early_signal": true
