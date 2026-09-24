@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-24T15:39:04+02:00",
+  "updated_at": "2026-09-24T15:52:01+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,12 +9,12 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-24T15:39:04+02:00",
+        "at": "2026-09-24T15:52:01+02:00",
         "signal": "sell",
-        "social_impulse": -8,
-        "hype_bull": 19,
-        "hype_bear": 59,
-        "hype_net": -40,
+        "social_impulse": -7,
+        "hype_bull": 22,
+        "hype_bear": 56,
+        "hype_net": -34,
         "confidence": 80
       },
       "history": [
@@ -5264,6 +5264,20 @@
           "voice_bear": 14,
           "voice_mixed": 7,
           "price": 138.72000122070312
+        },
+        {
+          "at": "2026-09-24T15:52:01+02:00",
+          "hype_bull": 22,
+          "hype_bear": 56,
+          "hype_net": -34,
+          "social_impulse": -7,
+          "signal": "sell",
+          "confidence": 80,
+          "hype_mixed": 22,
+          "voice_bull": 1,
+          "voice_bear": 14,
+          "voice_mixed": 7,
+          "price": 134.543701171875
         }
       ],
       "voices_archive": [
@@ -5579,35 +5593,35 @@
         }
       ],
       "signal": "sell",
-      "social_impulse": -8,
-      "impulse": -8,
-      "hype_bull": 19,
-      "hype_bear": 59,
-      "hype_net": -40,
+      "social_impulse": -7,
+      "impulse": -7,
+      "hype_bull": 22,
+      "hype_bear": 56,
+      "hype_net": -34,
       "confidence": 80,
       "hype_state": "bearish",
-      "updated_at": "2026-09-24T15:39:04+02:00",
-      "why": "Reddit 71% positiv bei 15 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $138.72.",
+      "updated_at": "2026-09-24T15:52:01+02:00",
+      "why": "Reddit 78% positiv bei 16 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $134.54.",
       "evidence": {
         "x_posts": 0,
-        "reddit_posts": 15,
+        "reddit_posts": 16,
         "news": 20,
         "snippets": [
-          "ApeWisdom: 15 Mentions/24h, Sentiment 71%",
+          "ApeWisdom: 16 Mentions/24h, Sentiment 78%",
           "Oracle shares drop on report it sent 'force majeure' notice about data center project",
-          "Oracle’s stock is falling as investors fear a data-center setback",
-          "Oracle co-CEO sells $3.4 million in shares as stock falls 56% one year after his appointment"
+          "Oracle Seeks ‘Force Majeure’ on Data Center. Why It’s Sinking the Stock.",
+          "Oracle’s stock is falling as investors fear a data-center setback"
         ]
       },
       "voices": {
         "bull": 1,
         "bear": 14,
         "mixed": 7,
-        "updated_at": "2026-09-24T15:39:04+02:00"
+        "updated_at": "2026-09-24T15:52:01+02:00"
       },
       "hype_mixed": 22,
       "sentiment_unit": "percent_all_classified",
-      "price": 138.72000122070312
+      "price": 134.543701171875
     }
   }
 }
