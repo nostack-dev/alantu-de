@@ -746,10 +746,18 @@ function snapshot(symbol){
     l2:{status:'retired',provider:'databento',reason:'replaced_by_raw_alpaca_sip'}
   };
 }
-function sendEvent(res,obj,eventName='market'){res.write('event: '+eventName+'\ndata: '+JSON.stringify(obj)+'\n\n');}
+function sendEvent(res,obj,eventName='market'){
+  if(res.writableEnded||res.destroyed)return false;
+  try{return res.write('event: '+eventName+'\ndata: '+JSON.stringify(obj)+'\n\n');}catch{return false;}
+}
 function broadcast(){
   prune();
-  for(const c of [...clients]){try{const s=snapshot(c.symbol);if(s)sendEvent(c.res,s);}catch{clients.delete(c);try{c.res.end();}catch{}}}
+  for(const c of [...clients]){
+    try{
+      const s=snapshot(c.symbol);
+      if(!s||sendEvent(c.res,s)===false){clearInterval(c.heartbeat);clients.delete(c);try{c.res.end();}catch{}}
+    }catch{clearInterval(c.heartbeat);clients.delete(c);try{c.res.end();}catch{}}
+  }
 }
 function applyCorrection(symbol,m){
   const a=raw[symbol]?.trades;if(!a)return;
@@ -809,7 +817,16 @@ const server=http.createServer((req,res)=>{
   if(u.pathname==='/v1/stream'){
     const origin=req.headers.origin;if(origin&&!ALLOWED.has(origin))return json(res,403,{error:'origin_not_allowed'});
     const symbol=(u.searchParams.get('symbol')||'ORCL').toUpperCase();if(!raw[symbol])return json(res,404,{error:'unknown_symbol'});
-    res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store','Connection':'keep-alive','X-Accel-Buffering':'no'});res.write(': connected\n\n');const c={res,symbol};clients.add(c);sendEvent(res,{symbol,sentiment:sourceState},'sources');sendEvent(res,{symbol,trail:shadowTrail(5000,'history')},'shadow');req.on('close',()=>clients.delete(c));return;
+    res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','X-Accel-Buffering':'no'});
+    if(typeof res.flushHeaders==='function')res.flushHeaders();
+    res.write(': connected\n\n');
+    const heartbeat=setInterval(()=>{if(res.writableEnded||res.destroyed)return;try{res.write(': heartbeat '+Date.now()+'\n\n');}catch{}},15000);
+    heartbeat.unref?.();
+    const c={res,symbol,heartbeat};clients.add(c);
+    sendEvent(res,{symbol,sentiment:sourceState},'sources');
+    sendEvent(res,{symbol,trail:shadowTrail(5000,'history')},'shadow');
+    const cleanup=()=>{clearInterval(heartbeat);clients.delete(c);};
+    req.on('close',cleanup);res.on('close',cleanup);res.on('error',cleanup);return;
   }
   json(res,404,{error:'not_found'});
 });

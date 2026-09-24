@@ -2591,7 +2591,7 @@ function renderMagnitudeChart(){
   var now=vals.length?vals[vals.length-1]:(v.magnitude!=null?v.magnitude:null),nowEl=document.getElementById('magNow');if(nowEl)nowEl.textContent=now!=null?('· jetzt '+now):'';
   var ds={label:'Stimmungsstärke',data:seriesWithGaps(hist,function(h){return h.scraped_at||h.tick_id||h.at;},function(h){return h.magnitude;}),parsing:false,spanGaps:false,borderColor:'#5dcb5b',backgroundColor:'rgba(93,203,91,.12)',fill:true,tension:.18,pointRadius:0,pointHoverRadius:4,pointHoverBorderWidth:2,pointHoverBorderColor:'#fff',pointHoverBackgroundColor:'#5dcb5b',borderWidth:2.5};
   if(!magChart){
-    magChart=new Chart(document.getElementById('magChart'),{type:'line',data:{datasets:[ds]},options:{animation:false,normalized:true,responsive:true,maintainAspectRatio:false,layout:{padding:{top:10,bottom:6,left:8,right:8}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:tipBase('mag')},scales:{x:axisX(hist,function(h){return h.scraped_at||h.tick_id||h.at;},magnitudeRange),y:{min:0,max:100,grace:'4%',ticks:{color:'#6b6b76',font:{size:11}},grid:{color:'#f0f0f3'},border:{display:false}}}}});
+    magChart=new Chart(document.getElementById('magChart'),{type:'line',data:{datasets:[ds]},options:{animation:false,normalized:true,events:chartEvents(),responsive:true,maintainAspectRatio:false,layout:{padding:{top:10,bottom:6,left:8,right:8}},interaction:chartInteract(),plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:axisX(hist,function(h){return h.scraped_at||h.tick_id||h.at;},magnitudeRange),y:{min:0,max:100,grace:'4%',ticks:{color:'#6b6b76',font:{size:11}},grid:{color:'#f0f0f3'},border:{display:false}}}}});
   }else{
     clearChartInteraction(magChart);
     magChart.data.datasets[0]=ds;
