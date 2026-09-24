@@ -503,7 +503,7 @@
             class="exposee-frame"
             id="exposeeFrame"
             title="Sunside Living · Konstanz Wollmatingen Exposé"
-            src="./pdf-to-exposee.html?embed=1&controls=1&pdf=%2Fassets%2Fsunside-living-expose.pdf&brand=Sunside%20Living&title=Konstanz%20Wollmatingen%20Expos%C3%A9&subtitle=Konstanz%20Wollmatingen"
+            src="./pdf-to-exposee.html?embed=1&pdf=%2Fassets%2Fsunside-living-expose.pdf&brand=Sunside%20Living&title=Konstanz%20Wollmatingen%20Expos%C3%A9&subtitle=Konstanz%20Wollmatingen"
             loading="eager"
             allow="fullscreen"
             allowfullscreen
@@ -575,8 +575,12 @@
   <script>
     const experienceBtn=document.getElementById("experienceBtn");
     const demo=document.getElementById("demo");
+    const demoStage=document.getElementById("stage");
+    const exposeeFrame=document.getElementById("exposeeFrame");
     const shareLinkBtn=document.getElementById("shareLinkBtn");
     const shareStatus=document.getElementById("shareStatus");
+    let demoFauxFullscreen=false;
+    let savedScrollY=0;
 
     experienceBtn?.addEventListener("click",()=>{
       demo?.scrollIntoView({
@@ -595,6 +599,77 @@
         window.prompt("Exposé-Link kopieren:",link);
       }
     });
+
+    function demoNativeFullscreen(){
+      return document.fullscreenElement===demoStage||document.webkitFullscreenElement===demoStage;
+    }
+    function demoFullscreenActive(){
+      return demoNativeFullscreen()||demoFauxFullscreen;
+    }
+    function notifyViewerFullscreen(){
+      exposeeFrame?.contentWindow?.postMessage({
+        type:"alantu-fullscreen-state",
+        active:demoFullscreenActive()
+      },"*");
+    }
+    function enterDemoFauxFullscreen(){
+      if(demoFauxFullscreen)return;
+      demoFauxFullscreen=true;
+      savedScrollY=window.scrollY||0;
+      document.body.classList.add("alantu-faux-fullscreen");
+      demoStage?.classList.add("is-faux-fullscreen");
+      notifyViewerFullscreen();
+    }
+    function leaveDemoFauxFullscreen(){
+      if(!demoFauxFullscreen)return;
+      demoFauxFullscreen=false;
+      demoStage?.classList.remove("is-faux-fullscreen");
+      document.body.classList.remove("alantu-faux-fullscreen");
+      requestAnimationFrame(()=>window.scrollTo(0,savedScrollY));
+      notifyViewerFullscreen();
+    }
+    async function toggleDemoFullscreen(){
+      if(demoNativeFullscreen()){
+        try{
+          if(document.exitFullscreen)await document.exitFullscreen();
+          else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
+        }catch{}
+        return;
+      }
+      if(demoFauxFullscreen){
+        leaveDemoFauxFullscreen();
+        return;
+      }
+
+      const request=demoStage?.requestFullscreen||demoStage?.webkitRequestFullscreen;
+      if(!request){
+        enterDemoFauxFullscreen();
+        return;
+      }
+
+      try{
+        const result=request.call(demoStage,{navigationUI:"hide"});
+        if(result&&typeof result.then==="function")await result;
+        setTimeout(()=>{
+          if(!demoNativeFullscreen()&&!demoFauxFullscreen)enterDemoFauxFullscreen();
+          else notifyViewerFullscreen();
+        },220);
+      }catch{
+        enterDemoFauxFullscreen();
+      }
+    }
+
+    window.addEventListener("message",e=>{
+      if(e.source!==exposeeFrame?.contentWindow)return;
+      if(e.data?.type==="alantu-fullscreen-toggle")toggleDemoFullscreen();
+    });
+    document.addEventListener("fullscreenchange",notifyViewerFullscreen);
+    document.addEventListener("webkitfullscreenchange",notifyViewerFullscreen);
+    window.addEventListener("keydown",e=>{
+      if(e.key==="Escape"&&demoFauxFullscreen)leaveDemoFauxFullscreen();
+    });
+
+    exposeeFrame?.addEventListener("load",notifyViewerFullscreen);
   </script>
 </body>
 </html>
