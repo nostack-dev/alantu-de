@@ -67,7 +67,7 @@ export function createAlantuBookViewControls({
     const envelopeW=single?pageW+.38:pageW*2+.46;
     const envelopeH=pageH+.50;
     fitScale=clamp(
-      Math.min(viewW/envelopeW,viewH/envelopeH)*(single?.96:.93),
+      Math.min(viewW/envelopeW,viewH/envelopeH)*(single ? .96 : .93),
       .42,
       single?1.48:1.28
     );
