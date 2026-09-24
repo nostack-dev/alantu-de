@@ -337,7 +337,20 @@
       .circle{width:44px;height:44px}
       .branding-grid{grid-template-columns:1fr}
     }
-  </style>
+  
+    /* Crisp portrait reading surface */
+    @media(max-width:700px) and (orientation:portrait){
+      #bookCanvas,
+      .stage.is-book-dragging #bookCanvas,
+      .stage.is-view-pinching #bookCanvas{
+        filter:none!important;
+      }
+      .stage.is-book-dragging #bookCanvas{
+        transform:none!important;
+      }
+    }
+
+</style>
 </head>
 <body>
   <header class="shell topbar">
@@ -441,7 +454,7 @@
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
     import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand308";
-    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view403";
+    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view406";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
@@ -837,8 +850,8 @@
       getPageHeight:()=>PAGE_H,
       fitButton:fitViewBtn,
       onPinchStart:()=>bookCore.cancelDrag(),
-      minPixelRatio:IS_IOS_WEBKIT?1:2,
-      maxPixelRatio:IS_IOS_WEBKIT?1.5:3,
+      minPixelRatio:()=>IS_IOS_WEBKIT?(singlePageMode?1.5:1):2,
+      maxPixelRatio:()=>IS_IOS_WEBKIT?(singlePageMode?2:1.5):3,
       getPresentationMode:()=>singlePageMode?"single":"spread"
     });
 
