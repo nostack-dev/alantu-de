@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-24T10:17:26+02:00",
+  "updated_at": "2026-09-24T10:20:53+02:00",
   "sources": {
     "reddit": {
       "ok": true,
@@ -15,7 +15,7 @@
     "yahoo": {
       "ok": true,
       "price": 142.6,
-      "price_at": "2026-09-24T08:15:45.000Z"
+      "price_at": "2026-09-24T08:20:37.000Z"
     }
   },
   "derived": {
