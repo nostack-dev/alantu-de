@@ -192,37 +192,19 @@
       isolation:isolate;
       touch-action:pan-y;
     }
-    .stage:after{
-      content:"";
-      position:absolute;left:12%;right:12%;bottom:4%;
-      height:17%;border-radius:50%;
-      background:rgba(27,22,16,.18);
-      filter:blur(26px);
-      transform:perspective(420px) rotateX(72deg);
-      z-index:0;
-    }
+    .stage:after{display:none}
     #bookCanvas{
       position:absolute;inset:0;width:100%;height:100%;display:block;z-index:1;
-      filter:drop-shadow(0 10px 18px rgba(28,22,16,.10));
-      transition:filter .18s var(--ease,cubic-bezier(.22,.61,.36,1)),transform .18s var(--ease,cubic-bezier(.22,.61,.36,1));
-      transform-origin:center;
+      filter:none;
+      transform:none;
     }
-    .stage.is-book-dragging #bookCanvas{
-      filter:
-        drop-shadow(0 18px 27px rgba(28,22,16,.22))
-        drop-shadow(0 0 12px rgba(184,154,99,.24));
-      transform:scale(1.003);
-    }
+    .stage.is-book-dragging #bookCanvas{filter:none;transform:none}
     .stage.is-book-dragging{cursor:grabbing!important}
     .stage.is-book-dragging .interaction-zone,
     .stage.is-book-dragging .tapzone{cursor:grabbing!important}
     .stage.is-view-pinching,
     .stage.is-view-pinching *{cursor:default!important}
-    .stage.is-view-pinching #bookCanvas{
-      filter:
-        drop-shadow(0 20px 30px rgba(28,22,16,.22))
-        drop-shadow(0 0 14px rgba(184,154,99,.18));
-    }
+    .stage.is-view-pinching #bookCanvas{filter:none}
     .empty{
       position:absolute;inset:0;z-index:2;
       display:grid;place-items:center;text-align:center;padding:40px;
@@ -600,7 +582,7 @@
     // WebKit on iPhone/iPad has a much tighter per-tab memory ceiling than
     // desktop browsers. Budget all PDF page canvases together instead of
     // allocating up to 3072px for every page (which can exceed 1 GB).
-    const IOS_TOTAL_PAGE_PIXELS=24_000_000;
+    const IOS_TOTAL_PAGE_PIXELS=36_000_000;
     const IS_IOS_WEBKIT=/iPad|iPhone|iPod/.test(navigator.userAgent)||
       (navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 
@@ -636,6 +618,8 @@
       ? Math.min(window.devicePixelRatio||1,1.5)
       : Math.min(Math.max(window.devicePixelRatio||1,2),3));
     renderer.outputColorSpace=THREE.SRGBColorSpace;
+    renderer.toneMapping=THREE.NoToneMapping;
+    renderer.toneMappingExposure=1;
     renderer.shadowMap.enabled=true;
     renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 
@@ -644,17 +628,42 @@
     camera.position.set(0,1.35,10.8);
     camera.lookAt(0,0,0);
 
-    scene.add(new THREE.HemisphereLight(0xfffbf3,0x66594b,2.35));
-    const key=new THREE.DirectionalLight(0xffffff,4.4);
+    // Neutral, restrained studio light. PDF artwork itself is rendered with
+    // unlit materials for exact color; these lights only shape the PBR cover.
+    scene.add(new THREE.HemisphereLight(0xfffdf8,0x655f56,.82));
+    const key=new THREE.DirectionalLight(0xfffdf9,1.85);
     key.position.set(-3.5,7,7);
     key.castShadow=true;
-    key.shadow.mapSize.set(1024,1024);
-    key.shadow.normalBias=.035;
-    key.shadow.bias=-.00015;
+    key.shadow.mapSize.set(2048,2048);
+    key.shadow.camera.left=-7;
+    key.shadow.camera.right=7;
+    key.shadow.camera.top=7;
+    key.shadow.camera.bottom=-7;
+    key.shadow.camera.near=.1;
+    key.shadow.camera.far=30;
+    key.shadow.normalBias=.018;
+    key.shadow.bias=-.00008;
     scene.add(key);
-    const rim=new THREE.DirectionalLight(0xcdb88e,2.1);
+    const rim=new THREE.DirectionalLight(0xfff6e8,.42);
     rim.position.set(5,2,-3);
     scene.add(rim);
+
+    // Real contact shadow plane behind/below the whole book. Unlike the old
+    // CSS ellipse it lives in 3D, so zoom/pan can never draw it over pages.
+    const groundShadowMaterial=new THREE.ShadowMaterial({
+      color:0x332a21,
+      opacity:.16,
+      transparent:true,
+      depthWrite:false
+    });
+    const groundShadow=new THREE.Mesh(
+      new THREE.PlaneGeometry(16,12),
+      groundShadowMaterial
+    );
+    groundShadow.position.set(0,-.08,-1.28);
+    groundShadow.receiveShadow=true;
+    groundShadow.renderOrder=-10;
+    scene.add(groundShadow);
 
     const root=new THREE.Group();
     // Presentation controls only rotate the model. Zoom is applied by the
@@ -712,51 +721,120 @@
     stage.addEventListener("pointermove",e=>{if(e.pointerType==="touch")requestAnimationFrame(updateZoomValue)},{passive:true});
     updateTilt();
 
-    const coverMaterial=new THREE.MeshStandardMaterial({color:0x171713,roughness:.68,metalness:.06});
-    const edgeMaterial=new THREE.MeshStandardMaterial({color:0xece5d8,roughness:.92});
-    const spineMaterial=new THREE.MeshStandardMaterial({color:0xb89a63,roughness:.4,metalness:.35});
+    function createFineFiberTexture(size=256){
+      const fiberCanvas=document.createElement("canvas");
+      fiberCanvas.width=fiberCanvas.height=size;
+      const ctx=fiberCanvas.getContext("2d",{alpha:false});
+      const image=ctx.createImageData(size,size);
+      let seed=0x5f3759df;
+      const rand=()=>{
+        seed=(Math.imul(seed,1664525)+1013904223)>>>0;
+        return seed/4294967296;
+      };
+      for(let y=0;y<size;y++){
+        for(let x=0;x<size;x++){
+          const i=(y*size+x)*4;
+          const fiber=(Math.sin(y*.72)+Math.sin(x*.17))*.9;
+          const noise=(rand()-.5)*13;
+          const v=Math.max(0,Math.min(255,128+fiber+noise));
+          image.data[i]=image.data[i+1]=image.data[i+2]=v;
+          image.data[i+3]=255;
+        }
+      }
+      ctx.putImageData(image,0,0);
+      const tex=new THREE.CanvasTexture(fiberCanvas);
+      tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
+      tex.repeat.set(5,7);
+      tex.colorSpace=THREE.NoColorSpace;
+      tex.minFilter=THREE.LinearMipmapLinearFilter;
+      tex.magFilter=THREE.LinearFilter;
+      tex.generateMipmaps=true;
+      tex.anisotropy=Math.max(1,renderer.capabilities.getMaxAnisotropy());
+      tex.needsUpdate=true;
+      return tex;
+    }
+
+    const hardcoverFiber=createFineFiberTexture(256);
+    const paperFiber=createFineFiberTexture(192);
+
+    function ivoryHardcoverMaterial({printMap=null}={}){
+      return new THREE.MeshPhysicalMaterial({
+        color:printMap?0xffffff:0xf5f0e7,
+        map:printMap,
+        roughness:printMap?.78:.88,
+        metalness:0,
+        clearcoat:.055,
+        clearcoatRoughness:.86,
+        sheen:.08,
+        sheenRoughness:.9,
+        sheenColor:new THREE.Color(0xfffbf2),
+        bumpMap:hardcoverFiber,
+        bumpScale:printMap?.010:.016,
+        toneMapped:false
+      });
+    }
+
+    function paperFinishMaterial(side){
+      const material=new THREE.MeshPhysicalMaterial({
+        color:0xf8f4ec,
+        side,
+        roughness:.96,
+        metalness:0,
+        clearcoat:.012,
+        clearcoatRoughness:.98,
+        bumpMap:paperFiber,
+        bumpScale:.0022,
+        transparent:true,
+        opacity:.018,
+        depthWrite:false,
+        polygonOffset:true,
+        polygonOffsetFactor:-1,
+        polygonOffsetUnits:-1,
+        toneMapped:false
+      });
+      return material;
+    }
+
+    const coverMaterial=ivoryHardcoverMaterial();
+    const edgeMaterial=new THREE.MeshPhysicalMaterial({
+      color:0xeee8de,roughness:.94,metalness:0,
+      bumpMap:paperFiber,bumpScale:.0018,toneMapped:false
+    });
+    const spineMaterial=ivoryHardcoverMaterial();
 
     function hardcoverMaterials(title){
       const canvas=createAlantuCoverCanvas({
         title,
         brand:currentBrand,
-        subtitle:currentSubtitle
+        subtitle:currentSubtitle,
+        width:2000,
+        height:2667
       });
       const texture=configureAlantuPageTexture(new THREE.CanvasTexture(canvas),{
         renderer,
         linearFilter:THREE.LinearFilter,
+        mipmapFilter:THREE.LinearMipmapLinearFilter,
         colorSpace:THREE.SRGBColorSpace
       });
 
-      const side=()=>coverMaterial.clone();
-      const exterior=coverMaterial.clone();
-      exterior.map=texture;
-      exterior.color.set(0xffffff);
-      exterior.needsUpdate=true;
-      const interior=new THREE.MeshStandardMaterial({
-        color:0x2b2924,
-        roughness:.94,
-        metalness:0
-      });
-
-      return [side(),side(),side(),side(),exterior,interior];
+      // +Z carries the print. Every remaining face, including the inside,
+      // is the same warm ivory textured hardcover.
+      return [
+        ivoryHardcoverMaterial(),ivoryHardcoverMaterial(),
+        ivoryHardcoverMaterial(),ivoryHardcoverMaterial(),
+        ivoryHardcoverMaterial({printMap:texture}),
+        ivoryHardcoverMaterial()
+      ];
     }
 
     function hardcoverPageMaterials(pageCanvas){
       const texture=createTexture(pageCanvas);
-      const side=()=>coverMaterial.clone();
-      const exterior=new THREE.MeshStandardMaterial({
-        map:texture,
-        color:0xffffff,
-        roughness:.72,
-        metalness:.03
-      });
-      const interior=new THREE.MeshStandardMaterial({
-        color:0x2b2924,
-        roughness:.94,
-        metalness:0
-      });
-      return [side(),side(),side(),side(),exterior,interior];
+      return [
+        ivoryHardcoverMaterial(),ivoryHardcoverMaterial(),
+        ivoryHardcoverMaterial(),ivoryHardcoverMaterial(),
+        ivoryHardcoverMaterial({printMap:texture}),
+        ivoryHardcoverMaterial()
+      ];
     }
 
     function cleanBrandValue(value,fallback){
@@ -877,7 +955,7 @@
       // raster budget so an 18-page brochure is ready quickly and safely.
       // This changes resolution only, never the page aspect ratio.
       let requested=embedMode
-        ? (mobile?1440:1800)
+        ? (mobile?1792:2304)
         : (mobile?MAX_TEXTURE_EDGE_MOBILE:MAX_TEXTURE_EDGE_DESKTOP);
       if(IS_IOS_WEBKIT){
         // Approx. A4/Letter page area is ~0.7 * longestEdge². This keeps the
@@ -895,6 +973,7 @@
       return configureAlantuPageTexture(texture,{
         renderer,
         linearFilter:THREE.LinearFilter,
+        mipmapFilter:THREE.LinearMipmapLinearFilter,
         colorSpace:THREE.SRGBColorSpace
       });
     }
@@ -907,6 +986,7 @@
       return configureAlantuPageTexture(texture,{
         renderer,
         linearFilter:THREE.LinearFilter,
+        mipmapFilter:THREE.LinearMipmapLinearFilter,
         colorSpace:THREE.SRGBColorSpace
       });
     }
@@ -1175,9 +1255,9 @@
       backCover=new THREE.Mesh(
         new THREE.BoxGeometry(COVER_W,COVER_H,COVER_T),
         [
-          coverMaterial.clone(),coverMaterial.clone(),coverMaterial.clone(),coverMaterial.clone(),
-          new THREE.MeshStandardMaterial({color:0x2b2924,roughness:.94,metalness:0}),
-          coverMaterial.clone()
+          ivoryHardcoverMaterial(),ivoryHardcoverMaterial(),
+          ivoryHardcoverMaterial(),ivoryHardcoverMaterial(),
+          ivoryHardcoverMaterial(),ivoryHardcoverMaterial()
         ]
       );
       backCover.position.set(COVER_W/2,0,0);
@@ -1245,7 +1325,19 @@
         back.castShadow=true;back.receiveShadow=true;
         back.frustumCulled=false;
 
-        pivot.add(front,back);
+        const frontFinish=new THREE.Mesh(geometry,paperFinishMaterial(THREE.FrontSide));
+        frontFinish.position.z=.0006;
+        frontFinish.castShadow=false;
+        frontFinish.receiveShadow=false;
+        frontFinish.frustumCulled=false;
+
+        const backFinish=new THREE.Mesh(geometry,paperFinishMaterial(THREE.BackSide));
+        backFinish.position.z=-.0006;
+        backFinish.castShadow=false;
+        backFinish.receiveShadow=false;
+        backFinish.frustumCulled=false;
+
+        pivot.add(front,back,frontFinish,backFinish);
         pivot.userData.geometry=geometry;
         root.add(pivot);
         leafRoots.push(pivot);
