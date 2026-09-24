@@ -142,6 +142,9 @@ jobs:
           grep -q 'id="waveForecasts"' index.html
           grep -q 'id="forecastProofStrip"' index.html
           grep -q 'id="forecastRange"' index.html
+          grep -q 'id="opinionsRange"' index.html
+          grep -q "opinions:'alantu_opinions_range_v1'" index.html
+          grep -q "setChartRange('opinions'" index.html
           grep -q "forecast:'alantu_forecast_range_v1'" index.html
           grep -q "setChartRange('forecast'" index.html
           grep -q 'forecast-event' index.html

@@ -855,6 +855,9 @@
       </div>
       <div id="stimmenList"></div>
     </div>
+    <div class="mini-range" id="opinionsRange" aria-label="Zeitraum Meinungen">
+      <button type="button" data-opinions-range="1d">1T</button><button type="button" data-opinions-range="1w">1W</button><button type="button" data-opinions-range="1m">1M</button><button type="button" data-opinions-range="year">1J</button><button type="button" data-opinions-range="5y">5J</button><button type="button" data-opinions-range="all">MAX</button>
+    </div>
     </div>
   </div>
 </div>
@@ -866,7 +869,7 @@
 <script src="price-shock-core.js"></script>
 <script>
 var LS_ACC='botbot_acc_open', SENTIMENT_HISTORY_LS='alantu_orcl_sentiment_history_v1';
-var RANGE_KEYS={price:'alantu_price_range_v1',forecast:'alantu_forecast_range_v1',sentiment:'alantu_sentiment_range_v1',magnitude:'alantu_magnitude_range_v1'}, INTRINSIC_VISIBLE_LS='alantu_intrinsic_visible_v1', CHART_OPEN_LS='alantu_chart_open_v1';
+var RANGE_KEYS={price:'alantu_price_range_v1',forecast:'alantu_forecast_range_v1',sentiment:'alantu_sentiment_range_v1',magnitude:'alantu_magnitude_range_v1',opinions:'alantu_opinions_range_v1'}, INTRINSIC_VISIBLE_LS='alantu_intrinsic_visible_v1', CHART_OPEN_LS='alantu_chart_open_v1';
 function loadChartRange(key,def){
   try{
     var r=localStorage.getItem(RANGE_KEYS[key])||def||'1d';
@@ -878,6 +881,7 @@ var priceRange=loadChartRange('price','1d');
 var forecastRange=loadChartRange('forecast','1d');
 var sentimentRange=loadChartRange('sentiment','1m');
 var magnitudeRange=loadChartRange('magnitude','1m');
+var opinionsRange=loadChartRange('opinions','1m');
 var showIntrinsic=(function(){try{return localStorage.getItem(INTRINSIC_VISIBLE_LS)!=='0';}catch(e){return true;}})();
 function loadChartOpenState(){
   try{
@@ -1059,6 +1063,7 @@ function syncRangeButtons(){
   Array.prototype.forEach.call(document.querySelectorAll('#forecastRange button'),function(b){b.classList.toggle('active',b.getAttribute('data-forecast-range')===forecastRange);});
   Array.prototype.forEach.call(document.querySelectorAll('#sentimentRange button'),function(b){b.classList.toggle('active',b.getAttribute('data-sentiment-range')===sentimentRange);});
   Array.prototype.forEach.call(document.querySelectorAll('#magnitudeRange button'),function(b){b.classList.toggle('active',b.getAttribute('data-magnitude-range')===magnitudeRange);});
+  Array.prototype.forEach.call(document.querySelectorAll('#opinionsRange button'),function(b){b.classList.toggle('active',b.getAttribute('data-opinions-range')===opinionsRange);});
 }
 function sentimentHeroMetaText(t){
   t=t||{};
@@ -2607,13 +2612,13 @@ function renderValueChart(){
   }
 }
 function renderOpinions(){
-  var x=currentContext(),ev=x.ev,orcl=x.orcl,voices=filterByAt(ev.voices||orcl.voices_archive||[],function(v){return v.at;},sentimentRange),counts={bull:0,mixed:0,bear:0};
+  var x=currentContext(),ev=x.ev,orcl=x.orcl,voices=filterByAt(ev.voices||orcl.voices_archive||[],function(v){return v.at;},opinionsRange),counts={bull:0,mixed:0,bear:0};
   voices.forEach(function(v){var l=String(v.lean||'mixed').toLowerCase();if(l!=='bull'&&l!=='bear')l='mixed';counts[l]++;});
   var total=counts.bull+counts.mixed+counts.bear;
   if(pieChart){pieChart.data.datasets[0].data=[counts.bull,counts.mixed,counts.bear];pieChart.update('none');}
   else pieChart=new Chart(document.getElementById('pie'),{type:'doughnut',data:{labels:['Bullisch','Unklar','Bearisch'],datasets:[{data:[counts.bull,counts.mixed,counts.bear],backgroundColor:['#5dcb5b','#ff9500','#ff3b30'],borderWidth:0}]},options:{animation:false,plugins:{legend:{display:false}},cutout:'64%'}});
   document.getElementById('pieLeg').textContent=total?('Bullisch '+counts.bull+' · Unklar '+counts.mixed+' · Bearisch '+counts.bear):'Keine Meinungen';
-  document.getElementById('stimmenRange').textContent='('+rangeLabel(sentimentRange)+')';
+  document.getElementById('stimmenRange').textContent='('+rangeLabel(opinionsRange)+')';
   var groups={bull:[],mixed:[],bear:[]};voices.slice().sort(function(a,b){return new Date(b.at||0)-new Date(a.at||0)}).forEach(function(v){var l=String(v.lean||'mixed').toLowerCase();if(l!=='bull'&&l!=='bear')l='mixed';groups[l].push(v)});
   var titles={bull:'Bullisch',mixed:'Unklar',bear:'Bearisch'},html='';
   ['bull','mixed','bear'].forEach(function(g){var arr=groups[g];if(!arr.length)return;html+='<details class="acc '+g+'"><summary>'+titles[g]+' <span>('+arr.length+')</span></summary>';arr.slice(0,8).forEach(function(v){html+='<div class="voice"><span class="voice-at">'+esc(fmtBerlin(v.at)||'ohne Datum')+' · '+esc((String(v.source||v.src||'Social')).toUpperCase())+'</span>'+esc(v.text||'')+(v.url?' <a href="'+esc(v.url)+'" target="_blank" rel="noopener">Öffnen</a>':'')+'</div>'});html+='</details>'});
@@ -2838,6 +2843,7 @@ function setChartRange(kind,r){
   else if(kind==='forecast'){forecastRange=r;saveChartRange(kind,r);}
   else if(kind==='sentiment'){sentimentRange=r;saveChartRange(kind,r);}
   else if(kind==='magnitude'){magnitudeRange=r;saveChartRange(kind,r);}
+  else if(kind==='opinions'){opinionsRange=r;saveChartRange(kind,r);}
   else return;
   syncRangeButtons();
   var seq=++rangeRenderSeq;
@@ -2845,14 +2851,16 @@ function setChartRange(kind,r){
     if(seq!==rangeRenderSeq)return;
     if(kind==='price')renderValueChart();
     else if(kind==='forecast')renderForecastTrail();
-    else if(kind==='sentiment'){renderSentimentChart();renderOpinions();}
-    else renderMagnitudeChart();
+    else if(kind==='sentiment')renderSentimentChart();
+    else if(kind==='magnitude')renderMagnitudeChart();
+    else renderOpinions();
   });
 }
 document.getElementById('priceRange').onclick=function(e){var b=e.target.closest('button[data-price-range]');if(b)setChartRange('price',b.getAttribute('data-price-range'));};
 document.getElementById('forecastRange').onclick=function(e){var b=e.target.closest('button[data-forecast-range]');if(b)setChartRange('forecast',b.getAttribute('data-forecast-range'));};
 document.getElementById('sentimentRange').onclick=function(e){var b=e.target.closest('button[data-sentiment-range]');if(b)setChartRange('sentiment',b.getAttribute('data-sentiment-range'));};
 document.getElementById('magnitudeRange').onclick=function(e){var b=e.target.closest('button[data-magnitude-range]');if(b)setChartRange('magnitude',b.getAttribute('data-magnitude-range'));};
+document.getElementById('opinionsRange').onclick=function(e){var b=e.target.closest('button[data-opinions-range]');if(b)setChartRange('opinions',b.getAttribute('data-opinions-range'));};
 document.getElementById('intrinsicToggle').onclick=function(){
   showIntrinsic=!showIntrinsic;
   try{localStorage.setItem(INTRINSIC_VISIBLE_LS,showIntrinsic?'1':'0');}catch(e){}
