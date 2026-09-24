@@ -15,20 +15,28 @@ async function run(name,viewport){
   page.on('requestfailed',r=>failed.push({url:r.url(),error:r.failure()?.errorText||'failed'}));
   await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});
   await page.waitForTimeout(5000);
-  const canvases=await page.locator('canvas').all();
-  for(const canvas of canvases){
-    try{
-      const box=await canvas.boundingBox();
-      if(!box||box.width<20||box.height<20)continue;
-      for(let i=0;i<12;i++){
-        const x=box.x+10+(box.width-20)*(i/11);
-        const y=box.y+Math.max(10,Math.min(box.height-10,box.height*(.25+.5*((i%3)/2))));
-        await page.mouse.move(x,y);
-        await page.waitForTimeout(120);
-      }
-    }catch{}
+  const priceCanvas=page.locator('#ivChart');
+  await priceCanvas.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(500);
+  const priceBox=await priceCanvas.boundingBox();
+  if(!priceBox)throw new Error('price chart has no bounding box');
+
+  const hoverX=priceBox.x+priceBox.width*.62, hoverY=priceBox.y+priceBox.height*.48;
+  if(viewport.width<=700){
+    const cdp=await page.context().newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:hoverX,y:hoverY}]});
+    await page.waitForTimeout(650);
+    for(const frac of [.66,.72,.78]){
+      await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:priceBox.x+priceBox.width*frac,y:hoverY}]});
+      await page.waitForTimeout(120);
+    }
+  }else{
+    await page.mouse.move(hoverX,hoverY);
+    await page.waitForTimeout(350);
+    await page.mouse.move(priceBox.x+priceBox.width*.76,hoverY);
+    await page.waitForTimeout(250);
   }
-  await page.waitForTimeout(7000);
+  await page.waitForTimeout(1000);
 
   const state=await page.evaluate(()=>{
     let renderForecastError=null;
@@ -48,12 +56,29 @@ async function run(name,viewport){
       shadowTrail:{present:!!st,version:st?.version||null,outcomes:Array.isArray(st?.outcomes)?st.outcomes.length:null,pending:Array.isArray(st?.pending)?st.pending.length:null,
         outcome0:Array.isArray(st?.outcomes)&&st.outcomes.length?st.outcomes[0]:null,pending0:Array.isArray(st?.pending)&&st.pending.length?st.pending[0]:null},
       chartEvents:typeof chartEvents==='function'?chartEvents():null,
+      priceTooltipActive:(typeof ivChart!=='undefined'&&ivChart&&ivChart.tooltip)?((ivChart.tooltip._active||[]).length):0,
+      priceTooltipOpacity:(typeof ivChart!=='undefined'&&ivChart&&ivChart.tooltip)?Number(ivChart.tooltip.opacity||0):0,
+      priceAxis:(typeof ivChart!=='undefined'&&ivChart&&ivChart.scales&&ivChart.scales.x)?{
+        min:ivChart.scales.x.min,max:ivChart.scales.x.max,
+        minBerlin:new Date(ivChart.scales.x.min).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'}),
+        maxBerlin:new Date(ivChart.scales.x.max).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'})
+      }:null,
       forecastCollapsed:document.getElementById('forecastProof')?.open===false,
       modelDecisionText:(document.getElementById('modelDecision')?.textContent||'').trim(),
       bodyText:(document.body?.innerText||'').slice(0,4000)
     };
   });
-  await page.screenshot({path:`${out}/${name}.png`,fullPage:true});
+  await page.screenshot({path:`${out}/${name}-1d.png`,fullPage:true});
+  await page.locator('button[data-price-range="1m"]').click();
+  await page.waitForTimeout(900);
+  const monthState=await page.evaluate(()=>({
+    range:typeof priceRange==='undefined'?null:priceRange,
+    points:typeof ivChart==='undefined'||!ivChart?0:(ivChart.data?.datasets?.[0]?.data||[]).length,
+    overflow:document.documentElement.scrollWidth-window.innerWidth
+  }));
+  await page.screenshot({path:`${out}/${name}-1m.png`,fullPage:true});
+  await page.locator('button[data-price-range="1d"]').click();
+  await page.waitForTimeout(400);
 
   const allowedHttp=httpErrors.filter(x=>!x.url.includes('favicon'));
   const errors=[];
@@ -68,13 +93,17 @@ async function run(name,viewport){
   if(badMarkers.length)errors.push('hidden:'+JSON.stringify(badMarkers));
   if(hiddenResearch.length)errors.push('research-visible-while-collapsed:'+JSON.stringify(hiddenResearch));
   if(state.width.overflow>4)errors.push('horizontal-overflow:'+state.width.overflow);
-  if(Array.isArray(state.chartEvents)&&state.chartEvents.length)errors.push('live-chart-events-enabled:'+JSON.stringify(state.chartEvents));
+  if(!Array.isArray(state.chartEvents)||!state.chartEvents.includes('mousemove')||!state.chartEvents.includes('touchmove'))errors.push('chart-events-missing:'+JSON.stringify(state.chartEvents));
+  if(state.priceTooltipActive<1&&state.priceTooltipOpacity<=0)errors.push('price-tooltip-not-active');
+  if(!state.priceAxis||state.priceAxis.minBerlin!=='08:00'||state.priceAxis.maxBerlin!=='22:00')errors.push('day-axis-not-08-22:'+JSON.stringify(state.priceAxis));
+  if(monthState.range!=='1m'||monthState.points<10)errors.push('month-range-invalid:'+JSON.stringify(monthState));
+  if(monthState.overflow>4)errors.push('month-horizontal-overflow:'+monthState.overflow);
   if(!state.bodyText.includes('Prognosen vs. Realität'))errors.push('forecast-label-missing');
   if(!state.modelDecisionText.includes('MODELLSTATUS:'))errors.push('model-status-text-missing');
   if(!state.forecastCollapsed)errors.push('forecast-not-collapsed-by-default');
   if(!/MODELLSTATUS: (KAUFSIGNAL|KEIN KAUFSIGNAL|VERKAUFSSIGNAL)/.test(state.modelDecisionText))errors.push('model-decision-missing');
 
-  console.log(JSON.stringify({name,url,state,consoleErrors,pageErrors,httpErrors:allowedHttp,failed,ok:errors.length===0,errors},null,2));
+  console.log(JSON.stringify({name,url,state,monthState,consoleErrors,pageErrors,httpErrors:allowedHttp,failed,ok:errors.length===0,errors},null,2));
   await browser.close();
   if(errors.length)throw new Error(name+' smoke failed: '+errors.join(' | '));
 }
