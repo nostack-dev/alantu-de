@@ -539,14 +539,14 @@ function hypothesisCounts(){
   return {pending:hypothesisState.predictions.filter(x=>x.version===HYPOTHESIS_VERSION).length,evaluated:current.filter(x=>x.status==='evaluated').length,invalid:current.filter(x=>x.status==='invalid').length};
 }
 function hypothesisSummary(){return summarizeHypothesisState(hypothesisState,HYPOTHESIS_COST_BPS);}
-function latestHypothesisCandidate(){
-  const a=hypothesisState.predictions.filter(x=>x.version===HYPOTHESIS_VERSION&&x.strategy===PRODUCTION_STRATEGY).sort((x,y)=>Date.parse(y.at)-Date.parse(x.at));
+function latestHypothesisCandidate(horizon=null){
+  const a=hypothesisState.predictions.filter(x=>x.version===HYPOTHESIS_VERSION&&x.strategy===PRODUCTION_STRATEGY&&(horizon==null||Number(x.horizon_minutes)===Number(horizon))).sort((x,y)=>Date.parse(y.at)-Date.parse(x.at));
   const p=a[0]||null;if(!p||Date.now()-Date.parse(p.at)>20000)return null;
   return {dir:p.dir,horizon_minutes:p.horizon_minutes,at:p.at,target_at:p.target_at,margin:p.margin,regime_meta:p.regime_meta,news_context:p.news_context};
 }
 function hypothesisRecommendation(){
-  const s=hypothesisSummary(),candidate=latestHypothesisCandidate(),h=Number(s.production.selected_horizon);
-  if(!s.production.enabled||!candidate||Number(candidate.horizon_minutes)!==h)return {status:'shadow',action:'WAIT',reason:s.production.enabled?'waiting_fresh_validated_signal':'prospective_gate_not_passed',candidate};
+  const s=hypothesisSummary(),h=Number(s.production.selected_horizon),candidate=s.production.enabled?latestHypothesisCandidate(h):latestHypothesisCandidate();
+  if(!s.production.enabled||!candidate)return {status:'shadow',action:'WAIT',reason:s.production.enabled?'waiting_fresh_validated_signal':'prospective_gate_not_passed',candidate};
   return {status:'validated',action:candidate.dir>0?'BUY':'SELL',dir:candidate.dir,horizon_minutes:h,at:candidate.at,target_at:candidate.target_at,proof:s.proof[String(h)]?.regime||null,contract:s.contract};
 }
 function hypothesisTrail(){
