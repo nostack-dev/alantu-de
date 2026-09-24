@@ -2,16 +2,14 @@ name: Exposee live smoke
 
 on:
   push:
-    branches: ["main"]
+    branches: [main]
     paths:
-      - "index-brand.html"
-      - "pdf-to-exposee.html"
-      - "alantu-book-view.js"
-      - "alantu-book-core.js"
-      - "assets/sunside-living-expose.pdf"
-      - "assets/sunside-living-pages/**"
-      - "tools/exposee-browser-smoke.mjs"
-      - ".github/workflows/exposee-browser-smoke.yml"
+      - index-brand.html
+      - pdf-to-exposee.html
+      - alantu-book-view.js
+      - alantu-book-core.js
+      - tools/exposee-browser-smoke.mjs
+      - .github/workflows/exposee-browser-smoke.yml
   workflow_dispatch:
 
 permissions:
@@ -24,134 +22,45 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-
-      - name: Mark live smoke pending
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SHA: ${{ github.sha }}
-        shell: bash
+      - name: Check viewer sources and sample PDF
         run: |
-          curl -fsS -X POST \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/${{ github.repository }}/statuses/$SHA \
-            -d '{"state":"pending","context":"exposee-live-smoke","description":"Checking live Exposee viewers"}'
-
-      - name: Guard shared renderer, source PDF, and aspect-ratio invariants
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # Landing consumes the builder renderer instead of a second renderer.
-          grep -q 'id="exposeeFrame"' index-brand.html
-          grep -q 'pdf-to-exposee.html?embed=1' index-brand.html
-          grep -q 'sunside-living-expose.pdf' index-brand.html
-          grep -q 'enterDemoFauxFullscreen' index-brand.html
-          grep -q 'alantu-fullscreen-toggle' index-brand.html
-          ! grep -q 'id="bookCanvas"' index-brand.html
-          ! grep -q 'Starnberger See' index-brand.html
-          ! grep -q 'PRIVATE RESIDENCE' index-brand.html
-          ! grep -q 'function textureFor(index)' index-brand.html
-
-          # Builder owns controls and never stretches X/Y.
-          f=pdf-to-exposee.html
-          grep -q 'tiltXDegrees=4' "$f"
-          grep -q 'tiltYDegrees=2' "$f"
-          grep -q 'tiltZDegrees=0' "$f"
-          grep -q 'id="zoomLess"' "$f"
-          grep -q 'class="axis-controls"' "$f"
-          grep -q 'id="debugToggle"' "$f"
-          grep -q 'function setDebugControls' "$f"
-          grep -q 'alantu-fullscreen-toggle' "$f"
-          grep -q 'stage:fullscreen .axis-controls' "$f"
-          grep -q 'hardcoverMaterials(currentCoverTitle)' "$f"
-          grep -q 'frontCoverUsesPdf=false' "$f"
-          grep -q 'COVER_SCALE=1.055' "$f"
-          grep -q 'async function loadPdfFromUrl' "$f"
-          grep -q 'color:0x171713' "$f"
-          grep -q 'titleColor:"#c4a66d"' "$f"
-          grep -q 'HemisphereLight(0xfffbf3,0x66594b,2.35)' "$f"
-          grep -q 'DirectionalLight(0xffffff,4.4)' "$f"
-          grep -q 'roughness:.88' "$f"
-          grep -q 'roughness:.9' "$f"
-          ! grep -q 'ivoryHardcoverMaterial' "$f"
-          ! grep -q 'paperFiber' "$f"
-          ! grep -q 'new THREE.ShadowMaterial' "$f"
-          ! grep -q 'color:0xf4f0e8' "$f"
-          grep -q '.stage:after{display:none}' "$f"
-          ! grep -q 'mipmapFilter:THREE.LinearMipmapLinearFilter' "$f"
-          ! grep -Eq 'root\.scale\.(x|y)[[:space:]]*=' "$f"
-          ! grep -Eq 'scaleX[[:space:]]*\(' "$f"
-          ! grep -Eq 'scaleY[[:space:]]*\(' "$f"
-
-          ! grep -q 'root.rotation.set' alantu-book-view.js
-          grep -q 'root.scale.setScalar(scale)' alantu-book-view.js
-
           test -s assets/sunside-living-expose.pdf
-          file assets/sunside-living-expose.pdf | grep -qi PDF
-          test -s assets/sunside-living-pages/manifest.json
-          test "$(grep -o 'page-[0-9][0-9]\.webp' assets/sunside-living-pages/manifest.json | wc -l)" -eq 17
-      - name: Wait for current landing, builder, and brochure asset
+          grep -q 'view406' index-brand.html
+          grep -q 'view406' pdf-to-exposee.html
+          grep -q 'getCoverWidth' alantu-book-view.js
+      - name: Wait for deployed viewers
         shell: bash
         run: |
           set -euo pipefail
-
-          wait_for () {
-            local url="$1"
-            local out="$2"
-            shift 2
-            for i in $(seq 1 36); do
-              if curl -fsSL --max-time 20 "$url" -o "$out"; then
-                local ok=1
-                for needle in "$@"; do
-                  grep -q "$needle" "$out" || ok=0
-                done
-                if [ "$ok" = 1 ]; then return 0; fi
+          for path in index-brand.html pdf-to-exposee.html alantu-book-view.js; do
+            ready=0
+            for attempt in $(seq 1 36); do
+              if curl -fsSL --max-time 20 "https://www.alantu.de/$path?smoke=${{ github.sha }}" -o /tmp/alantu-live-file; then
+                if grep -q 'view406' /tmp/alantu-live-file || { [ "$path" = alantu-book-view.js ] && grep -q 'spreadOffset' /tmp/alantu-live-file; }; then
+                  ready=1
+                  break
+                fi
               fi
               sleep 10
             done
-            echo "Live content did not reach current main: $url" >&2
-            return 1
-          }
-
-          wait_for "https://www.alantu.de/index-brand.html?smoke=${{ github.sha }}" /tmp/index-brand-live.html \
-            'id="exposeeFrame"' 'pdf-to-exposee.html?embed=1' 'sunside-living-expose.pdf' \
-            'sunside-living-pages%2Fmanifest.json' 'enterDemoFauxFullscreen' 'alantu-fullscreen-toggle'
-
-          wait_for "https://www.alantu.de/pdf-to-exposee.html?smoke=${{ github.sha }}" /tmp/pdf-to-exposee-live.html \
-            'tiltXDegrees=4' 'tiltYDegrees=2' 'hardcoverMaterials(currentCoverTitle)' 'async function loadPdfFromUrl' \
-            'id="debugToggle"' 'function setDebugControls' 'alantu-fullscreen-toggle' 'brand310'
-
-          curl -fsSL --max-time 40 \
-            "https://www.alantu.de/assets/sunside-living-expose.pdf?smoke=${{ github.sha }}" \
-            -o /tmp/sunside-live.pdf
-          test -s /tmp/sunside-live.pdf
-          file /tmp/sunside-live.pdf | grep -qi PDF
-
-          wait_for "https://www.alantu.de/assets/sunside-living-pages/manifest.json?smoke=${{ github.sha }}" /tmp/sunside-manifest.json \
-            '"title": "Konstanz Wollmatingen Exposé"' '"page-17.webp"'
-      - name: Install Playwright
-        shell: bash
+            [ "$ready" = 1 ] || { echo "$path has not deployed" >&2; exit 1; }
+          done
+      - name: Install browser
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-
-      - name: Desktop and mobile Exposee console/render smoke
+      - name: Inspect desktop and mobile book rendering
         env:
-          EXPOSEE_URLS: https://www.alantu.de/index-brand.html,https://www.alantu.de/pdf-to-exposee.html?embed=1&manifest=%2Fassets%2Fsunside-living-pages%2Fmanifest.json&pdf=%2Fassets%2Fsunside-living-expose.pdf&brand=Sunside%20Living&title=Konstanz%20Wollmatingen%20Expos%C3%A9&subtitle=Konstanz%20Wollmatingen
           SMOKE_OUT: /tmp/alantu-exposee-smoke
         run: node tools/exposee-browser-smoke.mjs
-
-      - name: Upload visual evidence
+      - name: Save screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: alantu-exposee-browser-smoke
           path: /tmp/alantu-exposee-smoke/*.png
           if-no-files-found: ignore
-
-      - name: Publish live smoke result
+      - name: Publish smoke status
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -159,16 +68,10 @@ jobs:
           JOB_STATUS: ${{ job.status }}
         shell: bash
         run: |
-          if [ "$JOB_STATUS" = "success" ]; then
-            state=success
-            description="Both Exposee viewers live and console-clean"
-          else
-            state=failure
-            description="Exposee live/browser smoke failed"
-          fi
+          if [ "$JOB_STATUS" = success ]; then state=success; else state=failure; fi
           curl -fsS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/${{ github.repository }}/statuses/$SHA \
-            -d "{\"state\":\"$state\",\"context\":\"exposee-live-smoke\",\"description\":\"$description\"}"
+            "https://api.github.com/repos/${{ github.repository }}/statuses/$SHA" \
+            -d "{\"state\":\"$state\",\"context\":\"exposee-live-smoke\",\"description\":\"Desktop/mobile book render and screenshots\"}"

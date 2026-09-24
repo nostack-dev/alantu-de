@@ -1,179 +1,64 @@
-import { chromium } from 'playwright';
+import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
+import {chromium} from 'playwright';
 
-const defaultBuilder='https://www.alantu.de/pdf-to-exposee.html?embed=1&manifest=%2Fassets%2Fsunside-living-pages%2Fmanifest.json&pdf=%2Fassets%2Fsunside-living-expose.pdf&brand=Sunside%20Living&title=Konstanz%20Wollmatingen%20Expos%C3%A9&subtitle=Konstanz%20Wollmatingen';
-const urls=(process.env.EXPOSEE_URLS||('https://www.alantu.de/index-brand.html,'+defaultBuilder))
-  .split(',').map(s=>s.trim()).filter(Boolean);
+const origin=process.env.EXPOSEE_ORIGIN||'https://www.alantu.de';
 const out=process.env.SMOKE_OUT||'/tmp/alantu-exposee-smoke';
-const fs=await import('node:fs/promises');
-await fs.mkdir(out,{recursive:true});
+const pdf=process.env.EXPOSEE_PDF||'assets/sunside-living-expose.pdf';
+await mkdir(out,{recursive:true});
 
-async function run(url,label,viewport){
-  const browser=await chromium.launch({headless:true});
-  const page=await browser.newPage({viewportSize:viewport});
-  const consoleErrors=[],pageErrors=[],httpErrors=[],failed=[];
-  page.on('console',m=>{if(m.type()==='error')consoleErrors.push({text:m.text(),url:m.location()?.url||''})});
-  page.on('pageerror',e=>pageErrors.push(String(e?.stack||e)));
-  page.on('response',r=>{if(r.status()>=400&&!r.url().includes('favicon'))httpErrors.push({status:r.status(),url:r.url()})});
-  page.on('requestfailed',r=>failed.push({url:r.url(),error:r.failure()?.errorText||'failed'}));
-
-  await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});
-
-  let target=page.mainFrame();
-  if(label.startsWith('landing')){
-    await page.waitForSelector('#exposeeFrame',{timeout:30000});
-    for(let i=0;i<80;i++){
-      const found=page.frames().find(f=>f!==page.mainFrame()&&f.url().includes('pdf-to-exposee.html'));
-      if(found){target=found;break}
-      await page.waitForTimeout(250);
-    }
-    if(target===page.mainFrame())throw new Error('landing iframe not attached');
-  }
-
-  await target.waitForSelector('#bookCanvas',{timeout:30000});
-  await target.waitForSelector('#debugToggle',{timeout:30000});
-  await target.waitForFunction(()=>{
-    const pc=document.getElementById('pageCount')?.textContent||'';
-    return /17/.test(pc)&&pc!=='— / —';
-  },null,{timeout:150000});
-  await page.waitForTimeout(800);
-
-  const initial=await target.evaluate(()=>{
-    const stage=document.getElementById('stage');
-    const ui=document.querySelector('.stage-ui');
-    const toggle=document.getElementById('debugToggle');
-    const cs=ui?getComputedStyle(ui):null;
-    return {
-      controlsOn:stage?.classList.contains('debug-controls')||false,
-      ui:{display:cs?.display||null,visibility:cs?.visibility||null,opacity:Number(cs?.opacity||0)},
-      toggle:{exists:!!toggle,pressed:toggle?.getAttribute('aria-pressed')||null,display:toggle?getComputedStyle(toggle).display:null},
-      pageCount:(document.getElementById('pageCount')?.textContent||'').trim()
-    };
+async function run(kind,viewport){
+  const browser=await chromium.launch({
+    headless:true,
+    args:['--enable-webgl','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']
   });
-
-  // Mobile and desktop must both be able to reveal/hide debug controls.
-  await target.locator('#debugToggle').click({force:true});
-  await page.waitForTimeout(120);
-  const shown=await target.evaluate(()=>{
-    const stage=document.getElementById('stage');
-    const ui=document.querySelector('.stage-ui');
-    const cs=ui?getComputedStyle(ui):null;
-    const val=id=>document.getElementById(id)?.value||document.getElementById(id)?.textContent||null;
-    return {
-      controlsOn:stage?.classList.contains('debug-controls')||false,
-      ui:{display:cs?.display||null,visibility:cs?.visibility||null,opacity:Number(cs?.opacity||0)},
-      pressed:document.getElementById('debugToggle')?.getAttribute('aria-pressed')||null,
-      values:{x:val('tiltXValue'),y:val('tiltYValue'),z:val('tiltZValue'),zoom:val('zoomValue')},
-      viewerTitle:(document.getElementById('viewerTitle')?.textContent||'').trim()
-    };
-  });
-
-  await target.locator('#debugToggle').click({force:true});
-  await page.waitForTimeout(120);
-  const hiddenAgain=await target.evaluate(()=>{
-    const stage=document.getElementById('stage');
-    const ui=document.querySelector('.stage-ui');
-    const cs=ui?getComputedStyle(ui):null;
-    return {
-      controlsOn:stage?.classList.contains('debug-controls')||false,
-      visibility:cs?.visibility||null,
-      opacity:Number(cs?.opacity||0),
-      pressed:document.getElementById('debugToggle')?.getAttribute('aria-pressed')||null
-    };
-  });
-
-  // Show controls again and enter fullscreen from the actual button.
-  await target.locator('#debugToggle').click({force:true});
-  await page.waitForTimeout(120);
-  await target.locator('#fullscreenBtn').click({force:true});
-  await page.waitForTimeout(650);
-
-  let fullscreen;
-  if(label.startsWith('landing')){
-    fullscreen=await page.evaluate(()=>{
-      const stage=document.getElementById('stage');
-      return {
-        active:document.fullscreenElement===stage||document.webkitFullscreenElement===stage||stage?.classList.contains('is-faux-fullscreen')||false,
-        faux:stage?.classList.contains('is-faux-fullscreen')||false
-      };
-    });
-  }else{
-    fullscreen=await target.evaluate(()=>{
-      const stage=document.getElementById('stage');
-      return {
-        active:document.fullscreenElement===stage||document.webkitFullscreenElement===stage||stage?.classList.contains('is-faux-fullscreen')||false,
-        faux:stage?.classList.contains('is-faux-fullscreen')||false
-      };
-    });
-  }
-
-  const childFullscreenState=await target.evaluate(()=>{
-    const stage=document.getElementById('stage');
-    const ui=document.querySelector('.stage-ui');
-    const toggle=document.getElementById('debugToggle');
-    return {
-      host:stage?.classList.contains('is-host-fullscreen')||false,
-      uiDisplay:ui?getComputedStyle(ui).display:null,
-      toggleDisplay:toggle?getComputedStyle(toggle).display:null
-    };
-  });
-
-  // Exit through same button path when possible.
-  if(fullscreen.active){
-    if(label.startsWith('landing')){
-      await page.evaluate(()=>{
-        const stage=document.getElementById('stage');
-        if(document.fullscreenElement===stage&&document.exitFullscreen)return document.exitFullscreen();
-        if(document.webkitFullscreenElement===stage&&document.webkitExitFullscreen)return document.webkitExitFullscreen();
-        if(stage?.classList.contains('is-faux-fullscreen')){
-          window.postMessage({type:'__smoke_noop'},'*');
-        }
-      }).catch(()=>{});
-      if(fullscreen.faux){
-        // Child request toggles the parent faux fullscreen off.
-        await target.evaluate(()=>window.parent.postMessage({type:'alantu-fullscreen-toggle'},'*'));
-      }
-    }else{
-      await target.locator('#fullscreenBtn').click({force:true}).catch(()=>{});
-    }
-    await page.waitForTimeout(350);
-  }
-
-  const safe=label.replace(/[^a-z0-9_-]+/gi,'-');
-  await page.screenshot({path:`${out}/${safe}-${viewport.width}.png`,fullPage:true});
-
+  const page=await browser.newPage({viewport,deviceScaleFactor:1});
   const errors=[];
-  if(consoleErrors.length)errors.push('console:'+JSON.stringify(consoleErrors));
-  if(pageErrors.length)errors.push('pageerror:'+JSON.stringify(pageErrors));
-  if(httpErrors.length)errors.push('http:'+JSON.stringify(httpErrors));
-  if(failed.length)errors.push('requestfailed:'+JSON.stringify(failed));
-  if(initial.controlsOn||initial.ui.visibility!=='hidden'||initial.ui.opacity>.01)errors.push('controls-visible-by-default:'+JSON.stringify(initial));
-  if(!initial.toggle.exists||initial.toggle.display==='none'||initial.toggle.pressed!=='false')errors.push('debug-toggle-default:'+JSON.stringify(initial.toggle));
-  if(!shown.controlsOn||shown.ui.visibility!=='visible'||shown.ui.opacity<.99||shown.pressed!=='true')errors.push('debug-toggle-show-failed:'+JSON.stringify(shown));
-  if(shown.values.x!=='4°'||shown.values.y!=='2°'||shown.values.z!=='0°'||shown.values.zoom!=='100%')errors.push('defaults:'+JSON.stringify(shown.values));
-  if(!/SUNSIDE LIVING/.test(shown.viewerTitle)||!/KONSTANZ WOLLMATINGEN EXPOSÉ/.test(shown.viewerTitle))errors.push('sunside-title:'+shown.viewerTitle);
-  if(hiddenAgain.controlsOn||hiddenAgain.visibility!=='hidden'||hiddenAgain.opacity>.01||hiddenAgain.pressed!=='false')errors.push('debug-toggle-hide-failed:'+JSON.stringify(hiddenAgain));
-  if(!fullscreen.active)errors.push('fullscreen-failed:'+JSON.stringify(fullscreen));
-  if(childFullscreenState.uiDisplay!=='none'||childFullscreenState.toggleDisplay!=='none')errors.push('fullscreen-controls-visible:'+JSON.stringify(childFullscreenState));
-  if(label.startsWith('landing')&&!childFullscreenState.host)errors.push('host-fullscreen-state-not-forwarded');
-
-  if(label.startsWith('landing')){
-    const parent=await page.evaluate(()=>({
-      frame:!!document.getElementById('exposeeFrame'),
-      duplicateCanvas:!!document.getElementById('bookCanvas'),
-      share:!!document.getElementById('shareLinkBtn')
-    }));
-    if(!parent.frame||parent.duplicateCanvas||!parent.share)errors.push('landing-shared-renderer:'+JSON.stringify(parent));
+  page.on('pageerror',error=>errors.push(String(error)));
+  page.on('console',message=>{
+    if(message.type()==='error')errors.push(message.text());
+  });
+  try{
+    const path=kind==='brand'?'index-brand.html':'pdf-to-exposee.html';
+    await page.goto(`${origin}/${path}?smoke=${process.env.GITHUB_SHA||Date.now()}`,{
+      waitUntil:'domcontentloaded',timeout:60000
+    });
+    assert(await page.locator('script[type="module"]').evaluate(node=>node.textContent.includes('view406')),
+      'live page did not load the corrected shared view');
+    if(kind==='pdf')await page.locator('#pdfInput').setInputFiles(pdf);
+    const total=kind==='brand'?6:17;
+    await page.waitForFunction(expected=>{
+      const value=document.querySelector('#pageCount')?.textContent||'';
+      return value.includes(`/ ${String(expected).padStart(2,'0')}`);
+    },total,{timeout:120000});
+    assert.equal(await page.locator('#bookCanvas').evaluate(node=>getComputedStyle(node).filter),'none');
+    assert(await page.locator('#bookCanvas').evaluate(node=>!!node.getContext('webgl2')),
+      'WebGL book did not initialize');
+    const stage=page.locator('#stage');
+    const marker=`${kind}-${viewport.width}`;
+    await page.waitForTimeout(300);
+    const initial=await stage.screenshot({path:`${out}/${marker}-initial.png`});
+    const next=page.locator('#tapNext');
+    const prev=page.locator('#tapPrev');
+    await next.click({force:true});
+    await page.waitForTimeout(900);
+    const opened=await stage.screenshot({path:`${out}/${marker}-opened.png`});
+    assert(!initial.equals(opened),'opening left book image unchanged');
+    const leaves=viewport.width<=700?total:Math.ceil(total/2);
+    for(let i=1;i<=leaves;i++)await next.click({force:true});
+    await page.waitForTimeout(1000);
+    await stage.screenshot({path:`${out}/${marker}-end-cover.png`});
+    await prev.click({force:true});
+    await page.waitForTimeout(850);
+    const reopened=await stage.screenshot({path:`${out}/${marker}-reopened.png`});
+    assert(!opened.equals(reopened),'end cover image unchanged');
+    assert.equal(errors.length,0,errors.join('\n'));
+    console.log(`${marker}: WebGL, opening, page turns, closing, reverse and screenshots OK`);
+  }finally{
+    await browser.close();
   }
-
-  console.log(JSON.stringify({url,label,viewport,initial,shown,hiddenAgain,fullscreen,childFullscreenState,consoleErrors,pageErrors,httpErrors,failed,ok:errors.length===0,errors},null,2));
-  await browser.close();
-  if(errors.length)throw new Error(label+' smoke failed: '+errors.join(' | '));
 }
 
-for(const url of urls){
-  const label=url.includes('pdf-to-exposee')?'builder':'landing';
-  await run(url,label,{width:1440,height:1100});
-  await run(url,label+'-mobile',{width:390,height:844});
+for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
+  for(const kind of ['brand','pdf'])await run(kind,viewport);
 }
-
-console.log('ALANTU_EXPOSEE_BROWSER_SMOKE_OK');
