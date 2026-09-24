@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 
-const defaultBuilder='https://www.alantu.de/pdf-to-exposee.html?embed=1&pdf=%2Fassets%2Fsunside-living-expose.pdf&brand=Sunside%20Living&title=Konstanz%20Wollmatingen%20Expos%C3%A9&subtitle=Konstanz%20Wollmatingen';
+const defaultBuilder='https://www.alantu.de/pdf-to-exposee.html?embed=1&manifest=%2Fassets%2Fsunside-living-pages%2Fmanifest.json&pdf=%2Fassets%2Fsunside-living-expose.pdf&brand=Sunside%20Living&title=Konstanz%20Wollmatingen%20Expos%C3%A9&subtitle=Konstanz%20Wollmatingen';
 const urls=(process.env.EXPOSEE_URLS||('https://www.alantu.de/index-brand.html,'+defaultBuilder))
   .split(',').map(s=>s.trim()).filter(Boolean);
 const out=process.env.SMOKE_OUT||'/tmp/alantu-exposee-smoke';
@@ -33,7 +33,7 @@ async function run(url,label,viewport){
   await target.waitForSelector('#debugToggle',{timeout:30000});
   await target.waitForFunction(()=>{
     const pc=document.getElementById('pageCount')?.textContent||'';
-    return /18/.test(pc)&&pc!=='— / —';
+    return /17/.test(pc)&&pc!=='— / —';
   },null,{timeout:150000});
   await page.waitForTimeout(800);
 
