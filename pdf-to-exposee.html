@@ -233,6 +233,26 @@
     .empty span{display:block;margin-top:8px;color:#716a61;font-size:12px;line-height:1.5}
     .stage-ui{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;visibility:hidden;transition:opacity .14s ease,visibility .14s ease}
     .stage.debug-controls .stage-ui{opacity:1;visibility:visible}
+    .debug-toggle{
+      position:absolute;right:14px;top:14px;z-index:6;
+      width:30px;height:30px;border-radius:999px;
+      border:1px solid rgba(13,13,11,.12);
+      background:rgba(244,240,232,.72);
+      color:var(--ink);
+      display:grid;place-items:center;
+      padding:0;font-size:14px;font-weight:800;line-height:1;
+      letter-spacing:.08em;
+      opacity:.72;
+      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+      transition:opacity .14s ease,background .14s ease,transform .14s ease;
+    }
+    .debug-toggle:hover,.debug-toggle:focus-visible{opacity:1;background:rgba(255,255,255,.92)}
+    .debug-toggle[aria-pressed="true"]{opacity:1;background:rgba(244,240,232,.94)}
+    .stage:fullscreen .debug-toggle,
+    .stage:-webkit-full-screen .debug-toggle,
+    .stage.is-faux-fullscreen .debug-toggle,
+    .stage.is-host-fullscreen .debug-toggle{display:none!important}
+    .stage.is-host-fullscreen .stage-ui{display:none!important}
     .stage:fullscreen .stage-ui,.stage:-webkit-full-screen .stage-ui,.stage.is-faux-fullscreen .stage-ui{display:none!important}
     .stage-top{
       position:absolute;left:16px;right:16px;top:16px;
@@ -487,6 +507,7 @@
     <section class="viewer-card" aria-label="Exposé-Vorschau">
       <div class="stage" id="stage">
         <canvas id="bookCanvas"></canvas>
+        <button class="debug-toggle" id="debugToggle" type="button" aria-label="Ansichtseinstellungen anzeigen" aria-pressed="false" title="Ansicht einstellen">•••</button>
 
         <button class="tapzone prev" id="tapPrev" type="button" aria-label="Zurück"></button>
         <button class="tapzone next" id="tapNext" type="button" aria-label="Weiter"></button>
@@ -606,6 +627,7 @@
     const tapNext=document.getElementById("tapNext");
     const pageCount=document.getElementById("pageCount");
     const fullscreenBtn=document.getElementById("fullscreenBtn");
+    const debugToggle=document.getElementById("debugToggle");
     const fitViewBtn=document.getElementById("fitViewBtn");
     const prefersReduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -1323,7 +1345,10 @@
     if(queryParams.has("brand"))brandInput.value=queryParams.get("brand")||brandInput.value;
     if(queryParams.has("subtitle"))subtitleInput.value=queryParams.get("subtitle")||subtitleInput.value;
     refreshBranding();
-    if(queryParams.get("controls")==="1")stage.classList.add("debug-controls");
+    if(queryParams.get("controls")==="1"){
+      stage.classList.add("debug-controls");
+      debugToggle?.setAttribute("aria-pressed","true");
+    }
 
     input.addEventListener("change",()=>loadPdf(input.files?.[0]));
     brandInput.addEventListener("input",refreshBranding);
@@ -1342,8 +1367,46 @@
 
     const fullscreenController=createAlantuFullscreenController({
       stage,
-      button:fullscreenBtn,
+      button:null,
       onChange:()=>setTimeout(()=>viewControls.resize(),30)
+    });
+
+    function setDebugControls(enabled){
+      const on=!!enabled;
+      stage.classList.toggle("debug-controls",on);
+      debugToggle?.setAttribute("aria-pressed",String(on));
+      debugToggle?.setAttribute("aria-label",on?"Ansichtseinstellungen ausblenden":"Ansichtseinstellungen anzeigen");
+      if(on)requestAnimationFrame(updateZoomValue);
+    }
+    function toggleDebugControls(){
+      setDebugControls(!stage.classList.contains("debug-controls"));
+    }
+    debugToggle?.addEventListener("click",e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      toggleDebugControls();
+    });
+
+    function requestFullscreenToggle(){
+      if(embedMode&&window.parent!==window){
+        window.parent.postMessage({type:"alantu-fullscreen-toggle"},"*");
+        return;
+      }
+      fullscreenController.toggle();
+    }
+
+    fullscreenBtn?.addEventListener("click",e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      requestFullscreenToggle();
+    });
+
+    window.addEventListener("message",e=>{
+      if(e.source!==window.parent)return;
+      const data=e.data||{};
+      if(data.type!=="alantu-fullscreen-state")return;
+      stage.classList.toggle("is-host-fullscreen",!!data.active);
+      setTimeout(()=>viewControls.resize(),30);
     });
 
     function isTypingTarget(target){
@@ -1354,18 +1417,36 @@
       const key=String(e.key||"").toLowerCase();
       if(key==="d"){
         e.preventDefault();
-        stage.classList.toggle("debug-controls");
-        if(stage.classList.contains("debug-controls"))requestAnimationFrame(updateZoomValue);
+        toggleDebugControls();
       }else if(key==="f"){
         e.preventDefault();
-        fullscreenController.toggle();
+        requestFullscreenToggle();
       }
     });
+
+    // Desktop keeps native dblclick. Mobile browsers do not reliably emit
+    // dblclick on touch, so detect a deliberate double tap as well.
     stage.addEventListener("dblclick",e=>{
-      if(e.target?.closest?.(".stage-ui"))return;
+      if(e.target?.closest?.(".stage-ui,.debug-toggle"))return;
       e.preventDefault();
-      fullscreenController.toggle();
+      requestFullscreenToggle();
     });
+    let lastTap=null;
+    stage.addEventListener("pointerup",e=>{
+      if(e.pointerType!=="touch")return;
+      if(e.target?.closest?.(".stage-ui,.debug-toggle")){lastTap=null;return}
+      const now=performance.now();
+      const tap={time:now,x:e.clientX,y:e.clientY};
+      if(lastTap&&now-lastTap.time<360&&Math.hypot(tap.x-lastTap.x,tap.y-lastTap.y)<42){
+        lastTap=null;
+        e.preventDefault();
+        e.stopPropagation();
+        requestFullscreenToggle();
+        return;
+      }
+      lastTap=tap;
+    },true);
+
     fitViewBtn.addEventListener("click",()=>requestAnimationFrame(updateZoomValue));
 
     function resize(){viewControls.resize()}
