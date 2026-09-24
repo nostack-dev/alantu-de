@@ -75,6 +75,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          cp orcl-minute.json /tmp/orcl-minute.prev.json 2>/dev/null || true
+          cp orcl-germany-minute.json /tmp/orcl-germany-minute.prev.json 2>/dev/null || true
+          node --check tools/merge-yahoo-minute.mjs
           fetch_pair() {
             local url1="$1" url2="$2" out="$3"
             if ! curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 -A 'Mozilla/5.0' "$url1" -o "$out.tmp"; then
@@ -94,8 +97,8 @@ jobs:
             local urls=(
               'https://query1.finance.yahoo.com/v8/finance/chart/ORC.F?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
               'https://query2.finance.yahoo.com/v8/finance/chart/ORC.F?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
-              'https://query1.finance.yahoo.com/v8/finance/chart/ORC.F?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
-              'https://query2.finance.yahoo.com/v8/finance/chart/ORC.F?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
+              'https://query1.finance.yahoo.com/v8/finance/chart/ORC.DE?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
+              'https://query2.finance.yahoo.com/v8/finance/chart/ORC.DE?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
             )
             for url in "${urls[@]}"; do
               if curl -fsSL --retry 1 --connect-timeout 10 --max-time 30 -A 'Mozilla/5.0' "$url" -o "$out.tmp"; then
@@ -124,6 +127,9 @@ PY
             return 1
           }
           fetch_german_orcl
+
+          node tools/merge-yahoo-minute.mjs /tmp/orcl-minute.prev.json orcl-minute.json orcl-minute.json 14
+          node tools/merge-yahoo-minute.mjs /tmp/orcl-germany-minute.prev.json orcl-germany-minute.json orcl-germany-minute.json 14
 
           fetch_pair \
             'https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?range=10y&interval=1d&includePrePost=false&events=div%2Csplits' \
@@ -240,6 +246,7 @@ PY
           grep -q "function compositeDayPriceSession" index.html
           grep -q "orcl-germany-minute.json" index.html
           grep -q "Chart.register(currentPriceMarkerPlugin())" index.html
+          grep -q 'merge would lose rows' tools/merge-yahoo-minute.mjs
           grep -q 'function pollMicroMarket' index.html
           grep -q 'function pollMicroSources' index.html
           grep -q 'function pollMicroShadow' index.html
