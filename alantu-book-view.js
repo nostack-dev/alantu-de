@@ -20,8 +20,9 @@ export function createAlantuBookViewControls({
   let pinch=null;
   let singleFocus=0;
   let singleFocusTarget=0;
+  let spreadFocus=0;
+  let spreadFocusTarget=0;
   let lastViewStep=performance.now();
-  let baseX=0;
   let focusTravelX=0;
   const spreadCameraPosition=camera.position.clone();
   const singleCameraZ=Math.max(6,Number(camera.position.z)||10.8);
@@ -95,20 +96,17 @@ export function createAlantuBookViewControls({
     focusTravelX=single?pageW*scale:0;
     if(single){
       // Keep the proven portrait framing unchanged.
-      baseX=0;
-      root.position.set(baseX,.015,0);
+      root.position.set(0,.015,0);
       const pan=-focusTravelX*singleFocus;
       camera.position.x=pan;
       camera.lookAt(pan,0,0);
     }else{
-      // The open spread's local visual centre is half a page left of the
-      // hinge and slightly above the page stack in Z. Rotate that centre by
-      // the same book tilt, then cancel its projected X exactly. This keeps
-      // desktop/landscape centred at every aspect ratio and zoom level.
-      const spreadCentre=new THREE.Vector3(-pageW*.5,0,.175);
-      spreadCentre.applyEuler(root.rotation).multiplyScalar(scale);
-      baseX=-spreadCentre.x;
-      root.position.set(baseX,.015,0);
+      // Visible-content centering:
+      // 0   = first/right page centred
+      // .5  = normal two-page spread centred
+      // 1   = final/left page centred
+      // This is more stable than compensating a theoretical rotated centre.
+      root.position.set(pageW*scale*spreadFocus,.015,0);
       camera.position.copy(spreadCameraPosition);
       camera.lookAt(0,0,0);
     }
@@ -134,24 +132,44 @@ export function createAlantuBookViewControls({
     }
   }
 
+  function setSpreadFocus(value,{immediate=false}={}){
+    spreadFocusTarget=clamp(Number(value)||0,0,1);
+    if(immediate){
+      spreadFocus=spreadFocusTarget;
+      applyView();
+    }
+  }
+
   function step(now=performance.now()){
     const dt=Math.max(.001,Math.min(.05,(now-lastViewStep)/1000));
     lastViewStep=now;
-    if(getPresentationMode()!=="single"){
-      singleFocus=singleFocusTarget=0;
-      return;
-    }
-    const delta=singleFocusTarget-singleFocus;
-    if(Math.abs(delta)<.0005){
-      singleFocus=singleFocusTarget;
+    const single=getPresentationMode()==="single";
+    if(single){
+      spreadFocus=spreadFocusTarget=0;
+      const delta=singleFocusTarget-singleFocus;
+      if(Math.abs(delta)<.0005){
+        singleFocus=singleFocusTarget;
+      }else{
+        // Fast enough to track the page, slow enough to read as a camera move.
+        const alpha=1-Math.exp(-11*dt);
+        singleFocus+=delta*alpha;
+      }
+      const pan=-focusTravelX*singleFocus;
+      camera.position.x=pan;
+      camera.lookAt(pan,0,0);
     }else{
-      // Fast enough to track the page, slow enough to read as a camera move.
-      const alpha=1-Math.exp(-11*dt);
-      singleFocus+=delta*alpha;
+      singleFocus=singleFocusTarget=0;
+      const delta=spreadFocusTarget-spreadFocus;
+      if(Math.abs(delta)<.0005){
+        spreadFocus=spreadFocusTarget;
+      }else{
+        const alpha=1-Math.exp(-14*dt);
+        spreadFocus+=delta*alpha;
+      }
+      const pageW=Math.max(.1,Number(getPageWidth())||3.52);
+      const scale=fitScale*zoom;
+      root.position.x=pageW*scale*spreadFocus;
     }
-    const pan=-focusTravelX*singleFocus;
-    camera.position.x=pan;
-    camera.lookAt(pan,0,0);
   }
 
   function wheel(e){
@@ -233,6 +251,7 @@ export function createAlantuBookViewControls({
     resize:applyView,
     setZoom,
     setSingleFocus,
+    setSpreadFocus,
     step,
     get zoom(){return zoom},
     get fitScale(){return fitScale},
