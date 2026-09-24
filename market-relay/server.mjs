@@ -4,6 +4,7 @@ import WebSocket from 'ws';
 import {aggregateMicrostructure,microstructureQuality} from '../tools/microstructure-core.mjs';
 import {forecastRawLatest} from '../tools/raw-sip-wave-core.mjs';
 import {forecastYahooShadow,YAHOO_HORIZONS,YAHOO_LOCAL,YAHOO_GLOBAL,YAHOO_SHADOW_VERSION} from '../tools/yahoo-shadow-wave-core.mjs';
+import {HYPOTHESIS_VERSION,HYPOTHESIS_STRATEGIES,PRODUCTION_STRATEGY,HYPOTHESIS_MIN_MARGIN,DEFAULT_ROUNDTRIP_COST_BPS,signalSessionEligible,strategyDirections,actionableNewsContext,summarizeHypothesisState} from '../tools/yahoo-hypothesis-v4.mjs';
 
 const PORT=Number(process.env.PORT||8080);
 const KEY=process.env.APCA_API_KEY_ID||'',SECRET=process.env.APCA_API_SECRET_KEY||'';
@@ -22,9 +23,13 @@ const yahooSeries=Object.fromEntries(YAHOO_SYMBOLS.map(s=>[s,[]]));
 const yahooDayVolume=Object.fromEntries(YAHOO_SYMBOLS.map(s=>[s,null]));
 let yahooWs=null,yahooReconnect=null,yahooLastAt=0,yahooState='connecting',yahooForecast={status:'blocked',reason:'starting_yahoo_shadow',source:'yahoo_shadow'};
 let shadowState={predictions:[],outcomes:[],proof:{},updated_at:null};
-let eventBuffer=[];
+let hypothesisState={predictions:[],outcomes:[],updated_at:null};
+let eventBuffer=[],sourceEventBuffer=[];
 const SHADOW_PATH=DATA_DIR+'/yahoo-shadow-state.json';
+const HYPOTHESIS_PATH=DATA_DIR+'/yahoo-hypothesis-v4-state.json';
 const YAHOO_DIR=DATA_DIR+'/yahoo-events';
+const SOURCE_EVENT_DIR=DATA_DIR+'/source-events';
+const HYPOTHESIS_COST_BPS=Math.max(0,Number(process.env.SHADOW_ROUNDTRIP_COST_BPS||DEFAULT_ROUNDTRIP_COST_BPS));
 const SOURCE_REFRESH_MS=Math.max(8000,Number(process.env.SOURCE_REFRESH_MS||12000));
 const SOURCE_MAX_LIVE_LAG_MS=90*1000;
 const SOURCE_MARKET_MATCH_MS=60*1000;
@@ -37,7 +42,7 @@ let sourceState={
   score:null,bull:null,bear:null,mixed:null,net:null,news_count:0,social_count:0,live_count:0,new_count:0,delayed_count:0,archive_count:0,
   archive_news_count:0,archive_social_count:0,coverage:'none',providers:[],
   source_counts:{news:0,reddit:0,x:0,bluesky:0,social:0},
-  archive_source_counts:{news:0,reddit:0,x:0,bluesky:0,social:0},latest_published_at:null,market_anchor:null,items:[],error:null
+  archive_source_counts:{news:0,reddit:0,x:0,bluesky:0,social:0},latest_published_at:null,market_anchor:null,actionable_market_anchor:null,items:[],error:null
 };
 
 function cors(req,res){const o=req.headers.origin;if(o&&ALLOWED.has(o)){res.setHeader('Access-Control-Allow-Origin',o);res.setHeader('Vary','Origin');}}
@@ -196,6 +201,7 @@ function sourceItem(x,type,now=Date.now(),liveKeys=new Set(),delayedKeys=new Set
     discovered_at:seen?.first_seen_at?new Date(seen.first_seen_at).toISOString():null,
     discovery_delay_ms:seen?Math.max(0,seen.first_seen_at-time):null,age_ms:age,
     market:alignedMarketAt(time),
+    actionable_market:seen?.first_seen_at?alignedMarketAt(seen.first_seen_at):null,
     lean:lean>0?'bull':lean<0?'bear':'mixed'
   };
 }
@@ -234,6 +240,13 @@ function deriveSourceState(news,social,providers,status='ok'){
   if(!sourcePrimed)sourcePrimed=true;
 
   const archiveItems=archiveRaw.map(x=>sourceItem(x,x._type,now,liveKeys,delayedKeys)).slice(0,240);
+  for(const item of archiveItems.filter(x=>x.new)){
+    sourceEventBuffer.push({
+      version:'source-event-v1',key:item.key,type:item.type,channel:item.channel,title:item.title,url:item.url,site:item.site,lean:item.lean,
+      published_at:new Date(Number(item.time)).toISOString(),first_seen_at:item.discovered_at,delivery_lag_ms:item.discovery_delay_ms,
+      market_at_published:item.market,market_at_first_seen:item.actionable_market
+    });
+  }
   const liveItems=archiveItems.filter(x=>x.live);
   const groups={};
   for(const x of liveItems){if(!groups[x.channel])groups[x.channel]=[];groups[x.channel].push(x);}
@@ -252,6 +265,7 @@ function deriveSourceState(news,social,providers,status='ok'){
   const newestLive=liveItems.length?liveItems.reduce((a,b)=>a.time>b.time?a:b):null;
   const newestArchive=archiveItems.length?archiveItems[0]:null;
   const marketAnchor=newestLive?.market?.before||newestLive?.market?.after||null;
+  const actionableMarketAnchor=newestLive?.actionable_market?.before||newestLive?.actionable_market?.after||null;
   return {
     status:liveCount?status:'quiet',
     at:newestLive?new Date(newestLive.time).toISOString():null,
@@ -263,7 +277,7 @@ function deriveSourceState(news,social,providers,status='ok'){
     archive_news_count:newsArchive.length,archive_social_count:socialArchive.length,
     coverage,providers,source_counts,archive_source_counts,
     latest_published_at:newestArchive?new Date(newestArchive.time).toISOString():null,
-    market_anchor:marketAnchor,items:archiveItems,error:null
+    market_anchor:marketAnchor,actionable_market_anchor:actionableMarketAnchor,items:archiveItems,error:null
   };
 }
 function broadcastSources(){
@@ -296,13 +310,14 @@ async function refreshSources(){
     if(x.length)providers.push('X live');
     const degraded=providers.length<2;
     sourceState=deriveSourceState(news,social,providers,degraded?'degraded':'ok');
+    await flushSourceEvents();
     const eventChanged=sourceState.at!==sourceLastEventAt,logDue=Date.now()-sourceLastLogAt>=60000;
     if(eventChanged||logDue){
       console.log(JSON.stringify({
         type:'source-refresh',status:sourceState.status,event_at:sourceState.at,checked_at:sourceState.checked_at,event_mode:sourceState.event_mode,
         poll_interval_seconds:sourceState.poll_interval_seconds,max_live_delay_seconds:sourceState.max_live_delay_seconds,
         live_count:sourceState.live_count,new_count:sourceState.new_count,delayed_count:sourceState.delayed_count,archive_count:sourceState.archive_count,
-        news_count:sourceState.news_count,social_count:sourceState.social_count,market_anchor:sourceState.market_anchor,
+        news_count:sourceState.news_count,social_count:sourceState.social_count,market_anchor:sourceState.market_anchor,actionable_market_anchor:sourceState.actionable_market_anchor,
         providers:sourceState.providers,source_counts:sourceState.source_counts,archive_source_counts:sourceState.archive_source_counts
       }));
       sourceLastEventAt=sourceState.at;sourceLastLogAt=Date.now();
@@ -318,6 +333,29 @@ async function refreshSources(){
 
 async function writeJsonAtomic(file,obj){
   const tmp=file+'.tmp';await fs.mkdir(DATA_DIR,{recursive:true});await fs.writeFile(tmp,JSON.stringify(obj,null,2)+'\n');await fs.rename(tmp,file);
+}
+async function flushSourceEvents(){
+  if(!sourceEventBuffer.length)return;
+  const batch=sourceEventBuffer.splice(0,sourceEventBuffer.length),by=new Map();
+  for(const e of batch){const d=String(e.first_seen_at||'').slice(0,10)||new Date().toISOString().slice(0,10);if(!by.has(d))by.set(d,[]);by.get(d).push(JSON.stringify(e));}
+  await fs.mkdir(SOURCE_EVENT_DIR,{recursive:true});
+  for(const [d,rows] of by)await fs.appendFile(SOURCE_EVENT_DIR+'/'+d+'.jsonl',rows.join('\n')+'\n');
+}
+async function loadSourceEvents(){
+  await fs.mkdir(SOURCE_EVENT_DIR,{recursive:true}).catch(()=>{});
+  const now=Date.now(),days=[0,1,2].map(n=>new Date(now-n*86400000).toISOString().slice(0,10));
+  for(const d of days){
+    try{
+      const txt=await fs.readFile(SOURCE_EVENT_DIR+'/'+d+'.jsonl','utf8');
+      for(const line of txt.split('\n')){
+        if(!line)continue;let e;try{e=JSON.parse(line);}catch{continue;}
+        const pub=Date.parse(e.published_at||''),seen=Date.parse(e.first_seen_at||'');
+        if(!e.key||!Number.isFinite(pub)||!Number.isFinite(seen)||now-pub>SOURCE_ARCHIVE_WINDOW_MS)continue;
+        const prev=sourceSeen.get(e.key);if(!prev||seen<prev.first_seen_at)sourceSeen.set(e.key,{first_seen_at:seen,published_at:pub});
+      }
+    }catch{}
+  }
+  if(sourceSeen.size)sourcePrimed=true;
 }
 function yahooEventDay(ms){return new Date(ms).toISOString().slice(0,10);}
 async function flushYahooEvents(){
@@ -495,11 +533,81 @@ function evaluateShadows(){
   shadowState.predictions=keep;
   if(shadowState.outcomes.length>5000)shadowState.outcomes=shadowState.outcomes.slice(-5000);
 }
+
+function hypothesisCounts(){
+  const current=hypothesisState.outcomes.filter(x=>x.version===HYPOTHESIS_VERSION);
+  return {pending:hypothesisState.predictions.filter(x=>x.version===HYPOTHESIS_VERSION).length,evaluated:current.filter(x=>x.status==='evaluated').length,invalid:current.filter(x=>x.status==='invalid').length};
+}
+function hypothesisSummary(){return summarizeHypothesisState(hypothesisState,HYPOTHESIS_COST_BPS);}
+function latestHypothesisCandidate(){
+  const a=hypothesisState.predictions.filter(x=>x.version===HYPOTHESIS_VERSION&&x.strategy===PRODUCTION_STRATEGY).sort((x,y)=>Date.parse(y.at)-Date.parse(x.at));
+  const p=a[0]||null;if(!p||Date.now()-Date.parse(p.at)>20000)return null;
+  return {dir:p.dir,horizon_minutes:p.horizon_minutes,at:p.at,target_at:p.target_at,margin:p.margin,regime_meta:p.regime_meta,news_context:p.news_context};
+}
+function hypothesisRecommendation(){
+  const s=hypothesisSummary(),candidate=latestHypothesisCandidate(),h=Number(s.production.selected_horizon);
+  if(!s.production.enabled||!candidate||Number(candidate.horizon_minutes)!==h)return {status:'shadow',action:'WAIT',reason:s.production.enabled?'waiting_fresh_validated_signal':'prospective_gate_not_passed',candidate};
+  return {status:'validated',action:candidate.dir>0?'BUY':'SELL',dir:candidate.dir,horizon_minutes:h,at:candidate.at,target_at:candidate.target_at,proof:s.proof[String(h)]?.regime||null,contract:s.contract};
+}
+function hypothesisTrail(){
+  const outcomes=hypothesisState.outcomes.filter(x=>x.version===HYPOTHESIS_VERSION).slice(-120).reverse();
+  const pending=hypothesisState.predictions.filter(x=>x.version===HYPOTHESIS_VERSION).slice(-36).reverse();
+  const summary=hypothesisSummary();return {...summary,pending,outcomes,recommendation:hypothesisRecommendation()};
+}
+async function loadHypothesis(){const x=await readJson(HYPOTHESIS_PATH);if(x&&Array.isArray(x.predictions)&&Array.isArray(x.outcomes))hypothesisState=x;}
+async function persistHypothesis(){hypothesisState.updated_at=new Date().toISOString();await writeJsonAtomic(HYPOTHESIS_PATH,hypothesisState);}
+function latestYahooEvent(){const a=yahooSeries.ORCL||[];return a.length?a.at(-1):null;}
+function actionableTargetYahooEvent(targetMs,horizonMinutes){
+  const a=yahooSeries.ORCL||[],late=Math.min(120000,Math.max(30000,Number(horizonMinutes||1)*6000));let best=null;
+  for(const e of a){const seen=Number(e.recv_at)||Number(e.t);if(seen<targetMs)continue;if(seen>targetMs+late)break;if(Number(e.p)>0){best=e;break;}}
+  return {event:best,max_late_ms:late};
+}
+function maybeCreateHypothesisPredictions(fc){
+  if(fc?.status!=='ok')return;
+  const e=latestYahooEvent(),now=Date.now();if(!e||!(Number(e.p)>0))return;
+  const receiveAge=now-Number(e.recv_at||0),marketAge=now-Number(e.t||0);
+  if(receiveAge<0||receiveAge>12000||marketAge<0||marketAge>30000)return;
+  const news=actionableNewsContext(sourceState,now);
+  for(const f of fc.forecasts||[]){
+    const h=Number(f.horizon_minutes),baseDir=Number(f.dir),margin=Number(f.margin);
+    if(!YAHOO_HORIZONS.includes(h)||!baseDir||!(margin>=HYPOTHESIS_MIN_MARGIN)||!signalSessionEligible(now,h))continue;
+    const dirs=strategyDirections(fc,f);
+    for(const strategy of HYPOTHESIS_STRATEGIES){
+      const dir=Number(dirs[strategy]);if(dir!==1&&dir!==-1)continue;
+      const gap=h*60000;
+      const last=[...hypothesisState.predictions,...hypothesisState.outcomes].filter(x=>x.version===HYPOTHESIS_VERSION&&x.strategy===strategy&&Number(x.horizon_minutes)===h).sort((a,b)=>Date.parse(b.at)-Date.parse(a.at))[0];
+      if(last&&now-Date.parse(last.at)<gap)continue;
+      hypothesisState.predictions.push({
+        id:'hv4-'+strategy+'-'+h+'-'+now,version:HYPOTHESIS_VERSION,strategy,horizon_minutes:h,at:new Date(now).toISOString(),target_at:new Date(now+h*60000).toISOString(),
+        entry_price:Number(e.p),entry_market_at:new Date(Number(e.t)).toISOString(),entry_received_at:new Date(Number(e.recv_at)).toISOString(),entry_delivery_lag_ms:Math.max(0,Number(e.recv_at)-Number(e.t)),
+        dir,base_dir:baseDir,score:Number(f.score),threshold:Number(f.threshold),margin,regime_meta:strategy==='regime'?dirs.regime_meta:null,news_context:news,
+        assumed_roundtrip_cost_bps:HYPOTHESIS_COST_BPS,evaluation_contract:'first_observed_market_event_at_or_after_target_regular_session'
+      });
+    }
+  }
+  if(hypothesisState.predictions.length>3000)hypothesisState.predictions=hypothesisState.predictions.slice(-3000);
+}
+function evaluateHypotheses(){
+  const now=Date.now(),keep=[];
+  for(const p of hypothesisState.predictions){
+    const target=Date.parse(p.target_at);if(now<target){keep.push(p);continue;}
+    const pick=actionableTargetYahooEvent(target,p.horizon_minutes),e=pick.event;
+    if(!e){
+      if(now<=target+pick.max_late_ms){keep.push(p);continue;}
+      hypothesisState.outcomes.push({...p,status:'invalid',exit_at:new Date(now).toISOString(),exit_price:null,raw_return_bps:null,gross_bps:null,net_bps:null,direction_hit:null,profitable:null,timing_error_ms:null,reason:'target_price_unavailable'});continue;
+    }
+    const price=Number(e.p),rawRet=Math.log(price/Number(p.entry_price))*10000,gross=Number(p.dir)*rawRet,net=gross-Number(p.assumed_roundtrip_cost_bps||HYPOTHESIS_COST_BPS);
+    hypothesisState.outcomes.push({...p,status:'evaluated',exit_at:new Date(Number(e.recv_at||e.t)).toISOString(),exit_market_at:new Date(Number(e.t)).toISOString(),exit_price:price,raw_return_bps:rawRet,gross_bps:gross,net_bps:net,direction_hit:gross>0,profitable:net>0,timing_error_ms:Number(e.recv_at||e.t)-target});
+  }
+  hypothesisState.predictions=keep;if(hypothesisState.outcomes.length>12000)hypothesisState.outcomes=hypothesisState.outcomes.slice(-12000);
+}
 function refreshYahooForecast(){
   if(KEY&&SECRET)return;
   evaluateShadows();
+  evaluateHypotheses();
   yahooForecast=forecastYahooShadow(yahooSeries,Date.now(),shadowProof());
   maybeCreateShadowPredictions(yahooForecast);
+  maybeCreateHypothesisPredictions(yahooForecast);
 }
 function yahooModelSummary(){
   const p=shadowProof();
@@ -535,7 +643,7 @@ function snapshot(symbol){
   const r=raw[symbol];if(!r)return null;
   if(!KEY||!SECRET){
     const m=yahooModelSummary(),best=(yahooForecast?.forecasts||[]).filter(x=>x.dir).sort((a,b)=>(b.margin||0)-(a.margin||0))[0]||null;
-    return {provider:'yahoo',feed:'streamer',symbol,mode:'shadow-live',at:new Date().toISOString(),configured:true,subscription_verified:yahooState==='streaming',auth_state:'no_key_required',auth_error:null,raw:{events:(yahooSeries[symbol]||[]).length,last_upstream_at:yahooLastAt?new Date(yahooLastAt).toISOString():null,persistent:true},quality:yahooForecast?.quality||{status:'warming'},minutes:[],edge_status:'shadow',edge_model_id:m.model_id,live_signal:null,shadow_signal:best?{dir:best.dir,horizon_minutes:best.horizon_minutes,score:best.score,margin:best.margin,asof:yahooForecast.asof,source:'yahoo_shadow'}:null,wave:m,wave_forecast:yahooForecast,sentiment:sourceSummary(),shadow_trail_summary:{version:YAHOO_SHADOW_VERSION,pending:shadowState.predictions.filter(x=>x.version===YAHOO_SHADOW_VERSION).length,evaluated:shadowState.outcomes.filter(x=>x.version===YAHOO_SHADOW_VERSION&&x.status==='evaluated').length,proof:shadowProof(),updated_at:shadowState.updated_at},l2:{status:'retired',provider:'databento',reason:'replaced_by_event_wave'}};
+    return {provider:'yahoo',feed:'streamer',symbol,mode:'shadow-live',at:new Date().toISOString(),configured:true,subscription_verified:yahooState==='streaming',auth_state:'no_key_required',auth_error:null,raw:{events:(yahooSeries[symbol]||[]).length,last_upstream_at:yahooLastAt?new Date(yahooLastAt).toISOString():null,persistent:true},quality:yahooForecast?.quality||{status:'warming'},minutes:[],edge_status:'shadow',edge_model_id:m.model_id,live_signal:null,shadow_signal:best?{dir:best.dir,horizon_minutes:best.horizon_minutes,score:best.score,margin:best.margin,asof:yahooForecast.asof,source:'yahoo_shadow'}:null,wave:m,wave_forecast:yahooForecast,sentiment:sourceSummary(),shadow_trail_summary:{version:YAHOO_SHADOW_VERSION,pending:shadowState.predictions.filter(x=>x.version===YAHOO_SHADOW_VERSION).length,evaluated:shadowState.outcomes.filter(x=>x.version===YAHOO_SHADOW_VERSION&&x.status==='evaluated').length,proof:shadowProof(),updated_at:shadowState.updated_at},hypothesis_v4:{...hypothesisSummary(),counts:hypothesisCounts(),recommendation:hypothesisRecommendation()},l2:{status:'retired',provider:'databento',reason:'replaced_by_event_wave'}};
   }
   const minutes=aggregateMicrostructure(r.trades,r.quotes);
   const quality=microstructureQuality(minutes,{symbol,feed:FEED,minMinutes:10});
@@ -605,6 +713,7 @@ const server=http.createServer((req,res)=>{
     return json(res,200,KEY&&SECRET?{ok:true,provider:'alpaca',feed:FEED,symbols:SYMBOLS,configured:true,auth_state:authState,subscription_verified:subscriptionVerified,upstream_fresh:Date.now()-lastUpstreamAt<15000,last_upstream_at:lastUpstreamAt?new Date(lastUpstreamAt).toISOString():null,primary_runtime:'raw-sip-wave',model:modelSummary(),forecast:{status:rawForecast?.status||'blocked',asof:rawForecast?.asof||null,last_compute_at:lastForecastAt?new Date(lastForecastAt).toISOString():null},setup:'automatic'}:{ok:true,provider:'yahoo',feed:'streamer',symbols:YAHOO_SYMBOLS,configured:true,auth_state:'no_key_required',subscription_verified:yahooState==='streaming',upstream_fresh:Date.now()-yahooLastAt<15000,last_upstream_at:yahooLastAt?new Date(yahooLastAt).toISOString():null,primary_runtime:'yahoo-shadow-wave',model:yahooModelSummary(),forecast:{status:yahooForecast?.status||'blocked',asof:yahooForecast?.asof||null,last_compute_at:lastForecastAt?new Date(lastForecastAt).toISOString():null},shadow:{...shadowCounts(),proof:shadowProof()},setup:'zero-cost / zero-key; Alpaca credentials later upgrade provider automatically'});
   }
   if(u.pathname==='/v1/shadow-history')return json(res,200,shadowTrail());
+  if(u.pathname==='/v1/hypothesis-v4')return json(res,200,hypothesisTrail());
   if(u.pathname==='/v1/source-state')return json(res,200,sourceState);
   if(u.pathname==='/v1/raw-wave-model')return json(res,200,rawModel||{status:'unavailable'});
   if(u.pathname==='/v1/wave-model')return json(res,200,rawModel||{status:'unavailable'});
@@ -620,6 +729,8 @@ await fs.mkdir(DATA_DIR,{recursive:true}).catch(()=>{});
 await loadRawModel();
 await loadYahooEvents();
 await loadShadow();
+await loadHypothesis();
+await loadSourceEvents();
 refreshSources().catch(()=>{});
 if(!KEY||!SECRET){
   console.log(JSON.stringify({
@@ -634,6 +745,8 @@ setInterval(()=>refreshSources().catch(()=>{}),SOURCE_REFRESH_MS).unref();
 setInterval(refreshForecast,5000).unref();
 setInterval(()=>flushYahooEvents().catch(()=>{}),1000).unref();
 setInterval(()=>persistShadow().catch(()=>{}),15000).unref();
+setInterval(()=>persistHypothesis().catch(()=>{}),15000).unref();
+setInterval(()=>flushSourceEvents().catch(()=>{}),5000).unref();
 setInterval(()=>{
   if(KEY&&SECRET)return;
   const p=shadowProof();
@@ -642,6 +755,11 @@ setInterval(()=>{
     at:new Date().toISOString(),
     ...shadowCounts(),
     proof:p
+  }));
+  const hv=hypothesisSummary();
+  console.log(JSON.stringify({
+    type:'yahoo-hypothesis-v4',at:new Date().toISOString(),...hypothesisCounts(),production:hv.production,
+    regime:Object.fromEntries(Object.entries(hv.proof).map(([h,x])=>[h,x.regime]))
   }));
 },60000).unref();
 setInterval(broadcast,1000).unref();
