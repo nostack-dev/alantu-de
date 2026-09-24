@@ -2518,6 +2518,22 @@ function wgoCatalystText(d){
   if(c.theme==='project_jupiter')return ' Tageskontext: Project Jupiter / New Mexico bleibt der aktuell stärkste erkannte Oracle-Katalysator.';
   var t=String(c.title||'').trim();return t?' Aktueller Tageskontext: '+t.slice(0,180)+(t.length>180?'…':''):'';
 }
+function wgoCurrentText(d){
+  d=d||{};var p=d.price||{},parts=[];
+  if(p.available&&isFinite(Number(p.pct))){
+    var pct=Number(p.pct),from=usdToEur(Number(p.from),p.from_at),to=usdToEur(Number(p.to),p.to_at);
+    parts.push('Aktuell: ORCL ist in den letzten 10 Minuten '+(Math.abs(pct)<.02?'praktisch unverändert':(pct>0?'um '+Math.abs(pct).toFixed(2)+' % gestiegen':'um '+Math.abs(pct).toFixed(2)+' % gefallen'))+(isFinite(from)&&isFinite(to)?' ('+euro(from,2)+' → '+euro(to,2)+')':'')+'.');
+  }else parts.push('Aktuell: Für die letzten 10 Minuten liegt kein ausreichend dichter Kursverlauf vor.');
+  var sh=d.shock||null;
+  if(sh&&isFinite(Number(sh.pct))){
+    var sp=Number(sh.pct),t0=wgoTime(sh.from_at),t1=wgoTime(sh.to_at);
+    parts.push('Stärkster 10-Minuten-Impuls im Tagesverlauf: '+(sp>=0?'+':'')+sp.toFixed(2)+' % von '+t0+' bis '+t1+'.');
+  }
+  var market=d.market||{},avg=Number(market.average_pct);
+  if(isFinite(avg))parts.push('QQQ/SPY im selben Impuls: '+(avg>=0?'+':'')+avg.toFixed(2)+' % im Mittel.');
+  var cat=wgoCatalystText(d).trim();if(cat)parts.push(cat);
+  return parts.join(' ');
+}
 function renderWgoResult(obj){
   var a=document.getElementById('wgoAnswer'),m=document.getElementById('wgoMeta');if(!a||!m)return;
   a.textContent=obj.text;m.textContent=obj.meta;
@@ -2532,7 +2548,7 @@ async function runWhatsGoingOn(){
     var result,now=Date.now();
     if(wgoRange==='current'){
       var d=await wgoContext();
-      result={at:now,text:String(d.brief||'Für die letzten 10 Minuten gibt es gerade keine belastbare Kurzlage.'),meta:'Aktuell · 10 Min · Stand '+wgoTime(d.generated_at)+' · max. alle 10 Min neu'};
+      result={at:now,text:wgoCurrentText(d),meta:'Aktuell · 10 Min · Stand '+wgoTime(d.generated_at)+' · max. alle 10 Min neu'};
     }else{
       var local=wgoLocalSummary(wgoRange),extra='';
       if(wgoRange==='1d'){
