@@ -31,8 +31,8 @@ jobs:
           rm -rf "$out"
           mkdir -p "$out"
 
-          # 2304 px on the longest edge: enough headroom for oblique 3D pages
-          # and zoom while keeping the download practical.
+          # 2304 px on the longest edge: enough headroom for oblique 3D pages.
+          # Store losslessly so small PDF typography and thin plan lines stay crisp.
           expected_pages=$(pdfinfo "$src" | awk '/^Pages:/ {print $2}')
           echo "Source PDF pages: $expected_pages"
           pdftoppm -png -scale-to 2304 "$src" "$tmp/page"
@@ -42,7 +42,7 @@ jobs:
           for png in "$tmp"/page-*.png; do
             i=$((i+1))
             name=$(printf "page-%02d.webp" "$i")
-            cwebp -quiet -q 98 -m 6 -sharp_yuv "$png" -o "$out/$name"
+            cwebp -quiet -lossless -z 9 -exact "$png" -o "$out/$name"
             if [ -n "$pages_json" ]; then pages_json="$pages_json,"; fi
             pages_json="$pages_json\"$name\""
           done
@@ -71,4 +71,15 @@ jobs:
             exit 0
           fi
           git commit -m "Build Sunside Living demo pages"
-          git push
+
+          # Runtime data jobs also write to main. Rebase/retry so a harmless
+          # concurrent commit cannot discard the generated brochure pages.
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin main
+            if git push origin main; then
+              exit 0
+            fi
+            sleep $((attempt * 3))
+          done
+          echo "Could not publish demo pages after retries" >&2
+          exit 1
