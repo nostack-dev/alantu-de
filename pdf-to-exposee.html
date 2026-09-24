@@ -391,6 +391,22 @@
       }
     }
 
+
+    /* Fullscreen is presentation-only: no app chrome at any viewport size */
+    .stage:fullscreen .stage-ui,
+    .stage:-webkit-full-screen .stage-ui,
+    .stage.is-faux-fullscreen .stage-ui{
+      display:none!important;
+      opacity:0!important;
+      visibility:hidden!important;
+      pointer-events:none!important;
+    }
+    .stage:fullscreen,
+    .stage:-webkit-full-screen,
+    .stage.is-faux-fullscreen{
+      touch-action:none!important;
+    }
+
 </style>
 </head>
 <body>
