@@ -755,6 +755,21 @@
         (coverSupport.endClosedZ-coverSupport.endOpenZ)*p;
     }
 
+    function updateLeafVisibility(state){
+      if(!leafRoots.length)return;
+      const active=new Set((state.activeTurns||[]).map(t=>Number(t.index)));
+      const current=Math.max(0,Math.min(totalLeaves,Number(state.currentLeaf)||0));
+      for(let i=0;i<leafRoots.length;i++){
+        // Only the exposed top sheet of each stack and moving sheets can
+        // contribute pixels. Hidden stacked sheets still keep their physical
+        // z-state in the model but do not consume fragment/GPU work.
+        leafRoots[i].visible=
+          active.has(i)||
+          i===current||
+          i===current-1;
+      }
+    }
+
     function portraitFocusForState(state){
       if(!singlePageMode||!totalLeaves)return 0;
       const lastIndex=totalLeaves-1;
@@ -773,6 +788,7 @@
       const shownLeaf=state.activeTurn
         ? (state.activeTurn.progress>=.5?state.activeTurn.index+1:state.activeTurn.index)
         : state.currentLeaf;
+      updateLeafVisibility(state);
       viewControls?.setSingleFocus(portraitFocusForState(state));
 
       if(singlePageMode){
@@ -832,6 +848,7 @@
 
       totalPages=renderedPages.length;
       singlePageMode=window.matchMedia("(max-width:700px) and (orientation:portrait)").matches;
+      renderer.shadowMap.enabled=!singlePageMode;
       totalLeaves=singlePageMode?totalPages:Math.ceil(totalPages/2);
       leafZStep=computeAlantuLeafStackStep(totalLeaves);
 
