@@ -9,6 +9,7 @@ on:
       - "alantu-book-view.js"
       - "alantu-book-core.js"
       - "assets/sunside-living-expose.pdf"
+      - "assets/sunside-living-pages/**"
       - "tools/exposee-browser-smoke.mjs"
       - ".github/workflows/exposee-browser-smoke.yml"
   workflow_dispatch:
@@ -78,7 +79,7 @@ jobs:
           ! grep -q 'paperFiber' "$f"
           ! grep -q 'new THREE.ShadowMaterial' "$f"
           grep -q '.stage:after{display:none}' "$f"
-          grep -q 'LinearMipmapLinearFilter' "$f"
+          ! grep -q 'mipmapFilter:THREE.LinearMipmapLinearFilter' "$f"
           ! grep -Eq 'root\.scale\.(x|y)[[:space:]]*=' "$f"
           ! grep -Eq 'scaleX[[:space:]]*\(' "$f"
           ! grep -Eq 'scaleY[[:space:]]*\(' "$f"
@@ -113,7 +114,7 @@ jobs:
 
           wait_for "https://www.alantu.de/index-brand.html?smoke=${{ github.sha }}" /tmp/index-brand-live.html \
             'id="exposeeFrame"' 'pdf-to-exposee.html?embed=1' 'sunside-living-expose.pdf' \
-            'enterDemoFauxFullscreen' 'alantu-fullscreen-toggle'
+            'sunside-living-pages%2Fmanifest.json' 'enterDemoFauxFullscreen' 'alantu-fullscreen-toggle'
 
           wait_for "https://www.alantu.de/pdf-to-exposee.html?smoke=${{ github.sha }}" /tmp/pdf-to-exposee-live.html \
             'tiltXDegrees=4' 'tiltYDegrees=2' 'hardcoverMaterials(currentCoverTitle)' 'async function loadPdfFromUrl' \
@@ -132,7 +133,7 @@ jobs:
 
       - name: Desktop and mobile Exposee console/render smoke
         env:
-          EXPOSEE_URLS: https://www.alantu.de/index-brand.html,https://www.alantu.de/pdf-to-exposee.html?embed=1&pdf=%2Fassets%2Fsunside-living-expose.pdf&brand=Sunside%20Living&title=Konstanz%20Wollmatingen%20Expos%C3%A9&subtitle=Konstanz%20Wollmatingen
+          EXPOSEE_URLS: https://www.alantu.de/index-brand.html,https://www.alantu.de/pdf-to-exposee.html?embed=1&manifest=%2Fassets%2Fsunside-living-pages%2Fmanifest.json&pdf=%2Fassets%2Fsunside-living-expose.pdf&brand=Sunside%20Living&title=Konstanz%20Wollmatingen%20Expos%C3%A9&subtitle=Konstanz%20Wollmatingen
           SMOKE_OUT: /tmp/alantu-exposee-smoke
         run: node tools/exposee-browser-smoke.mjs
 
