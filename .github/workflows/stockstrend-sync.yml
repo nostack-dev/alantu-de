@@ -92,26 +92,35 @@ jobs:
             'https://query2.finance.yahoo.com/v8/finance/chart/ORCL?range=5d&interval=1m&includePrePost=true&events=div%2Csplits' \
             orcl-minute.json
 
+          validate_german_chart() {
+            node -e 'const fs=require("fs");const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const r=d?.chart?.result?.[0];const ts=r?.timestamp||[];const q=r?.indicators?.quote?.[0]||{};const good=ts.filter((_,i)=>Number.isFinite(Number(q.close?.[i]))&&Number(q.close[i])>0).length;const cur=r?.meta?.currency;if(good<5||cur!=="EUR")process.exit(1);' "$1"
+          }
+          fetch_german_pair() {
+            local sym="$1" out="$2"
+            local u1="https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=5d&interval=1m&includePrePost=true&events=div%2Csplits"
+            local u2="https://query2.finance.yahoo.com/v8/finance/chart/${sym}?range=5d&interval=1m&includePrePost=true&events=div%2Csplits"
+            if ! curl -fsSL --retry 1 --connect-timeout 10 --max-time 30 -A 'Mozilla/5.0' "$u1" -o "$out"; then
+              curl -fsSL --retry 1 --connect-timeout 10 --max-time 30 -A 'Mozilla/5.0' "$u2" -o "$out" || return 1
+            fi
+            validate_german_chart "$out"
+          }
           fetch_german_orcl() {
-            local out='orcl-germany-minute.json'
-            local urls=(
-              'https://query1.finance.yahoo.com/v8/finance/chart/ORC.F?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
-              'https://query2.finance.yahoo.com/v8/finance/chart/ORC.F?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
-              'https://query1.finance.yahoo.com/v8/finance/chart/ORC.DE?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
-              'https://query2.finance.yahoo.com/v8/finance/chart/ORC.DE?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
-            )
-            for url in "${urls[@]}"; do
-              if curl -fsSL --retry 1 --connect-timeout 10 --max-time 30 -A 'Mozilla/5.0' "$url" -o "$out.tmp"; then
-                if node -e 'const fs=require("fs");const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const r=d?.chart?.result?.[0];const ts=r?.timestamp||[];const q=r?.indicators?.quote?.[0]||{};const good=ts.filter((_,i)=>Number.isFinite(Number(q.close?.[i]))&&Number(q.close[i])>0).length;const cur=r?.meta?.currency;if(good<5||cur!=="EUR")process.exit(1);' "$out.tmp"; then
-                  mv "$out.tmp" "$out"
-                  return 0
-                fi
-              fi
-            done
-            rm -f "$out.tmp"
+            local have_f=0 have_de=0
+            fetch_german_pair ORC.F /tmp/orc-frankfurt.json && have_f=1 || true
+            fetch_german_pair ORC.DE /tmp/orc-xetra.json && have_de=1 || true
+
+            if [ "$have_f" -eq 1 ] && [ "$have_de" -eq 1 ]; then
+              # Union Deutsche Börse Frankfurt (08:00+) and Xetra (09:00+) minute trades.
+              # Xetra wins on identical minutes; Frankfurt fills the earlier session.
+              node tools/merge-yahoo-minute.mjs /tmp/orc-frankfurt.json /tmp/orc-xetra.json orcl-germany-minute.json 14
+              return 0
+            fi
+            if [ "$have_f" -eq 1 ]; then cp /tmp/orc-frankfurt.json orcl-germany-minute.json; return 0; fi
+            if [ "$have_de" -eq 1 ]; then cp /tmp/orc-xetra.json orcl-germany-minute.json; return 0; fi
+
             if [ -s /tmp/orcl-germany-minute.prev.json ]; then
               echo "German minute refresh unavailable; keeping last-known-good snapshot."
-              cp /tmp/orcl-germany-minute.prev.json "$out"
+              cp /tmp/orcl-germany-minute.prev.json orcl-germany-minute.json
               return 0
             fi
             return 1
