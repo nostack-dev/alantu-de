@@ -38,7 +38,7 @@ const SOURCE_REFRESH_MS=Math.max(8000,Number(process.env.SOURCE_REFRESH_MS||1200
 const SOURCE_MAX_LIVE_LAG_MS=90*1000;
 const SOURCE_MARKET_MATCH_MS=60*1000;
 const SOURCE_ARCHIVE_WINDOW_MS=36*3600000;
-const WHATS_GOING_ON_PROMPT=`Du erklärst in höchstens 4 kurzen Sätzen, was bei ORCL im angegebenen Zeitfenster passiert ist. Nutze ausschließlich die gelieferten Kurs- und Quellen-Daten. Trenne Beobachtung von Einordnung. Behaupte niemals Kausalität, wenn nur zeitliche Nähe belegt ist. Nenne die wichtigste Meldung nur, wenn sie im Zeitfenster liegt. Wenn die Evidenz dünn ist, sage das klar. Keine Kauf-/Verkaufsempfehlung.`;
+const WHATS_GOING_ON_PROMPT=`Du erklärst ORCL in höchstens 5 kurzen Sätzen. Beginne mit der Bewegung der letzten 5/10 Minuten, ordne danach den heutigen Tagesmove ein und nutze dafür auch relevante Meldungen der letzten 18 Stunden. Priorisiere konkrete Unternehmensereignisse vor allgemeiner Stimmung. Unterscheide klar zwischen belegtem Ereignis, wahrscheinlich relevantem Katalysator und bloßer zeitlicher Korrelation. Wenn ein Themenblock wie Project Jupiter, Rechenzentrum, force majeure, Finanzierung, Genehmigungen, Entlassungen oder Earnings im Feed dominiert, benenne ihn konkret. Keine Kauf-/Verkaufsempfehlung.`;
 let sourceRefreshBusy=false,sourceLastLogAt=0,sourceLastEventAt=null,sourcePrimed=false;
 const sourceSeen=new Map();
 let sourceState={
@@ -55,7 +55,7 @@ function json(res,code,obj){res.statusCode=code;res.setHeader('Content-Type','ap
 async function readJson(file){try{return JSON.parse(await fs.readFile(file,'utf8'));}catch{return null;}}
 
 const SENT_POS=['beat','growth','surge','rally','rise','gain','upgrade','outperform','strong','record','backlog','contract','deal','boost','expand','demand','win','bullish','buy rating'];
-const SENT_NEG=['debt','risk','fall','drop','decline','downgrade','concern','lawsuit','probe','headwind','cost','capex','stress','junk bond','layoff','slump','miss','bearish','sell rating'];
+const SENT_NEG=['debt','risk','fall','drop','decline','downgrade','concern','lawsuit','probe','headwind','cost','capex','stress','junk bond','layoff','slump','miss','bearish','sell rating','force majeure','delay','delayed','financing','loan','permit','setback'];
 function normalizedText(s){return String(s||'').toLowerCase().replace(/[^a-z0-9$]+/g,' ').replace(/\s+/g,' ').trim();}
 function termScore(title){
   const s=' '+normalizedText(title)+' ';
@@ -423,7 +423,7 @@ function pushYahooEvent(q){
   const prevV=Number(yahooDayVolume[s]),dayV=Number(q.dayVolume);
   const dv=Number.isFinite(dayV)&&Number.isFinite(prevV)&&dayV>=prevV?dayV-prevV:0;
   if(Number.isFinite(dayV))yahooDayVolume[s]=dayV;
-  const e={s,t,p,dv,day_volume:Number.isFinite(dayV)?dayV:null,exchange:q.exchange||null,recv_at:Date.now(),provider:'yahoo_streamer'};
+  const e={s,t,p,dv,day_volume:Number.isFinite(dayV)?dayV:null,exchange:q.exchange||null,recv_at:Date.now(),provider:'yahoo_streamer',change_pct:Number.isFinite(Number(q.changePercent))?Number(q.changePercent):null,change:Number.isFinite(Number(q.change))?Number(q.change):null,previous_close:Number.isFinite(Number(q.previousClose))&&Number(q.previousClose)>0?Number(q.previousClose):null};
   const a=yahooSeries[s],last=a.at(-1);
   if(last&&last.t===e.t&&last.p===e.p&&last.day_volume===e.day_volume)return;
   a.push(e);const cut=Date.now()-3*3600000;while(a.length&&a[0].t<cut)a.shift();
@@ -766,33 +766,71 @@ function wgoItems(minutes,now=Date.now()){
   const cut=now-minutes*60000;
   return (Array.isArray(sourceState.items)?sourceState.items:[]).filter(x=>{const t=wgoEventMs(x);return Number.isFinite(t)&&t>=cut&&t<=now;}).sort((a,b)=>wgoEventMs(b)-wgoEventMs(a));
 }
+function wgoContextItems(now=Date.now(),hours=18){
+  const cut=now-hours*3600000;
+  return (Array.isArray(sourceState.items)?sourceState.items:[]).filter(x=>{const t=wgoEventMs(x);return Number.isFinite(t)&&t>=cut&&t<=now;}).sort((a,b)=>wgoEventMs(b)-wgoEventMs(a));
+}
 function wgoTone(items){
   let pos=0,neg=0,mixed=0;for(const x of items){const v=termScore(x.summary||x.title||'');if(v>0)pos++;else if(v<0)neg++;else mixed++;}
   return {positive:pos,negative:neg,mixed};
 }
+function wgoDayPrice(){
+  const a=yahooSeries.ORCL||[],last=a.length?a[a.length-1]:null;if(!last||!(Number(last.p)>0))return {available:false};
+  const p=Number(last.p),prev=Number(last.previous_close),cp=Number(last.change_pct);
+  if(prev>0)return {available:true,current:p,previous_close:prev,pct:(p/prev-1)*100,at:new Date(Number(last.t||last.recv_at)).toISOString()};
+  if(Number.isFinite(cp))return {available:true,current:p,previous_close:null,pct:cp,at:new Date(Number(last.t||last.recv_at)).toISOString()};
+  return {available:false,current:p,at:new Date(Number(last.t||last.recv_at)).toISOString()};
+}
+function wgoStoryImpact(x,now=Date.now()){
+  const txt=normalizedText(x&& (x.summary||x.title)||''),ageH=Math.max(0,(now-wgoEventMs(x))/3600000);
+  let score=x&&x.type==='news'?4:1;
+  const add=(re,n)=>{if(re.test(txt))score+=n;};
+  add(/force majeure/,12);add(/project jupiter|jupiter/,9);add(/data center|datacenter|new mexico/,5);
+  add(/delay|delayed|permit|pipeline|water|power|infrastructure setback/,4);
+  add(/debt|loan|financing|credit|downgrade|junk/,4);add(/layoff|job cut|restructur/,3);
+  add(/earnings|guidance|revenue|cloud backlog|contract/,3);
+  add(/reuters|bloomberg|financial times|wall street journal|cnbc/,2);
+  const sentiment=termScore(txt);if(sentiment<0)score+=2;
+  score+=Math.max(0,3-ageH/4);
+  return score;
+}
+function wgoCatalyst(items,now=Date.now()){
+  if(!items.length)return null;
+  const ranked=items.map(x=>({item:x,score:wgoStoryImpact(x,now)})).sort((a,b)=>b.score-a.score||wgoEventMs(b.item)-wgoEventMs(a.item));
+  const top=ranked[0],txt=normalizedText(top.item.summary||top.item.title||'');
+  let theme='other',summary=String(top.item.summary||top.item.title||'').replace(/\s+/g,' ').trim();
+  if(/force majeure|project jupiter|jupiter|data center|datacenter|new mexico/.test(txt)){
+    theme='project_jupiter';
+    const related=items.filter(x=>/force majeure|project jupiter|jupiter|data center|datacenter|new mexico/.test(normalizedText(x.summary||x.title||'')));
+    summary='Project Jupiter / New-Mexico-Rechenzentrum: Im heutigen Feed häufen sich Meldungen zu Oracles „force majeure“-Mitteilung und möglichen Verzögerungs-, Infrastruktur- bzw. Kostenrisiken.';
+    return {theme,summary,item:top.item,score:top.score,related_count:related.length,confidence:top.score>=15?'high':'moderate'};
+  }
+  if(/layoff|job cut|restructur/.test(txt)){theme='restructuring';summary='Restrukturierung/Entlassungen sind heute ein auffälliger negativer Oracle-Themenblock.';}
+  else if(/debt|loan|financing|credit|downgrade|junk/.test(txt)){theme='financing';summary='Finanzierungs- und Kreditrisiken rund um Oracle sind heute der auffälligste negative Themenblock.';}
+  return {theme,summary,item:top.item,score:top.score,related_count:1,confidence:top.score>=12?'high':top.score>=7?'moderate':'low'};
+}
 function wgoDeterministic(minutes,now=Date.now()){
-  const price=wgoWindowPrice(minutes,now),items=wgoItems(minutes,now),tone=wgoTone(items),pct=Number(price.pct),abs=Math.abs(pct||0);
-  const move=!price.available?'Für das Fenster liegt kein ausreichend frischer Kursverlauf vor.':('ORCL ist in den letzten '+minutes+' Minuten '+(abs<0.02?'praktisch unverändert':(pct>0?'um '+abs.toFixed(2)+' % gestiegen':'um '+abs.toFixed(2)+' % gefallen'))+' ('+price.from.toFixed(2)+' → '+price.to.toFixed(2)+' USD).');
-  if(!items.length)return {brief:move+' Im selben Zeitraum wurde keine neue relevante Oracle-Meldung erfasst; eine belastbare Nachrichten-Erklärung gibt es daher nicht.',price,items:[],tone,evidence:'thin'};
-  const top=items.slice().sort((a,b)=>Math.abs(termScore(b.summary||b.title||''))-Math.abs(termScore(a.summary||a.title||''))||wgoEventMs(b)-wgoEventMs(a))[0];
-  const title=String(top.summary||top.title||'').replace(/\s+/g,' ').trim();
-  let fit='gemischt';if(tone.negative>tone.positive)fit='eher negativ';else if(tone.positive>tone.negative)fit='eher positiv';
-  const context='Im gleichen Fenster kamen '+items.length+' relevante Quelle'+(items.length===1?'':'n')+' hinzu; der Nachrichten-Ton war '+fit+'.';
-  const lead=title?(' Auffälligste Meldung: „'+title.slice(0,180)+(title.length>180?'…':'')+'“.'):'';
-  const caveat=' Das passt zeitlich zur Kursbewegung, beweist aber nicht, dass die Meldung sie verursacht hat.';
-  return {brief:move+' '+context+lead+caveat,price,items:items.slice(0,8),tone,evidence:items.length>=2?'moderate':'thin'};
+  const price=wgoWindowPrice(minutes,now),day=wgoDayPrice(),items=wgoItems(minutes,now),contextItems=wgoContextItems(now,18),tone=wgoTone(contextItems),catalyst=wgoCatalyst(contextItems,now),pct=Number(price.pct),abs=Math.abs(pct||0);
+  const move=!price.available?'Für die letzten '+minutes+' Minuten liegt kein ausreichend frischer Kursverlauf vor.':('Kurzfristig: ORCL ist in den letzten '+minutes+' Minuten '+(abs<0.02?'praktisch unverändert':(pct>0?'um '+abs.toFixed(2)+' % gestiegen':'um '+abs.toFixed(2)+' % gefallen'))+' ('+price.from.toFixed(2)+' → '+price.to.toFixed(2)+' USD).');
+  const daySentence=day.available?(' Heute liegt ORCL gegenüber dem Vortag bei '+(day.pct>=0?'+':'')+Number(day.pct).toFixed(2)+' %.'):'';
+  if(!catalyst)return {brief:move+daySentence+' Für den heutigen Tagesmove findet der Feed aktuell keinen ausreichend konkreten Unternehmens-Katalysator; deshalb wäre eine Ursachenbehauptung Spekulation.',price,day,items:items.slice(0,8),context_items:contextItems.slice(0,12),tone,catalyst:null,evidence:'thin'};
+  const topTitle=String(catalyst.item.summary||catalyst.item.title||'').replace(/\s+/g,' ').trim();
+  const lead=' Tageskontext: '+catalyst.summary;
+  const support=catalyst.related_count>1?(' Dazu liegen '+catalyst.related_count+' thematisch passende Meldungen im 18-Stunden-Kontext vor.'):(' Wichtigste Meldung: „'+topTitle.slice(0,190)+(topTitle.length>190?'…':'')+'“.');
+  const caveat=catalyst.confidence==='high'?' Das ist der stärkste bekannte Katalysator im heutigen Feed und passt zur Tagesbewegung; der Kurs kann zusätzlich von Markt- und Positionierungseffekten beeinflusst sein.':' Das passt zur Tagesbewegung, ist aber keine allein bewiesene Ursache.';
+  return {brief:move+daySentence+lead+support+caveat,price,day,items:items.slice(0,8),context_items:contextItems.slice(0,12),tone,catalyst:{theme:catalyst.theme,score:catalyst.score,confidence:catalyst.confidence,related_count:catalyst.related_count,title:topTitle,url:catalyst.item.url||'',site:catalyst.item.site||'',time:wgoEventMs(catalyst.item)},evidence:catalyst.confidence};
 }
 async function wgoAiBrief(base){
   const key=String(process.env.OPENAI_API_KEY||'').trim(),model=String(process.env.OPENAI_MODEL||'').trim();if(!key||!model)return null;
   try{
-    const payload={model,input:[{role:'system',content:WHATS_GOING_ON_PROMPT},{role:'user',content:JSON.stringify({minutes:base.minutes,price:base.price,tone:base.tone,items:base.items.map(x=>({title:x.summary||x.title,site:x.site,channel:x.channel,time:wgoEventMs(x)}))})}],max_output_tokens:220};
+    const payload={model,input:[{role:'system',content:WHATS_GOING_ON_PROMPT},{role:'user',content:JSON.stringify({minutes:base.minutes,price:base.price,day:base.day,tone:base.tone,catalyst:base.catalyst,window_items:base.items.map(x=>({title:x.summary||x.title,site:x.site,channel:x.channel,time:wgoEventMs(x)})),day_context:base.context_items.map(x=>({title:x.summary||x.title,site:x.site,channel:x.channel,time:wgoEventMs(x)}))})}],max_output_tokens:320};
     const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+key},body:JSON.stringify(payload),signal:AbortSignal.timeout(12000)});
     if(!r.ok)return null;const j=await r.json();const txt=String(j.output_text||'').trim();return txt||null;
   }catch{return null;}
 }
 async function whatsGoingOn(minutes){
   const m=minutes===5?5:10,base=wgoDeterministic(m);base.minutes=m;base.generated_at=new Date().toISOString();
-  const ai=await wgoAiBrief(base);return {...base,brief:ai||base.brief,mode:ai?'ai':'deterministic',prompt_contract:'observation_vs_interpretation_no_false_causality'};
+  const ai=await wgoAiBrief(base);return {...base,brief:ai||base.brief,mode:ai?'ai':'deterministic',prompt_contract:'short_window_plus_day_context_catalyst_without_false_causality'};
 }
 
 function sendEvent(res,obj,eventName='market'){
