@@ -618,7 +618,7 @@
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand309";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand308";
     import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view404";
 
     const canvas = document.getElementById("bookCanvas");
@@ -1000,7 +1000,6 @@
 
     let bookCore=null;
     let viewControls=null;
-    let endCoverReopened=false;
 
     function updateLeafVisibility(){
       // Keep the full physical stack rendered. Culling neighbouring sheets
@@ -1012,26 +1011,20 @@
     function portraitFocusForState(state){
       if(!singlePageMode||!totalLeaves)return 0;
 
-      if(state.closedSide==="end"&&!state.activeBoundary){
-        endCoverReopened=true;
-        return 1;
-      }
+      // Keep the camera on the right through the entire final paper turn.
+      // Only the END hardcover may move the framing to the left.
+      if(state.closedSide==="end"&&!state.activeBoundary)return 1;
 
       const boundary=state.activeBoundary;
       if(boundary?.side==="end"){
-        // When reopening, the last page is still on the left. Keep focus there.
-        if(boundary.target===0){
-          endCoverReopened=true;
-          return 1;
-        }
-        endCoverReopened=false;
         const p=Math.max(0,Math.min(1,Number(boundary.progress)||0));
+        // Let the hardcover visibly fall first. Camera movement begins only
+        // after ~45% closure, then eases to the left as the cover finishes.
         const t=Math.max(0,Math.min(1,(p-.45)/.55));
         return t*t*(3-2*t);
       }
 
-      if(state.currentLeaf<totalLeaves)endCoverReopened=false;
-      return endCoverReopened?1:0;
+      return 0;
     }
 
     function spreadFocusForState(state){
