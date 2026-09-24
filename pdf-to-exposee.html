@@ -203,26 +203,12 @@
     }
     #bookCanvas{
       position:absolute;inset:0;width:100%;height:100%;display:block;z-index:1;
-      filter:drop-shadow(0 10px 18px rgba(28,22,16,.10));
-      transition:filter .18s var(--ease,cubic-bezier(.22,.61,.36,1)),transform .18s var(--ease,cubic-bezier(.22,.61,.36,1));
-      transform-origin:center;
-    }
-    .stage.is-book-dragging #bookCanvas{
-      filter:
-        drop-shadow(0 18px 27px rgba(28,22,16,.22))
-        drop-shadow(0 0 12px rgba(184,154,99,.24));
-      transform:scale(1.003);
     }
     .stage.is-book-dragging{cursor:grabbing!important}
     .stage.is-book-dragging .interaction-zone,
     .stage.is-book-dragging .tapzone{cursor:grabbing!important}
     .stage.is-view-pinching,
     .stage.is-view-pinching *{cursor:default!important}
-    .stage.is-view-pinching #bookCanvas{
-      filter:
-        drop-shadow(0 20px 30px rgba(28,22,16,.22))
-        drop-shadow(0 0 14px rgba(184,154,99,.18));
-    }
     .empty{
       position:absolute;inset:0;z-index:2;
       display:grid;place-items:center;text-align:center;padding:40px;
@@ -555,7 +541,7 @@
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
     import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand308";
-    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view404";
+    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view406";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
@@ -946,24 +932,15 @@
     }
 
     function spreadFocusForState(state){
-      if(singlePageMode||!totalLeaves)return 0;
-
-      const turns=state.activeTurns||[];
-      const firstTurn=turns.find(t=>Number(t.index)===0);
-      if(firstTurn){
-        const p=Math.max(0,Math.min(1,Number(firstTurn.progress)||0));
-        return .5*p;
+      if(singlePageMode||!totalLeaves)return .5;
+      const boundary=state.activeBoundary;
+      if(boundary){
+        const p=Math.max(0,Math.min(1,Number(boundary.progress)||0));
+        if(boundary.side==="start")return .5*(1-p);
+        if(boundary.side==="end")return .5+.5*p;
       }
-
-      const lastTurn=turns.find(t=>Number(t.index)===totalLeaves-1);
-      if(lastTurn){
-        const p=Math.max(0,Math.min(1,Number(lastTurn.progress)||0));
-        return .5+.5*p;
-      }
-
-      const current=Math.max(0,Math.min(totalLeaves,Number(state.currentLeaf)||0));
-      if(current<=0)return 0;
-      if(current>=totalLeaves)return 1;
+      if(state.closedSide==="start")return 0;
+      if(state.closedSide==="end")return 1;
       return .5;
     }
 
@@ -1025,6 +1002,7 @@
       root,
       getPageWidth:()=>PAGE_W,
       getPageHeight:()=>PAGE_H,
+      getCoverWidth:()=>PAGE_W+.33,
       fitButton:fitViewBtn,
       onPinchStart:()=>bookCore.cancelDrag(),
       minPixelRatio:()=>IS_IOS_WEBKIT?(singlePageMode?1.5:1):2,

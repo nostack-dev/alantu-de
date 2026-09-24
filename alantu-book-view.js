@@ -6,6 +6,7 @@ export function createAlantuBookViewControls({
   root,
   getPageWidth,
   getPageHeight=()=>4.80,
+  getCoverWidth=()=>getPageWidth(),
   fitButton=null,
   onPinchStart=()=>{},
   minPixelRatio=2,
@@ -20,12 +21,19 @@ export function createAlantuBookViewControls({
   let pinch=null;
   let singleFocus=0;
   let singleFocusTarget=0;
-  let spreadFocus=0;
-  let spreadFocusTarget=0;
+  let spreadFocus=.5;
   let lastViewStep=performance.now();
   let focusTravelX=0;
   const spreadCameraPosition=camera.position.clone();
   const singleCameraZ=Math.max(6,Number(camera.position.z)||10.8);
+
+  function spreadOffset(pageW,scale){
+    const coverW=Math.max(pageW,Number(getCoverWidth())||pageW);
+    // The spine is at -pageW/2. A closed cover has its centre a half
+    // cover-width to either side of that hinge; an open spread has its
+    // centre at the hinge. Follow the actual cover position in this frame.
+    return (pageW*.5+(spreadFocus-.5)*coverW)*scale;
+  }
 
   function isFullscreen(){
     return document.fullscreenElement===stage||
@@ -102,10 +110,7 @@ export function createAlantuBookViewControls({
       camera.position.x=pan;
       camera.lookAt(pan,0,0);
     }else{
-      // Landscape/desktop: keep the physical two-page spread geometrically
-      // centred in the viewport at all times. PAGE_W/2 is the exact centre
-      // between the left and right sheet around the shared spine.
-      root.position.set(pageW*scale*.5,.015,0);
+      root.position.set(spreadOffset(pageW,scale),.015,0);
       camera.position.copy(spreadCameraPosition);
       camera.lookAt(0,0,0);
     }
@@ -132,11 +137,8 @@ export function createAlantuBookViewControls({
   }
 
   function setSpreadFocus(value,{immediate=false}={}){
-    spreadFocusTarget=clamp(Number(value)||0,0,1);
-    if(immediate){
-      spreadFocus=spreadFocusTarget;
-      applyView();
-    }
+    spreadFocus=clamp(Number(value)||0,0,1);
+    if(immediate)applyView();
   }
 
   function step(now=performance.now()){
@@ -144,7 +146,6 @@ export function createAlantuBookViewControls({
     lastViewStep=now;
     const single=getPresentationMode()==="single";
     if(single){
-      spreadFocus=spreadFocusTarget=0;
       const delta=singleFocusTarget-singleFocus;
       if(Math.abs(delta)<.0005){
         singleFocus=singleFocusTarget;
@@ -158,12 +159,9 @@ export function createAlantuBookViewControls({
       camera.lookAt(pan,0,0);
     }else{
       singleFocus=singleFocusTarget=0;
-      // Never pan the desktop/landscape spread. Only portrait single-page
-      // mode is allowed to move the reading camera between right and left.
-      spreadFocus=spreadFocusTarget=.5;
       const pageW=Math.max(.1,Number(getPageWidth())||3.52);
       const scale=fitScale*zoom;
-      root.position.x=pageW*scale*.5;
+      root.position.x=spreadOffset(pageW,scale);
     }
   }
 
