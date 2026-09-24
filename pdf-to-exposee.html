@@ -565,7 +565,7 @@
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
     import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand310";
-    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view405";
+    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view404";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
@@ -987,21 +987,24 @@
     }
 
     function spreadFocusForState(state){
-      if(singlePageMode||!totalLeaves)return .5;
+      if(singlePageMode||!totalLeaves)return 0;
 
-      // Only the hardcover changes the landscape framing. Ordinary page
-      // turns keep the open spread centred. As a cover closes, smoothly
-      // recenter the now single-width closed book; opening reverses the move.
-      const boundary=state.activeBoundary;
-      if(boundary){
-        const p=Math.max(0,Math.min(1,Number(boundary.progress)||0));
-        const eased=p*p*(3-2*p);
-        if(boundary.side==="start")return .5*(1-eased);
-        if(boundary.side==="end")return .5+.5*eased;
+      const turns=state.activeTurns||[];
+      const firstTurn=turns.find(t=>Number(t.index)===0);
+      if(firstTurn){
+        const p=Math.max(0,Math.min(1,Number(firstTurn.progress)||0));
+        return .5*p;
       }
 
-      if(state.closedSide==="start")return 0;
-      if(state.closedSide==="end")return 1;
+      const lastTurn=turns.find(t=>Number(t.index)===totalLeaves-1);
+      if(lastTurn){
+        const p=Math.max(0,Math.min(1,Number(lastTurn.progress)||0));
+        return .5+.5*p;
+      }
+
+      const current=Math.max(0,Math.min(totalLeaves,Number(state.currentLeaf)||0));
+      if(current<=0)return 0;
+      if(current>=totalLeaves)return 1;
       return .5;
     }
 
@@ -1063,7 +1066,6 @@
       root,
       getPageWidth:()=>PAGE_W,
       getPageHeight:()=>PAGE_H,
-      getCoverWidth:()=>PAGE_W*1.055,
       fitButton:fitViewBtn,
       onPinchStart:()=>bookCore.cancelDrag(),
       minPixelRatio:()=>IS_IOS_WEBKIT?(singlePageMode?1.5:1):2,
