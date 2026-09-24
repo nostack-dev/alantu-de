@@ -88,18 +88,29 @@ export function createAlantuBookViewControls({
     const scale=fitScale*zoom;
     root.scale.setScalar(scale);
 
-    baseX=single?0:pageW*.5*scale;
-    focusTravelX=single?pageW*scale:0;
-    root.position.set(baseX,.015,0);
-
     // Exact reading plane on portrait. The page itself still bends in Z while
     // turning, so the animation keeps its physical depth.
     root.rotation.set(single?0:-.06,single?0:-.085,single?0:-.006);
 
+    focusTravelX=single?pageW*scale:0;
     if(single){
+      // Keep the proven portrait framing unchanged.
+      baseX=0;
+      root.position.set(baseX,.015,0);
       const pan=-focusTravelX*singleFocus;
       camera.position.x=pan;
       camera.lookAt(pan,0,0);
+    }else{
+      // The open spread's local visual centre is half a page left of the
+      // hinge and slightly above the page stack in Z. Rotate that centre by
+      // the same book tilt, then cancel its projected X exactly. This keeps
+      // desktop/landscape centred at every aspect ratio and zoom level.
+      const spreadCentre=new THREE.Vector3(-pageW*.5,0,.175);
+      spreadCentre.applyEuler(root.rotation).multiplyScalar(scale);
+      baseX=-spreadCentre.x;
+      root.position.set(baseX,.015,0);
+      camera.position.copy(spreadCameraPosition);
+      camera.lookAt(0,0,0);
     }
   }
 
