@@ -1,10 +1,10 @@
 {
-  "updated_at": "2026-09-24T14:44:43+02:00",
+  "updated_at": "2026-09-24T15:18:35+02:00",
   "sources": {
     "reddit": {
       "ok": true,
-      "mentions": 4,
-      "sentiment": 100,
+      "mentions": 14,
+      "sentiment": 71,
       "provider": "apewisdom.io"
     },
     "news": {
@@ -14,16 +14,16 @@
     },
     "yahoo": {
       "ok": true,
-      "price": 138.5,
-      "price_at": "2026-09-24T12:44:40.000Z"
+      "price": 137.74,
+      "price_at": "2026-09-24T13:18:31.000Z"
     }
   },
   "derived": {
-    "signal": "hold",
-    "hype_bull": 14,
-    "hype_bear": 32,
-    "hype_mixed": 54,
-    "hype_net": -18,
-    "confidence": 73
+    "signal": "sell",
+    "hype_bull": 18,
+    "hype_bear": 45,
+    "hype_mixed": 37,
+    "hype_net": -27,
+    "confidence": 79
   }
 }
