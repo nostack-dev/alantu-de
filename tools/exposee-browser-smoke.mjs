@@ -18,47 +18,69 @@ async function run(url,label,viewport){
   await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});
   await page.waitForTimeout(5000);
 
-  const state=await page.evaluate(async()=>{
-    const q=s=>document.querySelector(s);
-    const rect=el=>{const r=el?.getBoundingClientRect();return r?{x:r.x,y:r.y,width:r.width,height:r.height}:null};
-    const axis=q('.axis-controls');
-    const top=q('.stage-top');
-    const x=q('#tiltXValue'), y=q('#tiltYValue');
-    const ids=['tiltXLess','tiltXMore','tiltYLess','tiltYMore'];
-    const controls=Object.fromEntries(ids.map(id=>[id,!!document.getElementById(id)]));
-    const topRect=rect(top), axisRect=rect(axis);
-    const beforeFullscreen=axis?getComputedStyle(axis).display:null;
-
-    let fullscreenDisplay=null;
-    const stage=q('#stage');
-    if(stage&&axis&&stage.requestFullscreen){
-      try{
-        await stage.requestFullscreen();
-        await new Promise(r=>setTimeout(r,300));
-        fullscreenDisplay=getComputedStyle(axis).display;
-        if(document.fullscreenElement)await document.exitFullscreen();
-      }catch(e){
-        fullscreenDisplay='fullscreen-api-unavailable:'+String(e?.message||e);
-      }
-    }
-
+  const initial=await page.evaluate(()=>{
+    const stage=document.getElementById('stage');
+    const ui=document.querySelector('.stage-ui');
+    const cs=ui?getComputedStyle(ui):null;
+    const share=document.getElementById('shareLinkBtn');
     return {
-      title:document.title,
-      ready:document.readyState,
-      axisExists:!!axis,
-      topExists:!!top,
-      axisRect,topRect,
-      sameTopRow:!!axisRect&&!!topRect&&axisRect.y>=topRect.y-2&&axisRect.y+axisRect.height<=topRect.y+topRect.height+2,
-      xValue:x?.value||x?.textContent||null,
-      yValue:y?.value||y?.textContent||null,
-      controls,
-      beforeFullscreen,
-      fullscreenDisplay,
-      overflow:document.documentElement.scrollWidth-window.innerWidth,
-      canvasCount:document.querySelectorAll('canvas').length,
-      body:(document.body?.innerText||'').slice(0,1200)
+      stage:!!stage,
+      canvas:!!document.getElementById('bookCanvas'),
+      debug:stage?.classList.contains('debug-controls')||false,
+      ui:{exists:!!ui,display:cs?.display||null,visibility:cs?.visibility||null,opacity:cs?.opacity||null},
+      share:{exists:!!share,outsideStage:!!share&&!!stage&&!stage.contains(share)},
+      overflow:document.documentElement.scrollWidth-window.innerWidth
     };
   });
+
+  await page.keyboard.press('d');
+  await page.waitForTimeout(250);
+
+  const debug=await page.evaluate(()=>{
+    const stage=document.getElementById('stage');
+    const ui=document.querySelector('.stage-ui');
+    const cs=ui?getComputedStyle(ui):null;
+    const val=id=>document.getElementById(id)?.value||document.getElementById(id)?.textContent||null;
+    const ids=['tiltXLess','tiltXMore','tiltYLess','tiltYMore','tiltZLess','tiltZMore','zoomLess','zoomMore'];
+    return {
+      debug:stage?.classList.contains('debug-controls')||false,
+      ui:{display:cs?.display||null,visibility:cs?.visibility||null,opacity:cs?.opacity||null},
+      values:{x:val('tiltXValue'),y:val('tiltYValue'),z:val('tiltZValue'),zoom:val('zoomValue')},
+      controls:Object.fromEntries(ids.map(id=>[id,!!document.getElementById(id)]))
+    };
+  });
+
+  await page.locator('#tiltZMore').click();
+  await page.locator('#zoomMore').click();
+  await page.waitForTimeout(100);
+  const changed=await page.evaluate(()=>({
+    z:document.getElementById('tiltZValue')?.value||null,
+    zoom:document.getElementById('zoomValue')?.value||null
+  }));
+
+  // Keyboard fullscreen must work even though normal controls start hidden.
+  await page.keyboard.press('f');
+  await page.waitForTimeout(450);
+  const fOn=await page.evaluate(()=>{
+    const stage=document.getElementById('stage');
+    const ui=document.querySelector('.stage-ui');
+    return {
+      active:document.fullscreenElement===stage||document.webkitFullscreenElement===stage||stage?.classList.contains('is-faux-fullscreen')||false,
+      uiDisplay:ui?getComputedStyle(ui).display:null
+    };
+  });
+  await page.keyboard.press('f');
+  await page.waitForTimeout(350);
+
+  // Canvas double click must independently toggle fullscreen.
+  await page.locator('#bookCanvas').dblclick({force:true});
+  await page.waitForTimeout(450);
+  const dblOn=await page.evaluate(()=>{
+    const stage=document.getElementById('stage');
+    return document.fullscreenElement===stage||document.webkitFullscreenElement===stage||stage?.classList.contains('is-faux-fullscreen')||false;
+  });
+  await page.locator('#bookCanvas').dblclick({force:true});
+  await page.waitForTimeout(350);
 
   const safe=label.replace(/[^a-z0-9_-]+/gi,'-');
   await page.screenshot({path:`${out}/${safe}-${viewport.width}.png`,fullPage:true});
@@ -68,19 +90,22 @@ async function run(url,label,viewport){
   if(pageErrors.length)errors.push('pageerror:'+JSON.stringify(pageErrors));
   if(httpErrors.length)errors.push('http:'+JSON.stringify(httpErrors));
   if(failed.length)errors.push('requestfailed:'+JSON.stringify(failed));
-  if(!state.axisExists||!state.topExists)errors.push('axis-controls-missing');
-  if(!state.sameTopRow)errors.push('axis-controls-not-in-top-row');
-  if(state.xValue!=='4°')errors.push('x-default:'+String(state.xValue));
-  if(state.yValue!=='2°')errors.push('y-default:'+String(state.yValue));
-  if(Object.values(state.controls).some(v=>!v))errors.push('axis-buttons-missing:'+JSON.stringify(state.controls));
-  if(state.beforeFullscreen==='none')errors.push('axis-hidden-before-fullscreen');
-  if(state.fullscreenDisplay!=='none'&&!String(state.fullscreenDisplay||'').startsWith('fullscreen-api-unavailable:')){
-    errors.push('axis-visible-in-fullscreen:'+String(state.fullscreenDisplay));
-  }
-  if(state.overflow>4)errors.push('horizontal-overflow:'+state.overflow);
-  if(state.canvasCount<1)errors.push('canvas-missing');
+  if(!initial.stage||!initial.canvas||!initial.ui.exists)errors.push('renderer-ui-missing');
+  if(initial.debug)errors.push('debug-controls-enabled-by-default');
+  if(initial.ui.visibility!=='hidden'||Number(initial.ui.opacity)>0.01)errors.push('controls-visible-by-default:'+JSON.stringify(initial.ui));
+  if(!debug.debug||debug.ui.visibility!=='visible'||Number(debug.ui.opacity)<.99)errors.push('debug-key-did-not-show-controls:'+JSON.stringify(debug.ui));
+  if(Object.values(debug.controls).some(v=>!v))errors.push('debug-controls-missing:'+JSON.stringify(debug.controls));
+  if(debug.values.x!=='4°'||debug.values.y!=='2°'||debug.values.z!=='0°'||debug.values.zoom!=='100%')errors.push('debug-defaults:'+JSON.stringify(debug.values));
+  if(changed.z!=='1°')errors.push('z-control-failed:'+String(changed.z));
+  if(!(parseInt(changed.zoom,10)>100))errors.push('zoom-control-failed:'+String(changed.zoom));
+  if(!fOn.active)errors.push('keyboard-fullscreen-failed');
+  if(fOn.uiDisplay!=='none')errors.push('controls-visible-in-fullscreen:'+String(fOn.uiDisplay));
+  if(!dblOn)errors.push('doubleclick-fullscreen-failed');
+  if(initial.overflow>4)errors.push('horizontal-overflow:'+initial.overflow);
+  if(label.startsWith('landing')&&(!initial.share.exists||!initial.share.outsideStage))errors.push('share-link-not-outside-renderer');
+  if(label.startsWith('builder')&&initial.share.exists)errors.push('share-link-present-in-builder');
 
-  console.log(JSON.stringify({url,label,viewport,state,consoleErrors,pageErrors,httpErrors,failed,ok:errors.length===0,errors},null,2));
+  console.log(JSON.stringify({url,label,viewport,initial,debug,changed,fOn,dblOn,consoleErrors,pageErrors,httpErrors,failed,ok:errors.length===0,errors},null,2));
   await browser.close();
   if(errors.length)throw new Error(label+' smoke failed: '+errors.join(' | '));
 }
