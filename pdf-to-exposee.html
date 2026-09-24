@@ -564,7 +564,7 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand309";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand310";
     import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view404";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
@@ -695,71 +695,31 @@
     stage.addEventListener("pointermove",e=>{if(e.pointerType==="touch")requestAnimationFrame(updateZoomValue)},{passive:true});
     updateTilt();
 
-    function createFineFiberTexture(size=256){
-      const fiberCanvas=document.createElement("canvas");
-      fiberCanvas.width=fiberCanvas.height=size;
-      const ctx=fiberCanvas.getContext("2d",{alpha:false});
-      const image=ctx.createImageData(size,size);
-      let seed=0x5f3759df;
-      const rand=()=>{
-        seed=(Math.imul(seed,1664525)+1013904223)>>>0;
-        return seed/4294967296;
-      };
-      for(let y=0;y<size;y++){
-        for(let x=0;x<size;x++){
-          const i=(y*size+x)*4;
-          const fiber=(Math.sin(y*.72)+Math.sin(x*.17))*.9;
-          const noise=(rand()-.5)*13;
-          const v=Math.max(0,Math.min(255,128+fiber+noise));
-          image.data[i]=image.data[i+1]=image.data[i+2]=v;
-          image.data[i+3]=255;
-        }
-      }
-      ctx.putImageData(image,0,0);
-      const tex=new THREE.CanvasTexture(fiberCanvas);
-      tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
-      tex.repeat.set(5,7);
-      tex.colorSpace=THREE.NoColorSpace;
-      tex.minFilter=THREE.LinearMipmapLinearFilter;
-      tex.magFilter=THREE.LinearFilter;
-      tex.generateMipmaps=true;
-      tex.anisotropy=Math.max(1,renderer.capabilities.getMaxAnisotropy());
-      tex.needsUpdate=true;
-      return tex;
-    }
-
-    const hardcoverFiber=createFineFiberTexture(256);
-    const paperFiber=createFineFiberTexture(192);
-
-    function ivoryHardcoverMaterial({printMap=null}={}){
-      return new THREE.MeshPhysicalMaterial({
-        color:printMap?0xffffff:0xf5f0e7,
-        map:printMap,
-        roughness:printMap ? .78 : .88,
-        metalness:0,
-        clearcoat:.055,
-        clearcoatRoughness:.86,
-        sheen:.08,
-        sheenRoughness:.9,
-        sheenColor:new THREE.Color(0xfffbf2),
-        bumpMap:hardcoverFiber,
-        bumpScale:printMap ? .010 : .016,
-        toneMapped:false
-      });
-    }
-
-    const coverMaterial=ivoryHardcoverMaterial();
-    const edgeMaterial=new THREE.MeshPhysicalMaterial({
-      color:0xeee8de,roughness:.94,metalness:0,
-      bumpMap:paperFiber,bumpScale:.0018,toneMapped:false
+    // Match the Box2D/Box3D reference materials. The sharpness upgrade lives
+    // in the PDF raster + texture sampling, not in extra coating overlays.
+    const coverMaterial=new THREE.MeshStandardMaterial({
+      color:0x171713,
+      roughness:.68,
+      metalness:.06
     });
-    const spineMaterial=ivoryHardcoverMaterial();
+    const edgeMaterial=new THREE.MeshStandardMaterial({
+      color:0xece5d8,
+      roughness:.92
+    });
+    const spineMaterial=new THREE.MeshStandardMaterial({
+      color:0xb89a63,
+      roughness:.4,
+      metalness:.35
+    });
 
     function hardcoverMaterials(title){
       const canvas=createAlantuCoverCanvas({
         title,
         brand:currentBrand,
         subtitle:currentSubtitle,
+        brandColor:"#c4a66d",
+        titleColor:"#c4a66d",
+        subtitleColor:"#d8c8a7",
         width:2000,
         height:2667
       });
@@ -770,24 +730,19 @@
         colorSpace:THREE.SRGBColorSpace
       });
 
-      // +Z carries the print. Every remaining face, including the inside,
-      // is the same warm ivory textured hardcover.
-      return [
-        ivoryHardcoverMaterial(),ivoryHardcoverMaterial(),
-        ivoryHardcoverMaterial(),ivoryHardcoverMaterial(),
-        ivoryHardcoverMaterial({printMap:texture}),
-        ivoryHardcoverMaterial()
-      ];
-    }
+      const side=()=>coverMaterial.clone();
+      const exterior=coverMaterial.clone();
+      exterior.map=texture;
+      exterior.color.set(0xffffff);
+      exterior.needsUpdate=true;
+      const interior=new THREE.MeshStandardMaterial({
+        color:0xf4f0e8,
+        roughness:.94,
+        metalness:0
+      });
 
-    function hardcoverPageMaterials(pageCanvas){
-      const texture=createTexture(pageCanvas);
-      return [
-        ivoryHardcoverMaterial(),ivoryHardcoverMaterial(),
-        ivoryHardcoverMaterial(),ivoryHardcoverMaterial(),
-        ivoryHardcoverMaterial({printMap:texture}),
-        ivoryHardcoverMaterial()
-      ];
+      // +Z = dark front with gold lettering. -Z = warm-white inside cover.
+      return [side(),side(),side(),side(),exterior,interior];
     }
 
     function cleanBrandValue(value,fallback){
@@ -1197,9 +1152,9 @@
 
       frontCover=new THREE.Mesh(
         new THREE.BoxGeometry(COVER_W,COVER_H,COVER_T),
-        hardcoverPageMaterials(normalized[0])
+        hardcoverMaterials(currentCoverTitle)
       );
-      frontCoverUsesPdf=true;
+      frontCoverUsesPdf=false;
       frontCover.position.set(COVER_W/2,0,0);
       frontCover.castShadow=true;
       frontCover.receiveShadow=true;
@@ -1208,9 +1163,10 @@
       backCover=new THREE.Mesh(
         new THREE.BoxGeometry(COVER_W,COVER_H,COVER_T),
         [
-          ivoryHardcoverMaterial(),ivoryHardcoverMaterial(),
-          ivoryHardcoverMaterial(),ivoryHardcoverMaterial(),
-          ivoryHardcoverMaterial(),ivoryHardcoverMaterial()
+          coverMaterial.clone(),coverMaterial.clone(),
+          coverMaterial.clone(),coverMaterial.clone(),
+          new THREE.MeshStandardMaterial({color:0xf4f0e8,roughness:.94,metalness:0}),
+          coverMaterial.clone()
         ]
       );
       backCover.position.set(COVER_W/2,0,0);
@@ -1259,10 +1215,7 @@
           map:pageTextures[frontIndex],
           roughness:.88,
           metalness:0,
-          bumpMap:paperFiber,
-          bumpScale:.00075,
-          side:THREE.FrontSide,
-          toneMapped:false
+          side:THREE.FrontSide
         });
 
         let backMap=null;
@@ -1271,12 +1224,9 @@
         const backMat=new THREE.MeshStandardMaterial({
           map:backMap,
           color:backMap?0xffffff:0xeee7db,
-          roughness:.90,
+          roughness:.9,
           metalness:0,
-          bumpMap:paperFiber,
-          bumpScale:.00075,
-          side:THREE.BackSide,
-          toneMapped:false
+          side:THREE.BackSide
         });
 
         const front=new THREE.Mesh(geometry,frontMat);
