@@ -44,7 +44,9 @@ async function run(name,viewport){
     const ids=['modelDecision','hypothesisDecision','v5Research','forecastProof','forecastProofStrip','marketFlow'];
     const boxes=Object.fromEntries(ids.map(id=>{
       const el=document.getElementById(id),r=el?.getBoundingClientRect(),cs=el?getComputedStyle(el):null;
-      return [id,{exists:!!el,visible:!!r&&r.width>0&&r.height>0,width:r?.width||0,height:r?.height||0,text:(el?.textContent||'').trim().slice(0,500),
+      const closedDetails=el?.closest?.('details:not([open])');
+      const visible=!!r&&r.width>0&&r.height>0&&!(closedDetails&&closedDetails!==el);
+      return [id,{exists:!!el,visible,width:r?.width||0,height:r?.height||0,text:(el?.textContent||'').trim().slice(0,500),
         html:(el?.innerHTML||'').slice(0,1200),display:cs?.display||null,visibility:cs?.visibility||null,opacity:cs?.opacity||null}];
     }));
     const st=typeof shadowTrailState!=='undefined'?shadowTrailState:null;
