@@ -511,7 +511,7 @@
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
     import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand308";
-    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view403";
+    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view404";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
@@ -562,7 +562,7 @@
 
     const scene=new THREE.Scene();
     const camera=new THREE.PerspectiveCamera(29,1,.1,100);
-    camera.position.set(.1,1.35,10.8);
+    camera.position.set(0,1.35,10.8);
     camera.lookAt(0,0,0);
 
     scene.add(new THREE.HemisphereLight(0xfffbf3,0x66594b,2.35));
@@ -1067,22 +1067,20 @@
         const geometry=baseGeometry.clone();
         geometry.userData.basePosition=geometry.attributes.position.array.slice();
 
-        const frontMat=new THREE.MeshStandardMaterial({
+        const frontMat=new THREE.MeshBasicMaterial({
           map:pageTextures[frontIndex],
-          roughness:.88,
-          metalness:0,
-          side:THREE.FrontSide
+          side:THREE.FrontSide,
+          toneMapped:false
         });
 
         let backMap=null;
         if(backIndex>=0&&backIndex<totalPages)backMap=mirroredTexture(normalized[backIndex]);
 
-        const backMat=new THREE.MeshStandardMaterial({
+        const backMat=new THREE.MeshBasicMaterial({
           map:backMap,
           color:backMap?0xffffff:0xeee7db,
-          roughness:.9,
-          metalness:0,
-          side:THREE.BackSide
+          side:THREE.BackSide,
+          toneMapped:false
         });
 
         const front=new THREE.Mesh(geometry,frontMat);
