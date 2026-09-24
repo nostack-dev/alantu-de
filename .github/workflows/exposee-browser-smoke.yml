@@ -62,7 +62,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: alantu-exposee-browser-smoke
-          path: /tmp/alantu-exposee-smoke/*.png
+          path: |
+            /tmp/alantu-exposee-smoke/*.png
+            /tmp/alantu-exposee-smoke/*.webm
           if-no-files-found: ignore
       - name: Publish smoke status
         if: always()

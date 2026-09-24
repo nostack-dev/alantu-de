@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {mkdir} from 'node:fs/promises';
+import {mkdir,rename} from 'node:fs/promises';
 import {chromium} from 'playwright';
 
 const origin=process.env.EXPOSEE_ORIGIN||'https://www.alantu.de';
@@ -12,7 +12,12 @@ async function run(kind,viewport){
     headless:true,
     args:['--enable-webgl','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']
   });
-  const page=await browser.newPage({viewport,deviceScaleFactor:1});
+  const context=await browser.newContext({
+    viewport,deviceScaleFactor:1,
+    recordVideo:{dir:out,size:viewport}
+  });
+  const page=await context.newPage();
+  const video=page.video();
   const errors=[];
   page.on('pageerror',error=>errors.push(String(error)));
   page.on('console',message=>{
@@ -58,6 +63,8 @@ async function run(kind,viewport){
     assert.equal(errors.length,0,errors.join('\n'));
     console.log(`${marker}: WebGL, opening, page turns, closing, reverse and screenshots OK`);
   }finally{
+    await context.close();
+    if(video)await rename(await video.path(),`${out}/${kind}-${viewport.width}-motion.webm`);
     await browser.close();
   }
 }
