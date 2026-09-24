@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-09-24T11:33:42+02:00",
+  "updated_at": "2026-09-24T13:55:52+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-24T11:33:42+02:00",
-    "scraped_at": "2026-09-24T11:33:42+02:00",
+    "tick_id": "2026-09-24T13:55:52+02:00",
+    "scraped_at": "2026-09-24T13:55:52+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "PublicReddit": {
@@ -11,7 +11,7 @@
         "items": 4,
         "provider": "apewisdom.io",
         "window": "24h aggregate snapshot",
-        "freshest": "2026-09-24T11:33:42+02:00",
+        "freshest": "2026-09-24T13:55:52+02:00",
         "sentiment_pct_bullish": 100,
         "upvotes_24h": 8
       },
@@ -20,20 +20,20 @@
         "items": 20,
         "provider": "news.google.com",
         "window": "last 36h, fetched now",
-        "freshest": "2026-09-24T11:33:42+02:00",
+        "freshest": "2026-09-24T13:55:52+02:00",
         "notes": [
           "Oracle (ORCL) Stock Could Be 27% Undervalued Despite AI Debt Worries",
           "Oracle co-CEO sells $3.4 million in shares as stock falls 56% one year after his appointment",
-          "Trump Downplayed AI Safety Concerns, but His Investment Portfolio Bought Cybersecurity Stocks"
+          "What's Going On With Oracle Stock Thursday?"
         ]
       },
       "Yahoo": {
         "status": "ok",
         "items": 1,
         "prices": {
-          "ORCL": 142.21
+          "ORCL": 142.65
         },
-        "price_at": "2026-09-24T09:31:05.000Z",
+        "price_at": "2026-09-24T11:55:44.000Z",
         "note": "Yahoo chart 5d/1m fallback feed"
       }
     },
@@ -49,20 +49,20 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-24T11:33:42+02:00",
+      "freshest_absolute": "2026-09-24T13:55:52+02:00",
       "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
       "quality": "medium-high public sources",
-      "scrape_berlin": "2026-09-24T11:33:42+02:00",
+      "scrape_berlin": "2026-09-24T13:55:52+02:00",
       "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
       "freshest_item_age": "snapshot fetched now",
-      "oldest_usable_signal": "Trump Downplayed AI Safety Concerns, but His Investment Portfolio Bought Cybersecurity Stocks"
+      "oldest_usable_signal": "What's Going On With Oracle Stock Thursday?"
     },
     "vector": {
       "direction": "leicht_bearish_risk_off",
-      "magnitude": 36,
+      "magnitude": 35,
       "confidence": 73,
       "early_signal": true,
-      "early_signal_note": "Reddit 100% positiv bei 4 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $142.21."
+      "early_signal_note": "Reddit 100% positiv bei 4 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $142.65."
     },
     "top_themes": [
       {
@@ -483,10 +483,10 @@
         "signal": "hold",
         "confidence": 73,
         "social_impulse": -3,
-        "hype_bull": 18,
-        "hype_bear": 32,
-        "hype_net": -14,
-        "why": "Reddit 100% positiv bei 4 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $142.21.",
+        "hype_bull": 14,
+        "hype_bear": 27,
+        "hype_net": -13,
+        "why": "Reddit 100% positiv bei 4 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $142.65.",
         "evidence": {
           "x_posts": 0,
           "reddit_posts": 4,
@@ -495,14 +495,14 @@
             "ApeWisdom: 4 Mentions/24h, Sentiment 100%",
             "Oracle (ORCL) Stock Could Be 27% Undervalued Despite AI Debt Worries",
             "Oracle co-CEO sells $3.4 million in shares as stock falls 56% one year after his appointment",
-            "Trump Downplayed AI Safety Concerns, but His Investment Portfolio Bought Cybersecurity Stocks"
+            "What's Going On With Oracle Stock Thursday?"
           ]
         },
         "links": {
           "tradingview": "https://www.tradingview.com/symbols/ORCL/",
           "yahoo": "https://finance.yahoo.com/quote/ORCL"
         },
-        "price": 142.21
+        "price": 142.65
       }
     ],
     "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
@@ -511,13 +511,13 @@
   "signals_disclaimer": "",
   "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
   "freshness": {
-    "freshest_absolute": "2026-09-24T11:33:42+02:00",
+    "freshest_absolute": "2026-09-24T13:55:52+02:00",
     "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
     "quality": "medium-high public sources",
-    "scrape_berlin": "2026-09-24T11:33:42+02:00",
+    "scrape_berlin": "2026-09-24T13:55:52+02:00",
     "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
     "freshest_item_age": "snapshot fetched now",
-    "oldest_usable_signal": "Trump Downplayed AI Safety Concerns, but His Investment Portfolio Bought Cybersecurity Stocks"
+    "oldest_usable_signal": "What's Going On With Oracle Stock Thursday?"
   },
   "history": [
     {
@@ -3516,6 +3516,15 @@
       "tick_id": "2026-09-24T11:33:42+02:00",
       "scraped_at": "2026-09-24T11:33:42+02:00",
       "magnitude": 36,
+      "confidence": 73,
+      "direction": "leicht_bearish_risk_off",
+      "items": 21,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-24T13:55:52+02:00",
+      "scraped_at": "2026-09-24T13:55:52+02:00",
+      "magnitude": 35,
       "confidence": 73,
       "direction": "leicht_bearish_risk_off",
       "items": 21,
