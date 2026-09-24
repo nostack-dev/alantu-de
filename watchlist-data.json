@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-24T13:56:09+02:00",
+  "updated_at": "2026-09-24T14:28:17+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,7 +9,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-24T13:56:09+02:00",
+        "at": "2026-09-24T14:28:17+02:00",
         "signal": "hold",
         "social_impulse": -3,
         "hype_bull": 14,
@@ -5124,6 +5124,20 @@
           "voice_bear": 6,
           "voice_mixed": 14,
           "price": 142.65
+        },
+        {
+          "at": "2026-09-24T14:28:17+02:00",
+          "hype_bull": 14,
+          "hype_bear": 27,
+          "hype_net": -13,
+          "social_impulse": -3,
+          "signal": "hold",
+          "confidence": 73,
+          "hype_mixed": 59,
+          "voice_bull": 2,
+          "voice_bear": 6,
+          "voice_mixed": 14,
+          "price": 140.01
         }
       ],
       "voices_archive": [
@@ -5446,28 +5460,28 @@
       "hype_net": -13,
       "confidence": 73,
       "hype_state": "mixed",
-      "updated_at": "2026-09-24T13:56:09+02:00",
-      "why": "Reddit 100% positiv bei 4 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $142.65.",
+      "updated_at": "2026-09-24T14:28:17+02:00",
+      "why": "Reddit 100% positiv bei 4 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $140.01.",
       "evidence": {
         "x_posts": 0,
         "reddit_posts": 4,
         "news": 20,
         "snippets": [
           "ApeWisdom: 4 Mentions/24h, Sentiment 100%",
+          "What's Going On With Oracle Stock Thursday?",
           "Oracle (ORCL) Stock Could Be 27% Undervalued Despite AI Debt Worries",
-          "Oracle co-CEO sells $3.4 million in shares as stock falls 56% one year after his appointment",
-          "What's Going On With Oracle Stock Thursday?"
+          "Oracle co-CEO sells $3.4 million in shares as stock falls 56% one year after his appointment"
         ]
       },
       "voices": {
         "bull": 2,
         "bear": 6,
         "mixed": 14,
-        "updated_at": "2026-09-24T13:56:09+02:00"
+        "updated_at": "2026-09-24T14:28:17+02:00"
       },
       "hype_mixed": 59,
       "sentiment_unit": "percent_all_classified",
-      "price": 142.65
+      "price": 140.01
     }
   }
 }
