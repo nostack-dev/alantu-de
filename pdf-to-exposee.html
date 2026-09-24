@@ -277,6 +277,25 @@
     .stage:fullscreen,.stage:-webkit-full-screen{
       width:100vw;height:100vh;min-height:0;aspect-ratio:auto;border-radius:0;border:0;
     }
+    body.alantu-faux-fullscreen{
+      overflow:hidden!important;
+      position:fixed!important;
+      inset:0!important;
+      width:100%!important;
+      height:100%!important;
+    }
+    .stage.is-faux-fullscreen{
+      position:fixed!important;
+      inset:0!important;
+      width:100vw!important;
+      height:100dvh!important;
+      min-height:0!important;
+      max-height:none!important;
+      aspect-ratio:auto!important;
+      border-radius:0!important;
+      border:0!important;
+      z-index:2147483000!important;
+    }
     .loading-mask{
       position:absolute;inset:0;z-index:8;
       display:none;place-items:center;
@@ -413,7 +432,7 @@
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
     import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand307";
-    import { createAlantuBookViewControls } from "./alantu-book-view.js?v=view401";
+    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view402";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
@@ -545,6 +564,7 @@
     let bookCore=null;
     let totalPages=0;
     let totalLeaves=0;
+    let singlePageMode=false;
     let PAGE_W=3.52;
     let PAGE_H=4.80;
     let bookAspect=PAGE_W/PAGE_H;
@@ -736,7 +756,10 @@
         ? (state.activeTurn.progress>=.5?state.activeTurn.index+1:state.activeTurn.index)
         : state.currentLeaf;
 
-      if(shownLeaf===0){
+      if(singlePageMode){
+        const page=Math.max(1,Math.min(totalPages,shownLeaf+1));
+        pageCount.textContent=String(page).padStart(2,"0")+" / "+String(totalPages).padStart(2,"0");
+      }else if(shownLeaf===0){
         pageCount.textContent="01 / "+String(totalPages).padStart(2,"0");
       }else if(shownLeaf<totalLeaves){
         const left=Math.min(totalPages,shownLeaf*2);
@@ -780,7 +803,8 @@
       fitButton:fitViewBtn,
       onPinchStart:()=>bookCore.cancelDrag(),
       minPixelRatio:IS_IOS_WEBKIT?1:2,
-      maxPixelRatio:IS_IOS_WEBKIT?1.5:3
+      maxPixelRatio:IS_IOS_WEBKIT?1.5:3,
+      getPresentationMode:()=>singlePageMode?"single":"spread"
     });
 
     function buildBook(renderedPages){
@@ -788,7 +812,8 @@
       leafRoots=[];
 
       totalPages=renderedPages.length;
-      totalLeaves=Math.ceil(totalPages/2);
+      singlePageMode=window.matchMedia("(max-width:700px) and (orientation:portrait)").matches;
+      totalLeaves=singlePageMode?totalPages:Math.ceil(totalPages/2);
       leafZStep=computeAlantuLeafStackStep(totalLeaves);
 
       const first=renderedPages[0];
@@ -821,10 +846,10 @@
 
       const normalized=renderedPages.map(p=>normalizePageCanvas(p.canvas,targetW,targetH));
 
-      // Only even pages are front-side textures. Odd pages get their mirrored
-      // texture below; do not create an unused CanvasTexture for them.
+      // Portrait phone mode: each PDF page is its own physical sheet so every
+      // swipe advances exactly one page. Landscape/desktop remains duplex.
       pageTextures=normalized.map((pageCanvas,index)=>
-        index%2===0?createTexture(pageCanvas):null
+        singlePageMode||index%2===0?createTexture(pageCanvas):null
       );
 
       const support=computeAlantuBookSupportZ({
@@ -897,8 +922,8 @@
       baseGeometry.translate(PAGE_W/2,0,0);
 
       for(let i=0;i<totalLeaves;i++){
-        const frontIndex=i*2;
-        const backIndex=frontIndex+1;
+        const frontIndex=singlePageMode?i:i*2;
+        const backIndex=singlePageMode?-1:frontIndex+1;
         const pivot=new THREE.Group();
         pivot.position.set(-PAGE_W/2,0,rightZ(i));
 
@@ -913,7 +938,7 @@
         });
 
         let backMap=null;
-        if(backIndex<totalPages)backMap=mirroredTexture(normalized[backIndex]);
+        if(backIndex>=0&&backIndex<totalPages)backMap=mirroredTexture(normalized[backIndex]);
 
         const backMat=new THREE.MeshStandardMaterial({
           map:backMap,
@@ -1031,30 +1056,11 @@
       if(file)loadPdf(file);
     });
 
-    fullscreenBtn.addEventListener("click",async()=>{
-      if(!totalPages)return;
-      try{
-        const active=document.fullscreenElement||document.webkitFullscreenElement;
-        if(active){
-          if(document.exitFullscreen)await document.exitFullscreen();
-          else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
-        }else{
-          if(stage.requestFullscreen)await stage.requestFullscreen();
-          else if(stage.webkitRequestFullscreen)stage.webkitRequestFullscreen();
-        }
-      }catch(err){
-        console.warn("Fullscreen unavailable",err);
-      }
+    createAlantuFullscreenController({
+      stage,
+      button:fullscreenBtn,
+      onChange:()=>setTimeout(()=>viewControls.resize(),30)
     });
-
-    function syncFullscreen(){
-      const active=document.fullscreenElement===stage||document.webkitFullscreenElement===stage;
-      fullscreenBtn.setAttribute("aria-label",active?"Vollbild schließen":"Vollbild öffnen");
-      fullscreenBtn.title=active?"Vollbild schließen":"Vollbild";
-      setTimeout(resize,30);
-    }
-    document.addEventListener("fullscreenchange",syncFullscreen);
-    document.addEventListener("webkitfullscreenchange",syncFullscreen);
 
     function resize(){viewControls.resize()}
     new ResizeObserver(resize).observe(stage);
