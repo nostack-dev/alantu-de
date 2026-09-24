@@ -74,7 +74,11 @@ async function run(name,viewport){
     cacheMs:typeof WGO_CACHE_MS==='number'?WGO_CACHE_MS:null
   }));
   await page.locator('#wgoWindow [data-wgo-range="1m"]').click();
-  await page.waitForTimeout(450);
+  await page.waitForFunction(()=>{
+    const a=(document.getElementById('wgoAnswer')?.textContent||'').trim();
+    const b=document.getElementById('wgoRun');
+    return b && !b.disabled && /^1M:/i.test(a) && /Hintergrund 1M:/i.test(a);
+  },null,{timeout:20000}).catch(()=>{});
   const wgoMonthState=await page.evaluate(()=>({
     answer:(document.getElementById('wgoAnswer')?.textContent||'').trim(),
     meta:(document.getElementById('wgoMeta')?.textContent||'').trim(),
