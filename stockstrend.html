@@ -814,7 +814,7 @@
         <button type="button" class="wgo-run" id="wgoRun">Kurz erklären</button>
       </div>
     </div>
-    <div class="wgo-answer" id="wgoAnswer">Auf Knopfdruck: Kursbewegung + neue Oracle-News im selben Zeitfenster.</div>
+    <div class="wgo-answer" id="wgoAnswer">Erklärt die letzten 5/10 Minuten im Kontext des heutigen Tagesmoves und der wichtigsten Oracle-Meldungen.</div>
     <div class="wgo-meta" id="wgoMeta">Noch nicht abgefragt.</div>
   </section>
 
@@ -2404,14 +2404,15 @@ function syncWgoWindow(){
 function wgoTime(v){try{return new Date(v).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit',second:'2-digit'});}catch(e){return '—';}}
 async function runWhatsGoingOn(){
   if(wgoBusy)return;var b=document.getElementById('wgoRun'),a=document.getElementById('wgoAnswer'),m=document.getElementById('wgoMeta'),base=relayBaseUrl();
-  if(!b||!a||!m)return;wgoBusy=true;b.disabled=true;b.textContent='Prüfe …';a.textContent='Kurs und neue Meldungen werden für die letzten '+wgoMinutes+' Minuten zusammengeführt.';
+  if(!b||!a||!m)return;wgoBusy=true;b.disabled=true;b.textContent='Prüfe …';a.textContent='Kurs der letzten '+wgoMinutes+' Minuten + heutige Oracle-Katalysatoren werden zusammengeführt.';
   try{
     if(!/^https:\/\//.test(base))throw new Error('Live-Service nicht verfügbar');
     var r=await fetch(base+'/v1/whats-going-on?minutes='+wgoMinutes+'&_='+Date.now(),{cache:'no-store',headers:{Accept:'application/json'}});
     if(!r.ok)throw new Error('HTTP '+r.status);var d=await r.json();
     a.textContent=String(d.brief||'Für dieses Fenster gibt es gerade keine belastbare Kurzlage.');
-    var n=Array.isArray(d.items)?d.items.length:0,mode=d.mode==='ai'?'AI-Kurzlage':'robuste Kurzlage';
-    m.textContent=wgoMinutes+' Min · '+n+' neue Quelle'+(n===1?'':'n')+' · '+mode+' · Stand '+wgoTime(d.generated_at);
+    var n=Array.isArray(d.items)?d.items.length:0,ctx=Array.isArray(d.context_items)?d.context_items.length:0,mode=d.mode==='ai'?'AI-Kurzlage':'robuste Kurzlage';
+    var ev=d.catalyst&&d.catalyst.theme&&d.catalyst.theme!=='other'?' · Tageskatalysator erkannt':'';
+    m.textContent=wgoMinutes+' Min + heute · '+n+' neu · '+ctx+' Kontextmeldungen'+ev+' · '+mode+' · Stand '+wgoTime(d.generated_at);
   }catch(e){
     a.textContent='Kurzlage gerade nicht erreichbar. Kurs, Charts und übrige Live-Daten laufen weiter.';
     m.textContent='Kein Frontend-Abbruch · bitte erneut versuchen.';
