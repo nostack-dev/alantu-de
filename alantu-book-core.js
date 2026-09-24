@@ -14,6 +14,9 @@ export function createAlantuCoverCanvas({
   title,
   brand="ALANTU",
   subtitle="Exposé",
+  brandColor="#b89a63",
+  titleColor="#f4f0e8",
+  subtitleColor="#d9d0c2",
   width=1800,
   height=2400
 }={}){
@@ -32,7 +35,7 @@ export function createAlantuCoverCanvas({
   ctx.textBaseline="alphabetic";
 
   // Brand: small, quiet, spaced.
-  ctx.fillStyle="#b89a63";
+  ctx.fillStyle=brandColor;
   ctx.font=`600 ${Math.round(width*.036)}px Arial, sans-serif`;
   ctx.fillText(brand.toUpperCase(),pad,Math.round(height*.11));
 
@@ -79,14 +82,14 @@ export function createAlantuCoverCanvas({
   const blockHeight=(lines.length-1)*lineHeight;
   let y=Math.round(height*.56-blockHeight/2);
 
-  ctx.fillStyle="#f4f0e8";
+  ctx.fillStyle=titleColor;
   ctx.font=`400 ${fontSize}px Georgia, 'Times New Roman', serif`;
   for(const line of lines){
     ctx.fillText(line,pad,y);
     y+=lineHeight;
   }
 
-  ctx.fillStyle="#d9d0c2";
+  ctx.fillStyle=subtitleColor;
   ctx.font=`400 ${Math.round(width*.031)}px Arial, sans-serif`;
   ctx.fillText(subtitle,pad,Math.round(height*.79));
 
