@@ -638,19 +638,25 @@
   .wave-forecast .wf-v,.wave-forecast.up .wf-v,.wave-forecast.down .wf-v,.wave-forecast.flat .wf-v{color:var(--tr-ink)!important}
   .trajectory-note{font-size:10px;color:var(--tr-muted);margin:10px 0 0;display:flex;justify-content:space-between;gap:10px;align-items:center}
   .trajectory-note strong{color:var(--tr-ink);font-weight:760}
-  .wgo-card{padding:18px 0 17px;border-bottom:1px solid var(--tr-border)}
-  .wgo-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .wgo-card{padding:0;border-bottom:1px solid var(--tr-border)}
+  .wgo-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 0 17px;cursor:pointer;list-style:none}
+  .wgo-summary::-webkit-details-marker{display:none}
   .wgo-title{font-size:18px;font-weight:800;letter-spacing:-.025em;color:var(--tr-ink)}
-  .wgo-controls{display:flex;align-items:center;gap:6px}
-  .wgo-window{display:flex;gap:2px;padding:3px;background:var(--tr-soft);border-radius:999px}
+  .wgo-summary-sub{margin-top:3px;font-size:10px;font-weight:700;color:var(--tr-muted)}
+  .wgo-chevron{font-size:19px;color:var(--tr-muted);transition:transform .16s ease}
+  .wgo-card[open] .wgo-chevron{transform:rotate(180deg)}
+  .wgo-body{padding:0 0 17px}
+  .wgo-window{display:flex;gap:3px;padding:3px;background:var(--tr-soft);border-radius:999px;overflow-x:auto;scrollbar-width:none}
+  .wgo-window::-webkit-scrollbar{display:none}
   .wgo-window button,.wgo-run{appearance:none;border:0;font:inherit;cursor:pointer}
-  .wgo-window button{background:transparent;color:var(--tr-muted);font-size:10px;font-weight:800;padding:6px 9px;border-radius:999px}
+  .wgo-window button{flex:0 0 auto;background:transparent;color:var(--tr-muted);font-size:10px;font-weight:800;padding:6px 9px;border-radius:999px}
   .wgo-window button.active{background:#fff;color:var(--tr-ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
-  .wgo-run{background:var(--tr-ink);color:#fff;border-radius:999px;padding:8px 12px;font-size:11px;font-weight:800;white-space:nowrap}
-  .wgo-run:disabled{opacity:.5;cursor:default}
+  .wgo-run{background:transparent;color:var(--tr-ink);padding:5px 0;font-size:10px;font-weight:800;white-space:nowrap}
+  .wgo-run:disabled{opacity:.45;cursor:default}
   .wgo-answer{margin-top:12px;font-size:14px;line-height:1.45;color:var(--tr-ink);min-height:20px}
-  .wgo-meta{margin-top:7px;font-size:10px;line-height:1.35;color:var(--tr-muted);font-variant-numeric:tabular-nums}
-  @media(max-width:700px){.wgo-head{align-items:flex-start;flex-direction:column}.wgo-controls{width:100%;justify-content:space-between}.wgo-title{font-size:17px}.wgo-answer{font-size:13px}}
+  .wgo-foot{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:7px}
+  .wgo-meta{font-size:10px;line-height:1.35;color:var(--tr-muted);font-variant-numeric:tabular-nums}
+  @media(max-width:700px){.wgo-title{font-size:17px}.wgo-answer{font-size:13px}.wgo-window{margin-right:-2px}.wgo-foot{align-items:center}}
   .source-panel{margin:0!important;padding:0 0 8px!important;border-bottom:1px solid var(--tr-border)!important;background:var(--tr-canvas)!important}
   .source-panel[hidden]{display:none!important}
   .source-panel-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:20px 0 8px}
@@ -803,20 +809,31 @@
     </button>
   </div>
 
-  <section class="wgo-card" id="wgoCard" aria-live="polite">
-    <div class="wgo-head">
-      <div class="wgo-title">Was ist gerade los?</div>
-      <div class="wgo-controls">
-        <div class="wgo-window" id="wgoWindow" aria-label="Analysezeitraum">
-          <button type="button" data-wgo-minutes="5">5 Min</button>
-          <button type="button" data-wgo-minutes="10" class="active">10 Min</button>
-        </div>
-        <button type="button" class="wgo-run" id="wgoRun">Kurz erklären</button>
+  <details class="wgo-card" id="wgoCard">
+    <summary class="wgo-summary">
+      <div>
+        <div class="wgo-title">Kurz erklärt</div>
+        <div class="wgo-summary-sub" id="wgoSummarySub">Aktuell · letzte 10 Min</div>
+      </div>
+      <span class="wgo-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="wgo-body">
+      <div class="wgo-window" id="wgoWindow" aria-label="Zusammenfassungszeitraum">
+        <button type="button" data-wgo-range="current" class="active">Aktuell</button>
+        <button type="button" data-wgo-range="1d">1T</button>
+        <button type="button" data-wgo-range="1w">1W</button>
+        <button type="button" data-wgo-range="1m">1M</button>
+        <button type="button" data-wgo-range="year">1J</button>
+        <button type="button" data-wgo-range="5y">5J</button>
+        <button type="button" data-wgo-range="all">MAX</button>
+      </div>
+      <div class="wgo-answer" id="wgoAnswer" aria-live="polite">Aktuell fasst die letzten 10 Minuten zusammen. Die übrigen Zeiträume verwenden exakt die Kursdaten des Charts.</div>
+      <div class="wgo-foot">
+        <div class="wgo-meta" id="wgoMeta">Noch nicht abgefragt · max. alle 10 Min neu.</div>
+        <button type="button" class="wgo-run" id="wgoRun">Aktualisieren</button>
       </div>
     </div>
-    <div class="wgo-answer" id="wgoAnswer">Erklärt die letzten 5/10 Minuten im Kontext des heutigen Tagesmoves und der wichtigsten Oracle-Meldungen.</div>
-    <div class="wgo-meta" id="wgoMeta">Noch nicht abgefragt.</div>
-  </section>
+  </details>
 
   <section class="source-panel" id="sentimentPanel" hidden aria-live="polite">
     <div class="source-panel-head">
@@ -997,7 +1014,7 @@ var hypeChart=null, magChart=null, ivChart=null, pieChart=null;
 var fxBars=[], orclMinuteBars=[], orclGermanyBars=[], orclDailyBars=[];
 var liveMarket={orclUsd:null,eurusd:null,prevOrclUsd:null,prevEurusd:null,at:null,receivedAt:null,source:null,connected:false,lastRenderedEur:null};
 var livePriceTicks=[],liveWs=null,liveHeartbeat=null,liveReconnect=null,liveShockTimer=null,waveForecastTimer=null,lastFlowRenderAt=0,lastLiveTickPruneAt=0,microLiveEventSource=null,microPollTimer=null,microSourcePollTimer=null,microShadowPollTimer=null,microPollBusy=false,microSourcePollBusy=false,microShadowPollBusy=false;
-var wgoMinutes=10,wgoBusy=false;
+var wgoRange='current',wgoBusy=false,wgoCache={},wgoContextCache={at:0,data:null},WGO_CACHE_MS=10*60*1000;
 function loadAccOpen(){ try{ return JSON.parse(localStorage.getItem(LS_ACC)||'{}'); }catch(e){ return {}; } }
 function saveAccOpen(map){ try{ localStorage.setItem(LS_ACC, JSON.stringify(map)); }catch(e){} }
 function loadLocalSentimentHistory(){
@@ -2450,25 +2467,83 @@ function connectMicrostructureRelay(){
   microSourcePollTimer=setInterval(function(){pollMicroSources(base);},2000);
   microShadowPollTimer=setInterval(function(){pollMicroShadow(base);},15000);
 }
-function syncWgoWindow(){
-  Array.prototype.forEach.call(document.querySelectorAll('#wgoWindow button'),function(b){b.classList.toggle('active',Number(b.getAttribute('data-wgo-minutes'))===wgoMinutes);});
+function wgoRangeLabel(r){
+  return ({current:'Aktuell', '1d':'1T','1w':'1W','1m':'1M',year:'1J','5y':'5J',all:'MAX'})[r]||'Aktuell';
 }
-function wgoTime(v){try{return new Date(v).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit',second:'2-digit'});}catch(e){return '—';}}
+function syncWgoWindow(){
+  Array.prototype.forEach.call(document.querySelectorAll('#wgoWindow button'),function(b){b.classList.toggle('active',b.getAttribute('data-wgo-range')===wgoRange);});
+  var sub=document.getElementById('wgoSummarySub');if(sub)sub.textContent=wgoRange==='current'?'Aktuell · letzte 10 Min':wgoRangeLabel(wgoRange)+' · wie Kurschart';
+}
+function wgoTime(v){try{return new Date(v).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'});}catch(e){return '—';}}
+function wgoRowsForRange(r){
+  var rows=[],session=null;
+  if(r==='1d'&&(orclMinuteBars.length||orclGermanyBars.length)){
+    session=compositeDayPriceSession();rows=session.rows.slice();
+  }else if(r==='1w'&&orclMinuteBars.length){
+    rows=filterByAt(orclMinuteBars,function(h){return h.at;},r).map(function(h){return {at:h.at,value:usdToEur(h.close,h.at)};}).filter(function(h){return isFinite(h.value);});
+  }else if(orclDailyBars.length){
+    rows=filterByAt(orclDailyBars,function(h){return h.at;},r).map(function(h){return {at:h.at,value:usdToEur(h.close,h.at)};}).filter(function(h){return isFinite(h.value);});
+  }else{
+    rows=filterByAt((ivData&&ivData.history)||[],function(h){return h.at;},r).map(function(h){return {at:h.at,value:ivEur(h,'price')};}).filter(function(h){return isFinite(h.value);});
+  }
+  if(liveMarket.orclUsd){
+    var le=usdToEur(liveMarket.orclUsd,Date.now()),la=new Date(liveMarket.at||Date.now()).toISOString(),lm=new Date(la).getTime();
+    if(isFinite(le)){
+      var liveSession=r==='1d'?berlinTradingWindowFor(la):null,same=r!=='1d'||(session&&liveSession&&session.key===liveSession.key&&lm>=session.open&&lm<=session.close);
+      if(same){
+        var lp=rows.length?rows[rows.length-1]:null;
+        if(lp&&Math.abs(new Date(lp.at).getTime()-lm)<60000)lp.value=le;else rows.push({at:la,value:le});
+      }
+    }
+  }
+  return rows.sort(function(x,y){return new Date(x.at)-new Date(y.at);});
+}
+function wgoLocalSummary(r){
+  var rows=wgoRowsForRange(r);if(rows.length<2)return {text:wgoRangeLabel(r)+': Noch nicht genug Kursdaten für eine belastbare Zusammenfassung.',points:rows.length};
+  var first=rows[0],last=rows[rows.length-1],p0=Number(first.value),p1=Number(last.value),pct=p0>0?(p1/p0-1)*100:null,hi=-Infinity,lo=Infinity;
+  rows.forEach(function(x){var v=Number(x.value);if(v>hi)hi=v;if(v<lo)lo=v;});
+  var label=wgoRangeLabel(r),dir=Math.abs(pct)<.05?'praktisch unverändert':(pct>0?'gestiegen':'gefallen');
+  var text=label+': Oracle ist '+dir+(Math.abs(pct)>=.05?' um '+Math.abs(pct).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' %':'')+' ('+euro(p0,2)+' → '+euro(p1,2)+'). Hoch '+euro(hi,2)+', Tief '+euro(lo,2)+'.';
+  return {text:text,points:rows.length,pct:pct,from:first.at,to:last.at};
+}
+async function wgoContext(){
+  if(wgoContextCache.data&&Date.now()-wgoContextCache.at<WGO_CACHE_MS)return wgoContextCache.data;
+  var base=relayBaseUrl();if(!/^https:\/\//.test(base))throw new Error('Live-Service nicht verfügbar');
+  var r=await fetch(base+'/v1/whats-going-on?minutes=10&_='+Date.now(),{cache:'no-store',headers:{Accept:'application/json'}});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  var d=await r.json();wgoContextCache={at:Date.now(),data:d};return d;
+}
+function wgoCatalystText(d){
+  var c=d&&d.catalyst;if(!c)return '';
+  if(c.theme==='project_jupiter')return ' Tageskontext: Project Jupiter / New Mexico bleibt der aktuell stärkste erkannte Oracle-Katalysator.';
+  var t=String(c.title||'').trim();return t?' Aktueller Tageskontext: '+t.slice(0,180)+(t.length>180?'…':''):'';
+}
+function renderWgoResult(obj){
+  var a=document.getElementById('wgoAnswer'),m=document.getElementById('wgoMeta');if(!a||!m)return;
+  a.textContent=obj.text;m.textContent=obj.meta;
+}
 async function runWhatsGoingOn(){
-  if(wgoBusy)return;var b=document.getElementById('wgoRun'),a=document.getElementById('wgoAnswer'),m=document.getElementById('wgoMeta'),base=relayBaseUrl();
-  if(!b||!a||!m)return;wgoBusy=true;b.disabled=true;b.textContent='Prüfe …';a.textContent='Kurs der letzten '+wgoMinutes+' Minuten + heutige Oracle-Katalysatoren werden zusammengeführt.';
+  if(wgoBusy)return;
+  var b=document.getElementById('wgoRun');if(!b)return;
+  var cached=wgoCache[wgoRange];
+  if(cached&&Date.now()-cached.at<WGO_CACHE_MS){renderWgoResult(cached);return;}
+  wgoBusy=true;b.disabled=true;b.textContent='Prüfe …';
   try{
-    if(!/^https:\/\//.test(base))throw new Error('Live-Service nicht verfügbar');
-    var r=await fetch(base+'/v1/whats-going-on?minutes='+wgoMinutes+'&_='+Date.now(),{cache:'no-store',headers:{Accept:'application/json'}});
-    if(!r.ok)throw new Error('HTTP '+r.status);var d=await r.json();
-    a.textContent=String(d.brief||'Für dieses Fenster gibt es gerade keine belastbare Kurzlage.');
-    var n=Array.isArray(d.items)?d.items.length:0,ctx=Array.isArray(d.context_items)?d.context_items.length:0,mode=d.mode==='ai'?'AI-Kurzlage':'robuste Kurzlage';
-    var ev=d.catalyst&&d.catalyst.theme&&d.catalyst.theme!=='other'?' · Tageskatalysator erkannt':'';
-    m.textContent=wgoMinutes+' Min + heute · '+n+' neu · '+ctx+' Kontextmeldungen'+ev+' · '+mode+' · Stand '+wgoTime(d.generated_at);
+    var result,now=Date.now();
+    if(wgoRange==='current'){
+      var d=await wgoContext();
+      result={at:now,text:String(d.brief||'Für die letzten 10 Minuten gibt es gerade keine belastbare Kurzlage.'),meta:'Aktuell · 10 Min · Stand '+wgoTime(d.generated_at)+' · max. alle 10 Min neu'};
+    }else{
+      var local=wgoLocalSummary(wgoRange),extra='';
+      if(wgoRange==='1d'){
+        try{extra=wgoCatalystText(await wgoContext());}catch(e){}
+      }
+      result={at:now,text:local.text+extra,meta:wgoRangeLabel(wgoRange)+' · '+local.points+' Chartpunkte · Stand '+wgoTime(new Date(now).toISOString())+' · max. alle 10 Min neu'};
+    }
+    wgoCache[wgoRange]=result;renderWgoResult(result);
   }catch(e){
-    a.textContent='Kurzlage gerade nicht erreichbar. Kurs, Charts und übrige Live-Daten laufen weiter.';
-    m.textContent='Kein Frontend-Abbruch · bitte erneut versuchen.';
-  }finally{wgoBusy=false;b.disabled=false;b.textContent='Kurz erklären';}
+    renderWgoResult({text:'Kurzlage gerade nicht erreichbar. Kurs und Charts laufen weiter.',meta:'Kein Frontend-Abbruch · bitte später erneut versuchen.'});
+  }finally{wgoBusy=false;b.disabled=false;b.textContent='Aktualisieren';}
 }
 function validatedL2Forecast(){
   var d=microstructureData||{},l2=d.l2||{},s=l2.forecast||null,m=orclL2Model||{};
@@ -3163,7 +3238,7 @@ setInterval(function(){renderSyncFooter();},30000);
 var rangeRenderSeq=0;
 function setChartRange(kind,r){
   if(['1d','1w','1m','year','5y','all'].indexOf(r)<0)return;
-  if(kind==='price'){priceRange=r;saveChartRange(kind,r);}
+  if(kind==='price'){priceRange=r;saveChartRange(kind,r);wgoRange=r;syncWgoWindow();}
   else if(kind==='forecast'){forecastRange=r;saveChartRange(kind,r);}
   else if(kind==='sentiment'){sentimentRange=r;saveChartRange(kind,r);}
   else if(kind==='magnitude'){magnitudeRange=r;saveChartRange(kind,r);}
@@ -3180,13 +3255,14 @@ function setChartRange(kind,r){
     else renderOpinions();
   });
 }
-document.getElementById('priceRange').onclick=function(e){var b=e.target.closest('button[data-price-range]');if(b)setChartRange('price',b.getAttribute('data-price-range'));};
+document.getElementById('priceRange').onclick=function(e){var b=e.target.closest('button[data-price-range]');if(b){setChartRange('price',b.getAttribute('data-price-range'));if(document.getElementById('wgoCard').open)runWhatsGoingOn();}};
 document.getElementById('forecastRange').onclick=function(e){var b=e.target.closest('button[data-forecast-range]');if(b)setChartRange('forecast',b.getAttribute('data-forecast-range'));};
 document.getElementById('sentimentRange').onclick=function(e){var b=e.target.closest('button[data-sentiment-range]');if(b)setChartRange('sentiment',b.getAttribute('data-sentiment-range'));};
 document.getElementById('magnitudeRange').onclick=function(e){var b=e.target.closest('button[data-magnitude-range]');if(b)setChartRange('magnitude',b.getAttribute('data-magnitude-range'));};
 document.getElementById('opinionsRange').onclick=function(e){var b=e.target.closest('button[data-opinions-range]');if(b)setChartRange('opinions',b.getAttribute('data-opinions-range'));};
-document.getElementById('wgoWindow').onclick=function(e){var b=e.target.closest('button[data-wgo-minutes]');if(!b)return;wgoMinutes=Number(b.getAttribute('data-wgo-minutes'))===5?5:10;syncWgoWindow();};
+document.getElementById('wgoWindow').onclick=function(e){var b=e.target.closest('button[data-wgo-range]');if(!b)return;wgoRange=b.getAttribute('data-wgo-range')||'current';syncWgoWindow();if(wgoRange!=='current')setChartRange('price',wgoRange);runWhatsGoingOn();};
 document.getElementById('wgoRun').onclick=runWhatsGoingOn;
+document.getElementById('wgoCard').addEventListener('toggle',function(){if(this.open)runWhatsGoingOn();});
 syncWgoWindow();
 document.getElementById('intrinsicToggle').onclick=function(){
   showIntrinsic=!showIntrinsic;
