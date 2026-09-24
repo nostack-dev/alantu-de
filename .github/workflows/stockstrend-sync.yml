@@ -89,10 +89,41 @@ jobs:
             'https://query2.finance.yahoo.com/v8/finance/chart/ORCL?range=5d&interval=1m&includePrePost=true&events=div%2Csplits' \
             orcl-minute.json
 
-          fetch_pair \
-            'https://query1.finance.yahoo.com/v8/finance/chart/ORC.DE?range=5d&interval=1m&includePrePost=true&events=div%2Csplits' \
-            'https://query2.finance.yahoo.com/v8/finance/chart/ORC.DE?range=5d&interval=1m&includePrePost=true&events=div%2Csplits' \
-            orcl-germany-minute.json
+          fetch_german_orcl() {
+            local out='orcl-germany-minute.json'
+            local urls=(
+              'https://query1.finance.yahoo.com/v8/finance/chart/ORC.F?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
+              'https://query2.finance.yahoo.com/v8/finance/chart/ORC.F?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
+              'https://query1.finance.yahoo.com/v8/finance/chart/ORC.DE?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
+              'https://query2.finance.yahoo.com/v8/finance/chart/ORC.DE?range=5d&interval=1m&includePrePost=true&events=div%2Csplits'
+            )
+            for url in "${urls[@]}"; do
+              if curl -fsSL --retry 1 --connect-timeout 10 --max-time 30 -A 'Mozilla/5.0' "$url" -o "$out.tmp"; then
+                if python3 - "$out.tmp" <<'PY'
+import json,sys
+p=sys.argv[1]
+try:
+    d=json.load(open(p))
+    r=(d.get('chart',{}).get('result') or [None])[0]
+    ts=(r or {}).get('timestamp') or []
+    q=((r or {}).get('indicators',{}).get('quote') or [{}])[0]
+    good=sum(1 for i,_ in enumerate(ts) if i < len(q.get('close') or []) and isinstance((q.get('close') or [])[i],(int,float)) and (q.get('close') or [])[i] > 0)
+    cur=(r or {}).get('meta',{}).get('currency')
+    if good < 5 or cur != 'EUR':
+        raise SystemExit(1)
+except Exception:
+    raise SystemExit(1)
+PY
+                then
+                  mv "$out.tmp" "$out"
+                  return 0
+                fi
+              fi
+            done
+            rm -f "$out.tmp"
+            return 1
+          }
+          fetch_german_orcl
 
           fetch_pair \
             'https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?range=10y&interval=1d&includePrePost=false&events=div%2Csplits' \
