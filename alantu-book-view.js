@@ -23,6 +23,8 @@ export function createAlantuBookViewControls({
   let lastViewStep=performance.now();
   let baseX=0;
   let focusTravelX=0;
+  const spreadCameraPosition=camera.position.clone();
+  const singleCameraZ=Math.max(6,Number(camera.position.z)||10.8);
 
   function isFullscreen(){
     return document.fullscreenElement===stage||
@@ -31,8 +33,9 @@ export function createAlantuBookViewControls({
 
   function pixelRatio(){
     const dpr=window.devicePixelRatio||1;
-    const min=Math.max(1,Number(minPixelRatio)||2);
-    const max=Math.max(min,Number(maxPixelRatio)||3);
+    const resolve=v=>typeof v==="function"?v():v;
+    const min=Math.max(1,Number(resolve(minPixelRatio))||2);
+    const max=Math.max(min,Number(resolve(maxPixelRatio))||3);
     return Math.min(Math.max(dpr,min),max);
   }
 
@@ -40,18 +43,30 @@ export function createAlantuBookViewControls({
     const rect=stage.getBoundingClientRect();
     const w=Math.max(1,Math.round(rect.width));
     const h=Math.max(1,Math.round(rect.height));
+    const single=getPresentationMode()==="single";
 
     renderer.setPixelRatio(pixelRatio());
     renderer.setSize(w,h,false);
 
     camera.aspect=w/h;
-    camera.fov=w<560&&!isFullscreen()?31:29;
+    // Portrait reading is intentionally telephoto/front-on. This removes the
+    // texture minification/skew that makes small PDF type look rasterised.
+    camera.fov=single?24:(w<560&&!isFullscreen()?31:29);
     camera.updateProjectionMatrix();
 
     const pageW=Math.max(.1,Number(getPageWidth())||3.52);
     const pageH=Math.max(.1,Number(getPageHeight())||4.80);
+
+    if(single){
+      const pan=-focusTravelX*singleFocus;
+      camera.position.set(pan,0,singleCameraZ);
+      camera.lookAt(pan,0,0);
+    }else{
+      camera.position.copy(spreadCameraPosition);
+      camera.lookAt(0,0,0);
+    }
+
     const distance=Math.hypot(
-      camera.position.x,
       camera.position.y,
       camera.position.z
     );
@@ -60,30 +75,32 @@ export function createAlantuBookViewControls({
     );
     const viewW=viewH*camera.aspect;
 
-    const single=getPresentationMode()==="single";
-    // Landscape/desktop shows the physical two-page spread. Portrait mobile
-    // deliberately frames only the active right-hand sheet, so text remains
-    // large and every swipe still gets a full physical page-turn animation.
-    const envelopeW=single?pageW+.38:pageW*2+.46;
-    const envelopeH=pageH+.50;
+    // Landscape/desktop = physical two-page spread. Portrait mobile = one
+    // readable sheet. Both keep the same 3D turn physics.
+    const envelopeW=single?pageW+.34:pageW*2+.46;
+    const envelopeH=pageH+.42;
     fitScale=clamp(
-      Math.min(viewW/envelopeW,viewH/envelopeH)*(single ? .96 : .93),
+      Math.min(viewW/envelopeW,viewH/envelopeH)*(single ? .965 : .93),
       .42,
-      single?1.48:1.28
+      single?1.52:1.28
     );
 
     const scale=fitScale*zoom;
     root.scale.setScalar(scale);
 
-    // Duplex spread is centered around -pageW/2. In portrait single-page
-    // mode focus=0 frames the right page and focus=1 frames the fully turned
-    // left page. The transition is animated in step().
     baseX=single?0:pageW*.5*scale;
     focusTravelX=single?pageW*scale:0;
-    root.position.set(baseX+focusTravelX*singleFocus,.015,0);
+    root.position.set(baseX,.015,0);
 
-    // Keep portrait pages almost head-on; retain depth on wider displays.
-    root.rotation.set(single?-.045:-.075,single?-.045:-.105,single?-.004:-.008);
+    // Exact reading plane on portrait. The page itself still bends in Z while
+    // turning, so the animation keeps its physical depth.
+    root.rotation.set(single?0:-.06,single?0:-.085,single?0:-.006);
+
+    if(single){
+      const pan=-focusTravelX*singleFocus;
+      camera.position.x=pan;
+      camera.lookAt(pan,0,0);
+    }
   }
 
   function fit(){
@@ -100,7 +117,9 @@ export function createAlantuBookViewControls({
     singleFocusTarget=clamp(Number(value)||0,0,1);
     if(immediate){
       singleFocus=singleFocusTarget;
-      root.position.x=baseX+focusTravelX*singleFocus;
+      const pan=-focusTravelX*singleFocus;
+      camera.position.x=pan;
+      camera.lookAt(pan,0,0);
     }
   }
 
@@ -119,7 +138,9 @@ export function createAlantuBookViewControls({
       const alpha=1-Math.exp(-11*dt);
       singleFocus+=delta*alpha;
     }
-    root.position.x=baseX+focusTravelX*singleFocus;
+    const pan=-focusTravelX*singleFocus;
+    camera.position.x=pan;
+    camera.lookAt(pan,0,0);
   }
 
   function wheel(e){
