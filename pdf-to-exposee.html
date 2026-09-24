@@ -780,12 +780,12 @@
         side,
         roughness:.96,
         metalness:0,
-        clearcoat:.012,
+        clearcoat:.008,
         clearcoatRoughness:.98,
         bumpMap:paperFiber,
-        bumpScale:.0022,
+        bumpScale:.0011,
         transparent:true,
-        opacity:.018,
+        opacity:.008,
         depthWrite:false,
         polygonOffset:true,
         polygonOffsetFactor:-1,
@@ -1382,16 +1382,36 @@
 
         metaPages.textContent=String(pdf.numPages);
         const targetEdge=preferredTextureEdge(pdf.numPages);
-        const rendered=[];
-        for(let i=1;i<=pdf.numPages;i++){
-          if(token!==loadToken)return;
-          loadingText.textContent="Seite "+i+" von "+pdf.numPages+" wird gerendert …";
-          setStatus("Rendere Seite "+i+" / "+pdf.numPages+" …");
-          setProgress(5+(i-1)/pdf.numPages*85);
-          rendered.push(await renderPdfPage(pdf,i,token,targetEdge));
-          // Give WebKit a collection/render opportunity between heavy pages.
-          if(IS_IOS_WEBKIT && i%2===0)await new Promise(requestAnimationFrame);
+        const rendered=new Array(pdf.numPages);
+        const mobile=window.matchMedia("(max-width:700px)").matches;
+        const concurrency=IS_IOS_WEBKIT ? 1 : (mobile ? 2 : (embedMode ? 4 : 3));
+        let nextPage=1;
+        let completedPages=0;
+
+        async function renderWorker(){
+          while(true){
+            const pageNumber=nextPage++;
+            if(pageNumber>pdf.numPages)return;
+            if(token!==loadToken)throw new Error("cancelled");
+
+            const renderedPage=await renderPdfPage(pdf,pageNumber,token,targetEdge);
+            if(token!==loadToken)throw new Error("cancelled");
+            rendered[pageNumber-1]=renderedPage;
+
+            completedPages++;
+            loadingText.textContent="Seite "+completedPages+" von "+pdf.numPages+" wird gerendert …";
+            setStatus("Rendere Seite "+completedPages+" / "+pdf.numPages+" …");
+            setProgress(5+completedPages/pdf.numPages*85);
+
+            // Give constrained WebKit a collection/render opportunity between
+            // pages while desktop workers continue in parallel.
+            if(IS_IOS_WEBKIT)await new Promise(requestAnimationFrame);
+          }
         }
+
+        await Promise.all(
+          Array.from({length:Math.min(concurrency,pdf.numPages)},()=>renderWorker())
+        );
 
         if(token!==loadToken)return;
         loadingText.textContent="3D-Exposé wird aufgebaut …";
