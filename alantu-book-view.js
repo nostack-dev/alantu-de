@@ -79,12 +79,12 @@ export function createAlantuBookViewControls({
 
     // Landscape/desktop = physical two-page spread. Portrait mobile = one
     // readable sheet. Both keep the same 3D turn physics.
-    const envelopeW=single?pageW+.34:pageW*2+.46;
-    const envelopeH=pageH+.42;
+    const envelopeW=single?pageW+.30:pageW*2+.38;
+    const envelopeH=pageH+.32;
     fitScale=clamp(
-      Math.min(viewW/envelopeW,viewH/envelopeH)*(single ? .965 : .93),
+      Math.min(viewW/envelopeW,viewH/envelopeH)*(single ? .985 : .965),
       .42,
-      single?1.52:1.28
+      single?1.58:1.34
     );
 
     const scale=fitScale*zoom;
@@ -92,7 +92,7 @@ export function createAlantuBookViewControls({
 
     // Exact reading plane on portrait. The page itself still bends in Z while
     // turning, so the animation keeps its physical depth.
-    root.rotation.set(single?0:-.06,single?0:-.085,single?0:-.006);
+    root.rotation.set(single?0:-.035,single?0:-.045,single?0:-.003);
 
     focusTravelX=single?pageW*scale:0;
     if(single){
