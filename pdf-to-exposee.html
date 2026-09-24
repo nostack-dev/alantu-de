@@ -192,19 +192,37 @@
       isolation:isolate;
       touch-action:pan-y;
     }
-    .stage:after{display:none}
+    .stage:after{
+      content:"";
+      position:absolute;left:12%;right:12%;bottom:4%;
+      height:17%;border-radius:50%;
+      background:rgba(27,22,16,.18);
+      filter:blur(26px);
+      transform:perspective(420px) rotateX(72deg);
+      z-index:0;
+    }
     #bookCanvas{
       position:absolute;inset:0;width:100%;height:100%;display:block;z-index:1;
-      filter:none;
-      transform:none;
+      filter:drop-shadow(0 10px 18px rgba(28,22,16,.10));
+      transition:filter .18s var(--ease,cubic-bezier(.22,.61,.36,1)),transform .18s var(--ease,cubic-bezier(.22,.61,.36,1));
+      transform-origin:center;
     }
-    .stage.is-book-dragging #bookCanvas{filter:none;transform:none}
+    .stage.is-book-dragging #bookCanvas{
+      filter:
+        drop-shadow(0 18px 27px rgba(28,22,16,.22))
+        drop-shadow(0 0 12px rgba(184,154,99,.24));
+      transform:scale(1.003);
+    }
     .stage.is-book-dragging{cursor:grabbing!important}
     .stage.is-book-dragging .interaction-zone,
     .stage.is-book-dragging .tapzone{cursor:grabbing!important}
     .stage.is-view-pinching,
     .stage.is-view-pinching *{cursor:default!important}
-    .stage.is-view-pinching #bookCanvas{filter:none}
+    .stage.is-view-pinching #bookCanvas{
+      filter:
+        drop-shadow(0 20px 30px rgba(28,22,16,.22))
+        drop-shadow(0 0 14px rgba(184,154,99,.18));
+    }
     .empty{
       position:absolute;inset:0;z-index:2;
       display:grid;place-items:center;text-align:center;padding:40px;
@@ -215,26 +233,6 @@
     .empty span{display:block;margin-top:8px;color:#716a61;font-size:12px;line-height:1.5}
     .stage-ui{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;visibility:hidden;transition:opacity .14s ease,visibility .14s ease}
     .stage.debug-controls .stage-ui{opacity:1;visibility:visible}
-    .debug-toggle{
-      position:absolute;right:14px;top:14px;z-index:6;
-      width:30px;height:30px;border-radius:999px;
-      border:1px solid rgba(13,13,11,.12);
-      background:rgba(244,240,232,.72);
-      color:var(--ink);
-      display:grid;place-items:center;
-      padding:0;font-size:14px;font-weight:800;line-height:1;
-      letter-spacing:.08em;
-      opacity:.72;
-      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-      transition:opacity .14s ease,background .14s ease,transform .14s ease;
-    }
-    .debug-toggle:hover,.debug-toggle:focus-visible{opacity:1;background:rgba(255,255,255,.92)}
-    .debug-toggle[aria-pressed="true"]{opacity:1;background:rgba(244,240,232,.94)}
-    .stage:fullscreen .debug-toggle,
-    .stage:-webkit-full-screen .debug-toggle,
-    .stage.is-faux-fullscreen .debug-toggle,
-    .stage.is-host-fullscreen .debug-toggle{display:none!important}
-    .stage.is-host-fullscreen .stage-ui{display:none!important}
     .stage:fullscreen .stage-ui,.stage:-webkit-full-screen .stage-ui,.stage.is-faux-fullscreen .stage-ui{display:none!important}
     .stage-top{
       position:absolute;left:16px;right:16px;top:16px;
@@ -427,13 +425,6 @@
       touch-action:none!important;
     }
 
-    /* Embedded viewer: same PDF-to-Exposé renderer, without builder chrome. */
-    html.embed,html.embed body{width:100%;height:100%;min-width:0;overflow:hidden;background:transparent}
-    html.embed .topbar,html.embed .layout>.panel{display:none!important}
-    html.embed .shell.layout{width:100%;max-width:none;height:100%;margin:0;padding:0;display:block}
-    html.embed .viewer-card{position:relative;top:auto;width:100%;height:100%;min-height:0}
-    html.embed .stage{width:100%;height:100%;min-height:0;aspect-ratio:auto;border-radius:inherit}
-
 </style>
 </head>
 <body>
@@ -489,7 +480,6 @@
     <section class="viewer-card" aria-label="Exposé-Vorschau">
       <div class="stage" id="stage">
         <canvas id="bookCanvas"></canvas>
-        <button class="debug-toggle" id="debugToggle" type="button" aria-label="Ansichtseinstellungen anzeigen" aria-pressed="false" title="Ansicht einstellen">•••</button>
 
         <button class="tapzone prev" id="tapPrev" type="button" aria-label="Zurück"></button>
         <button class="tapzone next" id="tapNext" type="button" aria-label="Weiter"></button>
@@ -564,16 +554,10 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand310";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand308";
     import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view404";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
-
-    const queryParams=new URLSearchParams(location.search);
-    const embedMode=queryParams.get("embed")==="1";
-    const forcedTitle=queryParams.get("title")||"";
-    if(embedMode)document.documentElement.classList.add("embed");
-
 
     const MAX_PAGES=40;
     const MAX_TEXTURE_EDGE_DESKTOP=3072;
@@ -582,7 +566,7 @@
     // WebKit on iPhone/iPad has a much tighter per-tab memory ceiling than
     // desktop browsers. Budget all PDF page canvases together instead of
     // allocating up to 3072px for every page (which can exceed 1 GB).
-    const IOS_TOTAL_PAGE_PIXELS=36_000_000;
+    const IOS_TOTAL_PAGE_PIXELS=24_000_000;
     const IS_IOS_WEBKIT=/iPad|iPhone|iPod/.test(navigator.userAgent)||
       (navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 
@@ -609,7 +593,6 @@
     const tapNext=document.getElementById("tapNext");
     const pageCount=document.getElementById("pageCount");
     const fullscreenBtn=document.getElementById("fullscreenBtn");
-    const debugToggle=document.getElementById("debugToggle");
     const fitViewBtn=document.getElementById("fitViewBtn");
     const prefersReduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -618,22 +601,21 @@
       ? Math.min(window.devicePixelRatio||1,1.5)
       : Math.min(Math.max(window.devicePixelRatio||1,2),3));
     renderer.outputColorSpace=THREE.SRGBColorSpace;
-    renderer.toneMapping=THREE.NoToneMapping;
-    renderer.toneMappingExposure=1;
     renderer.shadowMap.enabled=true;
     renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 
     const scene=new THREE.Scene();
     const camera=new THREE.PerspectiveCamera(29,1,.1,100);
-    camera.position.set(.1,1.35,10.8);
+    camera.position.set(0,1.35,10.8);
     camera.lookAt(0,0,0);
 
-    // Proven Box2D presentation lighting. No floor plane / no fake shadow blob.
     scene.add(new THREE.HemisphereLight(0xfffbf3,0x66594b,2.35));
     const key=new THREE.DirectionalLight(0xffffff,4.4);
     key.position.set(-3.5,7,7);
     key.castShadow=true;
     key.shadow.mapSize.set(1024,1024);
+    key.shadow.normalBias=.035;
+    key.shadow.bias=-.00015;
     scene.add(key);
     const rim=new THREE.DirectionalLight(0xcdb88e,2.1);
     rim.position.set(5,2,-3);
@@ -695,33 +677,15 @@
     stage.addEventListener("pointermove",e=>{if(e.pointerType==="touch")requestAnimationFrame(updateZoomValue)},{passive:true});
     updateTilt();
 
-    // Match the Box2D/Box3D reference materials. The sharpness upgrade lives
-    // in the PDF raster + texture sampling, not in extra coating overlays.
-    const coverMaterial=new THREE.MeshStandardMaterial({
-      color:0x171713,
-      roughness:.68,
-      metalness:.06
-    });
-    const edgeMaterial=new THREE.MeshStandardMaterial({
-      color:0xece5d8,
-      roughness:.92
-    });
-    const spineMaterial=new THREE.MeshStandardMaterial({
-      color:0xb89a63,
-      roughness:.4,
-      metalness:.35
-    });
+    const coverMaterial=new THREE.MeshStandardMaterial({color:0x171713,roughness:.68,metalness:.06});
+    const edgeMaterial=new THREE.MeshStandardMaterial({color:0xece5d8,roughness:.92});
+    const spineMaterial=new THREE.MeshStandardMaterial({color:0xb89a63,roughness:.4,metalness:.35});
 
     function hardcoverMaterials(title){
       const canvas=createAlantuCoverCanvas({
         title,
         brand:currentBrand,
-        subtitle:currentSubtitle,
-        brandColor:"#c4a66d",
-        titleColor:"#c4a66d",
-        subtitleColor:"#d8c8a7",
-        width:2000,
-        height:2667
+        subtitle:currentSubtitle
       });
       const texture=configureAlantuPageTexture(new THREE.CanvasTexture(canvas),{
         renderer,
@@ -734,10 +698,12 @@
       exterior.map=texture;
       exterior.color.set(0xffffff);
       exterior.needsUpdate=true;
-      const interior=coverMaterial.clone();
+      const interior=new THREE.MeshStandardMaterial({
+        color:0x2b2924,
+        roughness:.94,
+        metalness:0
+      });
 
-      // Hardcover itself is dark on every face. Only the PDF paper stack is
-      // white. +Z carries the gold-lettered front artwork; -Z stays dark.
       return [side(),side(),side(),side(),exterior,interior];
     }
 
@@ -751,7 +717,7 @@
       currentSubtitle=cleanBrandValue(subtitleInput?.value,"Exposé");
       if(brandPreview)brandPreview.textContent=currentBrand;
 
-      if(frontCover&&!frontCoverUsesPdf){
+      if(frontCover){
         disposeMaterial(frontCover.material);
         frontCover.material=hardcoverMaterials(currentCoverTitle);
       }
@@ -763,7 +729,6 @@
     let pageTextures=[];
     let leafRoots=[];
     let frontCover=null;
-    let frontCoverUsesPdf=false;
     let frontCoverPivot=null;
     let backCover=null;
     let endCoverPivot=null;
@@ -823,7 +788,6 @@
         disposeMaterial(frontCover.material);
         frontCover=null;
       }
-      frontCoverUsesPdf=false;
       if(frontCoverPivot){
         root.remove(frontCoverPivot);
         frontCoverPivot=null;
@@ -855,12 +819,7 @@
 
     function preferredTextureEdge(pageCount=1){
       const mobile=window.matchMedia("(max-width:700px)").matches;
-      // Embedded landing demos load the same renderer but use a bounded
-      // raster budget so an 18-page brochure is ready quickly and safely.
-      // This changes resolution only, never the page aspect ratio.
-      let requested=embedMode
-        ? (mobile?1792:2304)
-        : (mobile?MAX_TEXTURE_EDGE_MOBILE:MAX_TEXTURE_EDGE_DESKTOP);
+      let requested=mobile?MAX_TEXTURE_EDGE_MOBILE:MAX_TEXTURE_EDGE_DESKTOP;
       if(IS_IOS_WEBKIT){
         // Approx. A4/Letter page area is ~0.7 * longestEdge². This keeps the
         // complete retained page-raster set near ~96 MB RGBA at 40 pages,
@@ -1055,7 +1014,7 @@
       prevButton:prevBtn,
       nextTap:tapNext,
       prevTap:tapPrev,
-      ignorePointerSelector:".stage-control,.circle,.axis-controls,.debug-toggle"
+      ignorePointerSelector:".stage-control,.circle,.axis-controls"
     });
 
     viewControls=createAlantuBookViewControls({
@@ -1130,9 +1089,8 @@
       // Match the proven main-page hardcover geometry exactly:
       // main = 3.85 × 5.15 around 3.52 × 4.80 paper.
       // Keep those physical overhangs for arbitrary PDF aspect ratios.
-      const COVER_SCALE=1.055;
-      const COVER_W=PAGE_W*COVER_SCALE;
-      const COVER_H=PAGE_H*COVER_SCALE;
+      const COVER_W=PAGE_W+.33;
+      const COVER_H=PAGE_H+.35;
       const COVER_T=.16;
       // Same hinge as the sheet geometry. All extra cover width belongs
       // to the outer edge, never between page and binding.
@@ -1148,7 +1106,6 @@
         new THREE.BoxGeometry(COVER_W,COVER_H,COVER_T),
         hardcoverMaterials(currentCoverTitle)
       );
-      frontCoverUsesPdf=false;
       frontCover.position.set(COVER_W/2,0,0);
       frontCover.castShadow=true;
       frontCover.receiveShadow=true;
@@ -1157,9 +1114,9 @@
       backCover=new THREE.Mesh(
         new THREE.BoxGeometry(COVER_W,COVER_H,COVER_T),
         [
-          coverMaterial.clone(),coverMaterial.clone(),
-          coverMaterial.clone(),coverMaterial.clone(),
-          coverMaterial.clone(),coverMaterial.clone()
+          coverMaterial.clone(),coverMaterial.clone(),coverMaterial.clone(),coverMaterial.clone(),
+          new THREE.MeshStandardMaterial({color:0x2b2924,roughness:.94,metalness:0}),
+          coverMaterial.clone()
         ]
       );
       backCover.position.set(COVER_W/2,0,0);
@@ -1204,22 +1161,20 @@
         const geometry=baseGeometry.clone();
         geometry.userData.basePosition=geometry.attributes.position.array.slice();
 
-        const frontMat=new THREE.MeshStandardMaterial({
+        const frontMat=new THREE.MeshBasicMaterial({
           map:pageTextures[frontIndex],
-          roughness:.88,
-          metalness:0,
-          side:THREE.FrontSide
+          side:THREE.FrontSide,
+          toneMapped:false
         });
 
         let backMap=null;
         if(backIndex>=0&&backIndex<totalPages)backMap=mirroredTexture(normalized[backIndex]);
 
-        const backMat=new THREE.MeshStandardMaterial({
+        const backMat=new THREE.MeshBasicMaterial({
           map:backMap,
           color:backMap?0xffffff:0xeee7db,
-          roughness:.9,
-          metalness:0,
-          side:THREE.BackSide
+          side:THREE.BackSide,
+          toneMapped:false
         });
 
         const front=new THREE.Mesh(geometry,frontMat);
@@ -1274,36 +1229,16 @@
 
         metaPages.textContent=String(pdf.numPages);
         const targetEdge=preferredTextureEdge(pdf.numPages);
-        const rendered=new Array(pdf.numPages);
-        const mobile=window.matchMedia("(max-width:700px)").matches;
-        const concurrency=IS_IOS_WEBKIT ? 1 : (mobile ? 2 : (embedMode ? 4 : 3));
-        let nextPage=1;
-        let completedPages=0;
-
-        async function renderWorker(){
-          while(true){
-            const pageNumber=nextPage++;
-            if(pageNumber>pdf.numPages)return;
-            if(token!==loadToken)throw new Error("cancelled");
-
-            const renderedPage=await renderPdfPage(pdf,pageNumber,token,targetEdge);
-            if(token!==loadToken)throw new Error("cancelled");
-            rendered[pageNumber-1]=renderedPage;
-
-            completedPages++;
-            loadingText.textContent="Seite "+completedPages+" von "+pdf.numPages+" wird gerendert …";
-            setStatus("Rendere Seite "+completedPages+" / "+pdf.numPages+" …");
-            setProgress(5+completedPages/pdf.numPages*85);
-
-            // Give constrained WebKit a collection/render opportunity between
-            // pages while desktop workers continue in parallel.
-            if(IS_IOS_WEBKIT)await new Promise(requestAnimationFrame);
-          }
+        const rendered=[];
+        for(let i=1;i<=pdf.numPages;i++){
+          if(token!==loadToken)return;
+          loadingText.textContent="Seite "+i+" von "+pdf.numPages+" wird gerendert …";
+          setStatus("Rendere Seite "+i+" / "+pdf.numPages+" …");
+          setProgress(5+(i-1)/pdf.numPages*85);
+          rendered.push(await renderPdfPage(pdf,i,token,targetEdge));
+          // Give WebKit a collection/render opportunity between heavy pages.
+          if(IS_IOS_WEBKIT && i%2===0)await new Promise(requestAnimationFrame);
         }
-
-        await Promise.all(
-          Array.from({length:Math.min(concurrency,pdf.numPages)},()=>renderWorker())
-        );
 
         if(token!==loadToken)return;
         loadingText.textContent="3D-Exposé wird aufgebaut …";
@@ -1335,132 +1270,6 @@
       }
     }
 
-    async function loadPdfFromUrl(url){
-      const response=await fetch(url,{cache:"no-store"});
-      if(!response.ok)throw new Error("Demo-PDF HTTP "+response.status);
-      const blob=await response.blob();
-      const name=forcedTitle
-        ? forcedTitle.replace(/[^a-z0-9äöüß]+/gi,"-").replace(/^-+|-+$/g,"")+".pdf"
-        : (url.split("/").pop()?.split("?")[0]||"Exposé.pdf");
-      const file=new File([blob],name,{type:"application/pdf"});
-      await loadPdf(file);
-    }
-
-    async function renderImagePage(url,targetEdge,token){
-      const response=await fetch(url,{cache:"force-cache"});
-      if(!response.ok)throw new Error("Demo-Seite HTTP "+response.status);
-      const blob=await response.blob();
-      if(token!==loadToken)throw new Error("cancelled");
-
-      const objectUrl=URL.createObjectURL(blob);
-      try{
-        const image=new Image();
-        image.decoding="async";
-        image.src=objectUrl;
-        await image.decode();
-        if(token!==loadToken)throw new Error("cancelled");
-
-        const sourceW=image.naturalWidth||image.width;
-        const sourceH=image.naturalHeight||image.height;
-        const longest=Math.max(sourceW,sourceH);
-        const target=Math.min(longest,Math.max(1,Number(targetEdge)||longest));
-        const scale=target/longest;
-
-        const pageCanvas=document.createElement("canvas");
-        pageCanvas.width=Math.max(1,Math.round(sourceW*scale));
-        pageCanvas.height=Math.max(1,Math.round(sourceH*scale));
-        const ctx=pageCanvas.getContext("2d",{alpha:false});
-        ctx.imageSmoothingEnabled=true;
-        ctx.imageSmoothingQuality="high";
-        ctx.fillStyle="#fff";
-        ctx.fillRect(0,0,pageCanvas.width,pageCanvas.height);
-        ctx.drawImage(image,0,0,pageCanvas.width,pageCanvas.height);
-        return {canvas:pageCanvas,width:sourceW,height:sourceH};
-      }finally{
-        URL.revokeObjectURL(objectUrl);
-      }
-    }
-
-    async function loadPageManifest(url){
-      const token=++loadToken;
-      clearBook();
-      emptyState.style.display="grid";
-      loadingMask.classList.add("show");
-      loadingTitle.textContent="Exposé wird vorbereitet";
-      loadingText.textContent="Hochauflösende Seiten werden geladen …";
-      setStatus("Exposé wird geladen …");
-      setProgress(3);
-
-      try{
-        const response=await fetch(url,{cache:"no-store"});
-        if(!response.ok)throw new Error("Demo-Manifest HTTP "+response.status);
-        const manifest=await response.json();
-        const pages=Array.isArray(manifest.pages)?manifest.pages.filter(Boolean):[];
-        if(!pages.length)throw new Error("Demo-Manifest enthält keine Seiten.");
-        if(pages.length>MAX_PAGES)throw new Error("Maximal "+MAX_PAGES+" Seiten pro Exposé.");
-
-        const manifestUrl=new URL(url,location.href);
-        const pageUrls=pages.map(page=>new URL(String(page),manifestUrl).href);
-        if(!queryParams.has("brand")&&manifest.brand)brandInput.value=String(manifest.brand);
-        if(!queryParams.has("subtitle"))subtitleInput.value="Konstanz Wollmatingen";
-        currentCoverTitle=forcedTitle
-          ? sanitizeAlantuCoverTitle(forcedTitle)
-          : sanitizeAlantuCoverTitle(manifest.title||"Exposé");
-        refreshBranding();
-
-        metaFile.textContent=manifest.source||"Sunside Living";
-        metaPages.textContent=String(pageUrls.length);
-
-        const targetEdge=preferredTextureEdge(pageUrls.length);
-        const rendered=new Array(pageUrls.length);
-        const mobile=window.matchMedia("(max-width:700px)").matches;
-        const concurrency=IS_IOS_WEBKIT ? 2 : (mobile ? 3 : 6);
-        let next=0;
-        let completed=0;
-
-        async function worker(){
-          while(true){
-            const index=next++;
-            if(index>=pageUrls.length)return;
-            rendered[index]=await renderImagePage(pageUrls[index],targetEdge,token);
-            completed++;
-            loadingText.textContent="Seite "+completed+" von "+pageUrls.length+" wird geladen …";
-            setStatus("Lade Seite "+completed+" / "+pageUrls.length+" …");
-            setProgress(5+completed/pageUrls.length*85);
-          }
-        }
-
-        await Promise.all(
-          Array.from({length:Math.min(concurrency,pageUrls.length)},()=>worker())
-        );
-        if(token!==loadToken)return;
-
-        loadingText.textContent="3D-Exposé wird aufgebaut …";
-        setProgress(94);
-        buildBook(rendered);
-        setProgress(100);
-        setStatus(rendered.length+" Seiten bereit.","ok");
-        setTimeout(()=>{if(token===loadToken)setProgress(0)},800);
-      }catch(err){
-        if(err?.message==="cancelled")return;
-        console.error(err);
-        setStatus(err?.message||"Demo konnte nicht verarbeitet werden.","error");
-        metaPages.textContent="—";
-        currentCoverTitle="Exposé";
-        refreshBranding();
-      }finally{
-        if(token===loadToken)loadingMask.classList.remove("show");
-      }
-    }
-
-    if(queryParams.has("brand"))brandInput.value=queryParams.get("brand")||brandInput.value;
-    if(queryParams.has("subtitle"))subtitleInput.value=queryParams.get("subtitle")||subtitleInput.value;
-    refreshBranding();
-    if(queryParams.get("controls")==="1"){
-      stage.classList.add("debug-controls");
-      debugToggle?.setAttribute("aria-pressed","true");
-    }
-
     input.addEventListener("change",()=>loadPdf(input.files?.[0]));
     brandInput.addEventListener("input",refreshBranding);
     subtitleInput.addEventListener("input",refreshBranding);
@@ -1478,46 +1287,8 @@
 
     const fullscreenController=createAlantuFullscreenController({
       stage,
-      button:null,
+      button:fullscreenBtn,
       onChange:()=>setTimeout(()=>viewControls.resize(),30)
-    });
-
-    function setDebugControls(enabled){
-      const on=!!enabled;
-      stage.classList.toggle("debug-controls",on);
-      debugToggle?.setAttribute("aria-pressed",String(on));
-      debugToggle?.setAttribute("aria-label",on?"Ansichtseinstellungen ausblenden":"Ansichtseinstellungen anzeigen");
-      if(on)requestAnimationFrame(updateZoomValue);
-    }
-    function toggleDebugControls(){
-      setDebugControls(!stage.classList.contains("debug-controls"));
-    }
-    debugToggle?.addEventListener("click",e=>{
-      e.preventDefault();
-      e.stopPropagation();
-      toggleDebugControls();
-    });
-
-    function requestFullscreenToggle(){
-      if(embedMode&&window.parent!==window){
-        window.parent.postMessage({type:"alantu-fullscreen-toggle"},"*");
-        return;
-      }
-      fullscreenController.toggle();
-    }
-
-    fullscreenBtn?.addEventListener("click",e=>{
-      e.preventDefault();
-      e.stopPropagation();
-      requestFullscreenToggle();
-    });
-
-    window.addEventListener("message",e=>{
-      if(e.source!==window.parent)return;
-      const data=e.data||{};
-      if(data.type!=="alantu-fullscreen-state")return;
-      stage.classList.toggle("is-host-fullscreen",!!data.active);
-      setTimeout(()=>viewControls.resize(),30);
     });
 
     function isTypingTarget(target){
@@ -1528,36 +1299,18 @@
       const key=String(e.key||"").toLowerCase();
       if(key==="d"){
         e.preventDefault();
-        toggleDebugControls();
+        stage.classList.toggle("debug-controls");
+        if(stage.classList.contains("debug-controls"))requestAnimationFrame(updateZoomValue);
       }else if(key==="f"){
         e.preventDefault();
-        requestFullscreenToggle();
+        fullscreenController.toggle();
       }
     });
-
-    // Desktop keeps native dblclick. Mobile browsers do not reliably emit
-    // dblclick on touch, so detect a deliberate double tap as well.
     stage.addEventListener("dblclick",e=>{
-      if(e.target?.closest?.(".stage-ui,.debug-toggle"))return;
+      if(e.target?.closest?.(".stage-ui"))return;
       e.preventDefault();
-      requestFullscreenToggle();
+      fullscreenController.toggle();
     });
-    let lastTap=null;
-    stage.addEventListener("pointerup",e=>{
-      if(e.pointerType!=="touch")return;
-      if(e.target?.closest?.(".stage-ui,.debug-toggle")){lastTap=null;return}
-      const now=performance.now();
-      const tap={time:now,x:e.clientX,y:e.clientY};
-      if(lastTap&&now-lastTap.time<360&&Math.hypot(tap.x-lastTap.x,tap.y-lastTap.y)<42){
-        lastTap=null;
-        e.preventDefault();
-        e.stopPropagation();
-        requestFullscreenToggle();
-        return;
-      }
-      lastTap=tap;
-    },true);
-
     fitViewBtn.addEventListener("click",()=>requestAnimationFrame(updateZoomValue));
 
     function resize(){viewControls.resize()}
@@ -1575,31 +1328,6 @@
     refreshBranding();
     bookCore.reset(0);
     render();
-
-    const preloadManifest=queryParams.get("manifest");
-    const preloadPdf=queryParams.get("pdf");
-    if(preloadManifest){
-      loadPageManifest(preloadManifest).catch(async err=>{
-        console.warn("High-res demo pages unavailable, falling back to PDF.",err);
-        if(preloadPdf){
-          try{
-            await loadPdfFromUrl(preloadPdf);
-            return;
-          }catch(pdfErr){
-            console.error(pdfErr);
-            setStatus(pdfErr?.message||"Demo-PDF konnte nicht geladen werden.","error");
-            return;
-          }
-        }
-        console.error(err);
-        setStatus(err?.message||"Demo konnte nicht geladen werden.","error");
-      });
-    }else if(preloadPdf){
-      loadPdfFromUrl(preloadPdf).catch(err=>{
-        console.error(err);
-        setStatus(err?.message||"Demo-PDF konnte nicht geladen werden.","error");
-      });
-    }
   </script>
 </body>
 </html>
