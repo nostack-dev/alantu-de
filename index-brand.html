@@ -841,7 +841,12 @@
       geometry.userData.basePosition=geometry.attributes.position.array.slice();
 
       const frontPage=singlePageMode?i:i*2;
-      const backPage=singlePageMode?-1:frontPage+1;
+      // Portrait keeps one logical PDF page per turn, but the physical back
+      // of that sheet previews the next PDF page exactly like the old duplex
+      // behavior. This avoids the white flash during the turn.
+      const backPage=singlePageMode
+        ? (frontPage+1<totalPages?frontPage+1:-1)
+        : frontPage+1;
 
       const frontMaterial=new THREE.MeshStandardMaterial({
         map:textureFor(frontPage),
