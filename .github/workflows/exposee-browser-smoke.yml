@@ -38,7 +38,7 @@ jobs:
             ready=0
             for attempt in $(seq 1 36); do
               if curl -fsSL --max-time 20 "https://www.alantu.de/$path?smoke=${{ github.sha }}" -o /tmp/alantu-live-file; then
-                if { [ "$path" = alantu-book-core.js ] && grep -q 'captured:false' /tmp/alantu-live-file; } || \
+                if { [ "$path" = alantu-book-core.js ] && grep -q 'pushSwipeSample' /tmp/alantu-live-file; } || \
                    { [ "$path" = alantu-book-view.js ] && grep -q 'spreadFocusTarget' /tmp/alantu-live-file; } || \
                    { grep -q 'view404' /tmp/alantu-live-file && grep -q 'brand308' /tmp/alantu-live-file; }; then
                   ready=1
