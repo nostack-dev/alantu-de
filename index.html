@@ -609,19 +609,47 @@
   .source-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;font-size:11px;color:var(--tr-muted)}
   .source-foot a{color:var(--tr-ink);font-weight:760;text-decoration:none}
   .source-foot a:hover{text-decoration:underline}
-  .forecast-proof{margin-top:18px;padding-top:16px;border-top:1px solid var(--tr-border)}
-  .forecast-proof-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:11px}
-  .forecast-proof-title{font-size:13px;font-weight:800;color:var(--tr-ink)}
-  .forecast-proof-summary{font-size:10px;font-weight:650;color:var(--tr-muted);font-variant-numeric:tabular-nums;text-align:right}
-  .proof-strip{display:flex;gap:7px;overflow-x:auto;padding:0 0 5px;scrollbar-width:none}
-  .proof-strip::-webkit-scrollbar{display:none}
-  .proof-item{flex:0 0 auto;min-width:84px;padding:9px 10px;border:1px solid var(--tr-border);border-radius:10px;background:var(--tr-canvas);font-variant-numeric:tabular-nums}
-  .proof-item .p-time{font-size:9px;color:var(--tr-muted);font-weight:700}
-  .proof-item .p-main{display:flex;align-items:center;justify-content:space-between;gap:7px;margin-top:4px;font-size:12px;font-weight:820;color:var(--tr-ink)}
-  .proof-item .p-bps{font-size:9px;color:var(--tr-muted);margin-top:3px}
-  .proof-item.hit .p-result{color:var(--tr-positive)}
-  .proof-item.miss .p-result{color:var(--tr-negative)}
-  .proof-item.invalid .p-result{color:var(--tr-muted)}
+  .forecast-proof{margin-top:20px;padding-top:18px;border-top:1px solid var(--tr-border)}
+  .forecast-proof-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:8px}
+  .forecast-proof-title{font-size:14px;font-weight:820;color:var(--tr-ink);letter-spacing:-.01em}
+  .forecast-proof-summary{font-size:11px;font-weight:680;color:var(--tr-muted);font-variant-numeric:tabular-nums;text-align:right}
+  .forecast-legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 12px;font-size:10px;color:var(--tr-muted);font-weight:700}
+  .forecast-legend span{display:inline-flex;align-items:center;gap:5px}
+  .forecast-key{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:#111;color:#fff;font-size:11px;font-style:normal;font-weight:900}
+  .forecast-hit,.forecast-miss,.forecast-pending{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;font-size:11px;font-weight:900;background:#fff}
+  .forecast-hit{border:1.5px solid var(--tr-positive);color:var(--tr-positive)}
+  .forecast-miss{border:1.5px solid var(--tr-negative);color:var(--tr-negative)}
+  .forecast-pending{border:1.5px solid var(--tr-border);color:var(--tr-muted)}
+  .forecast-timeline{display:grid;gap:7px;font-variant-numeric:tabular-nums}
+  .forecast-lane{display:grid;grid-template-columns:38px minmax(0,1fr) 54px;align-items:center;gap:8px}
+  .forecast-lane-label{font-size:11px;font-weight:820;color:var(--tr-ink);text-align:right}
+  .forecast-lane-stat{font-size:10px;font-weight:720;color:var(--tr-muted);text-align:left;white-space:nowrap}
+  .forecast-track{position:relative;height:34px;border-radius:9px;background:#F7F7F7;overflow:visible}
+  .forecast-span{position:absolute;top:16px;height:2px;min-width:2px;background:#AEB2B7;opacity:.72;border-radius:2px}
+  .forecast-entry{position:absolute;top:7px;display:grid;place-items:center;width:20px;height:20px;margin-left:-10px;border-radius:50%;background:#111;color:#fff;font-size:11px;font-weight:900;line-height:1;z-index:2;box-shadow:0 0 0 2px #fff}
+  .forecast-result{position:absolute;top:8px;display:grid;place-items:center;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:#fff;font-size:10px;font-weight:900;line-height:1;z-index:3;box-shadow:0 0 0 2px #F7F7F7}
+  .forecast-result.hit{border:1.5px solid var(--tr-positive);color:var(--tr-positive)}
+  .forecast-result.miss{border:1.5px solid var(--tr-negative);color:var(--tr-negative)}
+  .forecast-result.pending,.forecast-result.invalid{border:1.5px solid var(--tr-border);color:var(--tr-muted)}
+  .forecast-axis{display:grid;grid-template-columns:38px minmax(0,1fr) 54px;gap:8px;margin-top:1px}
+  .forecast-axis-time{display:flex;justify-content:space-between;font-size:9px;color:var(--tr-muted);font-weight:650}
+  .forecast-latest{margin-top:11px;padding:10px 12px;border-radius:10px;background:#F7F7F7;font-size:11px;line-height:1.3;color:var(--tr-ink);font-weight:680}
+  .forecast-latest b{font-weight:850}
+  .forecast-empty{padding:14px 12px;border-radius:10px;background:#F7F7F7;color:var(--tr-muted);font-size:11px;font-weight:650}
+  @media(max-width:700px){
+    .forecast-proof{margin-top:18px}
+    .forecast-proof-head{align-items:flex-start;flex-direction:column;gap:3px}
+    .forecast-proof-summary{text-align:left}
+    .forecast-legend{gap:10px;margin-bottom:10px}
+    .forecast-lane{grid-template-columns:30px minmax(0,1fr) 43px;gap:6px}
+    .forecast-lane-label{font-size:10px}
+    .forecast-lane-stat{font-size:9px}
+    .forecast-track{height:32px}
+    .forecast-entry{top:6px}
+    .forecast-result{top:7px}
+    .forecast-axis{grid-template-columns:30px minmax(0,1fr) 43px;gap:6px}
+  }
+
   .sync-footer{border-top:1px solid var(--tr-border)!important;color:var(--tr-muted)!important}
   .sync-footer button{display:none!important}
   @media(max-width:700px){
@@ -725,8 +753,15 @@
     <div class="wave-forecast-strip" id="waveForecasts" aria-live="polite"></div>
     <div class="trajectory-note" id="trajectoryNote"><span><strong>1T Projektionspfad</strong> · Konsenspfad + Unsicherheitsband</span><span>Shadow · keine Kurszusage</span></div>
     <div class="forecast-proof" id="forecastProof">
-      <div class="forecast-proof-head"><span class="forecast-proof-title">Prognose-Verlauf</span><span class="forecast-proof-summary" id="forecastProofSummary">sammelt prospektive Treffer</span></div>
-      <div class="proof-strip" id="forecastProofStrip" aria-live="polite"></div>
+      <div class="forecast-proof-head"><span class="forecast-proof-title">Prognosen vs. Realität</span><span class="forecast-proof-summary" id="forecastProofSummary">sammelt prospektive Vergleiche</span></div>
+      <div class="forecast-legend" aria-hidden="true">
+        <span><i class="forecast-key">↑</i> Richtung damals</span>
+        <span><b class="forecast-hit">✓</b> getroffen</span>
+        <span><b class="forecast-miss">×</b> daneben</span>
+        <span><b class="forecast-pending">·</b> läuft</span>
+      </div>
+      <div class="forecast-timeline" id="forecastProofStrip" aria-live="polite"></div>
+      <div class="forecast-latest" id="forecastProofLatest" hidden></div>
     </div>
     <div class="chart-sub"><span id="ivCoverage"></span></div>
     <div class="chart-wrap chart-wrap-lg"><canvas id="ivChart"></canvas></div>
@@ -1979,15 +2014,72 @@ function renderSentimentSources(){
     return '<article class="source-row"><div class="source-row-top"><span class="source-channel">'+esc(channelLabel(v.channel))+' · '+scope+'</span><time class="source-time">'+esc(berlinStamp(v.time))+'</time></div><div class="source-summary">'+esc(summary)+'</div><div class="source-foot"><span>'+esc((v.site||'Quelle')+market)+'</span>'+(href?'<a href="'+esc(href)+'" target="_blank" rel="noopener">Original öffnen ↗</a>':'')+'</div></article>';
   }).join(''):'<div class="source-row"><div class="source-summary">Noch keine aktuellen Einzelquellen geliefert.</div></div>';
 }
+function forecastClock(v){
+  try{return new Date(v).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'});}catch(e){return '—';}
+}
+function rawForecastMoveBps(x){
+  var a=Number(x&&x.entry_price),b=Number(x&&x.exit_price);
+  return a>0&&b>0?10000*(b/a-1):null;
+}
 function renderForecastTrail(){
-  var p=shadowTrailState||{},rows=Array.isArray(p.outcomes)?p.outcomes:[],evaluated=rows.filter(function(x){return x.status==='evaluated';}),hits=evaluated.filter(function(x){return x.hit===true;}).length;
-  var sum=document.getElementById('forecastProofSummary'),strip=document.getElementById('forecastProofStrip');if(!sum||!strip)return;
-  sum.textContent=evaluated.length?(hits+'/'+evaluated.length+' richtig · '+Math.round(100*hits/evaluated.length)+' % · prospektiv'):'sammelt prospektive Treffer';
-  strip.innerHTML=rows.slice(0,18).map(function(x){
-    var cls=x.status==='invalid'?'invalid':x.hit?'hit':'miss',res=x.status==='invalid'?'—':x.hit?'✓':'×',dir=Number(x.dir)>0?'↑':'↓',bps=Number(x.gross_bps);
-    var btxt=isFinite(bps)?((bps>0?'+':'')+bps.toLocaleString('de-DE',{maximumFractionDigits:1})+' bp'):(x.reason==='target_price_unavailable'?'kein Zielkurs':'—');
-    return '<div class="proof-item '+cls+'" title="Ziel '+esc(berlinStamp(Date.parse(x.target_at||'')))+'"><div class="p-time">'+esc(footerClock(x.at))+' · '+Number(x.horizon_minutes)+'m</div><div class="p-main"><span>'+dir+' '+Number(x.horizon_minutes)+'m</span><span class="p-result">'+res+'</span></div><div class="p-bps">'+esc(btxt)+'</div></div>';
-  }).join('')||'<div class="proof-item invalid"><div class="p-main"><span>wartet</span><span class="p-result">·</span></div><div class="p-bps">noch keine fällige Prognose</div></div>';
+  var p=shadowTrailState||{},outcomes=Array.isArray(p.outcomes)?p.outcomes:[],pending=Array.isArray(p.pending)?p.pending:[],hs=[1,5,15,30];
+  var evaluated=outcomes.filter(function(x){return x.status==='evaluated';}),hits=evaluated.filter(function(x){return x.hit===true;}).length;
+  var sum=document.getElementById('forecastProofSummary'),strip=document.getElementById('forecastProofStrip'),latest=document.getElementById('forecastProofLatest');
+  if(!sum||!strip)return;
+  sum.textContent=evaluated.length?(hits+'/'+evaluated.length+' getroffen · '+Math.round(100*hits/evaluated.length)+' % · echte Zielzeit'):'noch keine fälligen Vergleiche';
+
+  var all=outcomes.map(function(x){return Object.assign({view_status:x.status||'invalid'},x);})
+    .concat(pending.map(function(x){return Object.assign({view_status:'pending'},x);}))
+    .filter(function(x){return hs.indexOf(Number(x.horizon_minutes))>=0&&isFinite(Date.parse(x.at||''))&&isFinite(Date.parse(x.target_at||''));});
+
+  var visible=[];
+  hs.forEach(function(h){
+    var lane=all.filter(function(x){return Number(x.horizon_minutes)===h;})
+      .sort(function(a,b){return Date.parse(a.at)-Date.parse(b.at);})
+      .slice(-7);
+    visible=visible.concat(lane);
+  });
+  if(!visible.length){
+    strip.innerHTML='<div class="forecast-empty">Noch keine Prognosen mit sauberer Start- und Zielzeit.</div>';
+    if(latest)latest.hidden=true;
+    return;
+  }
+
+  var minT=Math.min.apply(null,visible.map(function(x){return Date.parse(x.at);}));
+  var maxT=Math.max.apply(null,visible.map(function(x){return Date.parse(x.target_at);}));
+  if(!(maxT>minT))maxT=minT+60000;
+  var span=maxT-minT,pct=function(t){return Math.max(0,Math.min(100,100*(t-minT)/span));};
+
+  var lanes=hs.map(function(h){
+    var lane=visible.filter(function(x){return Number(x.horizon_minutes)===h;}).sort(function(a,b){return Date.parse(a.at)-Date.parse(b.at);});
+    var laneEval=outcomes.filter(function(x){return Number(x.horizon_minutes)===h&&x.status==='evaluated';});
+    var laneHits=laneEval.filter(function(x){return x.hit===true;}).length;
+    var stat=laneEval.length?(laneHits+'/'+laneEval.length):'—';
+    var marks=lane.map(function(x){
+      var a=Date.parse(x.at),t=Date.parse(x.target_at),l=pct(a),r=pct(t),w=Math.max(.8,r-l),dir=Number(x.dir)>0?'↑':'↓';
+      var st=x.view_status==='pending'?'pending':x.view_status==='invalid'?'invalid':x.hit===true?'hit':'miss';
+      var res=st==='hit'?'✓':st==='miss'?'×':st==='pending'?'·':'—';
+      var move=rawForecastMoveBps(x),moveTxt=isFinite(move)?((move>=0?'+':'')+move.toLocaleString('de-DE',{maximumFractionDigits:1})+' bp'):'noch offen';
+      var aria=forecastClock(x.at)+' Prognose '+dir+' '+h+' Minuten, '+(st==='pending'?'läuft':st==='invalid'?'nicht auswertbar':('Marktbewegung '+moveTxt+', '+(st==='hit'?'getroffen':'daneben')));
+      return '<span class="forecast-span" style="left:'+l.toFixed(2)+'%;width:'+w.toFixed(2)+'%" aria-hidden="true"></span>'+
+        '<span class="forecast-entry" style="left:'+l.toFixed(2)+'%" role="img" aria-label="'+esc(aria)+'" title="'+esc(aria)+'">'+dir+'</span>'+
+        '<span class="forecast-result '+st+'" style="left:'+r.toFixed(2)+'%" aria-hidden="true">'+res+'</span>';
+    }).join('');
+    return '<div class="forecast-lane"><div class="forecast-lane-label">'+h+'m</div><div class="forecast-track">'+marks+'</div><div class="forecast-lane-stat">'+stat+'</div></div>';
+  }).join('');
+
+  strip.innerHTML=lanes+
+    '<div class="forecast-axis"><span></span><div class="forecast-axis-time"><span>'+esc(forecastClock(minT))+'</span><span>'+esc(forecastClock(maxT))+'</span></div><span></span></div>';
+
+  if(latest){
+    var last=evaluated.slice().sort(function(a,b){return Date.parse(b.exit_at||b.target_at||0)-Date.parse(a.exit_at||a.target_at||0);})[0];
+    if(last){
+      var mv=rawForecastMoveBps(last),actual=isFinite(mv)?((mv>=0?'↑ +':'↓ ')+Math.abs(mv).toLocaleString('de-DE',{maximumFractionDigits:1})+' bp'):'—';
+      var pred=Number(last.dir)>0?'↑':'↓',ok=last.hit===true?'✓ getroffen':'× daneben';
+      latest.innerHTML='<b>Zuletzt</b> · '+esc(forecastClock(last.at))+' · Prognose '+pred+' '+Number(last.horizon_minutes)+' Min · Markt danach '+esc(actual)+' · <b>'+ok+'</b>';
+      latest.hidden=false;
+    }else latest.hidden=true;
+  }
 }
 function fetchRelayDetails(){return Promise.resolve();}
 function connectMicrostructureRelay(){
