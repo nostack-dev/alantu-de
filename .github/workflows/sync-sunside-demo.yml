@@ -1,0 +1,38 @@
+name: Sync Sunside demo PDF
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/sync-sunside-demo.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Sunside Living brochure
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets
+          curl -fL --retry 4 --retry-delay 3 --connect-timeout 20 --max-time 180             "https://www.bi-bodenseeimmo.de/wp-content/uploads/2024/08/SL_Expose.pdf"             -o assets/sunside-living-expose.pdf
+          test -s assets/sunside-living-expose.pdf
+          file assets/sunside-living-expose.pdf | grep -qi PDF
+      - name: Commit brochure asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "alantu-demo-sync"
+          git config user.email "alantu-demo-sync@users.noreply.github.com"
+          git add assets/sunside-living-expose.pdf
+          if git diff --cached --quiet; then
+            echo "PDF already current"
+            exit 0
+          fi
+          git commit -m "Add Sunside Living demo PDF"
+          git push
