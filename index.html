@@ -1308,6 +1308,20 @@ function axisX(rows,getAt,range){
 }
 function chartInteract(){return {mode:'nearest',intersect:false,axis:'x'};}
 function chartEvents(){return ['mousemove','mouseout','click','touchstart','touchmove'];}
+var priceChartScrubUntil=0;
+function markPriceChartScrub(ms){priceChartScrubUntil=Math.max(priceChartScrubUntil,Date.now()+(Number(ms)||2200));}
+function priceChartScrubbing(){return Date.now()<priceChartScrubUntil;}
+function armPriceChartScrub(){
+  var c=document.getElementById('ivChart');
+  if(!c||c.dataset.alantuScrub==='1')return;
+  c.dataset.alantuScrub='1';
+  ['mousemove','mousedown','pointermove','pointerdown','touchstart','touchmove'].forEach(function(ev){
+    c.addEventListener(ev,function(){markPriceChartScrub(2200);},{passive:true});
+  });
+  ['mouseleave','pointerleave','touchend','touchcancel'].forEach(function(ev){
+    c.addEventListener(ev,function(){priceChartScrubUntil=Math.max(priceChartScrubUntil,Date.now()+300);},{passive:true});
+  });
+}
 function currentPriceMarkerPlugin(){
   return {
     id:'currentPriceMarker',
@@ -2108,7 +2122,7 @@ function updateLivePriceChart1d(){
   }
   refreshTrajectoryDatasets(pts,session,false);
   var yb=stableDayYBounds(pts,fair&&fair.data?fair.data:[]);if(yb){ivChart.options.scales.y.min=yb.min;ivChart.options.scales.y.max=yb.max;}
-  ivChart.update('none');
+  if(!priceChartScrubbing())ivChart.update('none');
   return true;
 }
 var liveChartTimer=null;
@@ -2865,6 +2879,7 @@ function renderValueChart(){
     clearChartInteraction(ivChart);
     ivChart.data.datasets=datasets;ivChart.options.scales.x=xAxis;if(yb){ivChart.options.scales.y.min=yb.min;ivChart.options.scales.y.max=yb.max;}else{delete ivChart.options.scales.y.min;delete ivChart.options.scales.y.max;}ivChart.update('none');
   }
+  armPriceChartScrub();
 }
 function renderOpinions(){
   var x=currentContext(),ev=x.ev,orcl=x.orcl,voices=filterByAt(ev.voices||orcl.voices_archive||[],function(v){return v.at;},opinionsRange),counts={bull:0,mixed:0,bear:0};
