@@ -1306,7 +1306,8 @@
         fullscreenController.toggle();
       }
     });
-    canvas.addEventListener("dblclick",e=>{
+    stage.addEventListener("dblclick",e=>{
+      if(e.target?.closest?.(".stage-ui"))return;
       e.preventDefault();
       fullscreenController.toggle();
     });
