@@ -43,6 +43,7 @@ const SOURCE_ARCHIVE_WINDOW_MS=36*3600000;
 let wgoPreviousCloseCache={checked_at:0,orcl:null,eurusd:null,source:null};
 const WHATS_GOING_ON_PROMPT=`Du erklärst ORCL in höchstens 5 kurzen Sätzen. Beginne mit der Bewegung der letzten 5/10 Minuten. Wenn der aktuelle Zeitraum ruhig ist, aber in den letzten 3 Stunden ein deutlich stärkerer 5/10-Minuten-Impuls lag, nenne diesen mit Uhrzeit und Größe. Ordne danach den heutigen Tagesmove ein und nutze relevante Meldungen der letzten 18 Stunden. Vergleiche den Impuls mit QQQ/SPY, um breiten Marktstress von ORCL-spezifischer Bewegung zu unterscheiden. Priorisiere konkrete Unternehmensereignisse vor allgemeiner Stimmung. Unterscheide klar zwischen belegtem Ereignis, wahrscheinlich relevantem Katalysator und bloßer zeitlicher Korrelation. Keine Kauf-/Verkaufsempfehlung.`;
 let sourceRefreshBusy=false,sourceLastLogAt=0,sourceLastEventAt=null,sourcePrimed=false;
+const wgoRangeCache=new Map(),WGO_RANGE_CACHE_MS=10*60*1000;
 const sourceSeen=new Map();
 let sourceState={
   status:'warming',at:null,checked_at:null,event_mode:'new_since_last_poll',
@@ -142,7 +143,7 @@ async function blueskyRecent(){
   ]);
   return dedupeStories(ticker.concat(entity)).slice(0,160);
 }
-async function googleNewsQuery(q){
+async function googleNewsQuery(q,maxAgeMs=SOURCE_ARCHIVE_WINDOW_MS){
   const u=new URL('https://news.google.com/rss/search');
   u.searchParams.set('q',q);u.searchParams.set('hl','en-US');u.searchParams.set('gl','US');u.searchParams.set('ceid','US:en');
   const r=await fetch(u,{headers:{'user-agent':'Mozilla/5.0 alantu-market/1.0'},signal:AbortSignal.timeout(12000)});
@@ -153,7 +154,7 @@ async function googleNewsQuery(q){
     const title=dec((item.match(/<title>([\s\S]*?)<\/title>/i)||[])[1]||'').trim();
     const url=dec((item.match(/<link>([\s\S]*?)<\/link>/i)||[])[1]||'').trim();
     const time=Date.parse(dec((item.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)||[])[1]||''));
-    if(title&&url&&Number.isFinite(time)&&Date.now()-time<=SOURCE_ARCHIVE_WINDOW_MS)out.push({title,url,site:'news.google.com',time});
+    if(title&&url&&Number.isFinite(time)&&(!Number.isFinite(Number(maxAgeMs))||Number(maxAgeMs)<=0||Date.now()-time<=Number(maxAgeMs)))out.push({title,url,site:'news.google.com',time});
   }
   return out;
 }
@@ -164,6 +165,66 @@ async function googleNewsRecent(){
   ]);
   return dedupeStories(market.concat(company)).slice(0,160);
 }
+function wgoRangeSpec(range,now=Date.now()){
+  const day=86400000;
+  if(range==='1d')return {label:'1T',days:1,query:'when:1d'};
+  if(range==='1w')return {label:'1W',days:7,query:'when:7d'};
+  if(range==='1m')return {label:'1M',days:31,query:'when:30d'};
+  if(range==='year')return {label:'1J',days:366,query:'when:1y'};
+  if(range==='5y'){
+    const d=new Date(now-5*365.25*day).toISOString().slice(0,10);
+    return {label:'5J',days:Math.ceil(5*365.25),query:'after:'+d};
+  }
+  if(range==='all')return {label:'MAX',days:0,query:'after:2000-01-01'};
+  return null;
+}
+function wgoTheme(title){
+  const t=normalizedText(title);
+  if(/force majeure|project jupiter|data center|datacenter|new mexico|capex|power|pipeline|infrastructure/.test(t))return 'Rechenzentren & Capex';
+  if(/openai|chatgpt|ai |artificial intelligence|cloud|oci|gpu|nvidia|contract|backlog/.test(t))return 'AI, Cloud & Großverträge';
+  if(/earnings|revenue|guidance|quarter|profit|margin|forecast|results/.test(t))return 'Ergebnisse & Ausblick';
+  if(/debt|loan|financing|bond|credit|downgrade|cash flow|free cash/.test(t))return 'Finanzierung & Verschuldung';
+  if(/layoff|job cut|restructur|headcount/.test(t))return 'Restrukturierung';
+  if(/lawsuit|antitrust|regulat|probe|privacy|government/.test(t))return 'Regulierung & Recht';
+  if(/upgrade|downgrade|price target|analyst|rating/.test(t))return 'Analysten';
+  return 'Sonstiges';
+}
+function wgoRangeBackgroundText(range,items){
+  const spec=wgoRangeSpec(range),rows=dedupeStories(items||[]);if(!spec||!rows.length)return {text:'Für diesen Zeitraum ist derzeit kein belastbarer Nachrichtenhintergrund abrufbar.',themes:[],items:[]};
+  const counts={},examples={};
+  for(const x of rows){
+    const th=wgoTheme(x.title);counts[th]=(counts[th]||0)+1;
+    if(!examples[th])examples[th]=x;
+  }
+  const ranked=Object.entries(counts).sort((a,b)=>b[1]-a[1]).filter(x=>x[0]!=='Sonstiges');
+  const top=ranked.slice(0,3);
+  const tone={pos:0,neg:0,mix:0};for(const x of rows){const z=termScore(x.title);if(z>0)tone.pos++;else if(z<0)tone.neg++;else tone.mix++;}
+  const themeText=top.length?top.map(x=>x[0]+' ('+x[1]+')').join(', '):'keine klar dominierende Themenfamilie';
+  const reps=top.slice(0,2).map(x=>examples[x[0]]).filter(Boolean);
+  const repText=reps.length?' Auffällige Meldungen: '+reps.map(x=>'„'+String(x.title||'').replace(/\s+/g,' ').trim().slice(0,150)+(String(x.title||'').length>150?'…':'')+'“').join(' · ')+'.':'';
+  const bias=tone.neg>tone.pos*1.25?'überwiegend negativer':tone.pos>tone.neg*1.25?'überwiegend positiver':'gemischter';
+  return {
+    text:'Hintergrund '+spec.label+': Dominant waren '+themeText+'. Die Nachrichtenlage war '+bias+' Natur.'+repText,
+    themes:top.map(x=>({theme:x[0],count:x[1]})),
+    items:reps.map(x=>({title:x.title,url:x.url,time:x.time,site:x.site})),
+    counts:{total:rows.length,positive:tone.pos,negative:tone.neg,mixed:tone.mix}
+  };
+}
+async function wgoRangeBackground(range){
+  const spec=wgoRangeSpec(range);if(!spec)return {range,generated_at:new Date().toISOString(),background:'Unbekannter Zeitraum.',themes:[],items:[]};
+  const cached=wgoRangeCache.get(range),now=Date.now();
+  if(cached&&now-cached.at<WGO_RANGE_CACHE_MS)return cached.data;
+  const maxAge=spec.days>0?spec.days*86400000:0;
+  const suffix=spec.query;
+  const [market,company]=await Promise.all([
+    optionalSource(()=>googleNewsQuery('(Oracle OR ORCL) stock shares '+suffix,maxAge)),
+    optionalSource(()=>googleNewsQuery('Oracle (cloud OR AI OR earnings OR contract OR capex OR debt OR data center) '+suffix,maxAge))
+  ]);
+  const rows=dedupeStories(market.concat(company)).slice(0,180),bg=wgoRangeBackgroundText(range,rows);
+  const data={range,label:spec.label,generated_at:new Date().toISOString(),background:bg.text,themes:bg.themes,items:bg.items,counts:bg.counts||{total:0,positive:0,negative:0,mixed:0},source:'google_news_rss',cache_seconds:600};
+  wgoRangeCache.set(range,{at:now,data});return data;
+}
+
 async function optionalSource(fn){try{return await fn();}catch{return [];}}
 function sourceChannel(x,type){
   if(type==='news')return 'news';
@@ -1024,7 +1085,11 @@ const server=http.createServer((req,res)=>{
   if(u.pathname==='/v1/hypothesis-v4')return json(res,200,hypothesisTrail());
   if(u.pathname==='/v1/research-v5')return json(res,200,v5Trail());
   if(u.pathname==='/v1/whats-going-on'){
-    const minutes=Number(u.searchParams.get('minutes'))===5?5:10;
+    const range=String(u.searchParams.get('range')||'').trim();
+    if(['1d','1w','1m','year','5y','all'].includes(range)){
+      return wgoRangeBackground(range).then(x=>json(res,200,x)).catch(e=>json(res,200,{range,generated_at:new Date().toISOString(),background:'Für diesen Zeitraum konnte der Nachrichtenhintergrund gerade nicht geladen werden.',themes:[],items:[],error:String(e&&e.message||e)}));
+    }
+    const minutes=10;
     return whatsGoingOn(minutes).then(x=>json(res,200,x)).catch(e=>json(res,200,{minutes,generated_at:new Date().toISOString(),mode:'fallback',brief:'Die Kurzlage konnte gerade nicht vollständig berechnet werden.',error:String(e&&e.message||e)}));
   }
   if(u.pathname==='/v1/source-state')return json(res,200,sourceState);
