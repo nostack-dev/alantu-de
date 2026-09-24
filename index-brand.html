@@ -902,10 +902,21 @@
 
     function portraitFocusForState(state){
       if(!singlePageMode||!totalLeaves)return 0;
-      const lastIndex=totalLeaves-1;
-      const turn=(state.activeTurns||[]).find(t=>Number(t.index)===lastIndex);
-      if(turn)return Math.max(0,Math.min(1,Number(turn.progress)||0));
-      return state.currentLeaf>=totalLeaves||state.closedSide==="end"?1:0;
+
+      // Keep the camera on the right through the entire final paper turn.
+      // Only the END hardcover may move the framing to the left.
+      if(state.closedSide==="end"&&!state.activeBoundary)return 1;
+
+      const boundary=state.activeBoundary;
+      if(boundary?.side==="end"){
+        const p=Math.max(0,Math.min(1,Number(boundary.progress)||0));
+        // Let the hardcover visibly fall first. Camera movement begins only
+        // after ~45% closure, then eases to the left as the cover finishes.
+        const t=Math.max(0,Math.min(1,(p-.45)/.55));
+        return t*t*(3-2*t);
+      }
+
+      return 0;
     }
 
     function updateUI(state){
