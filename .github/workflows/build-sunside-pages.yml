@@ -42,7 +42,7 @@ jobs:
           for png in "$tmp"/page-*.png; do
             i=$((i+1))
             name=$(printf "page-%02d.webp" "$i")
-            cwebp -quiet -lossless -z 9 -exact "$png" -o "$out/$name"
+            cwebp -quiet -lossless -z 6 -exact "$png" -o "$out/$name"
             if [ -n "$pages_json" ]; then pages_json="$pages_json,"; fi
             pages_json="$pages_json\"$name\""
           done
