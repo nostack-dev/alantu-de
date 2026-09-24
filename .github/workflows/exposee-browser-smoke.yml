@@ -39,8 +39,8 @@ jobs:
         run: |
           set -euo pipefail
           for f in index-brand.html pdf-to-exposee.html; do
-            grep -q 'tiltXDegrees=5' "$f"
-            grep -q 'tiltYDegrees=3' "$f"
+            grep -q 'tiltXDegrees=4' "$f"
+            grep -q 'tiltYDegrees=2' "$f"
             grep -q 'class="axis-controls"' "$f"
             grep -q 'stage:fullscreen .axis-controls' "$f"
             ! grep -Eq 'root\.scale\.(x|y)[[:space:]]*=' "$f"
@@ -57,8 +57,8 @@ jobs:
             local out="$2"
             for i in $(seq 1 30); do
               if curl -fsSL --max-time 20 "$url?smoke=${{ github.sha }}" -o "$out" \
-                && grep -q 'tiltXDegrees=5' "$out" \
-                && grep -q 'tiltYDegrees=3' "$out" \
+                && grep -q 'tiltXDegrees=4' "$out" \
+                && grep -q 'tiltYDegrees=2' "$out" \
                 && grep -q 'class="axis-controls"' "$out"; then
                 return 0
               fi
