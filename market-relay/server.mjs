@@ -38,6 +38,7 @@ const SOURCE_REFRESH_MS=Math.max(8000,Number(process.env.SOURCE_REFRESH_MS||1200
 const SOURCE_MAX_LIVE_LAG_MS=90*1000;
 const SOURCE_MARKET_MATCH_MS=60*1000;
 const SOURCE_ARCHIVE_WINDOW_MS=36*3600000;
+const WHATS_GOING_ON_PROMPT=`Du erklärst in höchstens 4 kurzen Sätzen, was bei ORCL im angegebenen Zeitfenster passiert ist. Nutze ausschließlich die gelieferten Kurs- und Quellen-Daten. Trenne Beobachtung von Einordnung. Behaupte niemals Kausalität, wenn nur zeitliche Nähe belegt ist. Nenne die wichtigste Meldung nur, wenn sie im Zeitfenster liegt. Wenn die Evidenz dünn ist, sage das klar. Keine Kauf-/Verkaufsempfehlung.`;
 let sourceRefreshBusy=false,sourceLastLogAt=0,sourceLastEventAt=null,sourcePrimed=false;
 const sourceSeen=new Map();
 let sourceState={
@@ -749,6 +750,51 @@ function snapshot(symbol){
     l2:{status:'retired',provider:'databento',reason:'replaced_by_raw_alpaca_sip'}
   };
 }
+function wgoEventMs(x){
+  const direct=Number(x&&x.time);if(Number.isFinite(direct)&&direct>0)return direct;
+  for(const k of ['published_at','first_seen_at','at']){const t=Date.parse(x&&x[k]||'');if(Number.isFinite(t))return t;}
+  return NaN;
+}
+function wgoWindowPrice(minutes,now=Date.now()){
+  const cut=now-minutes*60000,a=(yahooSeries.ORCL||[]).filter(e=>Number(e.recv_at||e.t)>=cut&&Number(e.recv_at||e.t)<=now&&Number(e.p)>0);
+  if(!a.length)return {available:false};
+  const first=a[0],last=a[a.length-1],p0=Number(first.p),p1=Number(last.p),pct=p0>0?(p1/p0-1)*100:null;
+  let hi=-Infinity,lo=Infinity;for(const e of a){const p=Number(e.p);if(p>hi)hi=p;if(p<lo)lo=p;}
+  return {available:true,from:p0,to:p1,pct,high:hi,low:lo,events:a.length,from_at:new Date(Number(first.t||first.recv_at)).toISOString(),to_at:new Date(Number(last.t||last.recv_at)).toISOString()};
+}
+function wgoItems(minutes,now=Date.now()){
+  const cut=now-minutes*60000;
+  return (Array.isArray(sourceState.items)?sourceState.items:[]).filter(x=>{const t=wgoEventMs(x);return Number.isFinite(t)&&t>=cut&&t<=now;}).sort((a,b)=>wgoEventMs(b)-wgoEventMs(a));
+}
+function wgoTone(items){
+  let pos=0,neg=0,mixed=0;for(const x of items){const v=termScore(x.summary||x.title||'');if(v>0)pos++;else if(v<0)neg++;else mixed++;}
+  return {positive:pos,negative:neg,mixed};
+}
+function wgoDeterministic(minutes,now=Date.now()){
+  const price=wgoWindowPrice(minutes,now),items=wgoItems(minutes,now),tone=wgoTone(items),pct=Number(price.pct),abs=Math.abs(pct||0);
+  const move=!price.available?'Für das Fenster liegt kein ausreichend frischer Kursverlauf vor.':('ORCL ist in den letzten '+minutes+' Minuten '+(abs<0.02?'praktisch unverändert':(pct>0?'um '+abs.toFixed(2)+' % gestiegen':'um '+abs.toFixed(2)+' % gefallen'))+' ('+price.from.toFixed(2)+' → '+price.to.toFixed(2)+' USD).');
+  if(!items.length)return {brief:move+' Im selben Zeitraum wurde keine neue relevante Oracle-Meldung erfasst; eine belastbare Nachrichten-Erklärung gibt es daher nicht.',price,items:[],tone,evidence:'thin'};
+  const top=items.slice().sort((a,b)=>Math.abs(termScore(b.summary||b.title||''))-Math.abs(termScore(a.summary||a.title||''))||wgoEventMs(b)-wgoEventMs(a))[0];
+  const title=String(top.summary||top.title||'').replace(/\s+/g,' ').trim();
+  let fit='gemischt';if(tone.negative>tone.positive)fit='eher negativ';else if(tone.positive>tone.negative)fit='eher positiv';
+  const context='Im gleichen Fenster kamen '+items.length+' relevante Quelle'+(items.length===1?'':'n')+' hinzu; der Nachrichten-Ton war '+fit+'.';
+  const lead=title?(' Auffälligste Meldung: „'+title.slice(0,180)+(title.length>180?'…':'')+'“.'):'';
+  const caveat=' Das passt zeitlich zur Kursbewegung, beweist aber nicht, dass die Meldung sie verursacht hat.';
+  return {brief:move+' '+context+lead+caveat,price,items:items.slice(0,8),tone,evidence:items.length>=2?'moderate':'thin'};
+}
+async function wgoAiBrief(base){
+  const key=String(process.env.OPENAI_API_KEY||'').trim(),model=String(process.env.OPENAI_MODEL||'').trim();if(!key||!model)return null;
+  try{
+    const payload={model,input:[{role:'system',content:WHATS_GOING_ON_PROMPT},{role:'user',content:JSON.stringify({minutes:base.minutes,price:base.price,tone:base.tone,items:base.items.map(x=>({title:x.summary||x.title,site:x.site,channel:x.channel,time:wgoEventMs(x)}))})}],max_output_tokens:220};
+    const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+key},body:JSON.stringify(payload),signal:AbortSignal.timeout(12000)});
+    if(!r.ok)return null;const j=await r.json();const txt=String(j.output_text||'').trim();return txt||null;
+  }catch{return null;}
+}
+async function whatsGoingOn(minutes){
+  const m=minutes===5?5:10,base=wgoDeterministic(m);base.minutes=m;base.generated_at=new Date().toISOString();
+  const ai=await wgoAiBrief(base);return {...base,brief:ai||base.brief,mode:ai?'ai':'deterministic',prompt_contract:'observation_vs_interpretation_no_false_causality'};
+}
+
 function sendEvent(res,obj,eventName='market'){
   if(res.writableEnded||res.destroyed)return false;
   try{return res.write('event: '+eventName+'\ndata: '+JSON.stringify(obj)+'\n\n');}catch{return false;}
@@ -813,6 +859,10 @@ const server=http.createServer((req,res)=>{
   if(u.pathname==='/v1/shadow-history')return json(res,200,shadowTrail());
   if(u.pathname==='/v1/hypothesis-v4')return json(res,200,hypothesisTrail());
   if(u.pathname==='/v1/research-v5')return json(res,200,v5Trail());
+  if(u.pathname==='/v1/whats-going-on'){
+    const minutes=Number(u.searchParams.get('minutes'))===5?5:10;
+    return whatsGoingOn(minutes).then(x=>json(res,200,x)).catch(e=>json(res,200,{minutes,generated_at:new Date().toISOString(),mode:'fallback',brief:'Die Kurzlage konnte gerade nicht vollständig berechnet werden.',error:String(e&&e.message||e)}));
+  }
   if(u.pathname==='/v1/source-state')return json(res,200,sourceState);
   if(u.pathname==='/v1/raw-wave-model')return json(res,200,rawModel||{status:'unavailable'});
   if(u.pathname==='/v1/wave-model')return json(res,200,rawModel||{status:'unavailable'});
