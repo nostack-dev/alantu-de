@@ -625,45 +625,19 @@
 
     const scene=new THREE.Scene();
     const camera=new THREE.PerspectiveCamera(29,1,.1,100);
-    camera.position.set(0,1.35,10.8);
+    camera.position.set(.1,1.35,10.8);
     camera.lookAt(0,0,0);
 
-    // Neutral, restrained studio light. PDF artwork itself is rendered with
-    // unlit materials for exact color; these lights only shape the PBR cover.
-    scene.add(new THREE.HemisphereLight(0xfffdf8,0x655f56,.82));
-    const key=new THREE.DirectionalLight(0xfffdf9,1.85);
+    // Proven Box2D presentation lighting. No floor plane / no fake shadow blob.
+    scene.add(new THREE.HemisphereLight(0xfffbf3,0x66594b,2.35));
+    const key=new THREE.DirectionalLight(0xffffff,4.4);
     key.position.set(-3.5,7,7);
     key.castShadow=true;
-    key.shadow.mapSize.set(2048,2048);
-    key.shadow.camera.left=-7;
-    key.shadow.camera.right=7;
-    key.shadow.camera.top=7;
-    key.shadow.camera.bottom=-7;
-    key.shadow.camera.near=.1;
-    key.shadow.camera.far=30;
-    key.shadow.normalBias=.018;
-    key.shadow.bias=-.00008;
+    key.shadow.mapSize.set(1024,1024);
     scene.add(key);
-    const rim=new THREE.DirectionalLight(0xfff6e8,.42);
+    const rim=new THREE.DirectionalLight(0xcdb88e,2.1);
     rim.position.set(5,2,-3);
     scene.add(rim);
-
-    // Real contact shadow plane behind/below the whole book. Unlike the old
-    // CSS ellipse it lives in 3D, so zoom/pan can never draw it over pages.
-    const groundShadowMaterial=new THREE.ShadowMaterial({
-      color:0x332a21,
-      opacity:.16,
-      transparent:true,
-      depthWrite:false
-    });
-    const groundShadow=new THREE.Mesh(
-      new THREE.PlaneGeometry(16,12),
-      groundShadowMaterial
-    );
-    groundShadow.position.set(0,-.08,-1.28);
-    groundShadow.receiveShadow=true;
-    groundShadow.renderOrder=-10;
-    scene.add(groundShadow);
 
     const root=new THREE.Group();
     // Presentation controls only rotate the model. Zoom is applied by the
@@ -772,27 +746,6 @@
         bumpScale:printMap ? .010 : .016,
         toneMapped:false
       });
-    }
-
-    function paperFinishMaterial(side){
-      const material=new THREE.MeshPhysicalMaterial({
-        color:0xf8f4ec,
-        side,
-        roughness:.96,
-        metalness:0,
-        clearcoat:.008,
-        clearcoatRoughness:.98,
-        bumpMap:paperFiber,
-        bumpScale:.0011,
-        transparent:true,
-        opacity:.008,
-        depthWrite:false,
-        polygonOffset:true,
-        polygonOffsetFactor:-1,
-        polygonOffsetUnits:-1,
-        toneMapped:false
-      });
-      return material;
     }
 
     const coverMaterial=ivoryHardcoverMaterial();
@@ -1302,8 +1255,12 @@
         const geometry=baseGeometry.clone();
         geometry.userData.basePosition=geometry.attributes.position.array.slice();
 
-        const frontMat=new THREE.MeshBasicMaterial({
+        const frontMat=new THREE.MeshStandardMaterial({
           map:pageTextures[frontIndex],
+          roughness:.88,
+          metalness:0,
+          bumpMap:paperFiber,
+          bumpScale:.00075,
           side:THREE.FrontSide,
           toneMapped:false
         });
@@ -1311,9 +1268,13 @@
         let backMap=null;
         if(backIndex>=0&&backIndex<totalPages)backMap=mirroredTexture(normalized[backIndex]);
 
-        const backMat=new THREE.MeshBasicMaterial({
+        const backMat=new THREE.MeshStandardMaterial({
           map:backMap,
           color:backMap?0xffffff:0xeee7db,
+          roughness:.90,
+          metalness:0,
+          bumpMap:paperFiber,
+          bumpScale:.00075,
           side:THREE.BackSide,
           toneMapped:false
         });
@@ -1325,19 +1286,7 @@
         back.castShadow=true;back.receiveShadow=true;
         back.frustumCulled=false;
 
-        const frontFinish=new THREE.Mesh(geometry,paperFinishMaterial(THREE.FrontSide));
-        frontFinish.position.z=.0006;
-        frontFinish.castShadow=false;
-        frontFinish.receiveShadow=false;
-        frontFinish.frustumCulled=false;
-
-        const backFinish=new THREE.Mesh(geometry,paperFinishMaterial(THREE.BackSide));
-        backFinish.position.z=-.0006;
-        backFinish.castShadow=false;
-        backFinish.receiveShadow=false;
-        backFinish.frustumCulled=false;
-
-        pivot.add(front,back,frontFinish,backFinish);
+        pivot.add(front,back);
         pivot.userData.geometry=geometry;
         root.add(pivot);
         leafRoots.push(pivot);
