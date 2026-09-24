@@ -1014,7 +1014,12 @@
 
       for(let i=0;i<totalLeaves;i++){
         const frontIndex=singlePageMode?i:i*2;
-        const backIndex=singlePageMode?-1:frontIndex+1;
+        // In portrait the next PDF page is painted on the physical backside
+        // of the turning sheet. The next resting sheet still carries the same
+        // page on its front, so the transition is visually continuous.
+        const backIndex=singlePageMode
+          ? (frontIndex+1<totalPages?frontIndex+1:-1)
+          : frontIndex+1;
         const pivot=new THREE.Group();
         pivot.position.set(-PAGE_W/2,0,rightZ(i));
 
