@@ -65,21 +65,33 @@ jobs:
           set -euo pipefail
           git config user.name "alantu-demo-pages"
           git config user.email "alantu-demo-pages@users.noreply.github.com"
-          git add assets/sunside-living-pages
-          if git diff --cached --quiet; then
-            echo "Demo pages already current"
-            exit 0
-          fi
-          git commit -m "Build Sunside Living demo pages"
 
-          # Runtime data jobs also write to main. Rebase/retry so a harmless
-          # concurrent commit cannot discard the generated brochure pages.
+          # Keep the generated binaries outside the worktree while rebasing on
+          # the latest main. This avoids add/add binary conflicts when another
+          # build or runtime-data job writes to main at the same time.
+          generated="$(mktemp -d)"
+          cp -a assets/sunside-living-pages "$generated/pages"
+
           for attempt in 1 2 3 4 5; do
-            git pull --rebase origin main
-            if git push origin main; then
+            git fetch origin main
+            git reset --hard origin/main
+            rm -rf assets/sunside-living-pages
+            mkdir -p assets
+            cp -a "$generated/pages" assets/sunside-living-pages
+
+            git add assets/sunside-living-pages
+            if git diff --cached --quiet; then
+              echo "Demo pages already current"
               exit 0
             fi
+
+            git commit -m "Build Sunside Living demo pages"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+
             sleep $((attempt * 3))
           done
+
           echo "Could not publish demo pages after retries" >&2
           exit 1
