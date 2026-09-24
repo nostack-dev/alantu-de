@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-24T22:16:25+02:00",
+  "updated_at": "2026-09-24T22:22:49+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,12 +9,12 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-24T22:16:25+02:00",
+        "at": "2026-09-24T22:22:49+02:00",
         "signal": "hold",
         "social_impulse": -1,
-        "hype_bull": 38,
+        "hype_bull": 36,
         "hype_bear": 42,
-        "hype_net": -4,
+        "hype_net": -6,
         "confidence": 80
       },
       "history": [
@@ -5838,6 +5838,20 @@
           "voice_bear": 11,
           "voice_mixed": 9,
           "price": 139.34
+        },
+        {
+          "at": "2026-09-24T22:22:49+02:00",
+          "hype_bull": 36,
+          "hype_bear": 42,
+          "hype_net": -6,
+          "social_impulse": -1,
+          "signal": "hold",
+          "confidence": 80,
+          "hype_mixed": 22,
+          "voice_bull": 1,
+          "voice_bear": 11,
+          "voice_mixed": 10,
+          "price": 138.9974
         }
       ],
       "voices_archive": [
@@ -6155,33 +6169,33 @@
       "signal": "hold",
       "social_impulse": -1,
       "impulse": -1,
-      "hype_bull": 38,
+      "hype_bull": 36,
       "hype_bear": 42,
-      "hype_net": -4,
+      "hype_net": -6,
       "confidence": 80,
       "hype_state": "mixed",
-      "updated_at": "2026-09-24T22:16:25+02:00",
-      "why": "Reddit 71% positiv bei 40 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $139.34.",
+      "updated_at": "2026-09-24T22:22:49+02:00",
+      "why": "Reddit 71% positiv bei 40 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $139.00.",
       "evidence": {
         "x_posts": 0,
         "reddit_posts": 40,
         "news": 20,
         "snippets": [
           "ApeWisdom: 40 Mentions/24h, Sentiment 71%",
-          "Oracle stock drops as the company moves to shield itself from costs linked to controversial data center",
+          "Oracle Corporation (ORCL) Stock Price, News, Quote & History",
           "Oracle Seeks ‘Force Majeure’ on Data Center. Why It’s Sinking the Stock.",
           "Oracle’s stock is falling as investors fear a data-center setback"
         ]
       },
       "voices": {
-        "bull": 2,
+        "bull": 1,
         "bear": 11,
-        "mixed": 9,
-        "updated_at": "2026-09-24T22:16:25+02:00"
+        "mixed": 10,
+        "updated_at": "2026-09-24T22:22:49+02:00"
       },
-      "hype_mixed": 20,
+      "hype_mixed": 22,
       "sentiment_unit": "percent_all_classified",
-      "price": 139.34
+      "price": 138.9974
     }
   }
 }
