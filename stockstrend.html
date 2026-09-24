@@ -2067,7 +2067,7 @@ function renderForecastTrail(){
       var a=Date.parse(x.at),t=Date.parse(x.target_at),l=pct(a),r=pct(t),w=Math.max(.8,r-l),dir=Number(x.dir)>0?'↑':'↓';
       var st=x.view_status==='pending'?'pending':x.view_status==='invalid'?'invalid':x.hit===true?'hit':'miss';
       var res=st==='hit'?'✓':st==='miss'?'×':st==='pending'?'·':'—';
-      var move=rawForecastMoveBps(x),moveTxt=isFinite(move)?((move>=0?'+':'')+move.toLocaleString('de-DE',{maximumFractionDigits:1})+' bp'):'noch offen';
+      var move=rawForecastMoveBps(x),moveTxt=Number.isFinite(move)?((move>=0?'+':'')+move.toLocaleString('de-DE',{maximumFractionDigits:1})+' bp'):'noch offen';
       var aria=forecastClock(x.at)+' Prognose '+dir+' '+h+' Minuten, '+(st==='pending'?'läuft':st==='invalid'?'nicht auswertbar':('Marktbewegung '+moveTxt+', '+(st==='hit'?'getroffen':'daneben')));
       return '<span class="forecast-span" style="left:'+l.toFixed(2)+'%;width:'+w.toFixed(2)+'%" aria-hidden="true"></span>'+
         '<span class="forecast-entry" style="left:'+l.toFixed(2)+'%" role="img" aria-label="'+esc(aria)+'" title="'+esc(aria)+'">'+dir+'</span>'+
@@ -2082,7 +2082,7 @@ function renderForecastTrail(){
   if(latest){
     var last=evaluated.slice().sort(function(a,b){return Date.parse(b.exit_at||b.target_at||0)-Date.parse(a.exit_at||a.target_at||0);})[0];
     if(last){
-      var mv=rawForecastMoveBps(last),actual=isFinite(mv)?((mv>=0?'↑ +':'↓ ')+Math.abs(mv).toLocaleString('de-DE',{maximumFractionDigits:1})+' bp'):'—';
+      var mv=rawForecastMoveBps(last),actual=Number.isFinite(mv)?((mv>=0?'↑ +':'↓ ')+Math.abs(mv).toLocaleString('de-DE',{maximumFractionDigits:1})+' bp'):'—';
       var pred=Number(last.dir)>0?'↑':'↓',ok=last.hit===true?'✓ getroffen':'× daneben';
       latest.innerHTML='<b>Zuletzt</b> · '+esc(forecastClock(last.at))+' · Prognose '+pred+' '+Number(last.horizon_minutes)+' Min · Markt danach '+esc(actual)+' · <b>'+ok+'</b>';
       latest.hidden=false;
@@ -2178,7 +2178,7 @@ function renderHypothesisDecision(){
     el.innerHTML='<div class="hd-main '+(r.action==='BUY'?'buy':'sell')+'">'+(r.action==='BUY'?'↑ BUY':'↓ SELL')+' · ≈ '+Number(r.horizon_minutes)+' Min</div>'+
       '<div class="hd-meta">v4 Regime validiert · '+n+' OOS · Ø '+(isFinite(mean)?mean.toLocaleString('de-DE',{maximumFractionDigits:2})+' bp netto':'—')+(isFinite(pf)?' · PF '+pf.toLocaleString('de-DE',{maximumFractionDigits:2}):'')+'</div>';return;
   }
-  var h15=h.proof&&h.proof['15']&&h.proof['15'].regime||{},n15=Number(h15.n)||0,mean15=Number(h15.mean_net_bps),gate=h15.gate&&h15.gate.status||'collecting';
+  var h15=h.proof&&h.proof['15']&&h.proof['15'].regime||{},n15=Number(h15.n)||0,mean15=h15.mean_net_bps==null?NaN:Number(h15.mean_net_bps),gate=h15.gate&&h15.gate.status||'collecting';
   var cand=candidate&&Number(candidate.dir)?((Number(candidate.dir)>0?'↑ TEST LONG':'↓ TEST SHORT')+' · ≈ '+Number(candidate.horizon_minutes)+' Min'):'WARTEN · KEIN HANDELSSIGNAL';
   el.innerHTML='<div class="hd-main">'+cand+'</div><div class="hd-meta">v4 Regime · '+gate+' · 15m '+n15+'/180'+(isFinite(mean15)?' · Ø '+mean15.toLocaleString('de-DE',{maximumFractionDigits:2})+' bp netto':'')+' · BUY/SELL erst nach OOS-Gate</div>';
 }
