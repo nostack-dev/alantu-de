@@ -128,6 +128,7 @@ async function run(name,viewport){
   const dayPctMatch=wgoState.answer.match(/Tagesbasis bei\s+([+-]?\d+(?:\.\d+)?)\s*%/i);
   if(dayPctMatch&&Number(dayPctMatch[1])<=-1&&!/stärkste\s+\d+-Minuten-Abverkauf\s+heute/i.test(wgoState.answer))errors.push('wgo-intraday-selloff-missing:'+JSON.stringify(wgoState));
   if(/Im selben Zeitraum wurde keine neue relevante Oracle-Meldung erfasst/i.test(wgoState.answer))errors.push('wgo-old-window-only-copy:'+JSON.stringify(wgoState));
+  if(/Heute[^.]{0,120}(?:bei|Tagesbasis bei)\s*-\d/i.test(wgoState.answer)&&!/Abverkauf|Rückgang|gefallen/i.test(wgoState.answer))errors.push('wgo-negative-day-without-selloff:'+JSON.stringify(wgoState));
   if(!state.bodyText.includes('Prognosen vs. Realität'))errors.push('forecast-label-missing');
   if(!state.modelDecisionText.includes('MODELLSTATUS:'))errors.push('model-status-text-missing');
   if(!state.forecastCollapsed)errors.push('forecast-not-collapsed-by-default');
