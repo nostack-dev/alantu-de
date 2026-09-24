@@ -23,12 +23,12 @@ jobs:
         run: |
           set -euo pipefail
           for i in $(seq 1 18); do
-            if curl -fsSL --max-time 15 https://www.alantu.de/ -o /tmp/alantu-live.html && grep -q 'function pollMicroMarket' /tmp/alantu-live.html && grep -q 'function chartEvents(){return \[\];}' /tmp/alantu-live.html && ! grep -q 'new EventSource' /tmp/alantu-live.html; then
+            if curl -fsSL --max-time 15 https://www.alantu.de/ -o /tmp/alantu-live.html && grep -q 'function pollMicroMarket' /tmp/alantu-live.html && grep -q 'function chartEvents(){return \[\];}' /tmp/alantu-live.html && grep -q 'id="modelDecision"' /tmp/alantu-live.html && grep -q '<details class="forecast-proof" id="forecastProof">' /tmp/alantu-live.html && ! grep -q 'new EventSource' /tmp/alantu-live.html; then
               exit 0
             fi
             sleep 10
           done
-          echo "Current ALANTU page did not expose poll/Chart.js safety fix in time" >&2
+          echo "Current ALANTU page did not expose the requested model decision/collapsed forecast UI in time" >&2
           exit 1
       - name: Install Playwright
         shell: bash
