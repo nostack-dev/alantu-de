@@ -851,7 +851,12 @@
 
     function preferredTextureEdge(pageCount=1){
       const mobile=window.matchMedia("(max-width:700px)").matches;
-      let requested=mobile?MAX_TEXTURE_EDGE_MOBILE:MAX_TEXTURE_EDGE_DESKTOP;
+      // Embedded landing demos load the same renderer but use a bounded
+      // raster budget so an 18-page brochure is ready quickly and safely.
+      // This changes resolution only, never the page aspect ratio.
+      let requested=embedMode
+        ? (mobile?1440:1800)
+        : (mobile?MAX_TEXTURE_EDGE_MOBILE:MAX_TEXTURE_EDGE_DESKTOP);
       if(IS_IOS_WEBKIT){
         // Approx. A4/Letter page area is ~0.7 * longestEdge². This keeps the
         // complete retained page-raster set near ~96 MB RGBA at 40 pages,
