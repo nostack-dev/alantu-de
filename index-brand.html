@@ -826,14 +826,14 @@
     let viewControls=null;
 
     function updateLeafVisibility(state){
-      if(!leafRoots.length)return;
+      if(!pageRoots.length)return;
       const active=new Set((state.activeTurns||[]).map(t=>Number(t.index)));
       const current=Math.max(0,Math.min(totalLeaves,Number(state.currentLeaf)||0));
-      for(let i=0;i<leafRoots.length;i++){
+      for(let i=0;i<pageRoots.length;i++){
         // Only the exposed top sheet of each stack and moving sheets can
         // contribute pixels. Hidden stacked sheets still keep their physical
         // z-state in the model but do not consume fragment/GPU work.
-        leafRoots[i].visible=
+        pageRoots[i].visible=
           active.has(i)||
           i===current||
           i===current-1;
