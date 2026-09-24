@@ -45,19 +45,15 @@ async function run(kind,viewport){
     const next=page.locator('#tapNext');
     const prev=page.locator('#tapPrev');
 
-    // The restored pre-switch viewer has a real start hardcover. First tap opens
-    // that cover while pageCount intentionally remains 01 / total.
+    // Restored viewer starts with the cover open. A short tap must turn the
+    // first paper leaf instead of being swallowed by stage pointer capture.
     await next.click({force:true});
     await page.waitForTimeout(1000);
+    const afterFirst=(await page.locator('#pageCount').textContent()).trim();
+    assert(!afterFirst.startsWith('01 /'),
+      `tap did not advance the book: ${afterFirst}`);
     const opened=await stage.screenshot({path:`${out}/${marker}-opened.png`});
-    assert(!initial.equals(opened),'start hardcover did not visibly open');
-
-    // Second tap turns the first paper leaf.
-    await next.click({force:true});
-    await page.waitForTimeout(1000);
-    const afterFirstLeaf=(await page.locator('#pageCount').textContent()).trim();
-    assert(!afterFirstLeaf.startsWith('01 /'),
-      `paper tap did not advance the book: ${afterFirstLeaf}`);
+    assert(!initial.equals(opened),'first paper turn image unchanged');
 
     const leaves=viewport.width<=700?total:Math.ceil(total/2);
     for(let i=1;i<leaves;i++)await next.click({force:true});

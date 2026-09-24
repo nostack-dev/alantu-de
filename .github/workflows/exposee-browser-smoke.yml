@@ -27,8 +27,8 @@ jobs:
           test -s assets/sunside-living-expose.pdf
           grep -q 'view404' index-brand.html
           grep -q 'view404' pdf-to-exposee.html
-          grep -q 'brand308' index-brand.html
-          grep -q 'brand308' pdf-to-exposee.html
+          grep -q 'brand309' index-brand.html
+          grep -q 'brand309' pdf-to-exposee.html
           grep -q 'spreadFocusTarget' alantu-book-view.js
       - name: Wait for deployed viewers
         shell: bash
@@ -38,9 +38,9 @@ jobs:
             ready=0
             for attempt in $(seq 1 36); do
               if curl -fsSL --max-time 20 "https://www.alantu.de/$path?smoke=${{ github.sha }}" -o /tmp/alantu-live-file; then
-                if { [ "$path" = alantu-book-core.js ] && grep -q 'pushSwipeSample' /tmp/alantu-live-file; } || \
+                if { [ "$path" = alantu-book-core.js ] && grep -q 'captured:false' /tmp/alantu-live-file; } || \
                    { [ "$path" = alantu-book-view.js ] && grep -q 'spreadFocusTarget' /tmp/alantu-live-file; } || \
-                   { grep -q 'view404' /tmp/alantu-live-file && grep -q 'brand308' /tmp/alantu-live-file; }; then
+                   { grep -q 'view404' /tmp/alantu-live-file && grep -q 'brand309' /tmp/alantu-live-file; }; then
                   ready=1
                   break
                 fi
