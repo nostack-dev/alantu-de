@@ -152,12 +152,26 @@
     }
     #bookCanvas{
       position:absolute;inset:0;width:100%;height:100%;display:block;z-index:1;
+      filter:drop-shadow(0 10px 18px rgba(28,22,16,.10));
+      transition:filter .18s var(--ease,cubic-bezier(.22,.61,.36,1)),transform .18s var(--ease,cubic-bezier(.22,.61,.36,1));
+      transform-origin:center;
+    }
+    .stage.is-book-dragging #bookCanvas{
+      filter:
+        drop-shadow(0 18px 27px rgba(28,22,16,.22))
+        drop-shadow(0 0 12px rgba(184,154,99,.24));
+      transform:scale(1.003);
     }
     .stage.is-book-dragging{cursor:grabbing!important}
     .stage.is-book-dragging .interaction-zone,
     .stage.is-book-dragging .tapzone{cursor:grabbing!important}
     .stage.is-view-pinching,
     .stage.is-view-pinching *{cursor:default!important}
+    .stage.is-view-pinching #bookCanvas{
+      filter:
+        drop-shadow(0 20px 30px rgba(28,22,16,.22))
+        drop-shadow(0 0 14px rgba(184,154,99,.18));
+    }
     .stage-ui{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;visibility:hidden;transition:opacity .14s ease,visibility .14s ease}
     .stage.debug-controls .stage-ui{opacity:1;visibility:visible}
     .stage:fullscreen .stage-ui,.stage:-webkit-full-screen .stage-ui,.stage.is-faux-fullscreen .stage-ui{display:none!important}
@@ -604,8 +618,8 @@
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand311";
-    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view407";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand308";
+    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view404";
 
     const canvas = document.getElementById("bookCanvas");
     canvas.addEventListener("contextmenu",e=>e.preventDefault());
@@ -621,7 +635,7 @@
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const renderer = new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:"high-performance"});
-    renderer.setPixelRatio(Math.min(Math.max(window.devicePixelRatio || 1,1.5),2));
+    renderer.setPixelRatio(Math.min(Math.max(window.devicePixelRatio || 1,2),3));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -986,36 +1000,23 @@
 
     let bookCore=null;
     let viewControls=null;
-    let endCoverReopened=false;
 
-    function updateLeafVisibility(state){
-      const current=Math.max(0,Math.min(totalLeaves,state.currentLeaf));
-      const moving=new Set((state.activeTurns||[]).map(turn=>turn.index));
-      // Keep the moving sheet and both exposed stacks, including the next
-      // sheet underneath. Only deeper, fully covered sheets can be skipped.
-      for(let i=0;i<pageRoots.length;i++){
-        pageRoots[i].visible=moving.has(i)||
-          (i>=current-2&&i<=current+2);
-      }
+    function updateLeafVisibility(){
+      // Keep the full physical stack rendered. Culling neighbouring sheets
+      // caused the next right-hand page to disappear mid-turn on WebKit.
+      const leaves=pageRoots;
+      for(const leaf of leaves)leaf.visible=true;
     }
 
     function portraitFocusForState(state){
       if(!singlePageMode||!totalLeaves)return 0;
 
-      if(state.closedSide==="end"&&!state.activeBoundary){
-        endCoverReopened=true;
-        return 1;
-      }
+      // Keep the camera on the right through the entire final paper turn.
+      // Only the END hardcover may move the framing to the left.
+      if(state.closedSide==="end"&&!state.activeBoundary)return 1;
 
       const boundary=state.activeBoundary;
       if(boundary?.side==="end"){
-        // When reopening, the last page is still on the left. Do not pan
-        // back to the empty right-hand cover until a paper page turns back.
-        if(boundary.target===0){
-          endCoverReopened=true;
-          return 1;
-        }
-        endCoverReopened=false;
         const p=Math.max(0,Math.min(1,Number(boundary.progress)||0));
         // Let the hardcover visibly fall first. Camera movement begins only
         // after ~45% closure, then eases to the left as the cover finishes.
@@ -1023,20 +1024,28 @@
         return t*t*(3-2*t);
       }
 
-      if(state.currentLeaf<totalLeaves)endCoverReopened=false;
-      return endCoverReopened?1:0;
+      return 0;
     }
 
     function spreadFocusForState(state){
-      if(singlePageMode||!totalLeaves)return .5;
-      const boundary=state.activeBoundary;
-      if(boundary){
-        const p=Math.max(0,Math.min(1,Number(boundary.progress)||0));
-        if(boundary.side==="start")return .5*(1-p);
-        if(boundary.side==="end")return .5+.5*p;
+      if(singlePageMode||!totalLeaves)return 0;
+
+      const turns=state.activeTurns||[];
+      const firstTurn=turns.find(t=>Number(t.index)===0);
+      if(firstTurn){
+        const p=Math.max(0,Math.min(1,Number(firstTurn.progress)||0));
+        return .5*p;
       }
-      if(state.closedSide==="start")return 0;
-      if(state.closedSide==="end")return 1;
+
+      const lastTurn=turns.find(t=>Number(t.index)===totalLeaves-1);
+      if(lastTurn){
+        const p=Math.max(0,Math.min(1,Number(lastTurn.progress)||0));
+        return .5+.5*p;
+      }
+
+      const current=Math.max(0,Math.min(totalLeaves,Number(state.currentLeaf)||0));
+      if(current<=0)return 0;
+      if(current>=totalLeaves)return 1;
       return .5;
     }
 
@@ -1088,11 +1097,10 @@
       root,
       getPageWidth:()=>PAGE_W,
       getPageHeight:()=>PAGE_H,
-      getCoverWidth:()=>COVER_W,
       fitButton:fitViewBtn,
       onPinchStart:()=>bookCore.cancelDrag(),
-      minPixelRatio:singlePageMode?1.25:1.5,
-      maxPixelRatio:2,
+      minPixelRatio:singlePageMode?1.5:2,
+      maxPixelRatio:singlePageMode?2:3,
       getPresentationMode:()=>singlePageMode?"single":"spread"
     });
 

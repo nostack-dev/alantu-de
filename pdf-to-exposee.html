@@ -203,12 +203,26 @@
     }
     #bookCanvas{
       position:absolute;inset:0;width:100%;height:100%;display:block;z-index:1;
+      filter:drop-shadow(0 10px 18px rgba(28,22,16,.10));
+      transition:filter .18s var(--ease,cubic-bezier(.22,.61,.36,1)),transform .18s var(--ease,cubic-bezier(.22,.61,.36,1));
+      transform-origin:center;
+    }
+    .stage.is-book-dragging #bookCanvas{
+      filter:
+        drop-shadow(0 18px 27px rgba(28,22,16,.22))
+        drop-shadow(0 0 12px rgba(184,154,99,.24));
+      transform:scale(1.003);
     }
     .stage.is-book-dragging{cursor:grabbing!important}
     .stage.is-book-dragging .interaction-zone,
     .stage.is-book-dragging .tapzone{cursor:grabbing!important}
     .stage.is-view-pinching,
     .stage.is-view-pinching *{cursor:default!important}
+    .stage.is-view-pinching #bookCanvas{
+      filter:
+        drop-shadow(0 20px 30px rgba(28,22,16,.22))
+        drop-shadow(0 0 14px rgba(184,154,99,.18));
+    }
     .empty{
       position:absolute;inset:0;z-index:2;
       display:grid;place-items:center;text-align:center;padding:40px;
@@ -411,6 +425,13 @@
       touch-action:none!important;
     }
 
+    /* Embedded viewer: same PDF-to-Exposé renderer, without builder chrome. */
+    html.embed,html.embed body{width:100%;height:100%;min-width:0;overflow:hidden;background:transparent}
+    html.embed .topbar,html.embed .layout>.panel{display:none!important}
+    html.embed .shell.layout{width:100%;max-width:none;height:100%;margin:0;padding:0;display:block}
+    html.embed .viewer-card{position:relative;top:auto;width:100%;height:100%;min-height:0}
+    html.embed .stage{width:100%;height:100%;min-height:0;aspect-ratio:auto;border-radius:inherit}
+
 </style>
 </head>
 <body>
@@ -540,10 +561,16 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand311";
-    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view407";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand308";
+    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view404";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
+
+    const queryParams=new URLSearchParams(location.search);
+    const embedMode=queryParams.get("embed")==="1";
+    const forcedTitle=queryParams.get("title")||"";
+    if(embedMode)document.documentElement.classList.add("embed");
+
 
     const MAX_PAGES=40;
     const MAX_TEXTURE_EDGE_DESKTOP=3072;
@@ -585,7 +612,7 @@
     const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:"high-performance"});
     renderer.setPixelRatio(IS_IOS_WEBKIT
       ? Math.min(window.devicePixelRatio||1,1.5)
-      : Math.min(Math.max(window.devicePixelRatio||1,1.5),2));
+      : Math.min(Math.max(window.devicePixelRatio||1,2),3));
     renderer.outputColorSpace=THREE.SRGBColorSpace;
     renderer.shadowMap.enabled=true;
     renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -693,6 +720,23 @@
       return [side(),side(),side(),side(),exterior,interior];
     }
 
+    function hardcoverPageMaterials(pageCanvas){
+      const texture=createTexture(pageCanvas);
+      const side=()=>coverMaterial.clone();
+      const exterior=new THREE.MeshStandardMaterial({
+        map:texture,
+        color:0xffffff,
+        roughness:.72,
+        metalness:.03
+      });
+      const interior=new THREE.MeshStandardMaterial({
+        color:0x2b2924,
+        roughness:.94,
+        metalness:0
+      });
+      return [side(),side(),side(),side(),exterior,interior];
+    }
+
     function cleanBrandValue(value,fallback){
       const text=String(value??"").replace(/[\r\n\t]+/g," ").replace(/\s+/g," ").trim();
       return text||fallback;
@@ -703,7 +747,7 @@
       currentSubtitle=cleanBrandValue(subtitleInput?.value,"Exposé");
       if(brandPreview)brandPreview.textContent=currentBrand;
 
-      if(frontCover){
+      if(frontCover&&!frontCoverUsesPdf){
         disposeMaterial(frontCover.material);
         frontCover.material=hardcoverMaterials(currentCoverTitle);
       }
@@ -715,6 +759,7 @@
     let pageTextures=[];
     let leafRoots=[];
     let frontCover=null;
+    let frontCoverUsesPdf=false;
     let frontCoverPivot=null;
     let backCover=null;
     let endCoverPivot=null;
@@ -722,7 +767,6 @@
     let coverSupport=null;
     let bookCore=null;
     let viewControls=null;
-    let endCoverReopened=false;
     let totalPages=0;
     let totalLeaves=0;
     let singlePageMode=false;
@@ -775,6 +819,7 @@
         disposeMaterial(frontCover.material);
         frontCover=null;
       }
+      frontCoverUsesPdf=false;
       if(frontCoverPivot){
         root.remove(frontCoverPivot);
         frontCoverPivot=null;
@@ -906,32 +951,22 @@
         (coverSupport.endClosedZ-coverSupport.endOpenZ)*p;
     }
 
-    function updateLeafVisibility(state){
-      const current=Math.max(0,Math.min(totalLeaves,state.currentLeaf));
-      const moving=new Set((state.activeTurns||[]).map(turn=>turn.index));
-      // Keep every moving leaf and the exposed sheets on either side of
-      // the hinge. Deeper sheets are covered by those visible neighbours.
-      for(let i=0;i<leafRoots.length;i++){
-        leafRoots[i].visible=moving.has(i)||
-          (i>=current-2&&i<=current+2);
-      }
+    function updateLeafVisibility(){
+      // Keep the full physical stack rendered. Culling neighbouring sheets
+      // caused the next right-hand page to disappear mid-turn on WebKit.
+      const leaves=leafRoots;
+      for(const leaf of leaves)leaf.visible=true;
     }
 
     function portraitFocusForState(state){
       if(!singlePageMode||!totalLeaves)return 0;
 
-      if(state.closedSide==="end"&&!state.activeBoundary){
-        endCoverReopened=true;
-        return 1;
-      }
+      // Keep the camera on the right through the entire final paper turn.
+      // Only the END hardcover may move the framing to the left.
+      if(state.closedSide==="end"&&!state.activeBoundary)return 1;
 
       const boundary=state.activeBoundary;
       if(boundary?.side==="end"){
-        if(boundary.target===0){
-          endCoverReopened=true;
-          return 1;
-        }
-        endCoverReopened=false;
         const p=Math.max(0,Math.min(1,Number(boundary.progress)||0));
         // Let the hardcover visibly fall first. Camera movement begins only
         // after ~45% closure, then eases to the left as the cover finishes.
@@ -939,20 +974,28 @@
         return t*t*(3-2*t);
       }
 
-      if(state.currentLeaf<totalLeaves)endCoverReopened=false;
-      return endCoverReopened?1:0;
+      return 0;
     }
 
     function spreadFocusForState(state){
-      if(singlePageMode||!totalLeaves)return .5;
-      const boundary=state.activeBoundary;
-      if(boundary){
-        const p=Math.max(0,Math.min(1,Number(boundary.progress)||0));
-        if(boundary.side==="start")return .5*(1-p);
-        if(boundary.side==="end")return .5+.5*p;
+      if(singlePageMode||!totalLeaves)return 0;
+
+      const turns=state.activeTurns||[];
+      const firstTurn=turns.find(t=>Number(t.index)===0);
+      if(firstTurn){
+        const p=Math.max(0,Math.min(1,Number(firstTurn.progress)||0));
+        return .5*p;
       }
-      if(state.closedSide==="start")return 0;
-      if(state.closedSide==="end")return 1;
+
+      const lastTurn=turns.find(t=>Number(t.index)===totalLeaves-1);
+      if(lastTurn){
+        const p=Math.max(0,Math.min(1,Number(lastTurn.progress)||0));
+        return .5+.5*p;
+      }
+
+      const current=Math.max(0,Math.min(totalLeaves,Number(state.currentLeaf)||0));
+      if(current<=0)return 0;
+      if(current>=totalLeaves)return 1;
       return .5;
     }
 
@@ -1014,16 +1057,14 @@
       root,
       getPageWidth:()=>PAGE_W,
       getPageHeight:()=>PAGE_H,
-      getCoverWidth:()=>PAGE_W+.33,
       fitButton:fitViewBtn,
       onPinchStart:()=>bookCore.cancelDrag(),
-      minPixelRatio:()=>IS_IOS_WEBKIT?(singlePageMode?1.25:1):1.5,
-      maxPixelRatio:()=>IS_IOS_WEBKIT?(singlePageMode?2:1.5):2,
+      minPixelRatio:()=>IS_IOS_WEBKIT?(singlePageMode?1.5:1):2,
+      maxPixelRatio:()=>IS_IOS_WEBKIT?(singlePageMode?2:1.5):3,
       getPresentationMode:()=>singlePageMode?"single":"spread"
     });
 
     function buildBook(renderedPages){
-      endCoverReopened=false;
       leafRoots.forEach(p=>root.remove(p));
       leafRoots=[];
 
@@ -1080,8 +1121,9 @@
       // Match the proven main-page hardcover geometry exactly:
       // main = 3.85 × 5.15 around 3.52 × 4.80 paper.
       // Keep those physical overhangs for arbitrary PDF aspect ratios.
-      const COVER_W=PAGE_W+.33;
-      const COVER_H=PAGE_H+.35;
+      const COVER_SCALE=1.055;
+      const COVER_W=PAGE_W*COVER_SCALE;
+      const COVER_H=PAGE_H*COVER_SCALE;
       const COVER_T=.16;
       // Same hinge as the sheet geometry. All extra cover width belongs
       // to the outer edge, never between page and binding.
@@ -1095,8 +1137,9 @@
 
       frontCover=new THREE.Mesh(
         new THREE.BoxGeometry(COVER_W,COVER_H,COVER_T),
-        hardcoverMaterials(currentCoverTitle)
+        hardcoverPageMaterials(normalized[0])
       );
+      frontCoverUsesPdf=true;
       frontCover.position.set(COVER_W/2,0,0);
       frontCover.castShadow=true;
       frontCover.receiveShadow=true;
@@ -1261,6 +1304,22 @@
       }
     }
 
+    async function loadPdfFromUrl(url){
+      const response=await fetch(url,{cache:"no-store"});
+      if(!response.ok)throw new Error("Demo-PDF HTTP "+response.status);
+      const blob=await response.blob();
+      const name=forcedTitle
+        ? forcedTitle.replace(/[^a-z0-9äöüß]+/gi,"-").replace(/^-+|-+$/g,"")+".pdf"
+        : (url.split("/").pop()?.split("?")[0]||"Exposé.pdf");
+      const file=new File([blob],name,{type:"application/pdf"});
+      await loadPdf(file);
+    }
+
+    if(queryParams.has("brand"))brandInput.value=queryParams.get("brand")||brandInput.value;
+    if(queryParams.has("subtitle"))subtitleInput.value=queryParams.get("subtitle")||subtitleInput.value;
+    refreshBranding();
+    if(queryParams.get("controls")==="1")stage.classList.add("debug-controls");
+
     input.addEventListener("change",()=>loadPdf(input.files?.[0]));
     brandInput.addEventListener("input",refreshBranding);
     subtitleInput.addEventListener("input",refreshBranding);
@@ -1319,6 +1378,14 @@
     refreshBranding();
     bookCore.reset(0);
     render();
+
+    const preloadPdf=queryParams.get("pdf");
+    if(preloadPdf){
+      loadPdfFromUrl(preloadPdf).catch(err=>{
+        console.error(err);
+        setStatus(err?.message||"Demo-PDF konnte nicht geladen werden.","error");
+      });
+    }
   </script>
 </body>
 </html>

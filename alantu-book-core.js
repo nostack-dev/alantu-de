@@ -673,8 +673,7 @@ export function createAlantuBookCore(options){
       startProgress:activeBoundary?.progress??null,
       velocity:activeBoundary?.velocity??0,
       samples:[{x:e.clientX,t:now}],
-      moved:false,
-      captured:false
+      moved:false
     };
 
     // Direct-manipulation feedback: while the user physically holds the
@@ -682,8 +681,7 @@ export function createAlantuBookCore(options){
     // the rendered book itself.
     stage.classList.add("is-book-dragging");
 
-    // A tap must remain on its button. Capturing here redirects the eventual
-    // click to the stage, so the navigation zones appear to do nothing.
+    if(stage.setPointerCapture)stage.setPointerCapture(e.pointerId);
   }
 
   function pointerMove(e){
@@ -743,16 +741,12 @@ export function createAlantuBookCore(options){
     const now=performance.now();
     const dt=Math.max(.008,(now-dragState.lastTime)/1000);
     const deltaX=e.clientX-dragState.lastX;
-    // Pointer events arrive at uneven intervals. Keep the page position
-    // locked to the finger, but smooth the velocity used only for curvature.
-    const velocityBlend=1-Math.exp(-18*dt);
     pushSwipeSample(e.clientX,now);
 
     if(dragState.mode==="boundary"){
       const dir=dragState.side==="start"?1:-1;
       const progress=clamp(dragState.startProgress+dir*dx/distance,0,1);
-      const velocity=dragState.velocity+
-        (dir*deltaX/distance/dt-dragState.velocity)*velocityBlend;
+      const velocity=dir*deltaX/distance/dt;
 
       dragState.velocity=velocity;
       activeBoundary.progress=progress;
@@ -760,8 +754,7 @@ export function createAlantuBookCore(options){
       setBoundaryVisual(dragState.side,progress);
     }else{
       const progress=clamp(dragState.startProgress-dx/distance,0,1);
-      const velocity=dragState.velocity+
-        (-deltaX/distance/dt-dragState.velocity)*velocityBlend;
+      const velocity=-deltaX/distance/dt;
 
       dragState.velocity=velocity;
       activeTurn.progress=progress;
@@ -772,10 +765,6 @@ export function createAlantuBookCore(options){
     dragState.lastX=e.clientX;
     dragState.lastTime=now;
     dragState.moved=dragState.moved||Math.abs(dx)>2;
-    if(dragState.moved&&!dragState.captured&&stage.setPointerCapture){
-      stage.setPointerCapture(e.pointerId);
-      dragState.captured=true;
-    }
     notify();
 
     if(dragState.moved)e.preventDefault();
