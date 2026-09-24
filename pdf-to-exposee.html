@@ -808,8 +808,16 @@
         targetW=targetLong;
         targetH=Math.round(targetLong/bookAspect);
       }
-      targetW=Math.max(1024,targetW);
-      targetH=Math.max(1024,targetH);
+      // Preserve the page aspect ratio. Never force both dimensions to
+      // 1024px: on constrained WebKit that silently defeats the total memory
+      // budget and turns portrait pages into oversized square backing stores.
+      const minLongEdge=IS_IOS_WEBKIT?896:1024;
+      const currentLong=Math.max(targetW,targetH);
+      if(currentLong<minLongEdge){
+        const grow=minLongEdge/currentLong;
+        targetW=Math.max(1,Math.round(targetW*grow));
+        targetH=Math.max(1,Math.round(targetH*grow));
+      }
 
       const normalized=renderedPages.map(p=>normalizePageCanvas(p.canvas,targetW,targetH));
 
