@@ -673,7 +673,8 @@ export function createAlantuBookCore(options){
       startProgress:activeBoundary?.progress??null,
       velocity:activeBoundary?.velocity??0,
       samples:[{x:e.clientX,t:now}],
-      moved:false
+      moved:false,
+      captured:false
     };
 
     // Direct-manipulation feedback: while the user physically holds the
@@ -681,7 +682,8 @@ export function createAlantuBookCore(options){
     // the rendered book itself.
     stage.classList.add("is-book-dragging");
 
-    if(stage.setPointerCapture)stage.setPointerCapture(e.pointerId);
+    // A tap must remain on its button. Capturing here redirects the eventual
+    // click to the stage, so the navigation zones appear to do nothing.
   }
 
   function pointerMove(e){
@@ -765,6 +767,10 @@ export function createAlantuBookCore(options){
     dragState.lastX=e.clientX;
     dragState.lastTime=now;
     dragState.moved=dragState.moved||Math.abs(dx)>2;
+    if(dragState.moved&&!dragState.captured&&stage.setPointerCapture){
+      stage.setPointerCapture(e.pointerId);
+      dragState.captured=true;
+    }
     notify();
 
     if(dragState.moved)e.preventDefault();

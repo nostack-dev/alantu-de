@@ -42,6 +42,9 @@ async function run(kind,viewport){
     const prev=page.locator('#tapPrev');
     await next.click({force:true});
     await page.waitForTimeout(900);
+    const afterFirst=(await page.locator('#pageCount').textContent()).trim();
+    assert(!afterFirst.startsWith('01 /'),
+      `tap did not advance the book: ${afterFirst}`);
     const opened=await stage.screenshot({path:`${out}/${marker}-opened.png`});
     assert(!initial.equals(opened),'opening left book image unchanged');
     const leaves=viewport.width<=700?total:Math.ceil(total/2);
