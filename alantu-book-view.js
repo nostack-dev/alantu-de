@@ -9,7 +9,8 @@ export function createAlantuBookViewControls({
   fitButton=null,
   onPinchStart=()=>{},
   minPixelRatio=2,
-  maxPixelRatio=3
+  maxPixelRatio=3,
+  getPresentationMode=()=>"spread"
 }){
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const pointers=new Map();
@@ -54,25 +55,27 @@ export function createAlantuBookViewControls({
     );
     const viewW=viewH*camera.aspect;
 
-    // Maximum physical turn envelope: one page on each side of the spine,
-    // plus the hardcover overhang. This is stable throughout the turn.
-    const envelopeW=pageW*2+.46;
+    const single=getPresentationMode()==="single";
+    // Landscape/desktop shows the physical two-page spread. Portrait mobile
+    // deliberately frames only the active right-hand sheet, so text remains
+    // large and every swipe still gets a full physical page-turn animation.
+    const envelopeW=single?pageW+.38:pageW*2+.46;
     const envelopeH=pageH+.50;
     fitScale=clamp(
-      Math.min(viewW/envelopeW,viewH/envelopeH)*.93,
+      Math.min(viewW/envelopeW,viewH/envelopeH)*(single?.96:.93),
       .42,
-      1.28
+      single?1.48:1.28
     );
 
     const scale=fitScale*zoom;
     root.scale.setScalar(scale);
 
-    // The full two-sided envelope is centered at -pageW/2 in book-local
-    // coordinates. This offset keeps it optically centered at every zoom.
-    root.position.set(pageW*.5*scale,.015,0);
+    // Duplex spread is centered around -pageW/2. In single-page mode the
+    // currently exposed right-hand page is centered around x=0.
+    root.position.set(single?0:pageW*.5*scale,.015,0);
 
-    // Small architectural tilt: enough depth cue without sacrificing text.
-    root.rotation.set(-.075,-.105,-.008);
+    // Keep portrait pages almost head-on; retain depth on wider displays.
+    root.rotation.set(single?-.045:-.075,single?-.045:-.105,single?-.004:-.008);
   }
 
   function fit(){
@@ -165,5 +168,106 @@ export function createAlantuBookViewControls({
     setZoom,
     get zoom(){return zoom},
     get fitScale(){return fitScale}
+  };
+}
+
+
+export function createAlantuFullscreenController({
+  stage,
+  button,
+  onChange=()=>{}
+}){
+  let faux=false;
+  let savedScrollY=0;
+
+  const nativeActive=()=>document.fullscreenElement===stage||
+    document.webkitFullscreenElement===stage;
+  const active=()=>nativeActive()||faux;
+
+  function sync(){
+    const isActive=active();
+    if(button){
+      button.setAttribute("aria-label",isActive?"Vollbild schließen":"Vollbild öffnen");
+      button.title=isActive?"Vollbild schließen":"Vollbild";
+    }
+    onChange(isActive);
+  }
+
+  function enterFaux(){
+    if(faux)return;
+    faux=true;
+    savedScrollY=window.scrollY||0;
+    document.body.classList.add("alantu-faux-fullscreen");
+    stage.classList.add("is-faux-fullscreen");
+    sync();
+  }
+
+  function leaveFaux({restoreScroll=true}={}){
+    if(!faux)return;
+    faux=false;
+    stage.classList.remove("is-faux-fullscreen");
+    document.body.classList.remove("alantu-faux-fullscreen");
+    if(restoreScroll)requestAnimationFrame(()=>window.scrollTo(0,savedScrollY));
+    sync();
+  }
+
+  async function toggle(){
+    if(nativeActive()){
+      try{
+        if(document.exitFullscreen)await document.exitFullscreen();
+        else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
+      }catch{}
+      return;
+    }
+    if(faux){
+      leaveFaux();
+      return;
+    }
+
+    const request=stage.requestFullscreen||stage.webkitRequestFullscreen;
+    if(!request){
+      enterFaux();
+      return;
+    }
+
+    try{
+      const result=request.call(stage,{navigationUI:"hide"});
+      if(result&&typeof result.then==="function")await result;
+      // iPhone/iOS may expose a method but still decline element fullscreen.
+      setTimeout(()=>{
+        if(!nativeActive()&&!faux)enterFaux();
+        else sync();
+      },220);
+    }catch{
+      enterFaux();
+    }
+  }
+
+  function nativeChanged(){
+    if(nativeActive()&&faux)leaveFaux({restoreScroll:false});
+    sync();
+  }
+
+  function keydown(e){
+    if(e.key==="Escape"&&faux)leaveFaux();
+  }
+
+  button?.addEventListener("click",toggle);
+  document.addEventListener("fullscreenchange",nativeChanged);
+  document.addEventListener("webkitfullscreenchange",nativeChanged);
+  window.addEventListener("keydown",keydown);
+  sync();
+
+  return {
+    toggle,
+    isActive:active,
+    sync,
+    destroy(){
+      button?.removeEventListener("click",toggle);
+      document.removeEventListener("fullscreenchange",nativeChanged);
+      document.removeEventListener("webkitfullscreenchange",nativeChanged);
+      window.removeEventListener("keydown",keydown);
+      leaveFaux({restoreScroll:false});
+    }
   };
 }
