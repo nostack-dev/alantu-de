@@ -61,12 +61,33 @@ function basicStats(rows){
     total_net_bps:nets.reduce((s,x)=>s+x,0),avg_win_bps:mean(wins),avg_loss_bps:mean(loss),profit_factor:pf,max_drawdown_bps:maxDrawdown(nets)
   };
 }
+function strategyRows(outcomes,strategy,h){
+  return (outcomes||[]).filter(x=>x.version===HYPOTHESIS_VERSION&&x.strategy===strategy&&Number(x.horizon_minutes)===Number(h)&&x.status==='evaluated').sort((a,b)=>Date.parse(a.at)-Date.parse(b.at));
+}
 function strategyStats(outcomes,strategy,h){
-  const rows=(outcomes||[]).filter(x=>x.version===HYPOTHESIS_VERSION&&x.strategy===strategy&&Number(x.horizon_minutes)===Number(h)&&x.status==='evaluated').sort((a,b)=>Date.parse(a.at)-Date.parse(b.at));
-  const all=basicStats(rows),mid=Math.floor(rows.length/2);
+  const rows=strategyRows(outcomes,strategy,h),all=basicStats(rows),mid=Math.floor(rows.length/2);
   return {...all,halves:[basicStats(rows.slice(0,mid)),basicStats(rows.slice(mid))]};
 }
-function gateRegime(s){
+function newsBucket(x){
+  const nd=Number(x?.news_context?.dir)||0,d=Number(x?.dir)||0;
+  if(!x?.news_context?.active||!nd)return 'quiet';
+  return nd===d?'aligned':'opposed';
+}
+function newsStrata(outcomes,h){
+  const rows=strategyRows(outcomes,'regime',h),out={};
+  for(const k of ['aligned','opposed','quiet'])out[k]=basicStats(rows.filter(x=>newsBucket(x)===k));
+  return out;
+}
+function pairedEdge(outcomes,h,against){
+  const rows=strategyRows(outcomes,'regime',h),others=strategyRows(outcomes,against,h),m=new Map(others.map(x=>[String(x.at)+'|'+String(x.target_at||''),x]));
+  const deltas=[];
+  for(const r of rows){
+    const o=m.get(String(r.at)+'|'+String(r.target_at||''));
+    if(o&&Number.isFinite(Number(r.net_bps))&&Number.isFinite(Number(o.net_bps)))deltas.push(Number(r.net_bps)-Number(o.net_bps));
+  }
+  return {n:deltas.length,mean_delta_bps:mean(deltas),median_delta_bps:median(deltas),positive_rate:deltas.length?deltas.filter(x=>x>0).length/deltas.length:null};
+}
+function gateRegime(s,controls){
   const reasons=[];
   if(s.n<180)reasons.push('signals_lt_180');
   if(s.days<10)reasons.push('trading_days_lt_10');
@@ -75,6 +96,9 @@ function gateRegime(s){
   if(!(s.mean_net_bps>=0.75))reasons.push('mean_net_lt_0_75bps');
   if(!(s.median_net_bps>0))reasons.push('median_net_not_positive');
   if(!(s.profit_factor>=1.20))reasons.push('profit_factor_lt_1_20');
+  const cont=controls?.continuation,rev=controls?.reversal;
+  if(!cont||!Number.isFinite(Number(cont.mean_net_bps))||!(Number(s.mean_net_bps)>Number(cont.mean_net_bps)+0.25))reasons.push('does_not_beat_continuation_by_0_25bps');
+  if(!rev||!Number.isFinite(Number(rev.mean_net_bps))||!(Number(s.mean_net_bps)>Number(rev.mean_net_bps)+0.25))reasons.push('does_not_beat_reversal_by_0_25bps');
   for(let i=0;i<2;i++){
     const h=s.halves?.[i]||{};
     if((h.n||0)<60||!(h.mean_net_bps>0)||!(h.profit_factor>=1.05))reasons.push('unstable_half_'+(i+1));
@@ -86,7 +110,13 @@ export function summarizeHypothesisState(state,costBps=DEFAULT_ROUNDTRIP_COST_BP
   for(const h of [1,5,15,30]){
     proof[String(h)]={};
     for(const s of HYPOTHESIS_STRATEGIES)proof[String(h)][s]=strategyStats(outcomes,s,h);
-    const r=proof[String(h)].regime,reasons=gateRegime(r);
+    const r=proof[String(h)].regime;
+    proof[String(h)].comparison={
+      regime_vs_continuation:pairedEdge(outcomes,h,'continuation'),
+      regime_vs_reversal:pairedEdge(outcomes,h,'reversal')
+    };
+    proof[String(h)].news_strata=newsStrata(outcomes,h);
+    const reasons=gateRegime(r,{continuation:proof[String(h)].continuation,reversal:proof[String(h)].reversal});
     r.gate={status:reasons.length?'collecting':'validated',reasons};
     if(reasons.length&&r.n>=60&&r.days>=3&&r.mean_net_bps>0.5&&r.profit_factor>1.10)r.gate.status='promising';
   }
