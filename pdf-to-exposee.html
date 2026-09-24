@@ -1454,6 +1454,113 @@
       await loadPdf(file);
     }
 
+    async function renderImagePage(url,targetEdge,token){
+      const response=await fetch(url,{cache:"force-cache"});
+      if(!response.ok)throw new Error("Demo-Seite HTTP "+response.status);
+      const blob=await response.blob();
+      if(token!==loadToken)throw new Error("cancelled");
+
+      const objectUrl=URL.createObjectURL(blob);
+      try{
+        const image=new Image();
+        image.decoding="async";
+        image.src=objectUrl;
+        await image.decode();
+        if(token!==loadToken)throw new Error("cancelled");
+
+        const sourceW=image.naturalWidth||image.width;
+        const sourceH=image.naturalHeight||image.height;
+        const longest=Math.max(sourceW,sourceH);
+        const target=Math.min(longest,Math.max(1,Number(targetEdge)||longest));
+        const scale=target/longest;
+
+        const pageCanvas=document.createElement("canvas");
+        pageCanvas.width=Math.max(1,Math.round(sourceW*scale));
+        pageCanvas.height=Math.max(1,Math.round(sourceH*scale));
+        const ctx=pageCanvas.getContext("2d",{alpha:false});
+        ctx.imageSmoothingEnabled=true;
+        ctx.imageSmoothingQuality="high";
+        ctx.fillStyle="#fff";
+        ctx.fillRect(0,0,pageCanvas.width,pageCanvas.height);
+        ctx.drawImage(image,0,0,pageCanvas.width,pageCanvas.height);
+        return {canvas:pageCanvas,width:sourceW,height:sourceH};
+      }finally{
+        URL.revokeObjectURL(objectUrl);
+      }
+    }
+
+    async function loadPageManifest(url){
+      const token=++loadToken;
+      clearBook();
+      emptyState.style.display="grid";
+      loadingMask.classList.add("show");
+      loadingTitle.textContent="Exposé wird vorbereitet";
+      loadingText.textContent="Hochauflösende Seiten werden geladen …";
+      setStatus("Exposé wird geladen …");
+      setProgress(3);
+
+      try{
+        const response=await fetch(url,{cache:"no-store"});
+        if(!response.ok)throw new Error("Demo-Manifest HTTP "+response.status);
+        const manifest=await response.json();
+        const pages=Array.isArray(manifest.pages)?manifest.pages.filter(Boolean):[];
+        if(!pages.length)throw new Error("Demo-Manifest enthält keine Seiten.");
+        if(pages.length>MAX_PAGES)throw new Error("Maximal "+MAX_PAGES+" Seiten pro Exposé.");
+
+        const manifestUrl=new URL(url,location.href);
+        const pageUrls=pages.map(page=>new URL(String(page),manifestUrl).href);
+        if(!queryParams.has("brand")&&manifest.brand)brandInput.value=String(manifest.brand);
+        if(!queryParams.has("subtitle"))subtitleInput.value="Konstanz Wollmatingen";
+        currentCoverTitle=forcedTitle
+          ? sanitizeAlantuCoverTitle(forcedTitle)
+          : sanitizeAlantuCoverTitle(manifest.title||"Exposé");
+        refreshBranding();
+
+        metaFile.textContent=manifest.source||"Sunside Living";
+        metaPages.textContent=String(pageUrls.length);
+
+        const targetEdge=preferredTextureEdge(pageUrls.length);
+        const rendered=new Array(pageUrls.length);
+        const mobile=window.matchMedia("(max-width:700px)").matches;
+        const concurrency=IS_IOS_WEBKIT ? 2 : (mobile ? 3 : 6);
+        let next=0;
+        let completed=0;
+
+        async function worker(){
+          while(true){
+            const index=next++;
+            if(index>=pageUrls.length)return;
+            rendered[index]=await renderImagePage(pageUrls[index],targetEdge,token);
+            completed++;
+            loadingText.textContent="Seite "+completed+" von "+pageUrls.length+" wird geladen …";
+            setStatus("Lade Seite "+completed+" / "+pageUrls.length+" …");
+            setProgress(5+completed/pageUrls.length*85);
+          }
+        }
+
+        await Promise.all(
+          Array.from({length:Math.min(concurrency,pageUrls.length)},()=>worker())
+        );
+        if(token!==loadToken)return;
+
+        loadingText.textContent="3D-Exposé wird aufgebaut …";
+        setProgress(94);
+        buildBook(rendered);
+        setProgress(100);
+        setStatus(rendered.length+" Seiten bereit.","ok");
+        setTimeout(()=>{if(token===loadToken)setProgress(0)},800);
+      }catch(err){
+        if(err?.message==="cancelled")return;
+        console.error(err);
+        setStatus(err?.message||"Demo konnte nicht verarbeitet werden.","error");
+        metaPages.textContent="—";
+        currentCoverTitle="Exposé";
+        refreshBranding();
+      }finally{
+        if(token===loadToken)loadingMask.classList.remove("show");
+      }
+    }
+
     if(queryParams.has("brand"))brandInput.value=queryParams.get("brand")||brandInput.value;
     if(queryParams.has("subtitle"))subtitleInput.value=queryParams.get("subtitle")||subtitleInput.value;
     refreshBranding();
@@ -1577,8 +1684,14 @@
     bookCore.reset(0);
     render();
 
+    const preloadManifest=queryParams.get("manifest");
     const preloadPdf=queryParams.get("pdf");
-    if(preloadPdf){
+    if(preloadManifest){
+      loadPageManifest(preloadManifest).catch(err=>{
+        console.error(err);
+        setStatus(err?.message||"Demo konnte nicht geladen werden.","error");
+      });
+    }else if(preloadPdf){
       loadPdfFromUrl(preloadPdf).catch(err=>{
         console.error(err);
         setStatus(err?.message||"Demo-PDF konnte nicht geladen werden.","error");
