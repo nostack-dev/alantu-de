@@ -774,8 +774,8 @@ function wgoSymbolWindowPrice(symbol,minutes,now=Date.now()){
   return {available:true,from:p0,to:p1,pct,high:hi,low:lo,events:a.length,from_at:new Date(Number(first.t||first.recv_at)).toISOString(),to_at:new Date(Number(last.t||last.recv_at)).toISOString()};
 }
 function wgoWindowPrice(minutes,now=Date.now()){return wgoSymbolWindowPrice('ORCL',minutes,now);}
-function wgoRecentShock(minutes,now=Date.now()){
-  const span=minutes*60000,scan=18*3600000;
+function wgoShockScan(minutes,now=Date.now(),scanHours=18,mode='abs'){
+  const span=minutes*60000,scan=scanHours*3600000;
   const a=(wgoSeries.ORCL&&wgoSeries.ORCL.length?wgoSeries.ORCL:yahooSeries.ORCL||[]).filter(e=>{
     const t=Number(e.recv_at||e.t),p=Number(e.p);
     return Number.isFinite(t)&&t>=now-scan-span&&t<=now&&Number.isFinite(p)&&p>0;
@@ -789,10 +789,19 @@ function wgoRecentShock(minutes,now=Date.now()){
     if(ti-tj<Math.max(60000,span*.55))continue;
     const p0=Number(a[j].p),p1=Number(a[i].p),pct=p0>0?(p1/p0-1)*100:null;
     if(!Number.isFinite(pct))continue;
-    if(!best||Math.abs(pct)>Math.abs(best.pct))best={pct,from:p0,to:p1,from_at:new Date(tj).toISOString(),to_at:new Date(ti).toISOString(),from_ms:tj,to_ms:ti};
+    const candidate={pct,from:p0,to:p1,from_at:new Date(tj).toISOString(),to_at:new Date(ti).toISOString(),from_ms:tj,to_ms:ti};
+    if(mode==='down'){
+      if(pct>=0)continue;
+      if(!best||pct<best.pct)best=candidate;
+    }else if(mode==='up'){
+      if(pct<=0)continue;
+      if(!best||pct>best.pct)best=candidate;
+    }else if(!best||Math.abs(pct)>Math.abs(best.pct))best=candidate;
   }
   return best;
 }
+function wgoRecentShock(minutes,now=Date.now()){return wgoShockScan(minutes,now,3,'abs');}
+function wgoDayDirectionalShock(minutes,now=Date.now(),direction=-1){return wgoShockScan(minutes,now,18,direction<0?'down':'up');}
 function wgoItems(minutes,now=Date.now()){
   const cut=now-minutes*60000;
   return (Array.isArray(sourceState.items)?sourceState.items:[]).filter(x=>{const t=wgoEventMs(x);return Number.isFinite(t)&&t>=cut&&t<=now;}).sort((a,b)=>wgoEventMs(b)-wgoEventMs(a));
@@ -855,23 +864,28 @@ function wgoCatalyst(items,now=Date.now(),direction=0,anchorMs=null){
   return {theme,summary,item:top.item,score:top.score,related_count:1,confidence:top.score>=12?'high':top.score>=7?'moderate':'low'};
 }
 function wgoDeterministic(minutes,now=Date.now()){
-  const price=wgoWindowPrice(minutes,now),day=wgoDayPrice(),shock=wgoRecentShock(minutes,now),items=wgoItems(minutes,now),contextItems=wgoContextItems(now,18);
-  const pct=Number(price.pct),abs=Math.abs(pct||0),shockPct=Number(shock&&shock.pct),shockAbs=Math.abs(shockPct||0);
-  const useShock=!!shock&&shockAbs>=.25&&(shockAbs>abs+.12||now-shock.to_ms>minutes*60000*.55);
-  const direction=Math.sign(useShock?shockPct:(pct||Number(day.pct)||0));
-  const anchorMs=useShock?shock.from_ms:(price.available?Date.parse(price.from_at):now);
-  const tone=wgoTone(contextItems),catalyst=wgoCatalyst(contextItems,now,direction,anchorMs),market=wgoMarketContext(minutes,useShock?shock.to_ms:now);
+  const price=wgoWindowPrice(minutes,now),day=wgoDayPrice(),recentShock=wgoRecentShock(minutes,now),items=wgoItems(minutes,now),contextItems=wgoContextItems(now,18);
+  const pct=Number(price.pct),abs=Math.abs(pct||0),dayPct=Number(day.pct),dayDir=Math.sign(dayPct||pct||0),dayShock=dayDir?wgoDayDirectionalShock(minutes,now,dayDir):null;
+  const recentPct=Number(recentShock&&recentShock.pct),recentAbs=Math.abs(recentPct||0),dayShockPct=Number(dayShock&&dayShock.pct),dayShockAbs=Math.abs(dayShockPct||0);
+  const useDayShock=!!dayShock&&Math.abs(dayPct)>=1&&dayShockAbs>=.35;
+  const useRecentShock=!useDayShock&&!!recentShock&&recentAbs>=.25&&(recentAbs>abs+.12||now-recentShock.to_ms>minutes*60000*.55);
+  const shock=useDayShock?dayShock:(useRecentShock?recentShock:null),shockPct=Number(shock&&shock.pct),shockAbs=Math.abs(shockPct||0);
+  const direction=Math.sign(shock?shockPct:(pct||dayPct||0));
+  const anchorMs=shock?shock.from_ms:(price.available?Date.parse(price.from_at):now);
+  const tone=wgoTone(contextItems),catalyst=wgoCatalyst(contextItems,now,direction,anchorMs),market=wgoMarketContext(minutes,shock?shock.to_ms:now);
   const move=!price.available?'Für die letzten '+minutes+' Minuten liegt kein ausreichend frischer Kursverlauf vor.':('Kurzfristig: ORCL ist in den letzten '+minutes+' Minuten '+(abs<0.02?'praktisch unverändert':(pct>0?'um '+abs.toFixed(2)+' % gestiegen':'um '+abs.toFixed(2)+' % gefallen'))+' ('+price.from.toFixed(2)+' → '+price.to.toFixed(2)+' USD).');
   let shockSentence='';
-  if(useShock){
+  if(shock){
     const t0=new Date(shock.from_ms).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'});
     const t1=new Date(shock.to_ms).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'});
-    shockSentence=' Der relevante jüngste Impuls war '+(shockPct<0?'ein Rückgang':'ein Anstieg')+' von '+shockAbs.toFixed(2)+' % zwischen '+t0+' und '+t1+'.';
+    shockSentence=useDayShock
+      ?(' Der stärkste '+minutes+'-Minuten-'+(shockPct<0?'Abverkauf':'Anstieg')+' heute war '+(shockPct>=0?'+':'')+shockPct.toFixed(2)+' % zwischen '+t0+' und '+t1+'.')
+      :(' Der relevante jüngste Impuls war '+(shockPct<0?'ein Rückgang':'ein Anstieg')+' von '+shockAbs.toFixed(2)+' % zwischen '+t0+' und '+t1+'.');
   }
   const daySentence=day.available&&Number.isFinite(Number(day.pct))?(' Heute liegt ORCL gegenüber der verfügbaren Tagesbasis bei '+(day.pct>=0?'+':'')+Number(day.pct).toFixed(2)+' %.'):'';
   let marketSentence='';
   if(Number.isFinite(market.average_pct)){
-    const ref=Math.abs(market.average_pct),orclRef=Math.abs(useShock?shockPct:pct||0);
+    const ref=Math.abs(market.average_pct),orclRef=Math.abs(shock?shockPct:pct||0);
     if(direction&&Math.sign(market.average_pct)===direction&&ref>=.15)marketSentence=' QQQ/SPY liefen im selben Impuls im Mittel '+(market.average_pct>=0?'+':'')+market.average_pct.toFixed(2)+' % – die breite Marktbewegung spielte also mit.';
     if(orclRef>=Math.max(.5,ref*2))marketSentence=' QQQ/SPY bewegten sich im selben Fenster nur etwa '+(market.average_pct>=0?'+':'')+market.average_pct.toFixed(2)+' % – der ORCL-Move war damit deutlich aktienspezifischer.';
   }
