@@ -1309,24 +1309,75 @@ function axisX(rows,getAt,range){
 function chartInteract(){return {mode:'nearest',intersect:false,axis:'x'};}
 function chartEvents(){return ['mousemove','mouseout','click','touchstart','touchmove'];}
 var priceChartScrubUntil=0;
+var priceScrubState={active:false,point:null,source:null};
 function markPriceChartScrub(ms){priceChartScrubUntil=Math.max(priceChartScrubUntil,Date.now()+(Number(ms)||2200));}
 function priceChartScrubbing(){return Date.now()<priceChartScrubUntil;}
+function nearestPricePointForClientX(clientX){
+  if(!ivChart||!ivChart.scales||!ivChart.scales.x)return null;
+  var c=document.getElementById('ivChart'),r=c&&c.getBoundingClientRect();if(!r)return null;
+  var px=Number(clientX)-r.left,xv=ivChart.scales.x.getValueForPixel(px),ds=ivChart.data&&ivChart.data.datasets&&ivChart.data.datasets[0],pts=ds&&Array.isArray(ds.data)?ds.data:[];
+  if(!pts.length||!isFinite(xv))return null;
+  var lo=0,hi=pts.length-1;
+  while(lo<hi){var m=(lo+hi)>>1;if(Number(pts[m].x)<xv)lo=m+1;else hi=m;}
+  var a=pts[lo],b=lo>0?pts[lo-1]:null,p=!b||Math.abs(Number(a.x)-xv)<=Math.abs(Number(b.x)-xv)?a:b;
+  return p&&isFinite(Number(p.x))&&isFinite(Number(p.y))?{x:Number(p.x),y:Number(p.y)}:null;
+}
+function setPriceScrub(clientX,source){
+  var p=nearestPricePointForClientX(clientX);if(!p)return;
+  markPriceChartScrub(2400);priceScrubState={active:true,point:p,source:source||'pointer'};
+  try{ivChart.draw();}catch(e){}
+}
+function clearPriceScrub(){
+  if(!priceScrubState.active)return;
+  priceScrubState={active:false,point:null,source:null};
+  try{if(ivChart)ivChart.draw();}catch(e){}
+}
 function armPriceChartScrub(){
   var c=document.getElementById('ivChart');
   if(!c||c.dataset.alantuScrub==='1')return;
   c.dataset.alantuScrub='1';
-  ['mousemove','mousedown','pointermove','pointerdown','touchstart','touchmove'].forEach(function(ev){
-    c.addEventListener(ev,function(){markPriceChartScrub(2200);},{passive:true});
-  });
-  ['mouseleave','pointerleave','touchend','touchcancel'].forEach(function(ev){
-    c.addEventListener(ev,function(){priceChartScrubUntil=Math.max(priceChartScrubUntil,Date.now()+300);},{passive:true});
-  });
+  var hold=null,startX=0,startY=0,lastX=0;
+  c.addEventListener('mousemove',function(e){setPriceScrub(e.clientX,'mouse');},{passive:true});
+  c.addEventListener('mouseleave',function(){clearPriceScrub();},{passive:true});
+  c.addEventListener('touchstart',function(e){
+    var t=e.touches&&e.touches[0];if(!t)return;
+    startX=lastX=t.clientX;startY=t.clientY;markPriceChartScrub(2400);
+    if(hold)clearTimeout(hold);
+    hold=setTimeout(function(){hold=null;setPriceScrub(lastX,'touch');},180);
+  },{passive:true});
+  c.addEventListener('touchmove',function(e){
+    var t=e.touches&&e.touches[0];if(!t)return;lastX=t.clientX;
+    var dx=Math.abs(t.clientX-startX),dy=Math.abs(t.clientY-startY);
+    if(!priceScrubState.active&&dy>12&&dy>dx*1.25){if(hold){clearTimeout(hold);hold=null;}return;}
+    if(priceScrubState.active){e.preventDefault();setPriceScrub(t.clientX,'touch');}
+  },{passive:false});
+  ['touchend','touchcancel'].forEach(function(ev){c.addEventListener(ev,function(){if(hold){clearTimeout(hold);hold=null;}setTimeout(clearPriceScrub,140);},{passive:true});});
+}
+function priceScrubOverlayPlugin(){
+  return {
+    id:'priceScrubOverlay',
+    afterDatasetsDraw:function(chart){
+      if(!chart||!chart.canvas||chart.canvas.id!=='ivChart'||!priceScrubState.active||!priceScrubState.point)return;
+      var p=priceScrubState.point,a=chart.chartArea,x=chart.scales.x.getPixelForValue(p.x),y=chart.scales.y.getPixelForValue(p.y);
+      if(!a||!isFinite(x)||!isFinite(y))return;
+      var ctx=chart.ctx,time=new Date(p.x).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'}),label=time+' · '+euro(p.y,2);
+      ctx.save();
+      ctx.strokeStyle='rgba(17,17,19,.36)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+      ctx.beginPath();ctx.moveTo(x,a.top);ctx.lineTo(x,a.bottom);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='#111';ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();
+      ctx.font='700 12px Inter, ui-sans-serif, system-ui, sans-serif';
+      var pad=8,w=ctx.measureText(label).width+pad*2,h=26,bx=Math.min(Math.max(a.left+2,x-w/2),a.right-w-2),by=Math.max(a.top+4,y-h-12);
+      ctx.fillStyle='rgba(17,17,19,.96)';ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,w,h,7):ctx.rect(bx,by,w,h);ctx.fill();
+      ctx.fillStyle='#fff';ctx.textBaseline='middle';ctx.fillText(label,bx+pad,by+h/2);
+      ctx.restore();
+    }
+  };
 }
 function currentPriceMarkerPlugin(){
   return {
     id:'currentPriceMarker',
     afterDatasetsDraw:function(chart){
-      if(!chart||!chart.canvas||chart.canvas.id!=='ivChart'||priceRange!=='1d')return;
+      if(!chart||!chart.canvas||chart.canvas.id!=='ivChart'||priceRange!=='1d'||priceScrubState.active)return;
       var ds=chart.data&&chart.data.datasets&&chart.data.datasets[0],pts=ds&&ds.data||[];
       if(!pts.length)return;
       var p=pts[pts.length-1],x=chart.scales.x.getPixelForValue(Number(p.x)),y=chart.scales.y.getPixelForValue(Number(p.y)),a=chart.chartArea;
@@ -1346,6 +1397,7 @@ function currentPriceMarkerPlugin(){
   };
 }
 Chart.register(currentPriceMarkerPlugin());
+Chart.register(priceScrubOverlayPlugin());
 function clearChartInteraction(chart){
   if(!chart)return;
   try{if(typeof chart.setActiveElements==='function')chart.setActiveElements([]);}catch(e){}
