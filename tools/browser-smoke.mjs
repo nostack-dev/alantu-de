@@ -59,7 +59,8 @@ async function run(name,viewport){
   const wgoState=await page.evaluate(()=>({
     answer:(document.getElementById('wgoAnswer')?.textContent||'').trim(),
     meta:(document.getElementById('wgoMeta')?.textContent||'').trim(),
-    disabled:!!document.getElementById('wgoRun')?.disabled
+    disabled:!!document.getElementById('wgoRun')?.disabled,
+    liveChange:(document.getElementById('liveChange')?.textContent||'').trim()
   }));
 
   const state=await page.evaluate(()=>{
@@ -129,6 +130,12 @@ async function run(name,viewport){
   if(dayPctMatch&&Number(dayPctMatch[1])<=-1&&!/stärkste\s+\d+-Minuten-Abverkauf\s+heute/i.test(wgoState.answer))errors.push('wgo-intraday-selloff-missing:'+JSON.stringify(wgoState));
   if(/Im selben Zeitraum wurde keine neue relevante Oracle-Meldung erfasst/i.test(wgoState.answer))errors.push('wgo-old-window-only-copy:'+JSON.stringify(wgoState));
   if(/Heute[^.]{0,120}(?:bei|Tagesbasis bei)\s*-\d/i.test(wgoState.answer)&&!/Abverkauf|Rückgang|gefallen/i.test(wgoState.answer))errors.push('wgo-negative-day-without-selloff:'+JSON.stringify(wgoState));
+  const uiPctMatch=wgoState.liveChange.replace(',','.').match(/([+-]?\d+(?:\.\d+)?)\s*%/);
+  const briefPctMatch=wgoState.answer.replace(',','.').match(/Heute[^.]{0,160}?([+-]\d+(?:\.\d+)?)\s*%/i);
+  if(uiPctMatch&&briefPctMatch){
+    const uiPct=Number(uiPctMatch[1]),briefPct=Number(briefPctMatch[1]);
+    if(Number.isFinite(uiPct)&&Number.isFinite(briefPct)&&Math.abs(uiPct-briefPct)>.45)errors.push('wgo-day-percent-mismatch:'+JSON.stringify({uiPct,briefPct,wgoState}));
+  }
   if(!state.bodyText.includes('Prognosen vs. Realität'))errors.push('forecast-label-missing');
   if(!state.modelDecisionText.includes('MODELLSTATUS:'))errors.push('model-status-text-missing');
   if(!state.forecastCollapsed)errors.push('forecast-not-collapsed-by-default');
