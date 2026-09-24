@@ -420,6 +420,13 @@
     const MAX_PAGES=40;
     const MAX_TEXTURE_EDGE_DESKTOP=3072;
     const MAX_TEXTURE_EDGE_MOBILE=2560;
+    const MAX_TEXTURE_EDGE_IOS=2048;
+    // WebKit on iPhone/iPad has a much tighter per-tab memory ceiling than
+    // desktop browsers. Budget all PDF page canvases together instead of
+    // allocating up to 3072px for every page (which can exceed 1 GB).
+    const IOS_TOTAL_PAGE_PIXELS=24_000_000;
+    const IS_IOS_WEBKIT=/iPad|iPhone|iPod/.test(navigator.userAgent)||
+      (navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 
     const stage=document.getElementById("stage");
     const canvas=document.getElementById("bookCanvas");
@@ -448,7 +455,9 @@
     const prefersReduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:"high-performance"});
-    renderer.setPixelRatio(Math.min(Math.max(window.devicePixelRatio||1,2),3));
+    renderer.setPixelRatio(IS_IOS_WEBKIT
+      ? Math.min(window.devicePixelRatio||1,1.5)
+      : Math.min(Math.max(window.devicePixelRatio||1,2),3));
     renderer.outputColorSpace=THREE.SRGBColorSpace;
     renderer.shadowMap.enabled=true;
     renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -561,17 +570,24 @@
     }
 
     function clearBook(){
+      const canvasesToRelease=new Set();
+      const rememberCanvas=texture=>{
+        const image=texture?.image;
+        if(image&&image.tagName==="CANVAS")canvasesToRelease.add(image);
+      };
       leafRoots.forEach(p=>{
         p.traverse(obj=>{
           if(obj.isMesh){
             if(obj.geometry)obj.geometry.dispose();
+            const mats=Array.isArray(obj.material)?obj.material:[obj.material];
+            mats.forEach(m=>rememberCanvas(m?.map));
             disposeMaterial(obj.material);
           }
         });
         root.remove(p);
       });
       leafRoots=[];
-      pageTextures.forEach(t=>t.dispose());
+      pageTextures.forEach(t=>{rememberCanvas(t);t?.dispose()});
       pageTextures=[];
       if(frontCover){
         frontCover.geometry.dispose();
@@ -599,12 +615,25 @@
       }
       coverSupport=null;
       totalPages=0;totalLeaves=0;
+      // Explicitly drop Canvas backing stores. On WebKit, waiting for GC here
+      // can leave hundreds of MB resident when a second PDF is selected.
+      canvasesToRelease.forEach(c=>{
+        try{c.width=1;c.height=1}catch{}
+      });
       if(bookCore)bookCore.reset(0);
     }
 
-    function preferredTextureEdge(){
+    function preferredTextureEdge(pageCount=1){
       const mobile=window.matchMedia("(max-width:700px)").matches;
-      const requested=mobile?MAX_TEXTURE_EDGE_MOBILE:MAX_TEXTURE_EDGE_DESKTOP;
+      let requested=mobile?MAX_TEXTURE_EDGE_MOBILE:MAX_TEXTURE_EDGE_DESKTOP;
+      if(IS_IOS_WEBKIT){
+        // Approx. A4/Letter page area is ~0.7 * longestEdge². This keeps the
+        // complete retained page-raster set near ~96 MB RGBA at 40 pages,
+        // while small PDFs can still render much sharper.
+        const perPagePixels=IOS_TOTAL_PAGE_PIXELS/Math.max(1,pageCount);
+        const budgetEdge=Math.floor(Math.sqrt(perPagePixels/.72));
+        requested=Math.min(MAX_TEXTURE_EDGE_IOS,Math.max(896,budgetEdge));
+      }
       return Math.min(requested,renderer.capabilities.maxTextureSize||requested);
     }
 
@@ -629,25 +658,32 @@
       });
     }
 
-    async function renderPdfPage(pdf,pageNumber,token){
+    async function renderPdfPage(pdf,pageNumber,token,targetEdge){
       const page=await pdf.getPage(pageNumber);
-      if(token!==loadToken)throw new Error("cancelled");
+      try{
+        if(token!==loadToken)throw new Error("cancelled");
 
-      const base=page.getViewport({scale:1});
-      const longest=Math.max(base.width,base.height);
-      const target=preferredTextureEdge();
-      const scale=target/longest;
-      const viewport=page.getViewport({scale});
+        const base=page.getViewport({scale:1});
+        const longest=Math.max(base.width,base.height);
+        const target=Math.max(1,Number(targetEdge)||preferredTextureEdge());
+        const scale=target/longest;
+        const viewport=page.getViewport({scale});
 
-      const pageCanvas=document.createElement("canvas");
-      pageCanvas.width=Math.max(1,Math.round(viewport.width));
-      pageCanvas.height=Math.max(1,Math.round(viewport.height));
-      const ctx=pageCanvas.getContext("2d",{alpha:false,willReadFrequently:false});
-      ctx.fillStyle="#fff";
-      ctx.fillRect(0,0,pageCanvas.width,pageCanvas.height);
-      await page.render({canvasContext:ctx,viewport,background:"white"}).promise;
+        const pageCanvas=document.createElement("canvas");
+        pageCanvas.width=Math.max(1,Math.round(viewport.width));
+        pageCanvas.height=Math.max(1,Math.round(viewport.height));
+        const ctx=pageCanvas.getContext("2d",{alpha:false,willReadFrequently:false});
+        if(!ctx)throw new Error("Canvas konnte nicht erstellt werden.");
+        ctx.fillStyle="#fff";
+        ctx.fillRect(0,0,pageCanvas.width,pageCanvas.height);
+        await page.render({canvasContext:ctx,viewport,background:"white"}).promise;
 
-      return {canvas:pageCanvas,width:base.width,height:base.height};
+        return {canvas:pageCanvas,width:base.width,height:base.height};
+      }finally{
+        // Release PDF.js operator/image caches for each page as soon as its
+        // final raster exists; critical on iOS/iPadOS.
+        try{page.cleanup()}catch{}
+      }
     }
 
     function normalizePageCanvas(source,targetW,targetH){
@@ -661,6 +697,9 @@
       const scale=Math.min(targetW/source.width,targetH/source.height);
       const w=source.width*scale,h=source.height*scale;
       ctx.drawImage(source,(targetW-w)/2,(targetH-h)/2,w,h);
+      // The normalized canvas is now the retained source. Drop the temporary
+      // PDF raster immediately instead of holding both until GC.
+      try{source.width=1;source.height=1}catch{}
       return out;
     }
 
@@ -739,7 +778,9 @@
       getPageWidth:()=>PAGE_W,
       getPageHeight:()=>PAGE_H,
       fitButton:fitViewBtn,
-      onPinchStart:()=>bookCore.cancelDrag()
+      onPinchStart:()=>bookCore.cancelDrag(),
+      minPixelRatio:IS_IOS_WEBKIT?1:2,
+      maxPixelRatio:IS_IOS_WEBKIT?1.5:3
     });
 
     function buildBook(renderedPages){
@@ -772,7 +813,11 @@
 
       const normalized=renderedPages.map(p=>normalizePageCanvas(p.canvas,targetW,targetH));
 
-      pageTextures=normalized.map(createTexture);
+      // Only even pages are front-side textures. Odd pages get their mirrored
+      // texture below; do not create an unused CanvasTexture for them.
+      pageTextures=normalized.map((pageCanvas,index)=>
+        index%2===0?createTexture(pageCanvas):null
+      );
 
       const support=computeAlantuBookSupportZ({
         totalLeaves,
@@ -908,31 +953,44 @@
       currentCoverTitle=sanitizeAlantuCoverTitle(file.name);
       refreshBranding();
 
+      let pdf=null;
       try{
-        const buffer=await file.arrayBuffer();
+        let pdfBytes=new Uint8Array(await file.arrayBuffer());
         if(token!==loadToken)return;
-        const pdf=await pdfjsLib.getDocument({data:new Uint8Array(buffer)}).promise;
+        pdf=await pdfjsLib.getDocument({data:pdfBytes}).promise;
+        // Our own reference is no longer needed after PDF.js has accepted it.
+        pdfBytes=null;
         if(token!==loadToken)return;
 
         if(pdf.numPages<1)throw new Error("PDF enthält keine Seiten.");
         if(pdf.numPages>MAX_PAGES)throw new Error("Maximal "+MAX_PAGES+" Seiten pro Exposé.");
 
         metaPages.textContent=String(pdf.numPages);
+        const targetEdge=preferredTextureEdge(pdf.numPages);
         const rendered=[];
         for(let i=1;i<=pdf.numPages;i++){
           if(token!==loadToken)return;
           loadingText.textContent="Seite "+i+" von "+pdf.numPages+" wird gerendert …";
           setStatus("Rendere Seite "+i+" / "+pdf.numPages+" …");
           setProgress(5+(i-1)/pdf.numPages*85);
-          rendered.push(await renderPdfPage(pdf,i,token));
+          rendered.push(await renderPdfPage(pdf,i,token,targetEdge));
+          // Give WebKit a collection/render opportunity between heavy pages.
+          if(IS_IOS_WEBKIT && i%2===0)await new Promise(requestAnimationFrame);
         }
 
         if(token!==loadToken)return;
         loadingText.textContent="3D-Exposé wird aufgebaut …";
         setProgress(94);
+
+        // Free PDF.js worker/document caches before allocating the WebGL page
+        // textures. This avoids the peak-memory spike that killed iOS tabs.
+        try{await pdf.cleanup()}catch{}
+        try{await pdf.destroy()}catch{}
+        pdf=null;
+
         buildBook(rendered);
         setProgress(100);
-        setStatus(pdf.numPages+" Seiten bereit.","ok");
+        setStatus(rendered.length+" Seiten bereit.","ok");
         setTimeout(()=>{if(token===loadToken)setProgress(0)},800);
       }catch(err){
         if(err?.message==="cancelled")return;
@@ -942,6 +1000,10 @@
         currentCoverTitle="Exposé";
         refreshBranding();
       }finally{
+        if(pdf){
+          try{await pdf.destroy()}catch{}
+          pdf=null;
+        }
         if(token===loadToken)loadingMask.classList.remove("show");
       }
     }
