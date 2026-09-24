@@ -22,8 +22,9 @@ async function run(name,viewport){
   if(!priceBox)throw new Error('price chart has no bounding box');
 
   const hoverX=priceBox.x+priceBox.width*.62, hoverY=priceBox.y+priceBox.height*.48;
+  let cdp=null;
   if(viewport.width<=700){
-    const cdp=await page.context().newCDPSession(page);
+    cdp=await page.context().newCDPSession(page);
     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:hoverX,y:hoverY}]});
     await page.waitForTimeout(650);
     for(const frac of [.66,.72,.78]){
@@ -39,9 +40,13 @@ async function run(name,viewport){
   await page.waitForTimeout(1000);
   const interactionState=await page.evaluate(()=>({
     priceTooltipActive:(typeof ivChart!=='undefined'&&ivChart&&ivChart.tooltip)?((ivChart.tooltip._active||[]).length):0,
-    priceTooltipOpacity:(typeof ivChart!=='undefined'&&ivChart&&ivChart.tooltip)?Number(ivChart.tooltip.opacity||0):0
+    priceTooltipOpacity:(typeof ivChart!=='undefined'&&ivChart&&ivChart.tooltip)?Number(ivChart.tooltip.opacity||0):0,
+    scrubActive:typeof priceScrubState!=='undefined'&&!!priceScrubState.active,
+    scrubPoint:typeof priceScrubState!=='undefined'&&priceScrubState.point?{x:Number(priceScrubState.point.x),y:Number(priceScrubState.point.y)}:null,
+    scrubSource:typeof priceScrubState!=='undefined'?priceScrubState.source:null
   }));
   await page.screenshot({path:`${out}/${name}-1d.png`,fullPage:true});
+  if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]}).catch(()=>{});
 
   const wgoButton=page.locator('#wgoRun');
   if(await wgoButton.count()){
@@ -114,7 +119,7 @@ async function run(name,viewport){
   if(hiddenResearch.length)errors.push('research-visible-while-collapsed:'+JSON.stringify(hiddenResearch));
   if(state.width.overflow>4)errors.push('horizontal-overflow:'+state.width.overflow);
   if(!Array.isArray(state.chartEvents)||!state.chartEvents.includes('mousemove')||!state.chartEvents.includes('touchmove'))errors.push('chart-events-missing:'+JSON.stringify(state.chartEvents));
-  if(interactionState.priceTooltipActive<1&&interactionState.priceTooltipOpacity<=0)errors.push('price-tooltip-not-active:'+JSON.stringify(interactionState));
+  if(!interactionState.scrubActive||!interactionState.scrubPoint||!Number.isFinite(interactionState.scrubPoint.y))errors.push('price-scrub-not-active:'+JSON.stringify(interactionState));
   if(!state.priceAxis||state.priceAxis.minBerlin!=='08:00'||state.priceAxis.maxBerlin!=='22:00')errors.push('day-axis-not-08-22:'+JSON.stringify(state.priceAxis));
   if(monthState.range!=='1m'||monthState.points<10)errors.push('month-range-invalid:'+JSON.stringify(monthState));
   if(monthState.overflow>4)errors.push('month-horizontal-overflow:'+monthState.overflow);
