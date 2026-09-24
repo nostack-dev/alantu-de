@@ -734,13 +734,10 @@
       exterior.map=texture;
       exterior.color.set(0xffffff);
       exterior.needsUpdate=true;
-      const interior=new THREE.MeshStandardMaterial({
-        color:0xf4f0e8,
-        roughness:.94,
-        metalness:0
-      });
+      const interior=coverMaterial.clone();
 
-      // +Z = dark front with gold lettering. -Z = warm-white inside cover.
+      // Hardcover itself is dark on every face. Only the PDF paper stack is
+      // white. +Z carries the gold-lettered front artwork; -Z stays dark.
       return [side(),side(),side(),side(),exterior,interior];
     }
 
@@ -1162,8 +1159,7 @@
         [
           coverMaterial.clone(),coverMaterial.clone(),
           coverMaterial.clone(),coverMaterial.clone(),
-          new THREE.MeshStandardMaterial({color:0xf4f0e8,roughness:.94,metalness:0}),
-          coverMaterial.clone()
+          coverMaterial.clone(),coverMaterial.clone()
         ]
       );
       backCover.position.set(COVER_W/2,0,0);
