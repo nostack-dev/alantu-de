@@ -249,6 +249,13 @@ export function createAlantuBookCore(options){
     const ds=PAGE_W/segments;
     const p=clamp(progress,0,1);
     const v=clamp(velocity,-3.2,3.2);
+    const endpoint=p<=.00001?0:p>=.99999?1:null;
+
+    // Resting sheets are immutable. Avoid rebuilding all 62 vertices and
+    // normals every time another sheet begins/finishes a turn.
+    if(endpoint!==null&&pivot.userData.staticProgress===endpoint)return;
+    if(endpoint===null)pivot.userData.staticProgress=null;
+
     const paper=paperCharacter(index);
 
     // Same hard physical bounds for every sheet:
@@ -261,8 +268,10 @@ export function createAlantuBookCore(options){
     const spineBlend=smoothstep(.18,.86,p);
     const spineZ=rightZ(index)+(leftZ(index)-rightZ(index))*spineBlend;
 
-    const curveX=new Float32Array(segments+1);
-    const curveZ=new Float32Array(segments+1);
+    // Reuse the small curve buffers; avoiding per-frame allocations keeps
+    // Safari/WebKit's GC out of the animation hot path.
+    const curveX=pivot.userData.curveX||(pivot.userData.curveX=new Float32Array(segments+1));
+    const curveZ=pivot.userData.curveZ||(pivot.userData.curveZ=new Float32Array(segments+1));
     curveX[0]=0;
     curveZ[0]=spineZ;
 
@@ -314,7 +323,21 @@ export function createAlantuBookCore(options){
     }
 
     pos.needsUpdate=true;
-    geometry.computeVertexNormals();
+
+    // Geometry stays display-refresh smooth; lighting normals are refreshed
+    // only when curvature moved enough to matter visually. This removes work
+    // near rest without imposing any 30fps/60fps animation cap.
+    const lastNormal=Number(pivot.userData.lastNormalProgress);
+    if(
+      endpoint!==null||
+      !Number.isFinite(lastNormal)||
+      Math.abs(p-lastNormal)>=.012
+    ){
+      geometry.computeVertexNormals();
+      pivot.userData.lastNormalProgress=p;
+    }
+
+    if(endpoint!==null)pivot.userData.staticProgress=endpoint;
     pivot.rotation.set(0,0,0);
     pivot.position.set(-PAGE_W/2,0,0);
   }
