@@ -966,7 +966,7 @@ function initChartPanels(){
 var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null, orclHistoryPayload=null, sentimentBackfillData=null, microstructureStatus=null, microstructureData=null, microstructureEdgeStatus=null, microstructureLiveConfig=null, orclL2Model=null, orclWaveModel=null, waveCore=null, waveForecastState=null, liveSourceState=null, shadowTrailState=null, shadowTrailFetchedAt=0, trajectoryLastRows=[], trajectoryGuessCloud=[];
 var hypeChart=null, magChart=null, ivChart=null, pieChart=null;
 var fxBars=[], orclMinuteBars=[], orclDailyBars=[];
-var liveMarket={orclUsd:null,eurusd:null,prevOrclUsd:null,prevEurusd:null,at:null,connected:false,lastRenderedEur:null};
+var liveMarket={orclUsd:null,eurusd:null,prevOrclUsd:null,prevEurusd:null,at:null,receivedAt:null,source:null,connected:false,lastRenderedEur:null};
 var livePriceTicks=[],liveWs=null,liveHeartbeat=null,liveReconnect=null,liveShockTimer=null,waveForecastTimer=null,lastFlowRenderAt=0,lastLiveTickPruneAt=0,microLiveEventSource=null,microPollTimer=null,microSourcePollTimer=null,microShadowPollTimer=null,microPollBusy=false,microSourcePollBusy=false,microShadowPollBusy=false;
 function loadAccOpen(){ try{ return JSON.parse(localStorage.getItem(LS_ACC)||'{}'); }catch(e){ return {}; } }
 function saveAccOpen(map){ try{ localStorage.setItem(LS_ACC, JSON.stringify(map)); }catch(e){} }
@@ -1382,7 +1382,7 @@ function fallbackMarket(){
   if(fl)liveMarket.eurusd=Number(fl.close);
   if(om&&om.meta)liveMarket.prevOrclUsd=Number(om.meta.previousClose||om.meta.chartPreviousClose)||liveMarket.prevOrclUsd;
   if(fm&&fm.meta)liveMarket.prevEurusd=Number(fm.meta.previousClose||fm.meta.chartPreviousClose)||liveMarket.prevEurusd;
-  if(ol)liveMarket.at=ol.at;
+  if(ol){liveMarket.at=ol.at;liveMarket.receivedAt=null;liveMarket.source='static-fallback';}
   renderLiveMarket(false);
 }
 function renderMarketClock(){
@@ -1392,7 +1392,14 @@ function renderMarketClock(){
   el.className='market-clock '+(m.phase==='open'?'open':m.phase==='closed'?'closed':'');
   el.textContent=m.text;
 }
+function livePriceFresh(maxAgeMs){
+  var now=Date.now(),recv=Number(liveMarket.receivedAt),eventMs=new Date(liveMarket.at||0).getTime(),max=Number(maxAgeMs)||20000;
+  if(!isFinite(recv)||recv<=0||!isFinite(eventMs)||eventMs<=0)return false;
+  var recvAge=now-recv,eventAge=now-eventMs;
+  return recvAge>=-5000&&recvAge<=max&&eventAge>=-5000&&eventAge<=60000;
+}
 function renderLiveMarket(isLive){
+  isLive=livePriceFresh(20000);
   var p=document.getElementById('livePrice'),c=document.getElementById('liveChange'),s=document.getElementById('liveState');
   if(!p||!c||!s)return;
   var eur=usdToEur(liveMarket.orclUsd,Date.now());
@@ -1502,6 +1509,7 @@ async function handleYahooFrame(data){
     liveMarket.orclUsd=Number(q.price);
     if(q.previousClose)liveMarket.prevOrclUsd=Number(q.previousClose);
     liveMarket.at=q.time||Date.now();
+    liveMarket.receivedAt=Date.now();liveMarket.source='browser-yahoo';
     livePriceTicks.push({at:new Date(liveMarket.at).getTime(),price:liveMarket.orclUsd});
     var tickNow=Date.now();
     if(tickNow-lastLiveTickPruneAt>=15000||livePriceTicks.length>5000){
@@ -2237,11 +2245,24 @@ function renderForecastTrail(){
   }
 }
 function fetchRelayDetails(){return Promise.resolve();}
+function ingestRelayMarket(d){
+  var m=d&&d.market||{},price=Number(m.price_usd),eventMs=Date.parse(m.price_at||''),recvMs=Date.parse(m.received_at||'');
+  var now=Date.now(),fresh=price>0&&isFinite(eventMs)&&isFinite(recvMs)&&now-recvMs>=-5000&&now-recvMs<=30000&&now-eventMs>=-5000&&now-eventMs<=60000;
+  var fx=Number(m.eurusd),fxRecv=Date.parse(m.eurusd_received_at||'');
+  if(fx>0&&isFinite(fxRecv)&&now-fxRecv>=-5000&&now-fxRecv<=120000)liveMarket.eurusd=fx;
+  if(!fresh)return false;
+  if(Number(liveMarket.receivedAt)>recvMs)return false;
+  var changed=Number(liveMarket.receivedAt)!==recvMs||Number(liveMarket.orclUsd)!==price;
+  liveMarket.orclUsd=price;liveMarket.at=eventMs;liveMarket.receivedAt=recvMs;liveMarket.source='railway-yahoo';
+  if(changed){appendLiveMinute(price,eventMs,0);renderLiveMarket(true);scheduleLiveChartUpdate();scheduleLiveShock();}
+  return true;
+}
 function applyMicroMarketSnapshot(d){
   if(!d)return;
   var alpaca=d.provider==='alpaca'&&d.feed==='sip'&&d.symbol==='ORCL'&&d.mode==='raw-sip-live';
   var yahoo=d.provider==='yahoo'&&d.feed==='streamer'&&d.symbol==='ORCL'&&d.mode==='shadow-live';
   if(!(alpaca||yahoo))return;
+  if(yahoo)ingestRelayMarket(d);
   microstructureData=d;
   if(d.wave)orclWaveModel=d.wave;
   if(d.wave_forecast){waveForecastState=d.wave_forecast;renderWaveForecasts();}
@@ -2759,7 +2780,7 @@ function renderSyncFooter(error){
   var foot=document.getElementById('syncFooter'),el=document.getElementById('syncStatus'),btn=document.getElementById('syncNow');if(!foot||!el)return;
   var sat=liveSourceState&&liveSourceState.at,sm=sat?Date.parse(sat):NaN,sage=isFinite(sm)?Date.now()-sm:Infinity,sourceFresh=sage<=3*60*1000&&liveSourceState&&liveSourceState.status!=='stale';
   foot.classList.toggle('stale',!sourceFresh);foot.classList.toggle('error',false);
-  el.textContent=(liveMarket.connected?'Kurs Echtzeit':'Kurs letzter Stand')+' · '+(sat?('Stimmung '+(sourceFresh?'live ':'verzögert ')+footerClock(sat)):'Stimmung lädt');
+  el.textContent=(livePriceFresh(20000)?'Kurs Echtzeit':'Kurs letzter Stand')+' · '+(sat?('Stimmung '+(sourceFresh?'live ':'verzögert ')+footerClock(sat)):'Stimmung lädt');
   if(btn){btn.disabled=true;btn.hidden=true;btn.textContent='';}
 }
 async function fetchJson(url,optional){
