@@ -609,55 +609,63 @@
   .source-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;font-size:11px;color:var(--tr-muted)}
   .source-foot a{color:var(--tr-ink);font-weight:760;text-decoration:none}
   .source-foot a:hover{text-decoration:underline}
-  .forecast-proof{margin-top:24px;padding:22px 0 4px;border-top:1px solid #E6E8EB;color:var(--tr-ink)}
-  .forecast-proof-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:14px}
-  .forecast-proof-title{font-size:19px;font-weight:850;letter-spacing:-.035em;line-height:1.05;color:#000}
-  .forecast-proof-sub{margin-top:5px;font-size:11px;line-height:1.35;color:var(--tr-muted);font-weight:620}
+  .forecast-proof{margin-top:24px;padding:24px 0 6px;border-top:1px solid #E6E8EB;color:#000}
+  .forecast-proof-head{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:18px}
+  .forecast-proof-title{font-size:19px;font-weight:850;letter-spacing:-.035em;line-height:1.05}
+  .forecast-proof-sub{margin-top:5px;font-size:11px;line-height:1.35;color:#8C939C;font-weight:620}
   .forecast-proof-score{text-align:right;display:flex;flex-direction:column;gap:2px;white-space:nowrap;font-variant-numeric:tabular-nums}
-  .forecast-proof-score strong{font-size:14px;line-height:1.1;color:#000;font-weight:850;letter-spacing:-.015em}
-  .forecast-proof-score span{font-size:10px;color:var(--tr-muted);font-weight:650}
-  .forecast-proof-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
-  .forecast-legend{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:0;font-size:10px;color:var(--tr-muted);font-weight:720}
-  .forecast-legend span{display:inline-flex;align-items:center;gap:6px}
-  .forecast-key,.forecast-hit,.forecast-miss,.forecast-pending{display:inline-grid;place-items:center;width:19px;height:19px;border-radius:50%;font-size:11px;font-style:normal;font-weight:900;background:#fff}
-  .forecast-key{background:#000;color:#fff}
-  .forecast-hit{border:1.5px solid var(--tr-positive);color:var(--tr-positive)}
-  .forecast-miss{border:1.5px solid var(--tr-negative);color:var(--tr-negative)}
-  .forecast-pending{border:1.5px solid #AEB5BD;color:#8C939C}
-  .forecast-range{display:inline-flex;align-items:center;padding:3px;border:1px solid #ECEEF0;border-radius:11px;background:#F7F8F9;white-space:nowrap}
+  .forecast-proof-score strong{font-size:14px;line-height:1.1;font-weight:850;letter-spacing:-.015em}
+  .forecast-proof-score span{font-size:10px;color:#8C939C;font-weight:650}
+  .forecast-proof-toolbar{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:18px}
+  .forecast-legend{display:flex;align-items:center;gap:15px;flex-wrap:wrap;margin:0;font-size:10px;color:#727A84;font-weight:700}
+  .forecast-legend span{display:inline-flex;align-items:center;gap:5px}
+  .forecast-dir-key{font-style:normal;color:#000;font-size:12px;font-weight:900}
+  .forecast-status-key{display:inline-block;width:11px;height:3px;border-radius:999px;background:#B8BEC5}
+  .forecast-status-key.hit{background:var(--tr-positive)}
+  .forecast-status-key.miss{background:var(--tr-negative)}
+  .forecast-status-key.pending{background:#B8BEC5}
+  .forecast-range{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid #ECEEF0;border-radius:11px;background:#F7F8F9;white-space:nowrap}
   .forecast-range button{appearance:none;border:0;background:transparent;color:#7C838C;font:inherit;font-size:10px;font-weight:760;padding:6px 10px;border-radius:8px;cursor:pointer}
   .forecast-range button.active{background:#fff;color:#000;box-shadow:0 1px 2px rgba(0,0,0,.06)}
-  .forecast-timeline{display:grid;gap:8px;font-variant-numeric:tabular-nums}
-  .forecast-lane{display:grid;grid-template-columns:34px minmax(0,1fr) 52px;align-items:center;gap:10px}
-  .forecast-lane-label{font-size:12px;font-weight:850;color:#000;text-align:right}
-  .forecast-lane-stat{font-size:10px;font-weight:760;color:#7F8790;text-align:left;white-space:nowrap}
-  .forecast-track{position:relative;height:44px;border-radius:11px;background-color:#FAFAFA;background-image:linear-gradient(to right,rgba(188,194,202,.28) 1px,transparent 1px);background-size:20% 100%;overflow:visible}
-  .forecast-span{position:absolute;height:1.5px;min-width:2px;background:#B7BDC4;border-radius:2px;opacity:.82;z-index:1}
-  .forecast-entry{position:absolute;display:grid;place-items:center;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:#000;color:#fff;font-size:10px;font-weight:900;line-height:1;z-index:3}
-  .forecast-result{position:absolute;display:grid;place-items:center;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:#fff;font-size:10px;font-weight:900;line-height:1;z-index:4}
-  .forecast-result.hit{border:1.5px solid var(--tr-positive);color:var(--tr-positive)}
-  .forecast-result.miss{border:1.5px solid var(--tr-negative);color:var(--tr-negative)}
-  .forecast-result.pending,.forecast-result.invalid{border:1.5px solid #B6BDC5;color:#8C939C}
-  .forecast-axis{display:grid;grid-template-columns:34px minmax(0,1fr) 52px;gap:10px;margin-top:0}
-  .forecast-axis-time{position:relative;height:18px;font-size:9px;color:#8C939C;font-weight:650}
+  .forecast-timeline{display:grid;gap:13px;font-variant-numeric:tabular-nums}
+  .forecast-lane{display:grid;grid-template-columns:38px minmax(0,1fr) 96px;align-items:center;gap:12px}
+  .forecast-lane-label{font-size:12px;font-weight:850;text-align:right}
+  .forecast-lane-stat{font-size:10px;font-weight:720;color:#7F8790;text-align:left;white-space:nowrap}
+  .forecast-lane-stat strong{color:#000;font-weight:820}
+  .forecast-track{position:relative;height:30px;overflow:hidden}
+  .forecast-baseline{position:absolute;left:0;right:0;top:14px;height:1px;background:#ECEEF0}
+  .forecast-event{position:absolute;width:3px;height:9px;margin-left:-1.5px;border-radius:999px;background:#B8BEC5;opacity:.92;cursor:default}
+  .forecast-event.buy{bottom:16px}
+  .forecast-event.nobuy{top:16px}
+  .forecast-event.hit{background:var(--tr-positive)}
+  .forecast-event.miss{background:var(--tr-negative)}
+  .forecast-event.pending,.forecast-event.invalid{background:#B8BEC5}
+  .forecast-event:hover{width:5px;margin-left:-2.5px;opacity:1}
+  .forecast-axis{display:grid;grid-template-columns:38px minmax(0,1fr) 96px;gap:12px;margin-top:-4px}
+  .forecast-axis-time{position:relative;height:18px;font-size:9px;color:#969DA5;font-weight:620}
   .forecast-axis-time span{position:absolute;top:2px;transform:translateX(-50%);white-space:nowrap}
   .forecast-axis-time span:first-child{transform:none}.forecast-axis-time span:last-child{transform:translateX(-100%)}
-  .forecast-latest{margin-top:14px;padding:13px 15px;border:1px solid #ECEEF0;border-radius:12px;background:#fff;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:11px;line-height:1.25;color:#000}
+  .forecast-latest{margin-top:16px;padding:13px 0 2px;border-top:1px solid #ECEEF0;background:transparent;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;line-height:1.25}
   .forecast-latest[hidden]{display:none!important}
-  .forecast-latest-label{font-weight:850}.forecast-latest-meta{color:#5F6770;font-weight:700}
-  .forecast-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;font-weight:820}
-  .forecast-chip.buy{background:rgba(83,201,102,.12);color:#218A45}
-  .forecast-chip.nobuy{background:#F1F2F3;color:#222}
-  .forecast-chip.hit{background:rgba(83,201,102,.12);color:#218A45}
-  .forecast-chip.miss{background:rgba(217,75,75,.10);color:#C73535}
-  .forecast-move{font-weight:760;color:#4F5760}
-  .forecast-empty{padding:18px 14px;border-radius:11px;background:#FAFAFA;color:#8C939C;font-size:11px;font-weight:650}
+  .forecast-latest-label{font-weight:850}
+  .forecast-latest-meta,.forecast-move{color:#626A73;font-weight:680}
+  .forecast-latest-sep{color:#C3C8CE}
+  .forecast-result-text{font-weight:820}
+  .forecast-result-text.hit{color:#218A45}
+  .forecast-result-text.miss{color:#C73535}
+  .forecast-signal-text{font-weight:820;color:#000}
+  .forecast-empty{padding:18px 0;color:#8C939C;font-size:11px;font-weight:650;border-top:1px solid #F0F1F2}
   @media(max-width:700px){
-    .forecast-proof{margin-top:20px;padding-top:18px}.forecast-proof-head{gap:10px}.forecast-proof-title{font-size:17px}.forecast-proof-sub{font-size:10px}
-    .forecast-proof-score strong{font-size:12px}.forecast-proof-toolbar{align-items:flex-start;flex-direction:column;gap:10px}
-    .forecast-range{width:100%;justify-content:space-between}.forecast-range button{padding:6px 8px}.forecast-legend{gap:10px}
-    .forecast-lane{grid-template-columns:27px minmax(0,1fr) 43px;gap:6px}.forecast-lane-label{font-size:10px}.forecast-lane-stat{font-size:9px}
-    .forecast-track{height:42px}.forecast-axis{grid-template-columns:27px minmax(0,1fr) 43px;gap:6px}.forecast-latest{gap:8px;padding:12px}
+    .forecast-proof{margin-top:20px;padding-top:20px}
+    .forecast-proof-head{gap:10px}.forecast-proof-title{font-size:17px}.forecast-proof-sub{font-size:10px}
+    .forecast-proof-score strong{font-size:12px}
+    .forecast-proof-toolbar{align-items:flex-start;flex-direction:column;gap:11px}
+    .forecast-range{width:100%;justify-content:space-between}.forecast-range button{padding:6px 8px}
+    .forecast-legend{gap:9px}
+    .forecast-lane{grid-template-columns:27px minmax(0,1fr) 72px;gap:7px}
+    .forecast-lane-label{font-size:10px}.forecast-lane-stat{font-size:9px}
+    .forecast-axis{grid-template-columns:27px minmax(0,1fr) 72px;gap:7px}
+    .forecast-latest{gap:6px}
   }
 
   .hypothesis-decision{margin:10px 0 2px;padding:12px 13px;border-radius:12px;background:#F7F7F7;display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -789,10 +797,11 @@
       </div>
       <div class="forecast-proof-toolbar">
         <div class="forecast-legend" aria-label="Legende">
-          <span><i class="forecast-key">↑</i> Signal</span>
-          <span><b class="forecast-hit">✓</b> Treffer</span>
-          <span><b class="forecast-miss">×</b> Daneben</span>
-          <span><b class="forecast-pending">·</b> Läuft</span>
+          <span><i class="forecast-dir-key">↑</i> Buy</span>
+          <span><i class="forecast-dir-key">↓</i> Nicht Buy</span>
+          <span><i class="forecast-status-key hit"></i> getroffen</span>
+          <span><i class="forecast-status-key miss"></i> daneben</span>
+          <span><i class="forecast-status-key pending"></i> offen</span>
         </div>
         <div class="forecast-range" id="forecastRange" aria-label="Zeitraum Prognosen">
           <button type="button" data-forecast-range="1d">1T</button>
@@ -857,7 +866,7 @@
 <script src="price-shock-core.js"></script>
 <script>
 var LS_ACC='botbot_acc_open', SENTIMENT_HISTORY_LS='alantu_orcl_sentiment_history_v1';
-var RANGE_KEYS={price:'alantu_price_range_v1',sentiment:'alantu_sentiment_range_v1',magnitude:'alantu_magnitude_range_v1'}, INTRINSIC_VISIBLE_LS='alantu_intrinsic_visible_v1', CHART_OPEN_LS='alantu_chart_open_v1';
+var RANGE_KEYS={price:'alantu_price_range_v1',forecast:'alantu_forecast_range_v1',sentiment:'alantu_sentiment_range_v1',magnitude:'alantu_magnitude_range_v1'}, INTRINSIC_VISIBLE_LS='alantu_intrinsic_visible_v1', CHART_OPEN_LS='alantu_chart_open_v1';
 function loadChartRange(key,def){
   try{
     var r=localStorage.getItem(RANGE_KEYS[key])||def||'1d';
@@ -866,6 +875,7 @@ function loadChartRange(key,def){
 }
 function saveChartRange(key,r){try{localStorage.setItem(RANGE_KEYS[key],r);}catch(e){}}
 var priceRange=loadChartRange('price','1d');
+var forecastRange=loadChartRange('forecast','1d');
 var sentimentRange=loadChartRange('sentiment','1m');
 var magnitudeRange=loadChartRange('magnitude','1m');
 var showIntrinsic=(function(){try{return localStorage.getItem(INTRINSIC_VISIBLE_LS)!=='0';}catch(e){return true;}})();
@@ -1046,7 +1056,7 @@ function fmtAxisValue(ms,range){
 }
 function syncRangeButtons(){
   Array.prototype.forEach.call(document.querySelectorAll('#priceRange button'),function(b){b.classList.toggle('active',b.getAttribute('data-price-range')===priceRange);});
-  Array.prototype.forEach.call(document.querySelectorAll('#forecastRange button'),function(b){b.classList.toggle('active',b.getAttribute('data-forecast-range')===priceRange);});
+  Array.prototype.forEach.call(document.querySelectorAll('#forecastRange button'),function(b){b.classList.toggle('active',b.getAttribute('data-forecast-range')===forecastRange);});
   Array.prototype.forEach.call(document.querySelectorAll('#sentimentRange button'),function(b){b.classList.toggle('active',b.getAttribute('data-sentiment-range')===sentimentRange);});
   Array.prototype.forEach.call(document.querySelectorAll('#magnitudeRange button'),function(b){b.classList.toggle('active',b.getAttribute('data-magnitude-range')===magnitudeRange);});
 }
@@ -2106,29 +2116,29 @@ function rawForecastMoveBps(x){
   var a=Number(x&&x.entry_price),b=Number(x&&x.exit_price);return a>0&&b>0?10000*(b/a-1):null;
 }
 function renderForecastTrail(){
-  var p=shadowTrailState||{},range=priceRange||'1d',hs=[1,5,15,30];
+  var p=shadowTrailState||{},range=forecastRange||'1d',hs=[1,5,15,30];
   var outcomes=forecastRangeRows(Array.isArray(p.outcomes)?p.outcomes:[],range),pending=forecastRangeRows(Array.isArray(p.pending)?p.pending:[],range);
   var evaluated=outcomes.filter(function(x){return x.status==='evaluated';}),hits=evaluated.filter(function(x){return x.hit===true;}).length;
   var sum=document.getElementById('forecastProofSummary'),strip=document.getElementById('forecastProofStrip'),latest=document.getElementById('forecastProofLatest');if(!sum||!strip)return;
   sum.textContent=evaluated.length?(hits+'/'+evaluated.length+' getroffen · '+Math.round(100*hits/evaluated.length)+' %'):'noch keine fälligen Vergleiche';
-  var all=outcomes.map(function(x){return Object.assign({view_status:x.status||'invalid'},x);}).concat(pending.map(function(x){return Object.assign({view_status:'pending'},x);}))
+  var all=outcomes.map(function(x){return Object.assign({view_status:x.status||'invalid'},x);})
+    .concat(pending.map(function(x){return Object.assign({view_status:'pending'},x);}))
     .filter(function(x){return hs.indexOf(Number(x.horizon_minutes))>=0&&isFinite(Date.parse(x.at||''))&&isFinite(Date.parse(x.target_at||''));});
-  if(!all.length){strip.innerHTML='<div class="forecast-empty">In diesem Zeitraum gibt es noch keine sauber auswertbaren Prognosen.</div>';if(latest)latest.hidden=true;return;}
+  if(!all.length){strip.innerHTML='<div class="forecast-empty">In diesem Zeitraum gibt es noch keine auswertbaren Prognosen.</div>';if(latest)latest.hidden=true;return;}
   var d=forecastRangeDomain(all,range),minT=d.min,maxT=d.max,span=Math.max(1,maxT-minT),pct=function(t){return Math.max(0,Math.min(100,100*(t-minT)/span));};
   var lanes=hs.map(function(h){
-    var lane=all.filter(function(x){return Number(x.horizon_minutes)===h;}).sort(function(a,b){return Date.parse(a.at)-Date.parse(b.at);});
+    var lane=all.filter(function(x){return Number(x.horizon_minutes)===h;}).sort(function(a,b){return Date.parse(a.target_at)-Date.parse(b.target_at);});
     var laneEval=lane.filter(function(x){return x.view_status==='evaluated';}),laneHits=laneEval.filter(function(x){return x.hit===true;}).length,lanePending=lane.filter(function(x){return x.view_status==='pending';}).length;
-    var stat=laneEval.length?(laneHits+'/'+laneEval.length+(lanePending?' · '+lanePending+' offen':'')):(lanePending?lanePending+' offen':'—'),dense=lane.length>8;
-    var marks=lane.map(function(x,i){
-      var a=Date.parse(x.at),t=Date.parse(x.target_at),l=pct(a),r=pct(t),w=Math.max(.4,r-l),dir=Number(x.dir)>0?'↑':'↓',signal=Number(x.dir)>0?'Buy':'Nicht Buy';
-      var st=x.view_status==='pending'?'pending':x.view_status==='invalid'?'invalid':x.hit===true?'hit':'miss',res=st==='hit'?'✓':st==='miss'?'×':st==='pending'?'·':'—';
-      var move=rawForecastMoveBps(x),moveTxt=Number.isFinite(move)?((move>=0?'+':'')+move.toLocaleString('de-DE',{maximumFractionDigits:1})+' bp'):'noch offen';
-      var y=dense?(i%2?25:7):13,spanTop=y+8,aria=forecastClock(x.at)+' '+signal+', Ziel '+forecastClock(x.target_at)+', '+(st==='pending'?'läuft':st==='invalid'?'nicht auswertbar':('Markt '+moveTxt+', '+(st==='hit'?'getroffen':'daneben')));
-      return '<span class="forecast-span" style="left:'+l.toFixed(2)+'%;width:'+w.toFixed(2)+'%;top:'+spanTop+'px" aria-hidden="true"></span>'+
-        '<span class="forecast-entry" style="left:'+l.toFixed(2)+'%;top:'+y+'px" role="img" aria-label="'+esc(aria)+'" title="'+esc(aria)+'">'+dir+'</span>'+
-        '<span class="forecast-result '+st+'" style="left:'+r.toFixed(2)+'%;top:'+y+'px" aria-hidden="true">'+res+'</span>';
+    var rate=laneEval.length?Math.round(100*laneHits/laneEval.length):null;
+    var stat=laneEval.length?('<strong>'+laneHits+'/'+laneEval.length+'</strong> · '+rate+' %'+(lanePending?' · '+lanePending+' offen':'')):(lanePending?lanePending+' offen':'—');
+    var marks=lane.map(function(x){
+      var target=Date.parse(x.target_at),pos=pct(target),buy=Number(x.dir)>0;
+      var st=x.view_status==='pending'?'pending':x.view_status==='invalid'?'invalid':x.hit===true?'hit':'miss';
+      var move=rawForecastMoveBps(x),moveTxt=Number.isFinite(move)?((move>=0?'+':'')+move.toLocaleString('de-DE',{maximumFractionDigits:1})+' bp'):'offen';
+      var title=forecastClock(x.at)+' · '+(buy?'Buy':'Nicht Buy')+' → Ziel '+forecastClock(x.target_at)+' · '+(st==='pending'?'offen':st==='invalid'?'nicht auswertbar':((st==='hit'?'getroffen':'daneben')+' · Markt '+moveTxt));
+      return '<span class="forecast-event '+(buy?'buy ':'nobuy ')+st+'" style="left:'+pos.toFixed(2)+'%" title="'+esc(title)+'" aria-label="'+esc(title)+'"></span>';
     }).join('');
-    return '<div class="forecast-lane"><div class="forecast-lane-label">'+h+'m</div><div class="forecast-track">'+marks+'</div><div class="forecast-lane-stat">'+stat+'</div></div>';
+    return '<div class="forecast-lane"><div class="forecast-lane-label">'+h+'m</div><div class="forecast-track"><span class="forecast-baseline"></span>'+marks+'</div><div class="forecast-lane-stat">'+stat+'</div></div>';
   }).join('');
   strip.innerHTML=lanes+'<div class="forecast-axis"><span></span><div class="forecast-axis-time">'+forecastAxisTicks(minT,maxT,range)+'</div><span></span></div>';
   if(latest){
@@ -2136,8 +2146,10 @@ function renderForecastTrail(){
     if(last){
       var mv=rawForecastMoveBps(last),actual=Number.isFinite(mv)?((mv>=0?'↑ ':'↓ ')+Math.abs(mv).toLocaleString('de-DE',{maximumFractionDigits:1})+' bp'):'—',buy=Number(last.dir)>0,ok=last.hit===true;
       latest.innerHTML='<span class="forecast-latest-label">Zuletzt</span><span class="forecast-latest-meta">'+esc(forecastClock(last.at))+' · '+Number(last.horizon_minutes)+'m</span>'+
-        '<span class="forecast-chip '+(buy?'buy':'nobuy')+'">'+(buy?'↑ Buy':'↓ Nicht Buy')+'</span><span class="forecast-move">Markt danach '+esc(actual)+'</span>'+
-        '<span class="forecast-chip '+(ok?'hit':'miss')+'">'+(ok?'✓ getroffen':'× daneben')+'</span>';latest.hidden=false;
+        '<span class="forecast-latest-sep">·</span><span class="forecast-signal-text">'+(buy?'Buy':'Nicht Buy')+'</span>'+
+        '<span class="forecast-latest-sep">→</span><span class="forecast-move">Markt '+esc(actual)+'</span>'+
+        '<span class="forecast-latest-sep">·</span><span class="forecast-result-text '+(ok?'hit':'miss')+'">'+(ok?'getroffen':'daneben')+'</span>';
+      latest.hidden=false;
     }else latest.hidden=true;
   }
 }
@@ -2823,6 +2835,7 @@ var rangeRenderSeq=0;
 function setChartRange(kind,r){
   if(['1d','1w','1m','year','5y','all'].indexOf(r)<0)return;
   if(kind==='price'){priceRange=r;saveChartRange(kind,r);}
+  else if(kind==='forecast'){forecastRange=r;saveChartRange(kind,r);}
   else if(kind==='sentiment'){sentimentRange=r;saveChartRange(kind,r);}
   else if(kind==='magnitude'){magnitudeRange=r;saveChartRange(kind,r);}
   else return;
@@ -2830,13 +2843,14 @@ function setChartRange(kind,r){
   var seq=++rangeRenderSeq;
   requestAnimationFrame(function(){
     if(seq!==rangeRenderSeq)return;
-    if(kind==='price'){renderValueChart();renderForecastTrail();}
+    if(kind==='price')renderValueChart();
+    else if(kind==='forecast')renderForecastTrail();
     else if(kind==='sentiment'){renderSentimentChart();renderOpinions();}
     else renderMagnitudeChart();
   });
 }
 document.getElementById('priceRange').onclick=function(e){var b=e.target.closest('button[data-price-range]');if(b)setChartRange('price',b.getAttribute('data-price-range'));};
-document.getElementById('forecastRange').onclick=function(e){var b=e.target.closest('button[data-forecast-range]');if(b)setChartRange('price',b.getAttribute('data-forecast-range'));};
+document.getElementById('forecastRange').onclick=function(e){var b=e.target.closest('button[data-forecast-range]');if(b)setChartRange('forecast',b.getAttribute('data-forecast-range'));};
 document.getElementById('sentimentRange').onclick=function(e){var b=e.target.closest('button[data-sentiment-range]');if(b)setChartRange('sentiment',b.getAttribute('data-sentiment-range'));};
 document.getElementById('magnitudeRange').onclick=function(e){var b=e.target.closest('button[data-magnitude-range]');if(b)setChartRange('magnitude',b.getAttribute('data-magnitude-range'));};
 document.getElementById('intrinsicToggle').onclick=function(){

@@ -142,6 +142,11 @@ jobs:
           grep -q 'id="waveForecasts"' index.html
           grep -q 'id="forecastProofStrip"' index.html
           grep -q 'id="forecastRange"' index.html
+          grep -q "forecast:'alantu_forecast_range_v1'" index.html
+          grep -q "setChartRange('forecast'" index.html
+          grep -q 'forecast-event' index.html
+          ! grep -q 'forecast-entry' index.html
+          ! grep -q 'forecast-result hit' index.html
           grep -q 'Signal → Zielzeit → war die Richtung richtig?' index.html
           grep -q 'function mergeShadowTrail' index.html
           grep -q "shadowTrail(5000,'history')" market-relay/server.mjs
