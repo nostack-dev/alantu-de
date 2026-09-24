@@ -366,7 +366,20 @@
       *,*:before,*:after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
       .reduced{display:inline}
     }
-  </style>
+  
+    /* Crisp portrait reading surface */
+    @media(max-width:700px) and (orientation:portrait){
+      #bookCanvas,
+      .stage.is-book-dragging #bookCanvas,
+      .stage.is-view-pinching #bookCanvas{
+        filter:none!important;
+      }
+      .stage.is-book-dragging #bookCanvas{
+        transform:none!important;
+      }
+    }
+
+</style>
 </head>
 <body>
   <header class="shell topbar">
@@ -496,7 +509,7 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand308";
-    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view403";
+    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view406";
 
     const canvas = document.getElementById("bookCanvas");
     canvas.addEventListener("contextmenu",e=>e.preventDefault());
@@ -897,8 +910,8 @@
       getPageHeight:()=>PAGE_H,
       fitButton:fitViewBtn,
       onPinchStart:()=>bookCore.cancelDrag(),
-      minPixelRatio:singlePageMode?1:2,
-      maxPixelRatio:singlePageMode?1.5:3,
+      minPixelRatio:singlePageMode?1.5:2,
+      maxPixelRatio:singlePageMode?2:3,
       getPresentationMode:()=>singlePageMode?"single":"spread"
     });
 
