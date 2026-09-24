@@ -37,6 +37,19 @@ async function run(name,viewport){
     await page.waitForTimeout(250);
   }
   await page.waitForTimeout(1000);
+  const wgoButton=page.locator('#wgoRun');
+  if(await wgoButton.count()){
+    await wgoButton.click();
+    await page.waitForFunction(()=>{
+      const b=document.getElementById('wgoRun');
+      return b && !b.disabled;
+    },null,{timeout:15000}).catch(()=>{});
+  }
+  const wgoState=await page.evaluate(()=>({
+    answer:(document.getElementById('wgoAnswer')?.textContent||'').trim(),
+    meta:(document.getElementById('wgoMeta')?.textContent||'').trim(),
+    disabled:!!document.getElementById('wgoRun')?.disabled
+  }));
 
   const state=await page.evaluate(()=>{
     let renderForecastError=null;
@@ -100,12 +113,13 @@ async function run(name,viewport){
   if(!state.priceAxis||state.priceAxis.minBerlin!=='08:00'||state.priceAxis.maxBerlin!=='22:00')errors.push('day-axis-not-08-22:'+JSON.stringify(state.priceAxis));
   if(monthState.range!=='1m'||monthState.points<10)errors.push('month-range-invalid:'+JSON.stringify(monthState));
   if(monthState.overflow>4)errors.push('month-horizontal-overflow:'+monthState.overflow);
+  if(wgoState.disabled||/nicht erreichbar|Frontend-Abbruch/i.test(wgoState.answer+' '+wgoState.meta)||!wgoState.answer)errors.push('wgo-live-failed:'+JSON.stringify(wgoState));
   if(!state.bodyText.includes('Prognosen vs. Realität'))errors.push('forecast-label-missing');
   if(!state.modelDecisionText.includes('MODELLSTATUS:'))errors.push('model-status-text-missing');
   if(!state.forecastCollapsed)errors.push('forecast-not-collapsed-by-default');
   if(!/MODELLSTATUS: (KAUFSIGNAL|KEIN KAUFSIGNAL|VERKAUFSSIGNAL)/.test(state.modelDecisionText))errors.push('model-decision-missing');
 
-  console.log(JSON.stringify({name,url,state,monthState,consoleErrors,pageErrors,httpErrors:allowedHttp,failed,ok:errors.length===0,errors},null,2));
+  console.log(JSON.stringify({name,url,state,monthState,wgoState,consoleErrors,pageErrors,httpErrors:allowedHttp,failed,ok:errors.length===0,errors},null,2));
   await browser.close();
   if(errors.length)throw new Error(name+' smoke failed: '+errors.join(' | '));
 }
