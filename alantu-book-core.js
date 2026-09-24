@@ -87,8 +87,14 @@ export function createAlantuCoverCanvas({
   }
 
   ctx.fillStyle="#d9d0c2";
-  ctx.font=`400 ${Math.round(width*.031)}px Arial, sans-serif`;
-  ctx.fillText(subtitle,pad,Math.round(height*.79));
+  let subtitleSize=Math.round(width*.031);
+  const safeSubtitle=String(subtitle??"").replace(/[\r\n\t]+/g," ").replace(/\s+/g," ").trim();
+  do{
+    ctx.font=`400 ${subtitleSize}px Arial, sans-serif`;
+    if(ctx.measureText(safeSubtitle).width<=usable||subtitleSize<=Math.round(width*.018))break;
+    subtitleSize-=2;
+  }while(subtitleSize>12);
+  ctx.fillText(safeSubtitle,pad,Math.round(height*.79));
 
   return canvas;
 }
