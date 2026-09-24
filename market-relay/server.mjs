@@ -21,6 +21,8 @@ const clients=new Set();
 let upstream=null,reconnectTimer=null,lastUpstreamAt=0,authState=KEY&&SECRET?'connecting':'awaiting_credentials',authError=null,subscriptionVerified=false;
 let rawModel=null,rawForecast={status:'blocked',reason:'model_unavailable'},lastForecastAt=0;
 const yahooSeries=Object.fromEntries(YAHOO_SYMBOLS.map(s=>[s,[]]));
+const WGO_SYMBOLS=new Set(['ORCL','QQQ','SPY']);
+const wgoSeries=Object.fromEntries([...WGO_SYMBOLS].map(s=>[s,[]]));
 const yahooDayVolume=Object.fromEntries(YAHOO_SYMBOLS.map(s=>[s,null]));
 let yahooWs=null,yahooReconnect=null,yahooLastAt=0,yahooState='connecting',yahooForecast={status:'blocked',reason:'starting_yahoo_shadow',source:'yahoo_shadow'};
 let shadowState={predictions:[],outcomes:[],proof:{},updated_at:null};
@@ -379,6 +381,7 @@ async function loadYahooEvents(){
       for(const line of txt.split('\n')){
         if(!line)continue;let e;try{e=JSON.parse(line);}catch{continue;}
         if(!yahooSeries[e.s]||!(Number(e.t)>0)||!(Number(e.p)>0))continue;
+        if(WGO_SYMBOLS.has(e.s)&&now-Number(e.t)<=20*3600000)pushWgoContextEvent(e);
         if(now-Number(e.t)>3*3600000)continue;
         yahooSeries[e.s].push(e);
       }
@@ -427,7 +430,15 @@ function pushYahooEvent(q){
   const a=yahooSeries[s],last=a.at(-1);
   if(last&&last.t===e.t&&last.p===e.p&&last.day_volume===e.day_volume)return;
   a.push(e);const cut=Date.now()-3*3600000;while(a.length&&a[0].t<cut)a.shift();
+  pushWgoContextEvent(e);
   eventBuffer.push(e);yahooLastAt=Date.now();yahooState='streaming';
+}
+function pushWgoContextEvent(e){
+  const symbol=String(e&&e.s||'').toUpperCase();if(!WGO_SYMBOLS.has(symbol)||!(Number(e.t)>0)||!(Number(e.p)>0))return;
+  const a=wgoSeries[symbol],bucket=Math.floor(Number(e.t)/60000)*60000,last=a.at(-1);
+  const row={...e,t:Number(e.t),p:Number(e.p),minute:bucket};
+  if(last&&last.minute===bucket)a[a.length-1]=row;else a.push(row);
+  const cut=Date.now()-20*3600000;while(a.length&&Number(a[0].t)<cut)a.shift();
 }
 function scheduleYahooReconnect(){
   if(yahooReconnect||KEY&&SECRET)return;
@@ -756,7 +767,7 @@ function wgoEventMs(x){
   return NaN;
 }
 function wgoSymbolWindowPrice(symbol,minutes,now=Date.now()){
-  const cut=now-minutes*60000,a=(yahooSeries[symbol]||[]).filter(e=>Number(e.recv_at||e.t)>=cut&&Number(e.recv_at||e.t)<=now&&Number(e.p)>0);
+  const cut=now-minutes*60000,base=(wgoSeries[symbol]&&wgoSeries[symbol].length?wgoSeries[symbol]:yahooSeries[symbol])||[],a=base.filter(e=>Number(e.recv_at||e.t)>=cut&&Number(e.recv_at||e.t)<=now&&Number(e.p)>0);
   if(a.length<2)return {available:false};
   const first=a[0],last=a[a.length-1],p0=Number(first.p),p1=Number(last.p),pct=p0>0?(p1/p0-1)*100:null;
   let hi=-Infinity,lo=Infinity;for(const e of a){const p=Number(e.p);if(p>hi)hi=p;if(p<lo)lo=p;}
@@ -764,8 +775,8 @@ function wgoSymbolWindowPrice(symbol,minutes,now=Date.now()){
 }
 function wgoWindowPrice(minutes,now=Date.now()){return wgoSymbolWindowPrice('ORCL',minutes,now);}
 function wgoRecentShock(minutes,now=Date.now()){
-  const span=minutes*60000,scan=3*3600000;
-  const a=(yahooSeries.ORCL||[]).filter(e=>{
+  const span=minutes*60000,scan=18*3600000;
+  const a=(wgoSeries.ORCL&&wgoSeries.ORCL.length?wgoSeries.ORCL:yahooSeries.ORCL||[]).filter(e=>{
     const t=Number(e.recv_at||e.t),p=Number(e.p);
     return Number.isFinite(t)&&t>=now-scan-span&&t<=now&&Number.isFinite(p)&&p>0;
   }).sort((x,y)=>Number(x.t||x.recv_at)-Number(y.t||y.recv_at));
@@ -861,7 +872,7 @@ function wgoDeterministic(minutes,now=Date.now()){
   let marketSentence='';
   if(Number.isFinite(market.average_pct)){
     const ref=Math.abs(market.average_pct),orclRef=Math.abs(useShock?shockPct:pct||0);
-    if(direction&&Math.sign(market.average_pct)===direction&&ref>=.15)marketSentence=' QQQ/SPY liefen im selben Impuls im Mittel '+(market.average_pct>=0?'+':'')+market.average_pct.toFixed(2)+' % – breiter Marktstress spielte also mit.';
+    if(direction&&Math.sign(market.average_pct)===direction&&ref>=.15)marketSentence=' QQQ/SPY liefen im selben Impuls im Mittel '+(market.average_pct>=0?'+':'')+market.average_pct.toFixed(2)+' % – die breite Marktbewegung spielte also mit.';
     if(orclRef>=Math.max(.5,ref*2))marketSentence=' QQQ/SPY bewegten sich im selben Fenster nur etwa '+(market.average_pct>=0?'+':'')+market.average_pct.toFixed(2)+' % – der ORCL-Move war damit deutlich aktienspezifischer.';
   }
   if(!catalyst)return {brief:move+shockSentence+daySentence+marketSentence+' Für den heutigen Move findet der Feed aktuell keinen ausreichend konkreten Unternehmens-Katalysator; deshalb wäre eine Ursachenbehauptung Spekulation.',price,day,shock,market,items:items.slice(0,8),context_items:contextItems.slice(0,12),tone,catalyst:null,evidence:'thin'};
