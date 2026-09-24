@@ -4,14 +4,15 @@ export const V5_WINDOWS_SEC=[5,15,30,60,180,300];
 export const V5_LOCAL=['MSFT','AMZN','GOOGL','NVDA','IGV'];
 export const V5_GLOBAL=['QQQ','SPY'];
 export const V5_COST_BPS=3.0;
-export const V5_MIN_TRAIN_LABELS=80;
+export const V5_MIN_TRAIN_LABELS=120;
 export const V5_MIN_CONFIDENCE=.20;
 export const V5_SAMPLE_GAP_MS=60000;
 export const V5_FEATURE_NAMES=[
-  'self15','self60','self300','local15','local60','local300','global15','global60','global300',
-  'residual15','residual60','residual300','residual_accel_fast','residual_accel_slow',
-  'coupling15','coupling60','coupling300','coupling_delta_fast','coupling_delta_slow',
-  'peer_lead15','peer_lead60','flow15','flow60','flow_delta','event_rate_ratio','vol60','vol300','latency'
+  'self5','self15','self60','self300','local5','local15','local60','local300','global5','global15','global60','global300',
+  'residual5','residual15','residual60','residual300','residual_accel_5_15','residual_accel_fast','residual_accel_slow',
+  'coupling5','coupling15','coupling60','coupling300','coupling_delta_5_15','coupling_delta_fast','coupling_delta_slow',
+  'peer_lead5','peer_lead15','peer_lead60','flow5','flow15','flow60','flow_delta_5_15','flow_delta',
+  'event_rate_ratio','vol60','vol300','latency','coverage'
 ];
 
 const NY_PARTS=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',weekday:'short',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
@@ -92,33 +93,34 @@ export function extractV5Features(series,nowMs=Date.now()){
   const residual=w=>self[w]&&Number.isFinite(blend(w))?self[w].return_bps-blend(w):0;
   const coupling=w=>self[w]&&Number.isFinite(blend(w))?hdr(self[w].return_bps,blend(w)):0;
   const peerLead=w=>self[w]&&Number.isFinite(blend(w))?blend(w)-self[w].return_bps:0;
-  const r15=residual(15),r60=residual(60),r300=residual(300),c15=coupling(15),c60=coupling(60),c300=coupling(300);
+  const r5=residual(5),r15=residual(15),r60=residual(60),r300=residual(300),c5=coupling(5),c15=coupling(15),c60=coupling(60),c300=coupling(300);
   const rateRatio=Math.log((self[60].event_rate_hz+.01)/((local[60]?.event_rate_hz||0)+.01));
   const latency=median([self[15]?.median_delivery_lag_ms,self[60]?.median_delivery_lag_ms,self[300]?.median_delivery_lag_ms].filter(Number.isFinite));
+  const minCoverage=Math.min(self[15].coverage,self[60].coverage,self[300].coverage,local[60].coverage||0,global[60].coverage||0);
   const f={
-    self15:squash(self[15].return_bps,8),self60:squash(self[60].return_bps,18),self300:squash(self[300].return_bps,45),
-    local15:squash(local[15]?.return_bps,7),local60:squash(local[60]?.return_bps,16),local300:squash(local[300]?.return_bps,40),
-    global15:squash(global[15]?.return_bps,6),global60:squash(global[60]?.return_bps,14),global300:squash(global[300]?.return_bps,35),
-    residual15:squash(r15,7),residual60:squash(r60,14),residual300:squash(r300,30),
-    residual_accel_fast:squash(r15-r60*.25,7),residual_accel_slow:squash(r60-r300*.2,14),
-    coupling15:c15,coupling60:c60,coupling300:c300,coupling_delta_fast:clamp(c15-c60,-1,1),coupling_delta_slow:clamp(c60-c300,-1,1),
-    peer_lead15:squash(peerLead(15),7),peer_lead60:squash(peerLead(60),14),
-    flow15:squash(self[15].flow_ratio,.5),flow60:squash(self[60].flow_ratio,.5),flow_delta:squash(self[15].flow_ratio-self[60].flow_ratio,.4),
+    self5:squash(self[5]?.return_bps,4),self15:squash(self[15].return_bps,8),self60:squash(self[60].return_bps,18),self300:squash(self[300].return_bps,45),
+    local5:squash(local[5]?.return_bps,4),local15:squash(local[15]?.return_bps,7),local60:squash(local[60]?.return_bps,16),local300:squash(local[300]?.return_bps,40),
+    global5:squash(global[5]?.return_bps,3.5),global15:squash(global[15]?.return_bps,6),global60:squash(global[60]?.return_bps,14),global300:squash(global[300]?.return_bps,35),
+    residual5:squash(r5,4),residual15:squash(r15,7),residual60:squash(r60,14),residual300:squash(r300,30),
+    residual_accel_5_15:squash(r5-r15/3,4),residual_accel_fast:squash(r15-r60*.25,7),residual_accel_slow:squash(r60-r300*.2,14),
+    coupling5:c5,coupling15:c15,coupling60:c60,coupling300:c300,coupling_delta_5_15:clamp(c5-c15,-1,1),coupling_delta_fast:clamp(c15-c60,-1,1),coupling_delta_slow:clamp(c60-c300,-1,1),
+    peer_lead5:squash(peerLead(5),4),peer_lead15:squash(peerLead(15),7),peer_lead60:squash(peerLead(60),14),
+    flow5:squash(self[5]?.flow_ratio,.5),flow15:squash(self[15].flow_ratio,.5),flow60:squash(self[60].flow_ratio,.5),
+    flow_delta_5_15:squash((self[5]?.flow_ratio||0)-self[15].flow_ratio,.4),flow_delta:squash(self[15].flow_ratio-self[60].flow_ratio,.4),
     event_rate_ratio:squash(rateRatio,1.5),vol60:squash(self[60].realized_bps,20),vol300:squash(self[300].realized_bps,45),
-    latency:squash(latency||0,2500)
+    latency:squash(latency||0,2500),coverage:clamp((minCoverage-.55)/.45,-1,1)
   };
   const vector=V5_FEATURE_NAMES.map(k=>featureValue(f[k]));
-  const minCoverage=Math.min(self[15].coverage,self[60].coverage,self[300].coverage,local[60].coverage||0,global[60].coverage||0);
   return {
     status:'ok',version:V5_VERSION,asof:new Date(nowMs).toISOString(),clock:'receiver_time_actionable',
     windows_seconds:V5_WINDOWS_SEC,feature_names:V5_FEATURE_NAMES,features:f,vector,
     diagnostics:{self,local,global,residual_bps:{'15':r15,'60':r60,'300':r300},coupling:{'15':c15,'60':c60,'300':c300},
-      peer_blend_bps:{'15':blend(15),'60':blend(60),'300':blend(300)},min_coverage:minCoverage,median_delivery_lag_ms:latency}
+      peer_blend_bps:{'5':blend(5),'15':blend(15),'60':blend(60),'300':blend(300)},min_coverage:minCoverage,median_delivery_lag_ms:latency}
   };
 }
 export function structuralV5Score(features,h){
   const f=features||{};
-  if(h===1)return .22*f.self15+.14*f.local15+.10*f.global15+.18*f.residual_accel_fast+.12*f.coupling_delta_fast+.12*f.flow15+.12*f.peer_lead15;
+  if(h===1)return .16*f.self5+.14*f.self15+.10*f.local5+.08*f.global5+.16*f.residual_accel_5_15+.12*f.coupling_delta_5_15+.12*f.flow5+.12*f.peer_lead5;
   if(h===5)return .16*f.self60+.15*f.local60+.10*f.global60+.18*f.residual_accel_fast+.16*f.coupling_delta_fast+.10*f.flow60+.08*f.peer_lead60-.07*f.residual60;
   if(h===15)return .12*f.self60+.17*f.local60+.13*f.global60+.14*f.residual_accel_slow+.17*f.coupling_delta_slow+.09*f.flow60+.10*f.peer_lead60-.08*f.residual300;
   return .12*f.self300+.18*f.local300+.16*f.global300+.13*f.residual_accel_slow+.16*f.coupling_delta_slow+.08*f.flow60+.09*f.peer_lead60-.08*f.residual300;
@@ -145,7 +147,7 @@ export function fitV5Logistic(outcomes,h){
     const eta=rate/(1+epoch*.018);b-=eta*gb/n;
     for(let j=0;j<d;j++)w[j]-=eta*(gw[j]/n+l2*w[j]);
   }
-  return {ready:true,n,weights:w,bias:b,feature_names:V5_FEATURE_NAMES,positive_rate:pos/n,algorithm:'causal_logistic_sgd_l2_v1'};
+  return {ready:true,n,min_n:V5_MIN_TRAIN_LABELS,weights:w,bias:b,feature_names:V5_FEATURE_NAMES,positive_rate:pos/n,algorithm:'causal_logistic_sgd_l2_v1'};
 }
 export function predictV5Logistic(model,vector){
   if(!model?.ready||!Array.isArray(vector)||vector.length!==model.weights.length)return {ready:false,dir:0,p_up:null,confidence:0};

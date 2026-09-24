@@ -16,6 +16,7 @@ const series={
 };
 const f=extractV5Features(series,now);
 assert.equal(f.status,'ok');assert.equal(f.vector.length,V5_FEATURE_NAMES.length);assert.ok(f.diagnostics.residual_bps['300']>0);
+assert.ok(V5_FEATURE_NAMES.includes('self5'));assert.ok(V5_FEATURE_NAMES.includes('residual_accel_5_15'));
 assert.ok(Number.isFinite(structuralV5Score(f.features,15)));assert.ok(v5BarrierBps(f,15)>=4);
 
 const pred={at:new Date(now).toISOString(),target_at:new Date(now+60000).toISOString(),entry_price:140,horizon_minutes:1,barrier_bps:5,
@@ -26,7 +27,7 @@ const path=[
 const ev=evaluateV5Path(pred,path,now+62000);assert.equal(ev.status,'evaluated');assert.equal(ev.barrier_label,1);assert.ok(ev.learned.net_bps>0);
 
 const training=[];
-for(let i=0;i<120;i++){
+for(let i=0;i<160;i++){
   const x=new Array(V5_FEATURE_NAMES.length).fill(0);x[0]=i%2?0.8:-0.8;
   training.push({version:V5_VERSION,horizon_minutes:5,status:'evaluated',barrier_label:i%2?1:-1,feature_vector:x});
 }

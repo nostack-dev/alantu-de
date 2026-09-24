@@ -2191,10 +2191,10 @@ function renderHypothesisDecision(){
 function renderV5Research(){
   var el=document.getElementById('v5Research');if(!el)return;
   var v=microstructureData&&microstructureData.research_v5||{},r=v.recommendation||{},p=v.proof||{},cand=r.candidate||v.candidate||null;
-  var best=[5,15,1,30].map(function(h){var x=p[String(h)]||{},m=x.model||{},g=x.gate||{};return {h:h,n:Number(m.n)||0,ready:!!m.ready,gate:g.status||'collecting',mean:Number(x.learned&&x.learned.mean_net_bps),trades:Number(x.learned&&x.learned.n)||0};}).sort(function(a,b){return b.n-a.n;})[0]||{h:5,n:0,ready:false,gate:'collecting',trades:0};
+  var best=[5,15,1,30].map(function(h){var x=p[String(h)]||{},m=x.model||{},g=x.gate||{};return {h:h,n:Number(m.n)||0,min:Number(m.min_n)||120,ready:!!m.ready,gate:g.status||'collecting',mean:Number(x.learned&&x.learned.mean_net_bps),trades:Number(x.learned&&x.learned.n)||0};}).sort(function(a,b){return b.n-a.n;})[0]||{h:5,n:0,min:120,ready:false,gate:'collecting',trades:0};
   var signal=cand&&Number(cand.learned_dir)?((Number(cand.learned_dir)>0?'↑ TEST LONG':'↓ TEST SHORT')+' · '+Number(cand.horizon_minutes)+'m'):'RESEARCH · WARTEN';
   var meanTxt=Number.isFinite(best.mean)?(' · Ø '+best.mean.toLocaleString('de-DE',{maximumFractionDigits:2})+' bp netto'):'';
-  el.innerHTML='<div class="v5-main">v5 · '+signal+'</div><div class="v5-meta">echte Δt 5s–5m · Residual/Kopplung · Barrier-Ziel · Learner '+best.n+'/80 · OOS '+best.trades+'/180'+meanTxt+' · kein Handelssignal bis Gate</div>';
+  el.innerHTML='<div class="v5-main">v5 · '+signal+'</div><div class="v5-meta">echte Δt 5s–5m · Residual/Kopplung · Barrier-Ziel · Learner '+best.n+'/'+best.min+' · OOS '+best.trades+'/180'+meanTxt+' · kein Handelssignal bis Gate</div>';
 }
 function renderWaveForecasts(){
   var el=document.getElementById('waveForecasts');if(!el)return;
