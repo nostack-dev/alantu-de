@@ -90,9 +90,9 @@ export function createAlantuBookViewControls({
     const scale=fitScale*zoom;
     root.scale.setScalar(scale);
 
-    // Exact reading plane on portrait. The page itself still bends in Z while
-    // turning, so the animation keeps its physical depth.
-    root.rotation.set(single?0:-.035,single?0:-.045,single?0:-.003);
+    // Rotation belongs to the presentation layer. Do not overwrite it here:
+    // X/Y/Z debug controls must survive resize, fit, pinch and fullscreen.
+    // Scaling remains uniform below via root.scale.setScalar(scale).
 
     focusTravelX=single?pageW*scale:0;
     if(single){
