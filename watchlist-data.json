@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-24T15:23:21+02:00",
+  "updated_at": "2026-09-24T15:23:32+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,7 +9,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-24T15:23:21+02:00",
+        "at": "2026-09-24T15:23:32+02:00",
         "signal": "sell",
         "social_impulse": -5,
         "hype_bull": 18,
@@ -5208,6 +5208,20 @@
           "voice_bear": 10,
           "voice_mixed": 11,
           "price": 137.4
+        },
+        {
+          "at": "2026-09-24T15:23:32+02:00",
+          "hype_bull": 18,
+          "hype_bear": 45,
+          "hype_net": -27,
+          "social_impulse": -5,
+          "signal": "sell",
+          "confidence": 79,
+          "hype_mixed": 37,
+          "voice_bull": 1,
+          "voice_bear": 10,
+          "voice_mixed": 11,
+          "price": 137.39
         }
       ],
       "voices_archive": [
@@ -5530,8 +5544,8 @@
       "hype_net": -27,
       "confidence": 79,
       "hype_state": "bearish",
-      "updated_at": "2026-09-24T15:23:21+02:00",
-      "why": "Reddit 71% positiv bei 14 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $137.40.",
+      "updated_at": "2026-09-24T15:23:32+02:00",
+      "why": "Reddit 71% positiv bei 14 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $137.39.",
       "evidence": {
         "x_posts": 0,
         "reddit_posts": 14,
@@ -5547,11 +5561,11 @@
         "bull": 1,
         "bear": 10,
         "mixed": 11,
-        "updated_at": "2026-09-24T15:23:21+02:00"
+        "updated_at": "2026-09-24T15:23:32+02:00"
       },
       "hype_mixed": 37,
       "sentiment_unit": "percent_all_classified",
-      "price": 137.4
+      "price": 137.39
     }
   }
 }
