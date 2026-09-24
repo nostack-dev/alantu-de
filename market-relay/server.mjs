@@ -469,14 +469,18 @@ function shadowProof(){
   }
   return out;
 }
-function shadowTrail(){
-  const outcomes=shadowState.outcomes.filter(x=>x.version===YAHOO_SHADOW_VERSION).slice(-36).reverse().map(x=>({
+function shadowTrail(limit=500,scope='update'){
+  const lim=Math.max(1,Math.min(5000,Number(limit)||500));
+  const outcomes=shadowState.outcomes.filter(x=>x.version===YAHOO_SHADOW_VERSION).slice(-lim).reverse().map(x=>({
     id:x.id,horizon_minutes:x.horizon_minutes,at:x.at,target_at:x.target_at,entry_price:x.entry_price,dir:x.dir,
     exit_at:x.exit_at||null,exit_price:x.exit_price??null,gross_bps:x.gross_bps??null,hit:x.hit??null,
     status:x.status||'legacy',timing_error_ms:x.timing_error_ms??null,reason:x.reason||null,version:x.version
   }));
-  const pending=shadowState.predictions.filter(x=>x.version===YAHOO_SHADOW_VERSION).slice(-12).reverse();
-  return {version:YAHOO_SHADOW_VERSION,proof:shadowProof(),pending,outcomes,updated_at:shadowState.updated_at};
+  const pending=shadowState.predictions.filter(x=>x.version===YAHOO_SHADOW_VERSION).slice(-120).reverse().map(x=>({
+    id:x.id,horizon_minutes:x.horizon_minutes,at:x.at,target_at:x.target_at,entry_price:x.entry_price,dir:x.dir,
+    score:x.score??null,threshold:x.threshold??null,margin:x.margin??null,status:'pending',version:x.version
+  }));
+  return {version:YAHOO_SHADOW_VERSION,scope,proof:shadowProof(),pending,outcomes,updated_at:shadowState.updated_at};
 }
 function targetYahooEvent(targetMs,horizonMinutes){
   const a=yahooSeries.ORCL||[],late=Math.min(120000,Math.max(30000,Number(horizonMinutes||1)*6000));
@@ -488,7 +492,7 @@ function targetYahooEvent(targetMs,horizonMinutes){
   return {event:best,max_late_ms:late};
 }
 function broadcastShadow(){
-  const payload={symbol:'ORCL',trail:shadowTrail()};
+  const payload={symbol:'ORCL',trail:shadowTrail(180,'update')};
   for(const c of [...clients]){try{sendEvent(c.res,payload,'shadow');}catch{clients.delete(c);try{c.res.end();}catch{}}}
 }
 async function persistShadow(){
@@ -805,7 +809,7 @@ const server=http.createServer((req,res)=>{
   if(u.pathname==='/v1/stream'){
     const origin=req.headers.origin;if(origin&&!ALLOWED.has(origin))return json(res,403,{error:'origin_not_allowed'});
     const symbol=(u.searchParams.get('symbol')||'ORCL').toUpperCase();if(!raw[symbol])return json(res,404,{error:'unknown_symbol'});
-    res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store','Connection':'keep-alive','X-Accel-Buffering':'no'});res.write(': connected\n\n');const c={res,symbol};clients.add(c);sendEvent(res,{symbol,sentiment:sourceState},'sources');sendEvent(res,{symbol,trail:shadowTrail()},'shadow');req.on('close',()=>clients.delete(c));return;
+    res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store','Connection':'keep-alive','X-Accel-Buffering':'no'});res.write(': connected\n\n');const c={res,symbol};clients.add(c);sendEvent(res,{symbol,sentiment:sourceState},'sources');sendEvent(res,{symbol,trail:shadowTrail(5000,'history')},'shadow');req.on('close',()=>clients.delete(c));return;
   }
   json(res,404,{error:'not_found'});
 });

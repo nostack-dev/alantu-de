@@ -141,6 +141,11 @@ jobs:
           grep -q 'id="marketFlow"' index.html
           grep -q 'id="waveForecasts"' index.html
           grep -q 'id="forecastProofStrip"' index.html
+          grep -q 'id="forecastRange"' index.html
+          grep -q 'Signal → Zielzeit → war die Richtung richtig?' index.html
+          grep -q 'function mergeShadowTrail' index.html
+          grep -q "shadowTrail(5000,'history')" market-relay/server.mjs
+          grep -q "shadowTrail(180,'update')" market-relay/server.mjs
           grep -q 'id="sentimentPanel"' index.html
           grep -q "addEventListener('sources'" index.html
           grep -q 'function railwaySourcesUsable' index.html
