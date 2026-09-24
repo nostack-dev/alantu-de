@@ -29,7 +29,8 @@ export function createAlantuBookViewControls({
 
   function isFullscreen(){
     return document.fullscreenElement===stage||
-      document.webkitFullscreenElement===stage;
+      document.webkitFullscreenElement===stage||
+      stage.classList.contains("is-faux-fullscreen");
   }
 
   function pixelRatio(){
@@ -118,7 +119,7 @@ export function createAlantuBookViewControls({
   }
 
   function setZoom(value){
-    zoom=clamp(value,.72,1.75);
+    zoom=clamp(value,.72,2.8);
     applyView();
   }
 
