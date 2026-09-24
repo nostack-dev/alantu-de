@@ -46,6 +46,7 @@ jobs:
             grep -q 'id="zoomLess"' "$f"
             grep -q 'key==="d"' "$f"
             grep -q 'key==="f"' "$f"
+            grep -q 'stage.addEventListener("dblclick"' "$f"
             grep -q 'class="axis-controls"' "$f"
             grep -q 'stage:fullscreen .axis-controls' "$f"
             ! grep -Eq 'root\.scale\.(x|y)[[:space:]]*=' "$f"
@@ -69,6 +70,7 @@ jobs:
                 && grep -q 'tiltZDegrees=0' "$out" \
                 && grep -q 'id="zoomLess"' "$out" \
                 && grep -q 'view404' "$out" \
+                && grep -q 'stage.addEventListener("dblclick"' "$out" \
                 && grep -q 'class="axis-controls"' "$out"; then
                 return 0
               fi
