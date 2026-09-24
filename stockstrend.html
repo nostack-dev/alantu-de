@@ -209,6 +209,47 @@
   @media(max-width:700px){.mini-range button,.line-toggle{font-size:9px}.mini-range{margin-top:4px}}
   .sentiment-source{font-size:12px;line-height:1.4;color:#74747c;margin:6px 0 9px;font-variant-numeric:tabular-nums}
 
+  .model-decision{
+    order:3!important;
+    margin:20px 0 0!important;
+    padding:14px 16px!important;
+    border-radius:14px!important;
+    border:1px solid #e7e7ea!important;
+    background:#f7f7f8!important
+  }
+  .model-decision-kicker{font-size:10px!important;font-weight:800!important;letter-spacing:.08em!important;color:#8d8d94!important;text-transform:uppercase}
+  .model-decision-main{margin-top:4px!important;font-size:20px!important;line-height:1.08!important;font-weight:880!important;letter-spacing:-.025em!important;color:#111!important}
+  .model-decision-meta{margin-top:5px!important;font-size:11px!important;line-height:1.3!important;color:#77777f!important}
+  .model-decision.buy{background:#f1f8f2!important;border-color:#d9eadb!important}
+  .model-decision.sell{background:#fff3f2!important;border-color:#f0d8d5!important}
+  .model-decision.no-signal{background:#f7f7f8!important}
+  #forecastProof{
+    order:7!important;
+    margin:20px 0 0!important;
+    border:1px solid #ececef!important;
+    border-radius:14px!important;
+    background:#fafafa!important;
+    overflow:hidden!important
+  }
+  #forecastProof>summary{
+    list-style:none!important;
+    cursor:pointer!important;
+    padding:12px 14px!important;
+    margin:0!important;
+    user-select:none!important
+  }
+  #forecastProof>summary::-webkit-details-marker{display:none!important}
+  #forecastProof>summary:after{content:'▾';margin-left:10px;color:#9a9aa1;font-size:13px;align-self:center}
+  #forecastProof[open]>summary:after{content:'▴'}
+  #forecastProof[open] .forecast-proof-score span{font-size:0}
+  #forecastProof[open] .forecast-proof-score span:after{content:'schließen';font-size:9px}
+  .forecast-proof-body{padding:0 14px 14px!important}
+  @media(max-width:700px){
+    .model-decision{margin-top:16px!important;padding:13px 14px!important}
+    .model-decision-main{font-size:18px!important}
+    #forecastProof{margin-top:16px!important}
+  }
+
   .sync-footer{display:flex!important;align-items:center;justify-content:space-between;gap:10px;max-width:760px;margin:0 auto;padding:11px 18px 18px;color:#8a8a92;font-size:11px;line-height:1.2;font-variant-numeric:tabular-nums}
   .sync-footer.stale #syncStatus,.sync-footer.error #syncStatus{color:#8a8a92;font-weight:400}
   .sync-footer button{border:0;background:transparent;color:#5d5d64;font:inherit;font-weight:700;padding:5px 0;cursor:pointer;white-space:nowrap}
@@ -426,7 +467,7 @@
 
   /* One compact decision strip; four horizons always fit */
   .wave-forecast-strip{
-    order:3!important;
+    order:4!important;
     display:grid!important;
     grid-template-columns:repeat(4,minmax(0,1fr))!important;
     gap:8px!important;
@@ -773,45 +814,52 @@
     <div class="chart-panel-body">
     <div class="value-status flat" id="ivStatus"></div>
     <div class="market-flow" id="marketFlow" aria-live="polite"><div class="flow-head"><span class="flow-phase flat">WIRD BERECHNET</span></div></div>
-    <div class="wave-forecast-strip" id="waveForecasts" aria-live="polite"></div>
-    <div class="hypothesis-decision" id="hypothesisDecision" aria-live="polite"></div>
-    <div class="v5-research" id="v5Research" aria-live="polite"></div>
-    <div class="trajectory-note" id="trajectoryNote"><span><strong>1T Projektionspfad</strong> · Konsenspfad + Unsicherheitsband</span><span>Shadow · keine Kurszusage</span></div>
-    <div class="forecast-proof" id="forecastProof">
-      <div class="forecast-proof-head">
-        <div>
-          <div class="forecast-proof-title">Prognosen vs. Realität</div>
-          <div class="forecast-proof-sub">Signal → Zielzeit → war die Richtung richtig?</div>
-        </div>
-        <div class="forecast-proof-score">
-          <strong id="forecastProofSummary">sammelt Vergleiche</strong>
-          <span>echte Zielzeit</span>
-        </div>
-      </div>
-      <div class="forecast-proof-toolbar">
-        <div class="forecast-legend" aria-label="Legende">
-          <span><i class="forecast-status-key hit"></i> mehr Treffer</span>
-          <span><i class="forecast-status-key miss"></i> mehr daneben</span>
-          <span><i class="forecast-status-key pending"></i> offen</span>
-          <span>↑ Buy · ↓ Nicht Buy</span>
-        </div>
-        <div class="forecast-range" id="forecastRange" aria-label="Zeitraum Prognosen">
-          <button type="button" data-forecast-range="1d">1T</button>
-          <button type="button" data-forecast-range="1w">1W</button>
-          <button type="button" data-forecast-range="1m">1M</button>
-          <button type="button" data-forecast-range="year">1J</button>
-          <button type="button" data-forecast-range="5y">5J</button>
-          <button type="button" data-forecast-range="all">MAX</button>
-        </div>
-      </div>
-      <div class="forecast-timeline" id="forecastProofStrip" aria-live="polite"></div>
-      <div class="forecast-latest" id="forecastProofLatest" hidden></div>
+    <div class="model-decision no-signal" id="modelDecision" aria-live="polite">
+      <div class="model-decision-kicker">ALANTU v5</div>
+      <div class="model-decision-main">MODELLSTATUS: KEIN KAUFSIGNAL</div>
+      <div class="model-decision-meta">Gate noch nicht bestanden · warten</div>
     </div>
     <div class="chart-sub"><span id="ivCoverage"></span></div>
     <div class="chart-wrap chart-wrap-lg"><canvas id="ivChart"></canvas></div>
     <div class="mini-range" id="priceRange" aria-label="Zeitraum Kurs und Wert">
       <button type="button" data-price-range="1d">1T</button><button type="button" data-price-range="1w">1W</button><button type="button" data-price-range="1m">1M</button><button type="button" data-price-range="year">1J</button><button type="button" data-price-range="5y">5J</button><button type="button" data-price-range="all">MAX</button>
     </div>
+    <div class="wave-forecast-strip" id="waveForecasts" aria-live="polite"></div>
+    <div class="hypothesis-decision" id="hypothesisDecision" aria-live="polite"></div>
+    <div class="v5-research" id="v5Research" aria-live="polite"></div>
+    <div class="trajectory-note" id="trajectoryNote"><span><strong>1T Projektionspfad</strong> · Konsenspfad + Unsicherheitsband</span><span>Shadow · keine Kurszusage</span></div>
+    <details class="forecast-proof" id="forecastProof">
+      <summary class="forecast-proof-head">
+        <div>
+          <div class="forecast-proof-title">Prognosen vs. Realität</div>
+          <div class="forecast-proof-sub">Signal → Zielzeit → war die Richtung richtig?</div>
+        </div>
+        <div class="forecast-proof-score">
+          <strong id="forecastProofSummary">sammelt Vergleiche</strong>
+          <span>öffnen</span>
+        </div>
+      </summary>
+      <div class="forecast-proof-body">
+        <div class="forecast-proof-toolbar">
+          <div class="forecast-legend" aria-label="Legende">
+            <span><i class="forecast-status-key hit"></i> mehr Treffer</span>
+            <span><i class="forecast-status-key miss"></i> mehr daneben</span>
+            <span><i class="forecast-status-key pending"></i> offen</span>
+            <span>↑ Buy · ↓ Nicht Buy</span>
+          </div>
+          <div class="forecast-range" id="forecastRange" aria-label="Zeitraum Prognosen">
+            <button type="button" data-forecast-range="1d">1T</button>
+            <button type="button" data-forecast-range="1w">1W</button>
+            <button type="button" data-forecast-range="1m">1M</button>
+            <button type="button" data-forecast-range="year">1J</button>
+            <button type="button" data-forecast-range="5y">5J</button>
+            <button type="button" data-forecast-range="all">MAX</button>
+          </div>
+        </div>
+        <div class="forecast-timeline" id="forecastProofStrip" aria-live="polite"></div>
+        <div class="forecast-latest" id="forecastProofLatest" hidden></div>
+      </div>
+    </details>
     </div>
   </div>
 
@@ -2293,6 +2341,25 @@ function renderHypothesisDecision(){
   var cand=candidate&&Number(candidate.dir)?((Number(candidate.dir)>0?'↑ TEST LONG':'↓ TEST SHORT')+' · ≈ '+Number(candidate.horizon_minutes)+' Min'):'WARTEN · KEIN HANDELSSIGNAL';
   el.innerHTML='<div class="hd-main">'+cand+'</div><div class="hd-meta">v4 Regime · '+gate+' · 15m '+n15+'/180'+(isFinite(mean15)?' · Ø '+mean15.toLocaleString('de-DE',{maximumFractionDigits:2})+' bp netto':'')+' · BUY/SELL erst nach OOS-Gate</div>';
 }
+function renderModelDecision(){
+  var el=document.getElementById('modelDecision');if(!el)return;
+  var v=microstructureData&&microstructureData.research_v5||{},r=v.recommendation||{},prod=v.production||{},action=String(r.action||'WAIT').toUpperCase();
+  var h=Number(r.horizon_minutes||prod.selected_horizon);
+  var validated=prod.enabled===true&&Array.isArray(prod.validated_horizons)&&prod.validated_horizons.length>0;
+  var cls='no-signal',main='MODELLSTATUS: KEIN KAUFSIGNAL',meta='';
+  if(validated&&action==='BUY'){
+    cls='buy';main='MODELLSTATUS: KAUFSIGNAL';
+    meta='v5 validiert'+(h?' · '+h+' Min':'')+(Number.isFinite(Number(r.confidence))?' · Konfidenz '+Math.round(Number(r.confidence)*100)+' %':'');
+  }else if(validated&&action==='SELL'){
+    cls='sell';main='MODELLSTATUS: VERKAUFSSIGNAL';
+    meta='v5 validiert'+(h?' · '+h+' Min':'')+(Number.isFinite(Number(r.confidence))?' · Konfidenz '+Math.round(Number(r.confidence)*100)+' %':'');
+  }else{
+    var best=[5,15,1,30].map(function(x){var p=v.proof&&v.proof[String(x)]||{},m=p.model||{},g=p.gate||{};return {h:x,n:Number(m.n)||0,min:Number(m.min_n)||120,gate:g.status||'collecting'};}).sort(function(a,b){return b.n-a.n;})[0]||{h:5,n:0,min:120,gate:'collecting'};
+    meta='v5 Gate '+best.gate+' · Learner '+best.n+'/'+best.min+' · warten statt raten';
+  }
+  el.className='model-decision '+cls;
+  el.innerHTML='<div class="model-decision-kicker">ALANTU v5</div><div class="model-decision-main">'+main+'</div><div class="model-decision-meta">'+meta+'</div>';
+}
 function renderV5Research(){
   var el=document.getElementById('v5Research');if(!el)return;
   var v=microstructureData&&microstructureData.research_v5||{},r=v.recommendation||{},p=v.proof||{},cand=r.candidate||v.candidate||null;
@@ -2325,6 +2392,7 @@ function renderWaveForecasts(){
     return '<div class="wave-forecast '+cls+'"><div class="wf-h">≈ '+h+' Min</div><div class="wf-v">'+v+'</div><div class="wf-m">'+meta+'</div></div>';
   }).join('');
   renderHypothesisDecision();
+  renderModelDecision();
   renderV5Research();
   if(ivChart&&priceRange==='1d'){var ds=ivChart.data&&ivChart.data.datasets&&ivChart.data.datasets[0];if(ds)refreshTrajectoryDatasets(ds.data||[],berlinTradingWindowFor(Date.now()));}
 }
