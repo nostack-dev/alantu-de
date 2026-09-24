@@ -231,7 +231,9 @@
     .empty-inner{max-width:300px}
     .empty strong{display:block;font-family:Georgia,"Times New Roman",serif;font-size:28px;font-weight:400}
     .empty span{display:block;margin-top:8px;color:#716a61;font-size:12px;line-height:1.5}
-    .stage-ui{position:absolute;inset:0;z-index:4;pointer-events:none}
+    .stage-ui{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;visibility:hidden;transition:opacity .14s ease,visibility .14s ease}
+    .stage.debug-controls .stage-ui{opacity:1;visibility:visible}
+    .stage:fullscreen .stage-ui,.stage:-webkit-full-screen .stage-ui,.stage.is-faux-fullscreen .stage-ui{display:none!important}
     .stage-top{
       position:absolute;left:16px;right:16px;top:16px;
       display:flex;align-items:center;justify-content:space-between;gap:8px;
@@ -245,6 +247,7 @@
     .axis-controls button:hover{background:rgba(255,255,255,.8)}
     .axis-controls button:disabled{opacity:.3;cursor:default}
     .axis-controls output{min-width:22px;text-align:center;font-size:9px;font-weight:700;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+    .axis-group.zoom-group output{min-width:34px}
     .stage:fullscreen .axis-controls,.stage:-webkit-full-screen .axis-controls,.stage.is-faux-fullscreen .axis-controls{display:none!important}
     @media(max-width:640px){
       .stage-actions{gap:4px}
@@ -505,6 +508,18 @@
                   <output id="tiltYValue" aria-live="polite">2°</output>
                   <button id="tiltYMore" type="button" aria-label="Weiter nach rechts drehen" title="Y-Neigung +1°">+</button>
                 </div>
+                  <div class="axis-group" aria-label="Drehung">
+                    <span class="axis-label" aria-hidden="true">Z</span>
+                    <button id="tiltZLess" type="button" aria-label="Gegen den Uhrzeigersinn drehen" title="Z-Rotation −1°">−</button>
+                    <output id="tiltZValue" aria-live="polite">0°</output>
+                    <button id="tiltZMore" type="button" aria-label="Im Uhrzeigersinn drehen" title="Z-Rotation +1°">+</button>
+                  </div>
+                  <div class="axis-group zoom-group" aria-label="Zoom">
+                    <span class="axis-label" aria-hidden="true">↕</span>
+                    <button id="zoomLess" type="button" aria-label="Herauszoomen" title="Zoom −">−</button>
+                    <output id="zoomValue" aria-live="polite">100%</output>
+                    <button id="zoomMore" type="button" aria-label="Hineinzoomen" title="Zoom +">+</button>
+                  </div>
               </div>
               <button class="circle" id="fitViewBtn" type="button" aria-label="Ansicht einpassen" title="Ansicht einpassen">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -540,7 +555,7 @@
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
     import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand308";
-    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view403";
+    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view404";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
@@ -607,34 +622,59 @@
     scene.add(rim);
 
     const root=new THREE.Group();
-    // Presentation controls only rotate the model. Keep scaling uniform so
-    // the source PDF/canvas aspect ratio is never stretched on X or Y.
+    // Presentation controls only rotate the model. Zoom is applied by the
+    // shared view controller with root.scale.setScalar(), so PDF/canvas ratio
+    // is never stretched independently on X or Y.
     root.rotation.x=-THREE.MathUtils.degToRad(4);
     root.rotation.y=-THREE.MathUtils.degToRad(2);
-    root.rotation.z=-.008;
+    root.rotation.z=0;
     scene.add(root);
     let tiltXDegrees=4;
     let tiltYDegrees=2;
+    let tiltZDegrees=0;
     const tiltXLess=document.getElementById("tiltXLess");
     const tiltXMore=document.getElementById("tiltXMore");
     const tiltYLess=document.getElementById("tiltYLess");
     const tiltYMore=document.getElementById("tiltYMore");
+    const tiltZLess=document.getElementById("tiltZLess");
+    const tiltZMore=document.getElementById("tiltZMore");
+    const zoomLess=document.getElementById("zoomLess");
+    const zoomMore=document.getElementById("zoomMore");
     const tiltXValue=document.getElementById("tiltXValue");
     const tiltYValue=document.getElementById("tiltYValue");
+    const tiltZValue=document.getElementById("tiltZValue");
+    const zoomValue=document.getElementById("zoomValue");
     function updateTilt(){
       root.rotation.x=-THREE.MathUtils.degToRad(tiltXDegrees);
       root.rotation.y=-THREE.MathUtils.degToRad(tiltYDegrees);
+      root.rotation.z=THREE.MathUtils.degToRad(tiltZDegrees);
       tiltXValue.value=`${tiltXDegrees}°`;
       tiltYValue.value=`${tiltYDegrees}°`;
+      tiltZValue.value=`${tiltZDegrees}°`;
       tiltXLess.disabled=tiltXDegrees<=0;
       tiltXMore.disabled=tiltXDegrees>=10;
       tiltYLess.disabled=tiltYDegrees<=-8;
       tiltYMore.disabled=tiltYDegrees>=8;
+      tiltZLess.disabled=tiltZDegrees<=-8;
+      tiltZMore.disabled=tiltZDegrees>=8;
+    }
+    function updateZoomValue(){
+      if(!zoomValue)return;
+      const z=viewControls?.zoom||1;
+      zoomValue.value=`${Math.round(z*100)}%`;
+      zoomLess.disabled=z<=.721;
+      zoomMore.disabled=z>=2.799;
     }
     tiltXLess.addEventListener("click",()=>{tiltXDegrees=Math.max(0,tiltXDegrees-1);updateTilt()});
     tiltXMore.addEventListener("click",()=>{tiltXDegrees=Math.min(10,tiltXDegrees+1);updateTilt()});
     tiltYLess.addEventListener("click",()=>{tiltYDegrees=Math.max(-8,tiltYDegrees-1);updateTilt()});
     tiltYMore.addEventListener("click",()=>{tiltYDegrees=Math.min(8,tiltYDegrees+1);updateTilt()});
+    tiltZLess.addEventListener("click",()=>{tiltZDegrees=Math.max(-8,tiltZDegrees-1);updateTilt()});
+    tiltZMore.addEventListener("click",()=>{tiltZDegrees=Math.min(8,tiltZDegrees+1);updateTilt()});
+    zoomLess.addEventListener("click",()=>{if(viewControls){viewControls.setZoom(viewControls.zoom/1.12);updateZoomValue()}});
+    zoomMore.addEventListener("click",()=>{if(viewControls){viewControls.setZoom(viewControls.zoom*1.12);updateZoomValue()}});
+    stage.addEventListener("wheel",()=>requestAnimationFrame(updateZoomValue),{passive:true});
+    stage.addEventListener("pointermove",e=>{if(e.pointerType==="touch")requestAnimationFrame(updateZoomValue)},{passive:true});
     updateTilt();
 
     const coverMaterial=new THREE.MeshStandardMaterial({color:0x171713,roughness:.68,metalness:.06});
@@ -1245,11 +1285,32 @@
       if(file)loadPdf(file);
     });
 
-    createAlantuFullscreenController({
+    const fullscreenController=createAlantuFullscreenController({
       stage,
       button:fullscreenBtn,
       onChange:()=>setTimeout(()=>viewControls.resize(),30)
     });
+
+    function isTypingTarget(target){
+      return !!target?.closest?.("input,textarea,select,[contenteditable='true']");
+    }
+    window.addEventListener("keydown",e=>{
+      if(isTypingTarget(e.target))return;
+      const key=String(e.key||"").toLowerCase();
+      if(key==="d"){
+        e.preventDefault();
+        stage.classList.toggle("debug-controls");
+        if(stage.classList.contains("debug-controls"))requestAnimationFrame(updateZoomValue);
+      }else if(key==="f"){
+        e.preventDefault();
+        fullscreenController.toggle();
+      }
+    });
+    canvas.addEventListener("dblclick",e=>{
+      e.preventDefault();
+      fullscreenController.toggle();
+    });
+    fitViewBtn.addEventListener("click",()=>requestAnimationFrame(updateZoomValue));
 
     function resize(){viewControls.resize()}
     new ResizeObserver(resize).observe(stage);
