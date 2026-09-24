@@ -7,6 +7,7 @@ on:
       - "index-brand.html"
       - "pdf-to-exposee.html"
       - "alantu-book-view.js"
+      - "assets/sunside-living-expose.pdf"
       - "tools/exposee-browser-smoke.mjs"
       - ".github/workflows/exposee-browser-smoke.yml"
   workflow_dispatch:
@@ -35,53 +36,75 @@ jobs:
             https://api.github.com/repos/${{ github.repository }}/statuses/$SHA \
             -d '{"state":"pending","context":"exposee-live-smoke","description":"Checking live Exposee viewers"}'
 
-      - name: Guard aspect ratio and dual-axis controls in source
+      - name: Guard shared renderer, source PDF, and aspect-ratio invariants
         shell: bash
         run: |
           set -euo pipefail
-          for f in index-brand.html pdf-to-exposee.html; do
-            grep -q 'tiltXDegrees=4' "$f"
-            grep -q 'tiltYDegrees=2' "$f"
-            grep -q 'tiltZDegrees=0' "$f"
-            grep -q 'id="zoomLess"' "$f"
-            grep -q 'key==="d"' "$f"
-            grep -q 'key==="f"' "$f"
-            grep -q 'stage.addEventListener("dblclick"' "$f"
-            grep -q 'class="axis-controls"' "$f"
-            grep -q 'stage:fullscreen .axis-controls' "$f"
-            ! grep -Eq 'root\.scale\.(x|y)[[:space:]]*=' "$f"
-            ! grep -Eq 'scaleX[[:space:]]*\(' "$f"
-            ! grep -Eq 'scaleY[[:space:]]*\(' "$f"
-          done
+
+          # Landing consumes the builder renderer instead of a second renderer.
+          grep -q 'id="exposeeFrame"' index-brand.html
+          grep -q 'pdf-to-exposee.html?embed=1' index-brand.html
+          grep -q 'sunside-living-expose.pdf' index-brand.html
+          ! grep -q 'id="bookCanvas"' index-brand.html
+          ! grep -q 'Starnberger See' index-brand.html
+          ! grep -q 'PRIVATE RESIDENCE' index-brand.html
+          ! grep -q 'function textureFor(index)' index-brand.html
+
+          # Builder owns controls and never stretches X/Y.
+          f=pdf-to-exposee.html
+          grep -q 'tiltXDegrees=4' "$f"
+          grep -q 'tiltYDegrees=2' "$f"
+          grep -q 'tiltZDegrees=0' "$f"
+          grep -q 'id="zoomLess"' "$f"
+          grep -q 'class="axis-controls"' "$f"
+          grep -q 'stage:fullscreen .axis-controls' "$f"
+          grep -q 'function hardcoverPageMaterials' "$f"
+          grep -q 'frontCoverUsesPdf=true' "$f"
+          grep -q 'COVER_SCALE=1.055' "$f"
+          grep -q 'async function loadPdfFromUrl' "$f"
+          ! grep -Eq 'root\.scale\.(x|y)[[:space:]]*=' "$f"
+          ! grep -Eq 'scaleX[[:space:]]*\(' "$f"
+          ! grep -Eq 'scaleY[[:space:]]*\(' "$f"
+
           ! grep -q 'root.rotation.set' alantu-book-view.js
           grep -q 'root.scale.setScalar(scale)' alantu-book-view.js
 
-      - name: Wait for both current live viewers
+          test -s assets/sunside-living-expose.pdf
+          file assets/sunside-living-expose.pdf | grep -qi PDF
+      - name: Wait for current landing, builder, and brochure asset
         shell: bash
         run: |
           set -euo pipefail
-          check_url () {
+
+          wait_for () {
             local url="$1"
             local out="$2"
-            for i in $(seq 1 30); do
-              if curl -fsSL --max-time 20 "$url?smoke=${{ github.sha }}" -o "$out" \
-                && grep -q 'tiltXDegrees=4' "$out" \
-                && grep -q 'tiltYDegrees=2' "$out" \
-                && grep -q 'tiltZDegrees=0' "$out" \
-                && grep -q 'id="zoomLess"' "$out" \
-                && grep -q 'view404' "$out" \
-                && grep -q 'stage.addEventListener("dblclick"' "$out" \
-                && grep -q 'class="axis-controls"' "$out"; then
-                return 0
+            shift 2
+            for i in $(seq 1 36); do
+              if curl -fsSL --max-time 20 "$url" -o "$out"; then
+                local ok=1
+                for needle in "$@"; do
+                  grep -q "$needle" "$out" || ok=0
+                done
+                if [ "$ok" = 1 ]; then return 0; fi
               fi
               sleep 10
             done
-            echo "Live viewer did not reach current main: $url" >&2
+            echo "Live content did not reach current main: $url" >&2
             return 1
           }
-          check_url "https://www.alantu.de/index-brand.html" /tmp/index-brand-live.html
-          check_url "https://www.alantu.de/pdf-to-exposee.html" /tmp/pdf-to-exposee-live.html
 
+          wait_for "https://www.alantu.de/index-brand.html?smoke=${{ github.sha }}" /tmp/index-brand-live.html \
+            'id="exposeeFrame"' 'pdf-to-exposee.html?embed=1' 'sunside-living-expose.pdf'
+
+          wait_for "https://www.alantu.de/pdf-to-exposee.html?smoke=${{ github.sha }}" /tmp/pdf-to-exposee-live.html \
+            'tiltXDegrees=4' 'tiltYDegrees=2' 'function hardcoverPageMaterials' 'async function loadPdfFromUrl'
+
+          curl -fsSL --max-time 40 \
+            "https://www.alantu.de/assets/sunside-living-expose.pdf?smoke=${{ github.sha }}" \
+            -o /tmp/sunside-live.pdf
+          test -s /tmp/sunside-live.pdf
+          file /tmp/sunside-live.pdf | grep -qi PDF
       - name: Install Playwright
         shell: bash
         run: |
@@ -90,7 +113,7 @@ jobs:
 
       - name: Desktop and mobile Exposee console/render smoke
         env:
-          EXPOSEE_URLS: https://www.alantu.de/index-brand.html,https://www.alantu.de/pdf-to-exposee.html
+          EXPOSEE_URLS: https://www.alantu.de/index-brand.html,https://www.alantu.de/pdf-to-exposee.html?embed=1&controls=1&pdf=%2Fassets%2Fsunside-living-expose.pdf&brand=Sunside%20Living&title=Konstanz%20Wollmatingen%20Expos%C3%A9&subtitle=Konstanz%20Wollmatingen
           SMOKE_OUT: /tmp/alantu-exposee-smoke
         run: node tools/exposee-browser-smoke.mjs
 
