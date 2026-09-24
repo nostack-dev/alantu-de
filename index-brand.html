@@ -174,12 +174,23 @@
       left:18px;right:18px;top:18px;
       display:flex;justify-content:space-between;align-items:center;gap:10px;
     }
-    .stage-top-actions{display:flex;align-items:center;gap:8px;pointer-events:auto}
-    .tilt-controls{position:absolute;right:0;top:54px;display:flex;align-items:center;gap:6px;pointer-events:auto;background:rgba(244,240,232,.86);border:1px solid rgba(13,13,11,.12);border-radius:999px;padding:4px 7px;backdrop-filter:blur(12px)}
-    .tilt-controls button{border:0;background:transparent;color:var(--ink);width:32px;height:32px;border-radius:50%;font-size:20px;font-weight:600;line-height:1;cursor:pointer}
-    .tilt-controls button:hover{background:rgba(255,255,255,.8)}
-    .tilt-controls button:disabled{opacity:.35;cursor:default}
-    .tilt-controls output{min-width:76px;text-align:center;font-size:11px;font-weight:650;color:var(--ink)}
+    .stage-top-actions{display:flex;align-items:center;gap:6px;pointer-events:auto;min-width:0}
+    .axis-controls{display:inline-flex;align-items:center;gap:3px;pointer-events:auto;background:rgba(244,240,232,.82);border:1px solid rgba(13,13,11,.12);border-radius:999px;padding:2px 4px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+    .axis-group{display:inline-flex;align-items:center;gap:1px}
+    .axis-group+.axis-group{padding-left:3px;border-left:1px solid rgba(13,13,11,.10)}
+    .axis-label{font-size:9px;font-weight:800;line-height:1;color:#6d675f;margin:0 1px}
+    .axis-controls button{border:0;background:transparent;color:var(--ink);width:22px;height:22px;border-radius:50%;font-size:14px;font-weight:700;line-height:1;cursor:pointer;padding:0}
+    .axis-controls button:hover{background:rgba(255,255,255,.8)}
+    .axis-controls button:disabled{opacity:.3;cursor:default}
+    .axis-controls output{min-width:22px;text-align:center;font-size:9px;font-weight:700;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+    .stage:fullscreen .axis-controls,.stage:-webkit-full-screen .axis-controls,.stage.is-faux-fullscreen .axis-controls{display:none!important}
+    @media(max-width:640px){
+      .stage-top-actions{gap:4px}
+      .stage-top-actions>.badge{display:none}
+      .axis-controls{gap:2px;padding:2px 3px}
+      .axis-controls button{width:20px;height:20px;font-size:13px}
+      .axis-controls output{min-width:20px;font-size:8px}
+    }
     .stage-fullscreen{width:40px;height:40px;background:rgba(244,240,232,.72)}
     .stage:fullscreen{
       width:100vw;
@@ -484,6 +495,20 @@
               <span class="badge">LIVE · 3D EXPOSÉ</span>
               <div class="stage-top-actions">
                 <span class="badge">VILLA AM SEE</span>
+                <div class="axis-controls" role="group" aria-label="Exposé-Ausrichtung">
+                  <div class="axis-group" aria-label="Neigung nach hinten">
+                    <span class="axis-label" aria-hidden="true">X</span>
+                    <button id="tiltXLess" type="button" aria-label="Weniger nach hinten neigen" title="X-Neigung −1°">−</button>
+                    <output id="tiltXValue" aria-live="polite">5°</output>
+                    <button id="tiltXMore" type="button" aria-label="Mehr nach hinten neigen" title="X-Neigung +1°">+</button>
+                  </div>
+                  <div class="axis-group" aria-label="Seitliche Neigung">
+                    <span class="axis-label" aria-hidden="true">Y</span>
+                    <button id="tiltYLess" type="button" aria-label="Weiter nach links drehen" title="Y-Neigung −1°">−</button>
+                    <output id="tiltYValue" aria-live="polite">3°</output>
+                    <button id="tiltYMore" type="button" aria-label="Weiter nach rechts drehen" title="Y-Neigung +1°">+</button>
+                  </div>
+                </div>
                 <button class="stage-control" id="fitViewBtn" type="button" aria-label="Ansicht einpassen" title="Ansicht einpassen">
                   <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5M4 4l5 5M20 4l-5 5M4 20l5-5M20 20l-5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -494,11 +519,6 @@
                     <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </button>
-              </div>
-              <div class="tilt-controls" role="group" aria-label="Exposé nach hinten neigen">
-                <button id="tiltLess" type="button" aria-label="Weniger nach hinten neigen" title="Neigung −1°">−</button>
-                <output id="tiltValue" aria-live="polite">Neigung 9°</output>
-                <button id="tiltMore" type="button" aria-label="Mehr nach hinten neigen" title="Neigung +1°">+</button>
               </div>
             </div>
 <div class="stage-bottom">
@@ -615,22 +635,34 @@
     scene.add(rim);
 
     const root = new THREE.Group();
-    root.rotation.x = -0.16;
-    root.rotation.y = -0.105;
+    // Presentation controls only rotate the model. Keep scaling uniform so
+    // the source PDF/canvas aspect ratio is never stretched on X or Y.
+    root.rotation.x = -THREE.MathUtils.degToRad(5);
+    root.rotation.y = -THREE.MathUtils.degToRad(3);
     root.rotation.z = -0.008;
     scene.add(root);
-    let tiltDegrees=9;
-    const tiltLess=document.getElementById("tiltLess");
-    const tiltMore=document.getElementById("tiltMore");
-    const tiltValue=document.getElementById("tiltValue");
+    let tiltXDegrees=5;
+    let tiltYDegrees=3;
+    const tiltXLess=document.getElementById("tiltXLess");
+    const tiltXMore=document.getElementById("tiltXMore");
+    const tiltYLess=document.getElementById("tiltYLess");
+    const tiltYMore=document.getElementById("tiltYMore");
+    const tiltXValue=document.getElementById("tiltXValue");
+    const tiltYValue=document.getElementById("tiltYValue");
     function updateTilt(){
-      root.rotation.x=-THREE.MathUtils.degToRad(tiltDegrees);
-      tiltValue.value=`Neigung ${tiltDegrees}°`;
-      tiltLess.disabled=tiltDegrees<=0;
-      tiltMore.disabled=tiltDegrees>=25;
+      root.rotation.x=-THREE.MathUtils.degToRad(tiltXDegrees);
+      root.rotation.y=-THREE.MathUtils.degToRad(tiltYDegrees);
+      tiltXValue.value=`${tiltXDegrees}°`;
+      tiltYValue.value=`${tiltYDegrees}°`;
+      tiltXLess.disabled=tiltXDegrees<=0;
+      tiltXMore.disabled=tiltXDegrees>=10;
+      tiltYLess.disabled=tiltYDegrees<=-8;
+      tiltYMore.disabled=tiltYDegrees>=8;
     }
-    tiltLess.addEventListener("click",()=>{tiltDegrees=Math.max(0,tiltDegrees-1);updateTilt()});
-    tiltMore.addEventListener("click",()=>{tiltDegrees=Math.min(25,tiltDegrees+1);updateTilt()});
+    tiltXLess.addEventListener("click",()=>{tiltXDegrees=Math.max(0,tiltXDegrees-1);updateTilt()});
+    tiltXMore.addEventListener("click",()=>{tiltXDegrees=Math.min(10,tiltXDegrees+1);updateTilt()});
+    tiltYLess.addEventListener("click",()=>{tiltYDegrees=Math.max(-8,tiltYDegrees-1);updateTilt()});
+    tiltYMore.addEventListener("click",()=>{tiltYDegrees=Math.min(8,tiltYDegrees+1);updateTilt()});
     updateTilt();
 
     const coverMat = new THREE.MeshStandardMaterial({color:0x171713,roughness:.68,metalness:.06});
@@ -1006,7 +1038,7 @@
       prevButton:prevBtn,
       nextTap:tapNext,
       prevTap:tapPrev,
-      ignorePointerSelector:".stage-control,.tilt-controls"
+      ignorePointerSelector:".stage-control,.axis-controls"
     });
 
     viewControls=createAlantuBookViewControls({
