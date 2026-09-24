@@ -1,0 +1,113 @@
+name: Exposee live smoke
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "index-brand.html"
+      - "pdf-to-exposee.html"
+      - "tools/exposee-browser-smoke.mjs"
+      - ".github/workflows/exposee-browser-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  exposee-live-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mark live smoke pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/$SHA \
+            -d '{"state":"pending","context":"exposee-live-smoke","description":"Checking live Exposee viewers"}'
+
+      - name: Guard aspect ratio and dual-axis controls in source
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in index-brand.html pdf-to-exposee.html; do
+            grep -q 'tiltXDegrees=5' "$f"
+            grep -q 'tiltYDegrees=3' "$f"
+            grep -q 'class="axis-controls"' "$f"
+            grep -q 'stage:fullscreen .axis-controls' "$f"
+            ! grep -Eq 'root\.scale\.(x|y)[[:space:]]*=' "$f"
+            ! grep -Eq 'scaleX[[:space:]]*\(' "$f"
+            ! grep -Eq 'scaleY[[:space:]]*\(' "$f"
+          done
+
+      - name: Wait for both current live viewers
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_url () {
+            local url="$1"
+            local out="$2"
+            for i in $(seq 1 30); do
+              if curl -fsSL --max-time 20 "$url?smoke=${{ github.sha }}" -o "$out" \
+                && grep -q 'tiltXDegrees=5' "$out" \
+                && grep -q 'tiltYDegrees=3' "$out" \
+                && grep -q 'class="axis-controls"' "$out"; then
+                return 0
+              fi
+              sleep 10
+            done
+            echo "Live viewer did not reach current main: $url" >&2
+            return 1
+          }
+          check_url "https://www.alantu.de/index-brand.html" /tmp/index-brand-live.html
+          check_url "https://www.alantu.de/pdf-to-exposee.html" /tmp/pdf-to-exposee-live.html
+
+      - name: Install Playwright
+        shell: bash
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Desktop and mobile Exposee console/render smoke
+        env:
+          EXPOSEE_URLS: https://www.alantu.de/index-brand.html,https://www.alantu.de/pdf-to-exposee.html
+          SMOKE_OUT: /tmp/alantu-exposee-smoke
+        run: node tools/exposee-browser-smoke.mjs
+
+      - name: Upload visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alantu-exposee-browser-smoke
+          path: /tmp/alantu-exposee-smoke/*.png
+          if-no-files-found: ignore
+
+      - name: Publish live smoke result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          if [ "$JOB_STATUS" = "success" ]; then
+            state=success
+            description="Both Exposee viewers live and console-clean"
+          else
+            state=failure
+            description="Exposee live/browser smoke failed"
+          fi
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/$SHA \
+            -d "{\"state\":\"$state\",\"context\":\"exposee-live-smoke\",\"description\":\"$description\"}"
