@@ -1101,7 +1101,13 @@ function latestBerlinTradingWindow(arr,getAt){
 function priceAxisX(rows,session){
   if(priceRange==='1d'&&session&&isFinite(session.open)&&isFinite(session.close)){
     var mob=window.matchMedia&&window.matchMedia('(max-width:700px)').matches;
-    return {type:'linear',min:session.open,max:session.close,offset:false,bounds:'ticks',ticks:{color:'#8C939C',maxRotation:0,autoSkip:true,maxTicksLimit:mob?4:6,font:{size:mob?12:11},callback:function(v){return fmtAxisValue(v,'1d');}},grid:{display:false},border:{display:false}};
+    return {type:'linear',min:session.open,max:session.close,offset:false,bounds:'ticks',
+      afterBuildTicks:function(scale){
+        var hours=mob?[8,12,16,20,22]:[8,10,12,14,16,18,20,22];
+        scale.ticks=hours.map(function(h){return {value:session.open+(h-8)*3600000};});
+      },
+      ticks:{color:'#8C939C',maxRotation:0,autoSkip:false,font:{size:mob?12:11},callback:function(v){return fmtAxisValue(v,'1d');}},
+      grid:{display:false},border:{display:false}};
   }
   return axisX(rows,function(h){return h.at;},priceRange);
 }
