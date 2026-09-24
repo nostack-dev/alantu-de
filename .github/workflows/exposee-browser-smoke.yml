@@ -22,32 +22,39 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-      - name: Check viewer sources and sample PDF
+      - name: Check exact restored viewer sources and sample PDF
         run: |
           test -s assets/sunside-living-expose.pdf
-          grep -q 'view404' index-brand.html
-          grep -q 'view404' pdf-to-exposee.html
-          grep -q 'brand309' index-brand.html
-          grep -q 'brand309' pdf-to-exposee.html
-          grep -q 'spreadFocusTarget' alantu-book-view.js
+          test "$(git hash-object index-brand.html)" = "928125197c12b15d512750ec3cd4cd2f80204fad"
+          test "$(git hash-object pdf-to-exposee.html)" = "d1afce002716d84c421746c5f6e6bbac5cc7c2df"
+          test "$(git hash-object alantu-book-core.js)" = "d0ccf0a989e998805de61c6954c06131e21e8720"
+          test "$(git hash-object alantu-book-view.js)" = "7a72b86e4ea3311d97e9375aff02c8bdae7c67df"
       - name: Wait for deployed viewers
         shell: bash
         run: |
           set -euo pipefail
+          expected_hash () {
+            case "$1" in
+              index-brand.html) echo "928125197c12b15d512750ec3cd4cd2f80204fad" ;;
+              pdf-to-exposee.html) echo "d1afce002716d84c421746c5f6e6bbac5cc7c2df" ;;
+              alantu-book-core.js) echo "d0ccf0a989e998805de61c6954c06131e21e8720" ;;
+              alantu-book-view.js) echo "7a72b86e4ea3311d97e9375aff02c8bdae7c67df" ;;
+              *) return 1 ;;
+            esac
+          }
           for path in index-brand.html pdf-to-exposee.html alantu-book-view.js alantu-book-core.js; do
             ready=0
+            expected="$(expected_hash "$path")"
             for attempt in $(seq 1 36); do
               if curl -fsSL --max-time 20 "https://www.alantu.de/$path?smoke=${{ github.sha }}" -o /tmp/alantu-live-file; then
-                if { [ "$path" = alantu-book-core.js ] && grep -q 'captured:false' /tmp/alantu-live-file; } || \
-                   { [ "$path" = alantu-book-view.js ] && grep -q 'spreadFocusTarget' /tmp/alantu-live-file; } || \
-                   { grep -q 'view404' /tmp/alantu-live-file && grep -q 'brand309' /tmp/alantu-live-file; }; then
+                if [ "$(git hash-object /tmp/alantu-live-file)" = "$expected" ]; then
                   ready=1
                   break
                 fi
               fi
               sleep 10
             done
-            [ "$ready" = 1 ] || { echo "$path has not deployed" >&2; exit 1; }
+            [ "$ready" = 1 ] || { echo "$path has not deployed exact restored version" >&2; exit 1; }
           done
       - name: Install browser
         run: |
