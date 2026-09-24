@@ -28,7 +28,7 @@ async function run(kind,viewport){
     await page.goto(`${origin}/${path}?smoke=${process.env.GITHUB_SHA||Date.now()}`,{
       waitUntil:'domcontentloaded',timeout:60000
     });
-    assert(await page.locator('script[type="module"]').evaluate(node=>node.textContent.includes('view404')),
+    assert(await page.locator('script[type="module"]').evaluate(node=>node.textContent.includes('prepdf-fix1')),
       'live page did not load the corrected shared view');
     if(kind==='pdf')await page.locator('#pdfInput').setInputFiles(pdf);
     const total=kind==='brand'?6:17;
@@ -38,6 +38,11 @@ async function run(kind,viewport){
     },total,{timeout:120000});
     assert(await page.locator('#bookCanvas').evaluate(node=>!!node.getContext('webgl2')),
       'WebGL book did not initialize');
+    if(kind==='brand'){
+      const html=await page.content();
+      assert(!html.includes('Starnberger See · Bayern'),'stale Starnberger cover copy still present');
+      assert(!html.includes('PRIVATE RESIDENCE'),'stale private-residence cover copy still present');
+    }
     const stage=page.locator('#stage');
     const marker=`${kind}-${viewport.width}`;
     await page.waitForTimeout(1500);
@@ -74,6 +79,6 @@ async function run(kind,viewport){
   }
 }
 
-for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
+for(const viewport of [{width:1440,height:1000},{width:390,height:844},{width:844,height:390}]){
   for(const kind of ['brand','pdf'])await run(kind,viewport);
 }
