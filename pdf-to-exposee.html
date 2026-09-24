@@ -315,6 +315,15 @@
       .viewer-card{position:relative;top:auto}
       .stage{min-height:560px}
     }
+    @media(max-width:700px){
+      .stage:fullscreen .stage-ui,
+      .stage:-webkit-full-screen .stage-ui,
+      .stage.is-faux-fullscreen .stage-ui{
+        opacity:0!important;
+        visibility:hidden!important;
+        pointer-events:none!important;
+      }
+    }
     @media(max-width:620px){
       .shell{width:min(var(--max),calc(100% - 20px))}
       .topbar{min-height:64px}
@@ -431,8 +440,8 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand307";
-    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view402";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand308";
+    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view403";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
@@ -562,6 +571,7 @@
     let spine=null;
     let coverSupport=null;
     let bookCore=null;
+    let viewControls=null;
     let totalPages=0;
     let totalLeaves=0;
     let singlePageMode=false;
@@ -745,6 +755,14 @@
         (coverSupport.endClosedZ-coverSupport.endOpenZ)*p;
     }
 
+    function portraitFocusForState(state){
+      if(!singlePageMode||!totalLeaves)return 0;
+      const lastIndex=totalLeaves-1;
+      const turn=(state.activeTurns||[]).find(t=>Number(t.index)===lastIndex);
+      if(turn)return Math.max(0,Math.min(1,Number(turn.progress)||0));
+      return state.currentLeaf>=totalLeaves||state.closedSide==="end"?1:0;
+    }
+
     function updateUI(state){
       if(!totalPages){
         pageCount.textContent="— / —";
@@ -755,6 +773,7 @@
       const shownLeaf=state.activeTurn
         ? (state.activeTurn.progress>=.5?state.activeTurn.index+1:state.activeTurn.index)
         : state.currentLeaf;
+      viewControls?.setSingleFocus(portraitFocusForState(state));
 
       if(singlePageMode){
         const page=Math.max(1,Math.min(totalPages,shownLeaf+1));
@@ -792,7 +811,7 @@
       ignorePointerSelector:".stage-control,.circle"
     });
 
-    const viewControls=createAlantuBookViewControls({
+    viewControls=createAlantuBookViewControls({
       THREE,
       stage,
       renderer,
@@ -1068,7 +1087,9 @@
     updateUI();
 
     function render(now){
-      bookCore.step(now||performance.now());
+      const frameNow=now||performance.now();
+      bookCore.step(frameNow);
+      viewControls?.step(frameNow);
       renderer.render(scene,camera);
       requestAnimationFrame(render);
     }
