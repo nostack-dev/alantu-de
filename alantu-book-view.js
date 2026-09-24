@@ -102,12 +102,10 @@ export function createAlantuBookViewControls({
       camera.position.x=pan;
       camera.lookAt(pan,0,0);
     }else{
-      // Visible-content centering:
-      // 0   = first/right page centred
-      // .5  = normal two-page spread centred
-      // 1   = final/left page centred
-      // This is more stable than compensating a theoretical rotated centre.
-      root.position.set(pageW*scale*spreadFocus,.015,0);
+      // Landscape/desktop: keep the physical two-page spread geometrically
+      // centred in the viewport at all times. PAGE_W/2 is the exact centre
+      // between the left and right sheet around the shared spine.
+      root.position.set(pageW*scale*.5,.015,0);
       camera.position.copy(spreadCameraPosition);
       camera.lookAt(0,0,0);
     }
@@ -160,16 +158,12 @@ export function createAlantuBookViewControls({
       camera.lookAt(pan,0,0);
     }else{
       singleFocus=singleFocusTarget=0;
-      const delta=spreadFocusTarget-spreadFocus;
-      if(Math.abs(delta)<.0005){
-        spreadFocus=spreadFocusTarget;
-      }else{
-        const alpha=1-Math.exp(-14*dt);
-        spreadFocus+=delta*alpha;
-      }
+      // Never pan the desktop/landscape spread. Only portrait single-page
+      // mode is allowed to move the reading camera between right and left.
+      spreadFocus=spreadFocusTarget=.5;
       const pageW=Math.max(.1,Number(getPageWidth())||3.52);
       const scale=fitScale*zoom;
-      root.position.x=pageW*scale*spreadFocus;
+      root.position.x=pageW*scale*.5;
     }
   }
 
