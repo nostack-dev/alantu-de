@@ -193,6 +193,25 @@
       border-radius:0;
       border:0;
     }
+    body.alantu-faux-fullscreen{
+      overflow:hidden!important;
+      position:fixed!important;
+      inset:0!important;
+      width:100%!important;
+      height:100%!important;
+    }
+    .stage.is-faux-fullscreen{
+      position:fixed!important;
+      inset:0!important;
+      width:100vw!important;
+      height:100dvh!important;
+      min-height:0!important;
+      max-height:none!important;
+      aspect-ratio:auto!important;
+      border-radius:0!important;
+      border:0!important;
+      z-index:2147483000!important;
+    }
     .badge{
       border:1px solid rgba(13,13,11,.12);
       background:rgba(244,240,232,.66);
@@ -468,7 +487,7 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand307";
-    import { createAlantuBookViewControls } from "./alantu-book-view.js?v=view401";
+    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view402";
 
     const canvas = document.getElementById("bookCanvas");
     canvas.addEventListener("contextmenu",e=>e.preventDefault());
@@ -684,7 +703,8 @@
 
     const pageRoots=[];
     const totalPages=6;
-    const totalLeaves=Math.ceil(totalPages/2);
+    const singlePageMode=window.matchMedia("(max-width:700px) and (orientation:portrait)").matches;
+    const totalLeaves=singlePageMode?totalPages:Math.ceil(totalPages/2);
     const PAGE_W=3.52;
     const PAGE_H=4.80;
     const leafZStep=computeAlantuLeafStackStep(totalLeaves);
@@ -756,8 +776,8 @@
       const geometry=basePageGeom.clone();
       geometry.userData.basePosition=geometry.attributes.position.array.slice();
 
-      const frontPage=i*2;
-      const backPage=frontPage+1;
+      const frontPage=singlePageMode?i:i*2;
+      const backPage=singlePageMode?-1:frontPage+1;
 
       const frontMaterial=new THREE.MeshStandardMaterial({
         map:textureFor(frontPage),
@@ -767,8 +787,8 @@
       });
 
       const backMaterial=new THREE.MeshStandardMaterial({
-        map:backPage<totalPages?backTextureFor(backPage):null,
-        color:backPage<totalPages?0xffffff:0xeee7db,
+        map:backPage>=0&&backPage<totalPages?backTextureFor(backPage):null,
+        color:backPage>=0&&backPage<totalPages?0xffffff:0xeee7db,
         roughness:.9,
         metalness:0,
         side:THREE.BackSide
@@ -799,7 +819,10 @@
         ? (state.activeTurn.progress>=.5?state.activeTurn.index+1:state.activeTurn.index)
         : state.currentLeaf;
 
-      if(shownLeaf===0){
+      if(singlePageMode){
+        const page=Math.max(1,Math.min(totalPages,shownLeaf+1));
+        pageCount.textContent=String(page).padStart(2,"0")+" / "+String(totalPages).padStart(2,"0");
+      }else if(shownLeaf===0){
         pageCount.textContent="01 / "+String(totalPages).padStart(2,"0");
       }else if(shownLeaf<totalLeaves){
         const leftPage=shownLeaf*2;
@@ -837,7 +860,8 @@
       getPageWidth:()=>PAGE_W,
       getPageHeight:()=>PAGE_H,
       fitButton:fitViewBtn,
-      onPinchStart:()=>bookCore.cancelDrag()
+      onPinchStart:()=>bookCore.cancelDrag(),
+      getPresentationMode:()=>singlePageMode?"single":"spread"
     });
 
     experienceBtn.addEventListener("click",()=>{
@@ -847,29 +871,11 @@
       },prefersReduced?0:420);
     });
 
-    fullscreenBtn.addEventListener("click",async()=>{
-      try{
-        const active=document.fullscreenElement||document.webkitFullscreenElement;
-        if(active){
-          if(document.exitFullscreen) await document.exitFullscreen();
-          else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
-        }else{
-          if(stage.requestFullscreen) await stage.requestFullscreen();
-          else if(stage.webkitRequestFullscreen) stage.webkitRequestFullscreen();
-        }
-      }catch(e){
-        console.warn("Fullscreen unavailable",e);
-      }
+    createAlantuFullscreenController({
+      stage,
+      button:fullscreenBtn,
+      onChange:()=>setTimeout(()=>viewControls.resize(),30)
     });
-
-    function syncFullscreenButton(){
-      const active=document.fullscreenElement===stage||document.webkitFullscreenElement===stage;
-      fullscreenBtn.setAttribute("aria-label",active?"Vollbild schließen":"Vollbild öffnen");
-      fullscreenBtn.title=active?"Vollbild schließen":"Vollbild";
-      setTimeout(resize,30);
-    }
-    document.addEventListener("fullscreenchange",syncFullscreenButton);
-    document.addEventListener("webkitfullscreenchange",syncFullscreenButton);
 
     function resize(){viewControls.resize()}
     const ro=new ResizeObserver(resize);
