@@ -17,24 +17,32 @@ async function run(name,viewport){
   await page.waitForTimeout(10000);
 
   const state=await page.evaluate(()=>{
+    let renderForecastError=null;
+    try{ if(typeof renderForecastTrail==='function') renderForecastTrail(); }catch(e){ renderForecastError=String(e?.stack||e); }
     const ids=['hypothesisDecision','forecastProof','forecastProofStrip','marketFlow'];
     const boxes=Object.fromEntries(ids.map(id=>{
-      const el=document.getElementById(id),r=el?.getBoundingClientRect();
-      return [id,{exists:!!el,visible:!!r&&r.width>0&&r.height>0,width:r?.width||0,height:r?.height||0,text:(el?.textContent||'').trim().slice(0,500)}];
+      const el=document.getElementById(id),r=el?.getBoundingClientRect(),cs=el?getComputedStyle(el):null;
+      return [id,{exists:!!el,visible:!!r&&r.width>0&&r.height>0,width:r?.width||0,height:r?.height||0,text:(el?.textContent||'').trim().slice(0,500),
+        html:(el?.innerHTML||'').slice(0,1200),display:cs?.display||null,visibility:cs?.visibility||null,opacity:cs?.opacity||null}];
     }));
+    const st=typeof shadowTrailState!=='undefined'?shadowTrailState:null;
     return {
       title:document.title,
       ready:document.readyState,
       width:{inner:window.innerWidth,scroll:document.documentElement.scrollWidth,overflow:document.documentElement.scrollWidth-window.innerWidth},
-      boxes,
+      boxes,renderForecastError,
+      shadowTrail:{present:!!st,version:st?.version||null,outcomes:Array.isArray(st?.outcomes)?st.outcomes.length:null,pending:Array.isArray(st?.pending)?st.pending.length:null,
+        outcome0:Array.isArray(st?.outcomes)&&st.outcomes.length?st.outcomes[0]:null,pending0:Array.isArray(st?.pending)&&st.pending.length?st.pending[0]:null},
       bodyText:(document.body?.innerText||'').slice(0,4000)
     };
   });
   await page.screenshot({path:`${out}/${name}.png`,fullPage:true});
 
   const allowedHttp=httpErrors.filter(x=>!x.url.includes('favicon'));
-  const badMarkers=Object.entries(state.boxes).filter(([,v])=>!v.exists||!v.visible);
   const errors=[];
+  const required=['hypothesisDecision','forecastProof','forecastProofStrip'];
+  const badMarkers=required.map(k=>[k,state.boxes[k]]).filter(([,v])=>!v||!v.exists||!v.visible);
+  if(state.renderForecastError)errors.push('forecast-render:'+state.renderForecastError);
   if(consoleErrors.length)errors.push('console:'+JSON.stringify(consoleErrors));
   if(pageErrors.length)errors.push('pageerror:'+JSON.stringify(pageErrors));
   if(allowedHttp.length)errors.push('http:'+JSON.stringify(allowedHttp));
