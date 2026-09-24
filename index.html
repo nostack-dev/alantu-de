@@ -2078,7 +2078,9 @@ function trajectoryAxisMax(pts,session){
 }
 function refreshTrajectoryDatasets(pts,session,update){
   if(!ivChart)return;
-  clearChartInteraction(ivChart);
+  // Live ticks must not wipe an active hover/long-press tooltip.
+  // Full/range renders still clear stale interaction state.
+  if(update!==false)clearChartInteraction(ivChart);
   ivChart.data.datasets=ivChart.data.datasets.slice(0,3).concat(trajectoryDatasets(pts,session));
   var mx=trajectoryAxisMax(pts,session);
   if(mx&&ivChart.options&&ivChart.options.scales&&ivChart.options.scales.x)ivChart.options.scales.x.max=Math.max(Number(ivChart.options.scales.x.max)||0,mx);
