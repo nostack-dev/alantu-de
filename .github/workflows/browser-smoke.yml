@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           for i in $(seq 1 18); do
-            if curl -fsSL --max-time 15 https://www.alantu.de/ -o /tmp/alantu-live.html && grep -q 'hypothesisDecision' /tmp/alantu-live.html; then
+            if curl -fsSL --max-time 15 https://www.alantu.de/ -o /tmp/alantu-live.html && grep -q 'hypothesisDecision' /tmp/alantu-live.html && grep -q 'Number.isFinite(move)' /tmp/alantu-live.html; then
               exit 0
             fi
             sleep 10
