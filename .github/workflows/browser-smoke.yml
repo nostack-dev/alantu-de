@@ -1,0 +1,49 @@
+name: Browser smoke
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "index.html"
+      - "stockstrend.html"
+      - "tools/browser-smoke.mjs"
+      - ".github/workflows/browser-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-browser-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for current Pages content
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 18); do
+            if curl -fsSL --max-time 15 https://www.alantu.de/ | grep -q 'hypothesisDecision'; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Current ALANTU page did not expose v4 marker in time" >&2
+          exit 1
+      - name: Install Playwright
+        shell: bash
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Desktop and mobile console/render smoke
+        env:
+          SMOKE_URL: https://www.alantu.de/
+          SMOKE_OUT: /tmp/alantu-browser-smoke
+        run: node tools/browser-smoke.mjs
+      - name: Upload visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alantu-browser-smoke
+          path: /tmp/alantu-browser-smoke/*.png
+          if-no-files-found: ignore
