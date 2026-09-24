@@ -40,6 +40,7 @@ const SOURCE_REFRESH_MS=Math.max(8000,Number(process.env.SOURCE_REFRESH_MS||1200
 const SOURCE_MAX_LIVE_LAG_MS=90*1000;
 const SOURCE_MARKET_MATCH_MS=60*1000;
 const SOURCE_ARCHIVE_WINDOW_MS=36*3600000;
+let wgoPreviousCloseCache={checked_at:0,orcl:null,eurusd:null,source:null};
 const WHATS_GOING_ON_PROMPT=`Du erklärst ORCL in höchstens 5 kurzen Sätzen. Beginne mit der Bewegung der letzten 5/10 Minuten. Wenn der aktuelle Zeitraum ruhig ist, aber in den letzten 3 Stunden ein deutlich stärkerer 5/10-Minuten-Impuls lag, nenne diesen mit Uhrzeit und Größe. Ordne danach den heutigen Tagesmove ein und nutze relevante Meldungen der letzten 18 Stunden. Vergleiche den Impuls mit QQQ/SPY, um breiten Marktstress von ORCL-spezifischer Bewegung zu unterscheiden. Priorisiere konkrete Unternehmensereignisse vor allgemeiner Stimmung. Unterscheide klar zwischen belegtem Ereignis, wahrscheinlich relevantem Katalysator und bloßer zeitlicher Korrelation. Keine Kauf-/Verkaufsempfehlung.`;
 let sourceRefreshBusy=false,sourceLastLogAt=0,sourceLastEventAt=null,sourcePrimed=false;
 const sourceSeen=new Map();
@@ -820,9 +821,43 @@ function wgoTone(items){
   let pos=0,neg=0,mixed=0;for(const x of items){const v=termScore(x.summary||x.title||'');if(v>0)pos++;else if(v<0)neg++;else mixed++;}
   return {positive:pos,negative:neg,mixed};
 }
+async function wgoYahooPreviousClose(symbol){
+  const enc=encodeURIComponent(symbol),urls=[
+    'https://query1.finance.yahoo.com/v8/finance/chart/'+enc+'?range=5d&interval=1d&includePrePost=false&events=div%2Csplits',
+    'https://query2.finance.yahoo.com/v8/finance/chart/'+enc+'?range=5d&interval=1d&includePrePost=false&events=div%2Csplits'
+  ];
+  for(const url of urls){
+    try{
+      const r=await fetch(url,{headers:{'user-agent':'Mozilla/5.0','accept':'application/json'},signal:AbortSignal.timeout(7000)});
+      if(!r.ok)continue;
+      const j=await r.json(),x=j?.chart?.result?.[0],m=x?.meta||{};
+      for(const v of [m.chartPreviousClose,m.previousClose]){
+        const n=Number(v);if(Number.isFinite(n)&&n>0)return n;
+      }
+      const closes=(x?.indicators?.quote?.[0]?.close||[]).map(Number).filter(n=>Number.isFinite(n)&&n>0);
+      if(closes.length>=2)return closes[closes.length-2];
+    }catch{}
+  }
+  return null;
+}
+async function refreshWgoPreviousCloses(now=Date.now()){
+  if(now-Number(wgoPreviousCloseCache.checked_at||0)<5*60000&&wgoPreviousCloseCache.orcl&&wgoPreviousCloseCache.eurusd)return wgoPreviousCloseCache;
+  const [orcl,eurusd]=await Promise.all([wgoYahooPreviousClose('ORCL'),wgoYahooPreviousClose('EURUSD=X')]);
+  if(orcl&&eurusd)wgoPreviousCloseCache={checked_at:now,orcl,eurusd,source:'yahoo_chart_previous_close'};
+  else wgoPreviousCloseCache={...wgoPreviousCloseCache,checked_at:now};
+  return wgoPreviousCloseCache;
+}
+function wgoLatestYahoo(symbol){
+  const a=yahooSeries[symbol]||[];return a.length?a[a.length-1]:null;
+}
 function wgoDayPrice(){
   const live=yahooSeries.ORCL||[],ctx=wgoSeries.ORCL||[],a=live.length?live:ctx,last=a.length?a[a.length-1]:null;if(!last||!(Number(last.p)>0))return {available:false};
-  const p=Number(last.p);
+  const p=Number(last.p),fxNow=Number(wgoLatestYahoo('EURUSD=X')?.p),base=wgoPreviousCloseCache||{};
+  if(Number(base.orcl)>0&&Number(base.eurusd)>0&&fxNow>0){
+    const currentEur=p/fxNow,previousEur=Number(base.orcl)/Number(base.eurusd);
+    return {available:true,current:p,current_eur:currentEur,previous_close:Number(base.orcl),previous_close_eur:previousEur,pct:(currentEur/previousEur-1)*100,
+      at:new Date(Number(last.t||last.recv_at)).toISOString(),currency:'EUR',basis:'yahoo_chart_previous_close_fx'};
+  }
   let prev=null,cp=null;
   for(let i=ctx.length-1;i>=0&&!(prev>0);i--){const v=Number(ctx[i].previous_close);if(Number.isFinite(v)&&v>0)prev=v;}
   for(let i=live.length-1;i>=0&&!(prev>0);i--){const v=Number(live[i].previous_close);if(Number.isFinite(v)&&v>0)prev=v;}
@@ -830,10 +865,10 @@ function wgoDayPrice(){
     for(let i=ctx.length-1;i>=0&&!Number.isFinite(cp);i--){const v=Number(ctx[i].change_pct);if(Number.isFinite(v))cp=v;}
     for(let i=live.length-1;i>=0&&!Number.isFinite(cp);i--){const v=Number(live[i].change_pct);if(Number.isFinite(v))cp=v;}
   }
-  if(prev>0)return {available:true,current:p,previous_close:prev,pct:(p/prev-1)*100,at:new Date(Number(last.t||last.recv_at)).toISOString(),basis:'previous_close'};
-  if(Number.isFinite(cp))return {available:true,current:p,previous_close:null,pct:cp,at:new Date(Number(last.t||last.recv_at)).toISOString(),basis:'stream_change_pct'};
+  if(prev>0)return {available:true,current:p,previous_close:prev,pct:(p/prev-1)*100,at:new Date(Number(last.t||last.recv_at)).toISOString(),currency:'USD',basis:'stream_previous_close'};
+  if(Number.isFinite(cp))return {available:true,current:p,previous_close:null,pct:cp,at:new Date(Number(last.t||last.recv_at)).toISOString(),currency:'USD',basis:'stream_change_pct'};
   const cut=Date.now()-14*3600000,rows=ctx.filter(e=>Number(e.t||e.recv_at)>=cut&&Number(e.p)>0);
-  if(rows.length>1){const first=Number(rows[0].p);return {available:true,current:p,previous_close:null,pct:first>0?(p/first-1)*100:null,at:new Date(Number(last.t||last.recv_at)).toISOString(),basis:'14h_runtime_fallback'};}
+  if(rows.length>1){const first=Number(rows[0].p);return {available:true,current:p,previous_close:null,pct:first>0?(p/first-1)*100:null,at:new Date(Number(last.t||last.recv_at)).toISOString(),currency:'USD',basis:'14h_runtime_fallback'};}
   return {available:false,current:p,at:new Date(Number(last.t||last.recv_at)).toISOString()};
 }
 function wgoMarketContext(minutes,anchorMs){
@@ -895,7 +930,7 @@ function wgoDeterministic(minutes,now=Date.now()){
       ?(' Der stärkste '+minutes+'-Minuten-'+(shockPct<0?'Abverkauf':'Anstieg')+' heute war '+(shockPct>=0?'+':'')+shockPct.toFixed(2)+' % zwischen '+t0+' und '+t1+'.')
       :(' Der relevante jüngste Impuls war '+(shockPct<0?'ein Rückgang':'ein Anstieg')+' von '+shockAbs.toFixed(2)+' % zwischen '+t0+' und '+t1+'.');
   }
-  const daySentence=day.available&&Number.isFinite(Number(day.pct))?(' Heute liegt ORCL gegenüber der verfügbaren Tagesbasis bei '+(day.pct>=0?'+':'')+Number(day.pct).toFixed(2)+' %.'):'';
+  const daySentence=day.available&&Number.isFinite(Number(day.pct))?(' Heute liegt ORCL gegenüber dem Vortag'+(day.currency==='EUR'?' in EUR':'')+' bei '+(day.pct>=0?'+':'')+Number(day.pct).toFixed(2)+' %.'):'';
   let marketSentence='';
   if(Number.isFinite(market.average_pct)){
     const ref=Math.abs(market.average_pct),orclRef=Math.abs(shock?shockPct:pct||0);
@@ -919,6 +954,7 @@ async function wgoAiBrief(base){
   }catch{return null;}
 }
 async function whatsGoingOn(minutes){
+  await refreshWgoPreviousCloses();
   const m=minutes===5?5:10,base=wgoDeterministic(m);base.minutes=m;base.generated_at=new Date().toISOString();
   const ai=await wgoAiBrief(base);return {...base,brief:ai||base.brief,mode:ai?'ai':'deterministic',prompt_contract:'short_window_plus_recent_shock_plus_market_and_18h_catalyst_context'};
 }
