@@ -244,6 +244,11 @@
   #forecastProof[open] .forecast-proof-score span{font-size:0}
   #forecastProof[open] .forecast-proof-score span:after{content:'schließen';font-size:9px}
   .forecast-proof-body{padding:0 14px 14px!important}
+  .forecast-research-stack{padding:2px 0 12px!important;border-bottom:1px solid #ededf0!important;margin-bottom:12px!important}
+  .forecast-research-stack .wave-forecast-strip{margin:0 0 8px!important}
+  .forecast-research-stack .hypothesis-decision,
+  .forecast-research-stack .v5-research,
+  .forecast-research-stack .trajectory-note{margin-top:8px!important}
   @media(max-width:700px){
     .model-decision{margin-top:16px!important;padding:13px 14px!important}
     .model-decision-main{font-size:18px!important}
@@ -824,10 +829,6 @@
     <div class="mini-range" id="priceRange" aria-label="Zeitraum Kurs und Wert">
       <button type="button" data-price-range="1d">1T</button><button type="button" data-price-range="1w">1W</button><button type="button" data-price-range="1m">1M</button><button type="button" data-price-range="year">1J</button><button type="button" data-price-range="5y">5J</button><button type="button" data-price-range="all">MAX</button>
     </div>
-    <div class="wave-forecast-strip" id="waveForecasts" aria-live="polite"></div>
-    <div class="hypothesis-decision" id="hypothesisDecision" aria-live="polite"></div>
-    <div class="v5-research" id="v5Research" aria-live="polite"></div>
-    <div class="trajectory-note" id="trajectoryNote"><span><strong>1T Projektionspfad</strong> · Konsenspfad + Unsicherheitsband</span><span>Shadow · keine Kurszusage</span></div>
     <details class="forecast-proof" id="forecastProof">
       <summary class="forecast-proof-head">
         <div>
@@ -840,6 +841,12 @@
         </div>
       </summary>
       <div class="forecast-proof-body">
+        <div class="forecast-research-stack">
+          <div class="wave-forecast-strip" id="waveForecasts" aria-live="polite"></div>
+          <div class="hypothesis-decision" id="hypothesisDecision" aria-live="polite"></div>
+          <div class="v5-research" id="v5Research" aria-live="polite"></div>
+          <div class="trajectory-note" id="trajectoryNote"><span><strong>1T Projektionspfad</strong> · Konsenspfad + Unsicherheitsband</span><span>Shadow · keine Kurszusage</span></div>
+        </div>
         <div class="forecast-proof-toolbar">
           <div class="forecast-legend" aria-label="Legende">
             <span><i class="forecast-status-key hit"></i> mehr Treffer</span>

@@ -57,19 +57,20 @@ async function run(name,viewport){
 
   const allowedHttp=httpErrors.filter(x=>!x.url.includes('favicon'));
   const errors=[];
-  const required=['modelDecision','hypothesisDecision','v5Research','forecastProof'];
+  const required=['modelDecision','forecastProof'];
   const badMarkers=required.map(k=>[k,state.boxes[k]]).filter(([,v])=>!v||!v.exists||!v.visible);
+  const hiddenResearch=['hypothesisDecision','v5Research','forecastProofStrip'].filter(k=>state.boxes[k]&&state.boxes[k].visible);
   if(state.renderForecastError)errors.push('forecast-render:'+state.renderForecastError);
   if(consoleErrors.length)errors.push('console:'+JSON.stringify(consoleErrors));
   if(pageErrors.length)errors.push('pageerror:'+JSON.stringify(pageErrors));
   if(allowedHttp.length)errors.push('http:'+JSON.stringify(allowedHttp));
   if(failed.length)errors.push('requestfailed:'+JSON.stringify(failed));
   if(badMarkers.length)errors.push('hidden:'+JSON.stringify(badMarkers));
+  if(hiddenResearch.length)errors.push('research-visible-while-collapsed:'+JSON.stringify(hiddenResearch));
   if(state.width.overflow>4)errors.push('horizontal-overflow:'+state.width.overflow);
   if(Array.isArray(state.chartEvents)&&state.chartEvents.length)errors.push('live-chart-events-enabled:'+JSON.stringify(state.chartEvents));
   if(!state.bodyText.includes('Prognosen vs. Realität'))errors.push('forecast-label-missing');
-  if(!state.bodyText.includes('v4 Regime'))errors.push('v4-label-missing');
-  if(!state.bodyText.includes('v5 ·'))errors.push('v5-label-missing');
+  if(!state.modelDecisionText.includes('MODELLSTATUS:'))errors.push('model-status-text-missing');
   if(!state.forecastCollapsed)errors.push('forecast-not-collapsed-by-default');
   if(!/MODELLSTATUS: (KAUFSIGNAL|KEIN KAUFSIGNAL|VERKAUFSSIGNAL)/.test(state.modelDecisionText))errors.push('model-decision-missing');
 
