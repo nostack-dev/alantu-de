@@ -726,7 +726,6 @@
       const texture=configureAlantuPageTexture(new THREE.CanvasTexture(canvas),{
         renderer,
         linearFilter:THREE.LinearFilter,
-        mipmapFilter:THREE.LinearMipmapLinearFilter,
         colorSpace:THREE.SRGBColorSpace
       });
 
@@ -881,7 +880,6 @@
       return configureAlantuPageTexture(texture,{
         renderer,
         linearFilter:THREE.LinearFilter,
-        mipmapFilter:THREE.LinearMipmapLinearFilter,
         colorSpace:THREE.SRGBColorSpace
       });
     }
@@ -894,7 +892,6 @@
       return configureAlantuPageTexture(texture,{
         renderer,
         linearFilter:THREE.LinearFilter,
-        mipmapFilter:THREE.LinearMipmapLinearFilter,
         colorSpace:THREE.SRGBColorSpace
       });
     }
@@ -1586,7 +1583,18 @@
     const preloadManifest=queryParams.get("manifest");
     const preloadPdf=queryParams.get("pdf");
     if(preloadManifest){
-      loadPageManifest(preloadManifest).catch(err=>{
+      loadPageManifest(preloadManifest).catch(async err=>{
+        console.warn("High-res demo pages unavailable, falling back to PDF.",err);
+        if(preloadPdf){
+          try{
+            await loadPdfFromUrl(preloadPdf);
+            return;
+          }catch(pdfErr){
+            console.error(pdfErr);
+            setStatus(pdfErr?.message||"Demo-PDF konnte nicht geladen werden.","error");
+            return;
+          }
+        }
         console.error(err);
         setStatus(err?.message||"Demo konnte nicht geladen werden.","error");
       });
