@@ -204,8 +204,9 @@ jobs:
           grep -q 'function pollMicroShadow' index.html
           ! grep -q 'new EventSource' index.html
           grep -q "fetchJson('microstructure-live-config.json',true)" index.html
-          grep -q "cfg.transport!=='sse'" index.html
-          grep -q "typeof EventSource==='undefined'" index.html
+          grep -q "cfg.transport!=='poll'" index.html
+          grep -q '"transport": "poll"' microstructure-live-config.json
+          grep -q 'alantu-market-production.up.railway.app' microstructure-live-config.json
           grep -q 'streamer.finance.yahoo.com' index.html
           grep -q "fetchJson('microstructure-edge-status.json',true)" index.html
           grep -q "f.kind==='micro'" index.html

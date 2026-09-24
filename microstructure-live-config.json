@@ -1,11 +1,11 @@
 {
   "enabled": true,
-  "endpoint": "https://alantu-market-production.up.railway.app/v1/stream?symbol=ORCL",
-  "transport": "sse",
+  "endpoint": "https://alantu-market-production.up.railway.app",
+  "transport": "poll",
   "provider": "auto",
-  "feed": "event-stream",
+  "feed": "json-poll",
   "dataset": "raw-provider-events",
   "model_id": null,
   "activation_reason": "zero_key_yahoo_shadow_with_alpaca_upgrade_path",
-  "checked_at": "2026-09-23T09:56:03.260Z"
+  "checked_at": "2026-09-24T07:42:25.293Z"
 }
