@@ -89,6 +89,8 @@ jobs:
 
           test -s assets/sunside-living-expose.pdf
           file assets/sunside-living-expose.pdf | grep -qi PDF
+          test -s assets/sunside-living-pages/manifest.json
+          test "$(grep -o 'page-[0-9][0-9]\.webp' assets/sunside-living-pages/manifest.json | wc -l)" -eq 17
       - name: Wait for current landing, builder, and brochure asset
         shell: bash
         run: |
@@ -125,6 +127,9 @@ jobs:
             -o /tmp/sunside-live.pdf
           test -s /tmp/sunside-live.pdf
           file /tmp/sunside-live.pdf | grep -qi PDF
+
+          wait_for "https://www.alantu.de/assets/sunside-living-pages/manifest.json?smoke=${{ github.sha }}" /tmp/sunside-manifest.json \
+            '"title": "Konstanz Wollmatingen Exposé"' '"page-17.webp"'
       - name: Install Playwright
         shell: bash
         run: |
