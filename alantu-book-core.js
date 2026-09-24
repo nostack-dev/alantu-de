@@ -324,18 +324,10 @@ export function createAlantuBookCore(options){
 
     pos.needsUpdate=true;
 
-    // Geometry stays display-refresh smooth; lighting normals are refreshed
-    // only when curvature moved enough to matter visually. This removes work
-    // near rest without imposing any 30fps/60fps animation cap.
-    const lastNormal=Number(pivot.userData.lastNormalProgress);
-    if(
-      endpoint!==null||
-      !Number.isFinite(lastNormal)||
-      Math.abs(p-lastNormal)>=.012
-    ){
-      geometry.computeVertexNormals();
-      pivot.userData.lastNormalProgress=p;
-    }
+    // Keep the active sheet visually identical to the proven turn model:
+    // normals follow every display frame. Static resting sheets are still
+    // skipped above, so this does not impose an FPS cap.
+    geometry.computeVertexNormals();
 
     if(endpoint!==null)pivot.userData.staticProgress=endpoint;
     pivot.rotation.set(0,0,0);
