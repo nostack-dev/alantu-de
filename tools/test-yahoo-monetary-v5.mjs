@@ -45,5 +45,7 @@ for(let d=0;d<12;d++)for(let i=0;i<16;i++){
 const summary=summarizeV5State({outcomes,started_at:'2026-09-01T00:00:00Z'});
 assert.equal(summary.proof['5'].model.ready,true);
 assert.equal(summary.proof['5'].gate.status,'validated');
-assert.equal(summary.production.enabled,true);
+assert.equal(summary.production.enabled,false);
+assert.equal(summary.production.reason,'execution_prices_and_realized_costs_not_validated');
+assert.equal(summary.research.validated_horizons.includes(5),true);
 console.log('yahoo-monetary-v5 tests ok');
