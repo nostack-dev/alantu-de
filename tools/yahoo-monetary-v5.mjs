@@ -109,7 +109,8 @@ export function extractV5Features(series,nowMs=Date.now()){
     flow5:squash(self[5]?.flow_ratio,.5),flow15:squash(self[15].flow_ratio,.5),flow60:squash(self[60].flow_ratio,.5),
     flow_delta_5_15:squash((self[5]?.flow_ratio||0)-self[15].flow_ratio,.4),flow_delta:squash(self[15].flow_ratio-self[60].flow_ratio,.4),
     event_rate_ratio:squash(rateRatio,1.5),vol60:squash(self[60].realized_bps,20),vol300:squash(self[300].realized_bps,45),
-    latency:squash(latency||0,2500),coverage:clamp((minCoverage-.55)/.45,-1,1)
+    // Delivery lag is diagnostic only. Transport/network timing must never become a market feature.
+    latency:0,coverage:clamp((minCoverage-.55)/.45,-1,1)
   };
   const vector=V5_FEATURE_NAMES.map(k=>featureValue(f[k]));
   return {
