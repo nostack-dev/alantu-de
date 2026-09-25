@@ -653,6 +653,58 @@ export function createAlantuBookCore(options){
       : currentLeaf;
   }
 
+  let touchAxisLock=null;
+
+  function touchStart(e){
+    if(e.touches?.length!==1){
+      touchAxisLock=null;
+      return;
+    }
+    if(ignorePointerSelector&&e.target.closest?.(ignorePointerSelector)){
+      touchAxisLock=null;
+      return;
+    }
+    const touch=e.touches[0];
+    touchAxisLock={
+      startX:touch.clientX,
+      startY:touch.clientY,
+      axis:null
+    };
+  }
+
+  function touchMove(e){
+    if(!touchAxisLock||e.touches?.length!==1)return;
+    const touch=e.touches[0];
+    const dx=touch.clientX-touchAxisLock.startX;
+    const dy=touch.clientY-touchAxisLock.startY;
+    const ax=Math.abs(dx);
+    const ay=Math.abs(dy);
+
+    if(!touchAxisLock.axis){
+      // Decide early enough that Safari cannot hand a diagonal page swipe to
+      // document scrolling first, but leave genuine vertical scrolling alone.
+      if(Math.max(ax,ay)<6)return;
+      if(ax>ay*.72){
+        touchAxisLock.axis="x";
+        stage.classList.add("is-book-scroll-locked");
+      }else if(ay>ax*1.12){
+        touchAxisLock.axis="y";
+        if(dragState)releaseDrag(true);
+      }else{
+        return;
+      }
+    }
+
+    if(touchAxisLock.axis==="x"&&e.cancelable){
+      e.preventDefault();
+    }
+  }
+
+  function touchEnd(){
+    touchAxisLock=null;
+    stage.classList.remove("is-book-scroll-locked");
+  }
+
   function pointerDown(e){
     if(e.pointerType==="mouse"&&e.button!==0)return;
     if(getTotalLeaves()<=0)return;
@@ -843,6 +895,10 @@ export function createAlantuBookCore(options){
   }
 
   stage.addEventListener("contextmenu",e=>e.preventDefault());
+  stage.addEventListener("touchstart",touchStart,{passive:true});
+  stage.addEventListener("touchmove",touchMove,{passive:false});
+  stage.addEventListener("touchend",touchEnd,{passive:true});
+  stage.addEventListener("touchcancel",touchEnd,{passive:true});
   stage.addEventListener("pointerdown",pointerDown);
   stage.addEventListener("pointermove",pointerMove);
   stage.addEventListener("pointerup",pointerUp);
