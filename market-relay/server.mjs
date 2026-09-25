@@ -92,13 +92,33 @@ function recencyWeight(ms,now=Date.now()){
   const age=Math.max(0,now-Number(ms||0));
   return age<=15000?1.35:age<=45000?1.15:age<=SOURCE_MAX_LIVE_LAG_MS?1:0;
 }
-function dedupeStories(items){
+const STORY_STOP=new Set('oracle corporation stock shares share market markets says said amid after before with from into over under about this that will could would should their its the and for are has have new latest report reports'.split(' '));
+function storyTokens(title){
+  return new Set(normalizedText(title).split(' ').filter(x=>x.length>=3&&!STORY_STOP.has(x)));
+}
+function nearDuplicateStory(a,b){
+  const A=storyTokens(a?.title),B=storyTokens(b?.title);if(A.size<4||B.size<4)return false;
+  let common=0;for(const x of A)if(B.has(x))common++;
+  const overlap=common/Math.min(A.size,B.size),jaccard=common/(A.size+B.size-common);
+  return overlap>=.82||jaccard>=.68;
+}
+function dedupeStories(items,fuzzy=false){
   const seen=new Set(),out=[];
   for(const x of items||[]){
     const key=normalizedText(x.title);if(!key||seen.has(key))continue;
+    if(fuzzy&&out.some(y=>nearDuplicateStory(x,y)))continue;
     seen.add(key);out.push(x);
   }
   return out.sort((a,b)=>Number(b.time||0)-Number(a.time||0));
+}
+function marketRelevantStory(x){
+  const s=normalizedText(x?.title||'');
+  if(!s)return false;
+  if(/\borcl\b/.test(s))return true;
+  if(!/\boracle\b/.test(s))return false;
+  const material=/\b(stock|share|shares|earnings|revenue|profit|margin|guidance|cloud|oci|ai|openai|stargate|datacenter|data center|capex|debt|bond|financing|contract|deal|analyst|rating|price target|dividend|acquisition|lawsuit|sec|investor|force majeure|blue owl|project jupiter|tiktok|database|java|software|healthcare|fusion|netsuite|partnership|customer)\b/;
+  const nonMarket=/\b(academy|university|workshop|student|students|award|awards|certification|education|classroom|training course)\b/;
+  return material.test(s)&&!(nonMarket.test(s)&&!/(stock|earnings|revenue|investor|contract|deal|cloud|oci|ai|database)/.test(s));
 }
 async function tickerTick(query,n){
   const u=new URL('https://api.tickertick.com/feed');u.searchParams.set('q',query);u.searchParams.set('n',String(n));
@@ -318,7 +338,7 @@ function sourceItem(x,type,now=Date.now(),liveKeys=new Set(),delayedKeys=new Set
     version:'source-event-v2',type,channel,title:String(x.title||'').slice(0,320),
     summary:String(x.title||'').replace(/\s+/g,' ').trim().slice(0,260),
     url:String(x.url||''),site:String(x.site||''),provider:String(x.site||channel),time,key,
-    canonical_story_id:canonicalStoryId(x),entity_relevance:'orcl_query_match',
+    canonical_story_id:canonicalStoryId(x),entity_relevance:'orcl_market_material',
     source_quality:sourceQuality(channel,x.site),engagement:x.engagement||null,
     live:liveKeys.has(key),new:liveKeys.has(key)||delayedKeys.has(key),delayed:delayedKeys.has(key),
     novelty:(liveKeys.has(key)||delayedKeys.has(key))?'first_seen':'known',
@@ -345,7 +365,7 @@ function channelPulse(items,now){
 }
 function deriveSourceState(news,social,providers,status='ok'){
   const now=Date.now();
-  const newsArchive=dedupeStories(news).filter(x=>Number(x.time)>=now-SOURCE_ARCHIVE_WINDOW_MS).map(x=>({...x,_type:'news'}));
+  const newsArchive=dedupeStories((news||[]).filter(marketRelevantStory),true).filter(x=>Number(x.time)>=now-SOURCE_ARCHIVE_WINDOW_MS).map(x=>({...x,_type:'news'}));
   const socialArchive=dedupeStories(social).filter(x=>Number(x.time)>=now-SOURCE_ARCHIVE_WINDOW_MS).map(x=>({...x,_type:'social'}));
   const archiveRaw=[...newsArchive,...socialArchive].sort((a,b)=>Number(b.time)-Number(a.time));
 
@@ -386,7 +406,7 @@ function deriveSourceState(news,social,providers,status='ok'){
   const archiveMixed=archiveTotal?Math.max(0,100-archiveBull-archiveBear):null;
   const archiveNet=archiveTotal?archiveBull-archiveBear:null;
   const archiveSentiment={
-    role:'descriptive_only_not_model_signal',method:'equal_weight_unique_events_keyword_lean',
+    role:'descriptive_only_not_model_signal',method:'equal_weight_unique_market_events_keyword_lean',
     bull:archiveBull,bear:archiveBear,mixed:archiveMixed,net:archiveNet,
     score:archiveNet==null?null:Math.max(0,Math.min(100,Math.round(50+archiveNet/2))),
     unique_events:archiveTotal
@@ -440,7 +460,7 @@ async function refreshSources(){
     const redditAggregate=by.reddit_aggregate.items[0]||null;
     const sourceHealth=Object.fromEntries(['ticker_news','ticker_ugc','entity_ugc','reddit','x','bluesky','google_news'].map(k=>[k,{status:by[k].status,count:by[k].items.length,error:by[k].error||null}]));
     sourceHealth.x.enabled=xEnabled;
-    const news=dedupeStories(ttNews.concat(gnews)).slice(0,240);
+    const news=dedupeStories(ttNews.concat(gnews).filter(marketRelevantStory),true).slice(0,240);
     const relevant=entity.filter(x=>/\$orcl\b|\borcl\b/i.test(x.title)||(/oracle/i.test(x.title)&&/stock|share|earn|cloud|ai|market|bull|bear|buy|sell|valuation|price|contract|capex/i.test(x.title)));
     const social=dedupeStories(ticker.concat(relevant,reddit,x,bluesky)).slice(0,600);
     if(!news.length&&!social.length)throw new Error('No sentiment sources available');
