@@ -1,15 +1,15 @@
 {
-  "updated_at": "2026-09-25T17:09:06+02:00",
+  "updated_at": "2026-09-25T21:15:31+02:00",
   "sources": {
     "source_state": {
       "ok": true,
       "contract": "source-event-v3",
       "role": "raw_observation_only",
       "interpretation_status": "unvalidated_not_used",
-      "checked_at": "2026-09-25T15:08:58.791Z",
-      "archive_count": 140,
+      "checked_at": "2026-09-25T19:15:28.325Z",
+      "archive_count": 132,
       "archive_source_counts": {
-        "news": 137,
+        "news": 129,
         "reddit": 3,
         "x": 0,
         "bluesky": 0,
@@ -19,27 +19,27 @@
         "role": "observed_only",
         "model_eligible": false,
         "direction": null,
-        "unique_events_36h": 140,
+        "unique_events_36h": 132,
         "first_seen_windows": {
           "m1": 0,
           "m5": 0,
           "m15": 1,
-          "m60": 2
+          "m60": 3
         }
       },
       "social_aggregates": {
         "reddit": {
           "provider": "apewisdom.io",
-          "mentions_24h": 31,
-          "checked_at": "2026-09-25T15:08:34.489Z",
+          "mentions_24h": 22,
+          "checked_at": "2026-09-25T19:15:04.370Z",
           "interpretation_status": "not_imported"
         }
       }
     },
     "yahoo": {
       "ok": true,
-      "price": 138.17999267578125,
-      "price_at": "2026-09-25T15:08:57.000Z"
+      "price": 137.86000061035156,
+      "price_at": "2026-09-25T19:15:29.000Z"
     }
   },
   "derived": {
@@ -50,12 +50,12 @@
       "role": "observed_only",
       "model_eligible": false,
       "direction": null,
-      "unique_events_36h": 140,
+      "unique_events_36h": 132,
       "first_seen_windows": {
         "m1": 0,
         "m5": 0,
         "m15": 1,
-        "m60": 2
+        "m60": 3
       }
     }
   }

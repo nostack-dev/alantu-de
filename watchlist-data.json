@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-25T17:09:06+02:00",
+  "updated_at": "2026-09-25T21:15:31+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,7 +9,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-25T15:08:58.791Z",
+        "at": "2026-09-25T19:15:28.325Z",
         "signal": null,
         "confidence": null,
         "source_contract": "source-event-v3",
@@ -19,12 +19,12 @@
           "role": "observed_only",
           "model_eligible": false,
           "direction": null,
-          "unique_events_36h": 140,
+          "unique_events_36h": 132,
           "first_seen_windows": {
             "m1": 0,
             "m5": 0,
             "m15": 1,
-            "m60": 2
+            "m60": 3
           }
         }
       },
@@ -7097,13 +7097,13 @@
       "hype_net": null,
       "confidence": null,
       "hype_state": null,
-      "updated_at": "2026-09-25T15:08:58.791Z",
-      "why": "Beobachtete Quellenaktivität: 137 News · 3 Social / 36h. Keine Richtungswertung ohne validiertes Feature.",
+      "updated_at": "2026-09-25T19:15:28.325Z",
+      "why": "Beobachtete Quellenaktivität: 129 News · 3 Social / 36h. Keine Richtungswertung ohne validiertes Feature.",
       "evidence": {
         "source_contract": "source-event-v3",
         "role": "raw_observation_only",
         "interpretation_status": "unvalidated_not_used",
-        "news": 137,
+        "news": 129,
         "reddit_posts": 3,
         "x_posts": 0,
         "bluesky_posts": 0,
@@ -7111,15 +7111,15 @@
         "external_unvalidated_aggregates": {
           "reddit": {
             "provider": "apewisdom.io",
-            "mentions_24h": 31,
-            "checked_at": "2026-09-25T15:08:34.489Z",
+            "mentions_24h": 22,
+            "checked_at": "2026-09-25T19:15:04.370Z",
             "interpretation_status": "not_imported"
           }
         },
         "snippets": [
-          "AI financing fears are mounting, sparked by Oracle's force majeure notice - Yahoo Finance",
-          "Oracle’s $165 Billion AI Data Center Is Flashing a Warning Sign - inc.com",
-          "Oracle's Stock Falls 3.5% on Data Center Delay Concerns - The Globe and Mail"
+          "Bloom Energy Stock Is Today’s Top S&P 500 Performer. It Has a Lot to Do With Oracle. - Barron's",
+          "Analysts Offer Insights on Technology Companies: SAP SE (SAP) and Oracle (ORCL) - The Globe and Mail",
+          "From vision to reality: how Oracle is shaping the next era of healthcare - Oracle Blogs"
         ]
       },
       "voices": {
@@ -7130,18 +7130,18 @@
       },
       "hype_mixed": null,
       "sentiment_unit": "retired_unvalidated",
-      "price": 138.17999267578125,
+      "price": 137.86000061035156,
       "sentiment_role": "retired_unvalidated",
       "source_activity": {
         "role": "observed_only",
         "model_eligible": false,
         "direction": null,
-        "unique_events_36h": 140,
+        "unique_events_36h": 132,
         "first_seen_windows": {
           "m1": 0,
           "m5": 0,
           "m15": 1,
-          "m60": 2
+          "m60": 3
         }
       },
       "source_activity_history": [
@@ -7171,6 +7171,20 @@
             "m5": 0,
             "m15": 1,
             "m60": 2
+          }
+        },
+        {
+          "at": "2026-09-25T19:15:28.325Z",
+          "archive_count": 132,
+          "news": 129,
+          "social": 3,
+          "new_count": 0,
+          "live_count": 0,
+          "first_seen_windows": {
+            "m1": 0,
+            "m5": 0,
+            "m15": 1,
+            "m60": 3
           }
         }
       ]

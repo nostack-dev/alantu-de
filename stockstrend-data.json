@@ -1,29 +1,29 @@
 {
-  "updated_at": "2026-09-25T17:09:06+02:00",
+  "updated_at": "2026-09-25T21:15:31+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-25T17:09:06+02:00",
-    "scraped_at": "2026-09-25T17:09:06+02:00",
+    "tick_id": "2026-09-25T21:15:31+02:00",
+    "scraped_at": "2026-09-25T21:15:31+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "CanonicalEventStream": {
         "status": "quiet",
         "provider": "Railway source-event-v3",
         "role": "raw_observation_only",
-        "checked_at": "2026-09-25T15:08:58.791Z",
-        "latest_published_at": "2026-09-25T14:34:11.000Z",
-        "items": 140,
+        "checked_at": "2026-09-25T19:15:28.325Z",
+        "latest_published_at": "2026-09-25T18:41:00.000Z",
+        "items": 132,
         "window": "36h",
         "activity": {
           "role": "observed_only",
           "model_eligible": false,
           "direction": null,
-          "unique_events_36h": 140,
+          "unique_events_36h": 132,
           "first_seen_windows": {
             "m1": 0,
             "m5": 0,
             "m15": 1,
-            "m60": 2
+            "m60": 3
           }
         }
       },
@@ -31,16 +31,16 @@
         "status": "ok",
         "items": 1,
         "prices": {
-          "ORCL": 138.17999267578125
+          "ORCL": 137.86000061035156
         },
-        "price_at": "2026-09-25T15:08:57.000Z",
+        "price_at": "2026-09-25T19:15:29.000Z",
         "note": "Yahoo chart 5d/1m price feed"
       }
     },
     "totals": {
-      "content_items_usable": 140,
+      "content_items_usable": 132,
       "breakdown": {
-        "news": 137,
+        "news": 129,
         "reddit": 3,
         "x_posts": 0,
         "bluesky": 0,
@@ -48,11 +48,11 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-25T15:08:58.791Z",
-      "latest_published_at": "2026-09-25T14:34:11.000Z",
+      "freshest_absolute": "2026-09-25T19:15:28.325Z",
+      "latest_published_at": "2026-09-25T18:41:00.000Z",
       "primary_signal": "Railway source-event-v3",
       "quality": "single source of truth · raw observations only",
-      "scrape_berlin": "2026-09-25T15:08:58.791Z",
+      "scrape_berlin": "2026-09-25T19:15:28.325Z",
       "sample_window": "individual events ≤36h; first_seen_at is actionable clock",
       "freshest_item_age": "",
       "oldest_usable_signal": ""
@@ -482,12 +482,12 @@
         "signal": null,
         "confidence": null,
         "social_impulse": null,
-        "why": "Beobachtete Quellenaktivität: 137 News · 3 Social / 36h. Keine Richtungswertung ohne validiertes Feature.",
+        "why": "Beobachtete Quellenaktivität: 129 News · 3 Social / 36h. Keine Richtungswertung ohne validiertes Feature.",
         "evidence": {
           "source_contract": "source-event-v3",
           "role": "raw_observation_only",
           "interpretation_status": "unvalidated_not_used",
-          "news": 137,
+          "news": 129,
           "reddit_posts": 3,
           "x_posts": 0,
           "bluesky_posts": 0,
@@ -495,28 +495,28 @@
           "external_unvalidated_aggregates": {
             "reddit": {
               "provider": "apewisdom.io",
-              "mentions_24h": 31,
-              "checked_at": "2026-09-25T15:08:34.489Z",
+              "mentions_24h": 22,
+              "checked_at": "2026-09-25T19:15:04.370Z",
               "interpretation_status": "not_imported"
             }
           },
           "snippets": [
-            "AI financing fears are mounting, sparked by Oracle's force majeure notice - Yahoo Finance",
-            "Oracle’s $165 Billion AI Data Center Is Flashing a Warning Sign - inc.com",
-            "Oracle's Stock Falls 3.5% on Data Center Delay Concerns - The Globe and Mail"
+            "Bloom Energy Stock Is Today’s Top S&P 500 Performer. It Has a Lot to Do With Oracle. - Barron's",
+            "Analysts Offer Insights on Technology Companies: SAP SE (SAP) and Oracle (ORCL) - The Globe and Mail",
+            "From vision to reality: how Oracle is shaping the next era of healthcare - Oracle Blogs"
           ]
         },
-        "price": 138.17999267578125,
+        "price": 137.86000061035156,
         "source_activity": {
           "role": "observed_only",
           "model_eligible": false,
           "direction": null,
-          "unique_events_36h": 140,
+          "unique_events_36h": 132,
           "first_seen_windows": {
             "m1": 0,
             "m5": 0,
             "m15": 1,
-            "m60": 2
+            "m60": 3
           }
         }
       }
@@ -527,11 +527,11 @@
   "signals_disclaimer": "",
   "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
   "freshness": {
-    "freshest_absolute": "2026-09-25T15:08:58.791Z",
-    "latest_published_at": "2026-09-25T14:34:11.000Z",
+    "freshest_absolute": "2026-09-25T19:15:28.325Z",
+    "latest_published_at": "2026-09-25T18:41:00.000Z",
     "primary_signal": "Railway source-event-v3",
     "quality": "single source of truth · raw observations only",
-    "scrape_berlin": "2026-09-25T15:08:58.791Z",
+    "scrape_berlin": "2026-09-25T19:15:28.325Z",
     "sample_window": "individual events ≤36h; first_seen_at is actionable clock",
     "freshest_item_age": "",
     "oldest_usable_signal": ""
