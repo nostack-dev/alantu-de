@@ -1,5 +1,4 @@
-import { createGemmaEngine } from "https://esm.sh/gh/NakliTechie/gemma4-webgpu@0ca5e3a129200ac84b3c3098311a88949ea4ca0e/src/index.ts?target=es2022";
-import { loadReferenceTensors } from "https://esm.sh/gh/NakliTechie/gemma4-webgpu@0ca5e3a129200ac84b3c3098311a88949ea4ca0e/src/diagnostics/npz.ts?target=es2022";
+import { createGemmaEngine } from "./vendor/unlimited-ocr-browser-engine.js";
 import { PDFDocument, StandardFonts, rgb } from "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm";
 
 const pdfjsLib=window.pdfjsLib;
@@ -69,6 +68,66 @@ function canvasToBlob(canvas,type="image/png",quality=.98){
   return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error("Seite konnte nicht gebacken werden.")),type,quality));
 }
 async function blobToArrayBuffer(blob){return blob.arrayBuffer()}
+
+// Tiny local NPZ reader for Unlimited-OCR's image_newline / view_seperator
+// sidecar. This removes the last runtime dependency on esm.sh.
+function parseNpyPayload(payload,key){
+  if(payload.length<10||payload[0]!==0x93||payload[1]!==0x4e||payload[2]!==0x55||payload[3]!==0x4d||payload[4]!==0x50||payload[5]!==0x59)
+    throw new Error(`NPZ: ${key} ist keine NPY-Datei.`);
+  const dv=new DataView(payload.buffer,payload.byteOffset,payload.byteLength),major=payload[6];
+  let headerLen,dataOff;
+  if(major===1){headerLen=dv.getUint16(8,true);dataOff=10+headerLen}
+  else if(major===2||major===3){headerLen=dv.getUint32(8,true);dataOff=12+headerLen}
+  else throw new Error(`NPZ: NPY-Version ${major} wird nicht unterstützt.`);
+  const hdrStart=major===1?10:12;
+  const hdr=new TextDecoder("ascii").decode(payload.subarray(hdrStart,hdrStart+headerLen));
+  const descr=hdr.match(/'descr'\s*:\s*'([^']+)'/)?.[1];
+  const shapeRaw=hdr.match(/'shape'\s*:\s*\(([^)]*)\)/)?.[1]||"";
+  const shape=shapeRaw.split(",").map(x=>x.trim()).filter(Boolean).map(Number);
+  const numel=shape.length?shape.reduce((a,b)=>a*b,1):1;
+  const bytes=payload.subarray(dataOff);
+  const copy=new ArrayBuffer(bytes.byteLength);new Uint8Array(copy).set(bytes);
+  if(descr==="<f4")return new Float32Array(copy,0,numel);
+  throw new Error(`NPZ: ${key} hat nicht unterstützten Typ ${descr}.`);
+}
+function parseNpz(buf){
+  const view=new DataView(buf),bytes=new Uint8Array(buf),out={},td=new TextDecoder("ascii");
+  let off=0;
+  while(off+4<=buf.byteLength){
+    const sig=view.getUint32(off,true);
+    if(sig===0x02014b50)break;
+    if(sig!==0x04034b50)throw new Error(`NPZ: ungültiger ZIP-Block bei ${off}.`);
+    const flag=view.getUint16(off+6,true),method=view.getUint16(off+8,true);
+    let comp=view.getUint32(off+18,true),uncomp=view.getUint32(off+22,true);
+    const nameLen=view.getUint16(off+26,true),extraLen=view.getUint16(off+28,true);
+    if(method!==0)throw new Error("NPZ: komprimierte Sidecar-Datei wird nicht unterstützt.");
+    if(flag&0x0008)throw new Error("NPZ: Data-Descriptor wird nicht unterstützt.");
+    const name=td.decode(bytes.subarray(off+30,off+30+nameLen));
+    if(comp===0xffffffff||uncomp===0xffffffff){
+      let e=off+30+nameLen,end=e+extraLen,found=false;
+      while(e+4<=end){
+        const tag=view.getUint16(e,true),sz=view.getUint16(e+2,true);
+        if(tag===1){
+          let z=e+4;
+          if(uncomp===0xffffffff){uncomp=Number(view.getBigUint64(z,true));z+=8}
+          if(comp===0xffffffff){comp=Number(view.getBigUint64(z,true));z+=8}
+          found=true;break;
+        }
+        e+=4+sz;
+      }
+      if(!found)throw new Error("NPZ: ZIP64-Größe fehlt.");
+    }
+    const start=off+30+nameLen+extraLen,end=start+comp;
+    if(name.endsWith(".npy"))out[name.slice(0,-4)]=parseNpyPayload(bytes.subarray(start,end),name);
+    off=end;
+  }
+  return out;
+}
+async function loadReferenceTensors(url){
+  const resp=await fetch(url,{cache:"force-cache"});
+  if(!resp.ok)throw new Error(`Unlimited-OCR Sidecar konnte nicht geladen werden: HTTP ${resp.status}`);
+  return {tensors:parseNpz(await resp.arrayBuffer())};
+}
 
 function makeOcrCanvas(source){
   // Browser reference DeepEncoder contract: EXACT [1,3,1024,1024].
