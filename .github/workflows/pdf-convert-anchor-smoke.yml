@@ -39,7 +39,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-2' pdf-convert-anchor.html
+          grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-3' pdf-convert-anchor.html
           grep -q 'from "./vendor/unlimited-ocr-browser-engine.js"' alantu-unlimited-ocr.js
           grep -q 'NakliTechie/gemma4-webgpu@0ca5e3a' alantu-unlimited-ocr.js
           grep -q 'Unlimited-OCR-DeepEncoder-ONNX' alantu-unlimited-ocr.js
@@ -80,7 +80,7 @@ jobs:
             if curl -fsSL --max-time 20 "https://www.alantu.de/pdf-convert-anchor.html?smoke=${{ github.sha }}" -o /tmp/page.html \
               && curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?smoke=${{ github.sha }}" -o /tmp/uocr.js \
               && curl -fsSL --max-time 20 "https://www.alantu.de/vendor/unlimited-ocr-browser-engine.js?smoke=${{ github.sha }}" -o /tmp/engine.js \
-              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-2' /tmp/page.html \
+              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-3' /tmp/page.html \
               && grep -q 'NakliTechie/gemma4-webgpu@0ca5e3a' /tmp/uocr.js \
               && grep -q 'Unlimited-OCR-DeepEncoder-ONNX' /tmp/uocr.js \
               && grep -q 'beginRingDecode(pos+1)' /tmp/uocr.js \
