@@ -5,7 +5,7 @@ const pdfjsLib=pdfjsImport.default||pdfjsImport;
 import fs from 'node:fs/promises';
 
 const base=process.env.PDF_CONVERT_URL||'https://www.alantu.de/pdf-convert-anchor.html';
-const url=base+(base.includes('?')?'&':'?')+'mockOcr=1';
+const url=base+(base.includes('?')?'&':'?')+'mockOcr=1&mockOcrDelay=2500';
 
 async function makeFixture(browser){
   const p=await browser.newPage({viewport:{width:1200,height:1600}});
@@ -58,6 +58,28 @@ page.on('requestfailed',r=>failed.push({url:r.url(),error:r.failure()?.errorText
 
 await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});
 await page.locator('#pdfInput').setInputFiles(fixture);
+
+// While OCR is deliberately delayed, the baked original must already be
+// visible. Empty/broken IMG placeholders were the live UX regression.
+await page.waitForFunction(()=>{
+  const img=document.getElementById('beforeImg');
+  return !!img?.src&&img.complete&&img.naturalWidth>0;
+},null,{timeout:15000});
+const loadingView=await page.evaluate(()=>({
+  emptyDisplay:getComputedStyle(document.getElementById('empty')).display,
+  sideHidden:document.getElementById('sideGrid')?.hidden,
+  before:{
+    src:document.getElementById('beforeImg')?.src||'',
+    naturalWidth:document.getElementById('beforeImg')?.naturalWidth||0,
+    naturalHeight:document.getElementById('beforeImg')?.naturalHeight||0
+  },
+  after:{
+    src:document.getElementById('afterImg')?.src||'',
+    naturalWidth:document.getElementById('afterImg')?.naturalWidth||0,
+    naturalHeight:document.getElementById('afterImg')?.naturalHeight||0
+  },
+  status:document.getElementById('status')?.textContent||''
+}));
 try{
   await page.waitForFunction(()=>document.getElementById('downloadPdfBtn')?.disabled===false,null,{timeout:45000});
 }catch(err){
@@ -109,6 +131,10 @@ const textPages=await extractPdfText(pdfPath);
 const stat=await fs.stat(pdfPath);
 
 const errors=[];
+if(loadingView.emptyDisplay!=='none')errors.push('loading-empty-still-visible:'+loadingView.emptyDisplay);
+if(loadingView.sideHidden)errors.push('loading-side-grid-hidden');
+if(loadingView.before.naturalWidth<1||loadingView.after.naturalWidth<1)errors.push('loading-image-broken:'+JSON.stringify(loadingView));
+if(!loadingView.before.src||loadingView.before.src!==loadingView.after.src)errors.push('loading-before-after-source-mismatch');
 if(consoleErrors.length)errors.push('console:'+JSON.stringify(consoleErrors));
 if(pageErrors.length)errors.push('pageerror:'+JSON.stringify(pageErrors));
 if(failed.length)errors.push('requestfailed:'+JSON.stringify(failed));
@@ -131,7 +157,7 @@ const allText=textPages.join(' | ');
 if(!/Native PDF Text/.test(allText))errors.push('native-text-not-searchable:'+allText);
 if(!/ALANTU EXPOSE/.test(allText))errors.push('ocr-text-not-searchable:'+allText);
 
-console.log(JSON.stringify({url,side,overlay,download:{name:dl.suggestedFilename(),bytes:stat.size,textPages},ok:errors.length===0,errors},null,2));
+console.log(JSON.stringify({url,loadingView,side,overlay,download:{name:dl.suggestedFilename(),bytes:stat.size,textPages},ok:errors.length===0,errors},null,2));
 await browser.close();
 if(errors.length)throw new Error('Unlimited OCR searchable PDF smoke failed: '+errors.join(' | '));
 console.log('UNLIMITED_OCR_SEARCHABLE_PDF_SMOKE_OK');
