@@ -57,7 +57,7 @@ jobs:
               && grep -q 'touch-action:none;' /tmp/pdf-live.html \
               && grep -q 'pointerdown",pointerDown,{passive:false}' /tmp/core-live.js \
               && grep -q 'lostpointercapture' /tmp/core-live.js \
-              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-2' /tmp/convert-live.html \
+              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-3' /tmp/convert-live.html \
               && grep -q 'NakliTechie/gemma4-webgpu@0ca5e3a' /tmp/uocr-live.js \
               && grep -q 'Unlimited-OCR-DeepEncoder-ONNX' /tmp/uocr-live.js \
               && grep -q 'beginRingDecode(pos+1)' /tmp/uocr-live.js \
