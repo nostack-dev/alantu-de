@@ -25,6 +25,7 @@ const RENDER_LONG_EDGE=2200;
 const OCR_LONG_EDGE=1024;
 const QUERY=new URLSearchParams(location.search);
 const MOCK_OCR=QUERY.get("mockOcr")==="1";
+const FORCE_FALLBACK_OCR=QUERY.get("forceFallbackOcr")==="1";
 const MOCK_OCR_DELAY=Math.max(0,Number(QUERY.get("mockOcrDelay"))||0);
 
 const $=id=>document.getElementById(id);
@@ -268,21 +269,83 @@ function spliceVision(patches,newline,seperator){
 
 
 
-const FALLBACK_TESSERACT_URL="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
-let tesseractLoadPromise=null;
+const FALLBACK_TESSERACT_URL="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+let tesseractLoadPromise=null,fallbackWorkerPromise=null,fallbackWorker=null;
 function loadScriptOnce(src,globalName){
   if(window[globalName])return Promise.resolve(window[globalName]);
-  return new Promise((resolve,reject)=>{const existing=[...document.scripts].find(s=>s.src===src);if(existing){existing.addEventListener("load",()=>resolve(window[globalName]));existing.addEventListener("error",()=>reject(new Error(globalName+" konnte nicht geladen werden.")));return}const el=document.createElement("script");el.src=src;el.async=true;el.onload=()=>window[globalName]?resolve(window[globalName]):reject(new Error(globalName+" ist nach dem Laden nicht verfügbar."));el.onerror=()=>reject(new Error(globalName+" Download fehlgeschlagen."));document.head.appendChild(el)})
+  return new Promise((resolve,reject)=>{
+    const existing=[...document.scripts].find(s=>s.src===src);
+    if(existing){
+      if(window[globalName])return resolve(window[globalName]);
+      existing.addEventListener("load",()=>resolve(window[globalName]),{once:true});
+      existing.addEventListener("error",()=>reject(new Error(globalName+" konnte nicht geladen werden.")),{once:true});
+      return;
+    }
+    const el=document.createElement("script");el.src=src;el.async=true;el.crossOrigin="anonymous";
+    el.onload=()=>window[globalName]?resolve(window[globalName]):reject(new Error(globalName+" ist nach dem Laden nicht verfügbar."));
+    el.onerror=()=>reject(new Error(globalName+" Download fehlgeschlagen."));
+    document.head.appendChild(el);
+  });
 }
-async function loadSmallOcr(){if(!tesseractLoadPromise)tesseractLoadPromise=withHeartbeat("Fallback-OCR wird geladen",()=>loadScriptOnce(FALLBACK_TESSERACT_URL,"Tesseract"),90000);return tesseractLoadPromise}
+async function loadSmallOcr(){
+  if(!tesseractLoadPromise)tesseractLoadPromise=withHeartbeat("Fallback-OCR Runtime wird geladen",()=>loadScriptOnce(FALLBACK_TESSERACT_URL,"Tesseract"),90000);
+  return tesseractLoadPromise;
+}
+function compactReason(reason){
+  const msg=String(reason||"3B-OCR nicht verfügbar").replace(/^.*?Bottleneck:\s*/,"").replace(/\s+/g," ").trim();
+  return msg.length>180?msg.slice(0,177)+"…":msg;
+}
+async function ensureFallbackWorker(){
+  if(fallbackWorker)return fallbackWorker;
+  if(fallbackWorkerPromise)return fallbackWorkerPromise;
+  fallbackWorkerPromise=(async()=>{
+    const T=await loadSmallOcr();
+    setStatus("3B-OCR nicht nutzbar · starte kleines lokales OCR …");
+    const worker=await withHeartbeat("Fallback-OCR Worker startet",()=>T.createWorker(["deu","eng"],1,{
+      logger:m=>{
+        if(!m?.status)return;
+        const pct=Number.isFinite(m.progress)?Math.round(m.progress*100):0;
+        busy.textContent=pct?`Fallback-OCR · ${m.status} · ${pct}%`:`Fallback-OCR · ${m.status}`;
+        setStatus(pct?`Fallback-OCR · ${m.status} · ${pct}%`:`Fallback-OCR · ${m.status}`);
+      }
+    }),120000);
+    fallbackWorker=worker;
+    return worker;
+  })().finally(()=>{fallbackWorkerPromise=null});
+  return fallbackWorkerPromise;
+}
 function tesseractItems(data,pageW,pageH,canvasW,canvasH){
-  const items=[];const add=(text,bbox,confidence=100)=>{text=normalizeText(text);if(!text||!bbox)return;if(Number.isFinite(confidence)&&confidence<30)return;const b={x0:bbox.x0/canvasW*pageW,y0:bbox.y0/canvasH*pageH,x1:bbox.x1/canvasW*pageW,y1:bbox.y1/canvasH*pageH};if(area(b)<1)return;items.push({text,bbox:b,type:"fallback",kind:"image-text",confidence})};
-  for(const w of data?.words||[])add(w.text,w.bbox,w.confidence);if(!items.length)for(const l of data?.lines||[])add(l.text,l.bbox,l.confidence);return items;
+  const items=[];
+  const add=(text,bbox,confidence=100)=>{
+    text=normalizeText(text);if(!text||!bbox)return;
+    if(Number.isFinite(confidence)&&confidence<25)return;
+    const b={x0:bbox.x0/canvasW*pageW,y0:bbox.y0/canvasH*pageH,x1:bbox.x1/canvasW*pageW,y1:bbox.y1/canvasH*pageH};
+    if(area(b)<1)return;
+    items.push({text,bbox:b,type:"fallback",kind:"image-text",confidence});
+  };
+  for(const w of data?.words||[])add(w.text,w.bbox,w.confidence);
+  if(!items.length)for(const l of data?.lines||[])add(l.text,l.bbox,l.confidence);
+  if(!items.length&&normalizeText(data?.text)){
+    add(data.text,{x0:0,y0:0,x1:canvasW,y1:canvasH},data?.confidence);
+  }
+  return items;
+}
+async function releasePrimaryOcrRuntime(){
+  try{decoderEngine?.dispose?.()}catch{}
+  try{await visionSession?.release?.()}catch{}
+  decoderEngine=null;decoderPromise=null;visionSession=null;visionPromise=null;visionExtras=null;extrasPromise=null;modelLoaded=false;
 }
 async function runSmallFallbackOcr(ocrCanvas,pageW,pageH,reason){
-  const T=await loadSmallOcr();setStatus("3B-OCR nicht möglich · kleines Fallback-OCR läuft …","error");busy.classList.add("show");
-  const worker=await withHeartbeat("Fallback-OCR Worker startet",()=>T.createWorker("deu+eng",1,{logger:m=>{if(m?.status){const pct=Number.isFinite(m.progress)?Math.round(m.progress*100):0;busy.textContent=pct?"Fallback-OCR · "+m.status+" · "+pct+"%":"Fallback-OCR · "+m.status;setStatus(pct?"Fallback-OCR · "+m.status+" · "+pct+"%":"Fallback-OCR · "+m.status);if(pct)setProgress(pct)}}}),120000);
-  try{if(worker.setParameters&&T.PSM)await worker.setParameters({tessedit_pageseg_mode:T.PSM.AUTO});const result=await withHeartbeat("Fallback-OCR erkennt Text",()=>worker.recognize(ocrCanvas),180000);const items=tesseractItems(result?.data,pageW,pageH,ocrCanvas.width,ocrCanvas.height);window.__alantuUocrDebug=window.__alantuUocrDebug||{};window.__alantuUocrDebug.fallback={engine:"tesseract.js",items:items.length,reason:String(reason||"")};mEngine.textContent="Fallback-OCR · Tesseract.js";return items}finally{try{await worker.terminate()}catch{}}
+  await releasePrimaryOcrRuntime();
+  setStatus("3B-OCR übersprungen: "+compactReason(reason)+" · Fallback-OCR startet …");
+  busy.classList.add("show");
+  const worker=await ensureFallbackWorker();
+  const result=await withHeartbeat("Fallback-OCR erkennt Text",()=>worker.recognize(ocrCanvas),180000);
+  const items=tesseractItems(result?.data,pageW,pageH,ocrCanvas.width,ocrCanvas.height);
+  window.__alantuUocrDebug=window.__alantuUocrDebug||{};
+  window.__alantuUocrDebug.fallback={engine:"tesseract.js 5.1.1",items:items.length,reason:String(reason||"")};
+  mEngine.textContent="Fallback-OCR · Tesseract.js";
+  return items;
 }
 
 function hasRasterImages(opList){
@@ -427,6 +490,7 @@ async function runUnlimited(ocrCanvas){
     return "<|det|>text [[80,80,920,180]]<|/det|>ALANTU EXPOSE\n<|det|>text [[80,220,920,330]]<|/det|>Wohnung mit Seeblick in Konstanz";
   }
 
+  if(FORCE_FALLBACK_OCR)throw new Error("3B-OCR absichtlich übersprungen (Fallback-Test).");
   await requireLocalOcrCapability();
   const [session,extras]=await Promise.all([ensureVision(),ensureExtras()]);
   busy.textContent="Unlimited-OCR 3B · Vision-Encoding …";
@@ -560,14 +624,14 @@ function updateMetrics(){
   mImageText.textContent=pages.length?String(imageText):"—";
   if(!pages.length)mImageTextPercent.textContent="—";
   else if(pendingAi)mImageTextPercent.textContent="läuft …";
-  else if(failedAi)mImageTextPercent.textContent=`OCR fehlgeschlagen auf ${failedAi}/${aiPages} Bildseiten · PDF exportierbar`;
-  else if(failedAi)mImageTextPercent.textContent=`OCR fehlgeschlagen auf ${failedAi}/${aiPages} Bildseiten · kein Bildtextlayer`;
+  else if(failedAi)mImageTextPercent.textContent=`${coverage||0} % Bildseiten mit OCR · ${failedAi}/${aiPages} ohne Textlayer`;
   else if(fallbackAi)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · Fallback-OCR auf ${fallbackAi}/${aiPages} · ${imageText} Blöcke / ${imageChars} Zeichen`;
   else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 3B-OCR · ${imageText} Blöcke / ${imageChars} Zeichen`;
   else mImageTextPercent.textContent="— · keine Rasterbilder";
   mBaked.textContent=pages.length?String(pages.length):"—";
   mVisual.textContent=pages.length?"100 % Originalbild":"—";
-  if(!modelLoaded)mEngine.textContent=MODEL.name;
+  if(fallbackAi)mEngine.textContent=modelLoaded?"3B + Fallback-OCR":"Fallback-OCR · Tesseract.js";
+  else if(!modelLoaded)mEngine.textContent=MODEL.name;
 }
 function makeBoxes(container,page){
   container.innerHTML="";
@@ -710,10 +774,13 @@ async function loadPdf(file){
       await new Promise(requestAnimationFrame);
     }
     setProgress(100);busy.classList.remove("show");
+    const aiPages=pages.filter(p=>p.usedAi).length;
+    const addedOcr=pages.reduce((n,p)=>n+p.ocr.length,0);
     const failed=pages.filter(p=>p.ocrError&&!p.ocr.length).length;
     const fallback=pages.filter(p=>p.ocrFallback&&p.ocr.length).length;
-    setStatus(failed?`${pages.length} Seiten fertig · ${failed} Bildseiten ohne OCR.`:(fallback?`${pages.length} Seiten fertig · Fallback-OCR auf ${fallback} Bildseiten.`:`${pages.length} Seiten fertig · visuell Original, zusätzlicher echter Textlayer.`),failed?"error":"ok");
-    downloadPdfBtn.disabled=false;downloadSvgBtn.disabled=false;currentPage=0;renderCompare();setTimeout(()=>setProgress(0),900);
+    const noImprovement=aiPages>0&&addedOcr===0;
+    setStatus(noImprovement?`Kein OCR-Text erzeugt · ${failed||aiPages}/${aiPages} Bildseiten ohne Textlayer. Export gesperrt, weil er keinen Mehrwert hätte.`:(fallback?`${pages.length} Seiten fertig · Fallback-OCR auf ${fallback} Bildseiten.`:`${pages.length} Seiten fertig · visuell Original, zusätzlicher echter Textlayer.`),noImprovement?"error":"ok");
+    downloadPdfBtn.disabled=noImprovement;downloadSvgBtn.disabled=noImprovement;currentPage=0;renderCompare();setTimeout(()=>setProgress(0),900);
   }catch(err){
     busy.classList.remove("show");
     if(err?.message!=="cancelled"){console.error(err);setStatus(err?.message||"Konvertierung fehlgeschlagen.","error")}
@@ -726,6 +793,8 @@ async function clearModelCache(){
     try{decoderEngine?.dispose?.()}catch{}
     try{await visionSession?.release?.()}catch{}
     decoderEngine=null;decoderPromise=null;visionSession=null;visionPromise=null;visionExtras=null;extrasPromise=null;modelLoaded=false;
+    try{await fallbackWorker?.terminate?.()}catch{}
+    fallbackWorker=null;fallbackWorkerPromise=null;tesseractLoadPromise=null;localOcrPreflightPromise=null;
     for(const key of await caches.keys())await caches.delete(key);
     mEngine.textContent="Unlimited-OCR 3B · Runtime neu";
     setStatus("Lokale Unlimited-OCR Runtime wurde zurückgesetzt.","ok");
