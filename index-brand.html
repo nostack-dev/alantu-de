@@ -137,7 +137,10 @@
         linear-gradient(145deg,#ddd3c5 0%,#cfc4b4 50%,#b8ad9e 100%);
       border:1px solid rgba(13,13,11,.08);
       isolation:isolate;
-      touch-action:pan-y;
+      touch-action:none;
+      overscroll-behavior:contain;
+      -webkit-user-select:none;
+      user-select:none;
     }
     .stage:after{
       content:"";
