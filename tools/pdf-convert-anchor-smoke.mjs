@@ -127,6 +127,11 @@ const side=await page.evaluate(()=>({
   sideAfterHidden:document.getElementById('sideAfter')?.hidden,
   overlayHidden:document.getElementById('overlayStage')?.hidden
 }));
+const afterVectorSvg=await page.evaluate(async()=>{
+  const src=document.getElementById('afterImg')?.src||'';
+  if(!src)return '';
+  try{return await (await fetch(src)).text()}catch{return ''}
+});
 
 await page.locator('#overlayBtn').click();
 const overlay=await page.evaluate(()=>({
@@ -163,22 +168,32 @@ if(Number(side.native)<2)errors.push('native-text-count:'+side.native);
 if(Number(side.imageText)<1)errors.push('image-text-count:'+side.imageText);
 if(!/^100 % Bildseiten mit OCR · 3B-OCR · /.test(side.imageTextPercent))errors.push('image-text-percent:'+side.imageTextPercent);
 if(side.baked!=='2')errors.push('baked-pages:'+side.baked);
-if(side.visual!=='100 % Originalbild')errors.push('visual:'+side.visual);
+if(side.visual!=='Raster-Diff + Vektortext')errors.push('visual:'+side.visual);
 if(!/Unlimited-OCR 3B/.test(side.engine))errors.push('engine:'+side.engine);
-if(!side.beforeSrc||side.beforeSrc!==side.afterSrc)errors.push('side-by-side-not-identical-source');
+if(!side.beforeSrc||!side.afterSrc||side.beforeSrc===side.afterSrc)errors.push('side-by-side-vector-preview-not-distinct');
 if(side.boxes<1)errors.push('side-image-text-box-missing');
 if(side.sideBeforeHidden||side.sideAfterHidden||!side.overlayHidden)errors.push('side-mode-broken');
 if(overlay.hidden||overlay.toolsHidden)errors.push('overlay-mode-hidden');
-if(!overlay.beforeSrc||overlay.beforeSrc!==overlay.afterSrc)errors.push('overlay-not-identical-source');
+if(!overlay.beforeSrc||!overlay.afterSrc||overlay.beforeSrc===overlay.afterSrc)errors.push('overlay-vector-preview-not-distinct');
 if(overlay.opacity!=='0.5')errors.push('overlay-opacity:'+overlay.opacity);
 if(overlay.boxes<1)errors.push('overlay-boxes-missing');
 if(stat.size<5000)errors.push('pdf-too-small:'+stat.size);
-if(!dl.suggestedFilename().endsWith('-searchable.pdf'))errors.push('pdf-name:'+dl.suggestedFilename());
+if(!dl.suggestedFilename().endsWith('-vectorized.pdf'))errors.push('pdf-name:'+dl.suggestedFilename());
+const svgDownloadPromise=page.waitForEvent('download',{timeout:60000});
+await page.locator('#downloadSvgBtn').click();
+const svgDl=await svgDownloadPromise;
+const svgPath=await svgDl.path();
+const svgText=await fs.readFile(svgPath,'utf8');
+if(!svgDl.suggestedFilename().endsWith('-vectorized.svg'))errors.push('svg-name:'+svgDl.suggestedFilename());
+if(!/data-baked-diff="1"/.test(svgText))errors.push('svg-raster-diff-missing');
+if(!/data-role="visible-vector-text"/.test(svgText)||!/<text[^>]+data-kind="image-text-vector"/.test(svgText))errors.push('svg-visible-vector-text-missing');
 const allText=textPages.join(' | ');
-if(!/Native PDF Text/.test(allText))errors.push('native-text-not-searchable:'+allText);
-if(!/ALANTU EXPOSE/.test(allText))errors.push('ocr-text-not-searchable:'+allText);
+if(!/ALANTU EXPOSE/.test(allText))errors.push('ocr-vector-text-missing:'+allText);
+if(!/data-baked-diff="1"/.test(afterVectorSvg))errors.push('vector-preview-missing-raster-diff');
+if(!/data-role="visible-vector-text"/.test(afterVectorSvg))errors.push('vector-preview-missing-visible-text-group');
+if(!/data-kind="image-text-vector"/.test(afterVectorSvg))errors.push('vector-preview-missing-visible-text');
 
-console.log(JSON.stringify({url,loadingView,side,overlay,download:{name:dl.suggestedFilename(),bytes:stat.size,textPages},ok:errors.length===0,errors},null,2));
+console.log(JSON.stringify({url,loadingView,side,overlay,download:{name:dl.suggestedFilename(),bytes:stat.size,textPages},svg:{name:svgDl.suggestedFilename(),bytes:svgText.length},ok:errors.length===0,errors},null,2));
 if(errors.length){
   await browser.close();
   throw new Error('Unlimited OCR searchable PDF smoke failed: '+errors.join(' | '));
