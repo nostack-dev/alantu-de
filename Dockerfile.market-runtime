@@ -18,6 +18,7 @@ COPY tools/raw-sip-wave-core.mjs ./tools/raw-sip-wave-core.mjs
 COPY tools/yahoo-shadow-wave-core.mjs ./tools/yahoo-shadow-wave-core.mjs
 COPY tools/yahoo-hypothesis-v4.mjs ./tools/yahoo-hypothesis-v4.mjs
 COPY tools/yahoo-monetary-v5.mjs ./tools/yahoo-monetary-v5.mjs
+COPY tools/yahoo-stream-contract.mjs ./tools/yahoo-stream-contract.mjs
 COPY tools/train-raw-sip-wave.mjs ./tools/train-raw-sip-wave.mjs
 COPY microstructure-edge-status.json ./microstructure-edge-status.json
 COPY orcl-raw-sip-model.json ./orcl-raw-sip-model.json
