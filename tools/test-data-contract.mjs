@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {extractV5Features,evaluateV5Path,V5_VERSION} from './yahoo-monetary-v5.mjs';
 
-assert.equal(V5_VERSION,'yahoo-monetary-dt-v6');
+assert.equal(V5_VERSION,'yahoo-monetary-dt-v6-r2');
 
 const base=Date.parse('2026-09-24T14:00:00.000Z');
 const symbols=['ORCL','MSFT','AMZN','GOOGL','NVDA','IGV','QQQ','SPY'];
@@ -43,5 +43,13 @@ const sparse=[{t:base+300000,p:100,recv_at:base+300250},{t:base+600000,p:101,rec
 const ev=evaluateV5Path(pred,sparse,base+700000);
 assert.equal(ev.status,'invalid');
 assert.equal(ev.reason,'target_price_unavailable');
+
+// No-barrier paths are still valid training labels; neutral outcomes must not disappear from training evidence.
+const pred2={at:new Date(base+300000).toISOString(),target_at:new Date(base+360000).toISOString(),entry_price:100,barrier_bps:500,horizon_minutes:1,structural_dir:1,learned_dir:1};
+const dense=[{t:base+300000,p:100,recv_at:base+300200},{t:base+360000,p:100.2,recv_at:base+360250}];
+const ev2=evaluateV5Path(pred2,dense,base+361000);
+assert.equal(ev2.status,'evaluated');
+assert.equal(ev2.barrier_label,0);
+assert.equal(ev2.path_label,1);
 
 console.log('DATA_CONTRACT_OK',JSON.stringify({version:V5_VERSION,clock:f.clock,receiver_delay_invariant:true,repeated_sample_invariant:true,gap_not_interpolated:true}));
