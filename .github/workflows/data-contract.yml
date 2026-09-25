@@ -20,6 +20,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: First-principles data invariants
         run: node tools/test-data-contract.mjs
+      - name: SQLite audit-store invariants
+        run: node tools/test-sqlite-store.mjs
       - name: Static anti-leakage guards
         shell: bash
         run: |
