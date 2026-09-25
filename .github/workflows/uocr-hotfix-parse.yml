@@ -1,0 +1,47 @@
+name: One-shot UOCR parser hotfix
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/uocr-hotfix-parse.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  hotfix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+      - name: Patch parser fallback and bump runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('alantu-unlimited-ocr.js')
+          s=p.read_text()
+          old='const next=i+1?(matches[i+1].index||raw.length):raw.length;'
+          new='const next=(i+1<matches.length)?(matches[i+1].index||raw.length):raw.length;'
+          if old not in s:
+              raise SystemExit('parser bug line not found')
+          s=s.replace(old,new)
+          p.write_text(s)
+          h=Path('pdf-convert-anchor.html')
+          t=h.read_text()
+          t=t.replace('alantu-unlimited-ocr.js?v=browser-webgpu-2','alantu-unlimited-ocr.js?v=browser-webgpu-3')
+          h.write_text(t)
+          PY
+      - name: Commit parser fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add alantu-unlimited-ocr.js pdf-convert-anchor.html
+          git commit -m "Fix Unlimited OCR det-only parser fallback"
+          git push
