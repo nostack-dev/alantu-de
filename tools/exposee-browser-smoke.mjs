@@ -82,6 +82,68 @@ async function run(url,label,viewport){
   await page.locator('#bookCanvas').dblclick({force:true});
   await page.waitForTimeout(350);
 
+  let touchOwnership=null;
+  if(viewport.width<=500){
+    await page.evaluate(()=>{
+      const stage=document.getElementById('stage');
+      window.__alantuTouchSmoke={down:0,move:0,up:0,cancel:0};
+      for(const type of ['pointerdown','pointermove','pointerup','pointercancel']){
+        stage?.addEventListener(type,e=>{
+          if(e.pointerType!=='touch')return;
+          const key=type.replace('pointer','');
+          window.__alantuTouchSmoke[key]=(window.__alantuTouchSmoke[key]||0)+1;
+        },{capture:true});
+      }
+      if(stage){
+        const rect=stage.getBoundingClientRect();
+        const desired=Math.max(0,window.scrollY+rect.top-80);
+        window.scrollTo(0,desired);
+      }
+    });
+    await page.waitForTimeout(120);
+
+    const box=await page.locator('#stage').boundingBox();
+    if(box){
+      const session=await page.context().newCDPSession(page);
+      const x=box.x+box.width*.62;
+      const y=box.y+box.height*.55;
+      const point=(px,py)=>({x:px,y:py,id:7,radiusX:2,radiusY:2,force:1});
+      const scrollBefore=await page.evaluate(()=>window.scrollY);
+
+      await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point(x,y)]});
+      // Start intentionally almost vertical. This used to hand the gesture to
+      // page scrolling and trigger pointercancel before the user could swipe.
+      await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[point(x+7,y-95)]});
+      await page.waitForTimeout(80);
+      const afterVertical=await page.evaluate(()=>({
+        scrollY:window.scrollY,
+        events:{...window.__alantuTouchSmoke},
+        dragging:document.getElementById('stage')?.classList.contains('is-book-dragging')||false
+      }));
+
+      // Then turn it into an obvious horizontal page gesture. Ownership must
+      // still belong to the book; there must be no cancel/handoff.
+      await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[point(x-105,y-102)]});
+      await page.waitForTimeout(80);
+      const afterHorizontal=await page.evaluate(()=>({
+        scrollY:window.scrollY,
+        events:{...window.__alantuTouchSmoke},
+        dragging:document.getElementById('stage')?.classList.contains('is-book-dragging')||false
+      }));
+
+      await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+      await page.waitForTimeout(120);
+      const afterEnd=await page.evaluate(()=>({
+        scrollY:window.scrollY,
+        events:{...window.__alantuTouchSmoke},
+        dragging:document.getElementById('stage')?.classList.contains('is-book-dragging')||false
+      }));
+
+      touchOwnership={scrollBefore,afterVertical,afterHorizontal,afterEnd};
+      await session.detach();
+    }
+  }
+
   const safe=label.replace(/[^a-z0-9_-]+/gi,'-');
   await page.screenshot({path:`${out}/${safe}-${viewport.width}.png`,fullPage:true});
 
@@ -101,11 +163,25 @@ async function run(url,label,viewport){
   if(!fOn.active)errors.push('keyboard-fullscreen-failed');
   if(fOn.uiDisplay!=='none')errors.push('controls-visible-in-fullscreen:'+String(fOn.uiDisplay));
   if(!dblOn)errors.push('doubleclick-fullscreen-failed');
+  if(touchOwnership){
+    const drift=Math.max(
+      Math.abs(touchOwnership.afterVertical.scrollY-touchOwnership.scrollBefore),
+      Math.abs(touchOwnership.afterHorizontal.scrollY-touchOwnership.scrollBefore),
+      Math.abs(touchOwnership.afterEnd.scrollY-touchOwnership.scrollBefore)
+    );
+    if(drift>2)errors.push('touch-gesture-scrolled-page:'+JSON.stringify(touchOwnership));
+    if((touchOwnership.afterEnd.events.cancel||0)>0)errors.push('touch-gesture-pointercancel:'+JSON.stringify(touchOwnership));
+    if((touchOwnership.afterEnd.events.down||0)<1||(touchOwnership.afterEnd.events.move||0)<2||(touchOwnership.afterEnd.events.up||0)<1){
+      errors.push('touch-gesture-incomplete:'+JSON.stringify(touchOwnership));
+    }
+    if(!touchOwnership.afterHorizontal.dragging)errors.push('touch-drag-not-owned:'+JSON.stringify(touchOwnership));
+    if(touchOwnership.afterEnd.dragging)errors.push('touch-drag-not-released:'+JSON.stringify(touchOwnership));
+  }
   if(initial.overflow>4)errors.push('horizontal-overflow:'+initial.overflow);
   if(label.startsWith('landing')&&(!initial.share.exists||!initial.share.outsideStage))errors.push('share-link-not-outside-renderer');
   if(label.startsWith('builder')&&initial.share.exists)errors.push('share-link-present-in-builder');
 
-  console.log(JSON.stringify({url,label,viewport,initial,debug,changed,fOn,dblOn,consoleErrors,pageErrors,httpErrors,failed,ok:errors.length===0,errors},null,2));
+  console.log(JSON.stringify({url,label,viewport,initial,debug,changed,fOn,dblOn,touchOwnership,consoleErrors,pageErrors,httpErrors,failed,ok:errors.length===0,errors},null,2));
   await browser.close();
   if(errors.length)throw new Error(label+' smoke failed: '+errors.join(' | '));
 }
