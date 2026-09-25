@@ -50,6 +50,34 @@ async function run(name,viewport){
       maxBerlin:new Date(ivChart.scales.x.max).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'})
     }:null
   }));
+  const projectionTarget=await page.evaluate(()=>{
+    if(typeof ivChart==='undefined'||!ivChart)return null;
+    const sets=ivChart.data?.datasets||[],price=sets.find(d=>d.label==='Kurs'),proj=sets.find(d=>d.label==='Projektionspfad');
+    const hint=document.getElementById('projectionHint'),pp=price?.data||[],pj=proj?.data||[];
+    const last=pp.length?Number(pp[pp.length-1].x):NaN;
+    const future=pj.filter(p=>Number(p.x)>last+1000);
+    if(!future.length)return {available:false,hintVisible:!!hint&&!hint.hidden,style:proj?{borderColor:proj.borderColor,borderDash:proj.borderDash,borderWidth:proj.borderWidth}:null};
+    const p=future[future.length-1],box=document.getElementById('ivChart').getBoundingClientRect();
+    return {available:true,hintVisible:!!hint&&!hint.hidden,clientX:box.left+ivChart.scales.x.getPixelForValue(Number(p.x)),clientY:box.top+ivChart.scales.y.getPixelForValue(Number(p.y)),x:Number(p.x),y:Number(p.y),style:{borderColor:proj.borderColor,borderDash:proj.borderDash,borderWidth:proj.borderWidth}};
+  });
+  let projectionInteraction=null;
+  if(projectionTarget?.available){
+    if(viewport.width<=700){
+      if(!cdp)cdp=await page.context().newCDPSession(page);
+      await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:projectionTarget.clientX-10,y:projectionTarget.clientY}]});
+      await page.waitForTimeout(260);
+      await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:projectionTarget.clientX,y:projectionTarget.clientY}]});
+      await page.waitForTimeout(220);
+    }else{
+      await page.mouse.move(projectionTarget.clientX,projectionTarget.clientY);
+      await page.waitForTimeout(250);
+    }
+    projectionInteraction=await page.evaluate(()=>({
+      active:typeof priceScrubState!=='undefined'&&!!priceScrubState.active,
+      kind:typeof priceScrubState!=='undefined'&&priceScrubState.point?priceScrubState.point.kind:null,
+      point:typeof priceScrubState!=='undefined'&&priceScrubState.point?priceScrubState.point:null
+    }));
+  }
   await page.screenshot({path:`${out}/${name}-1d.png`,fullPage:true});
   if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]}).catch(()=>{});
 
@@ -129,6 +157,41 @@ async function run(name,viewport){
   await page.locator('button[data-price-range="1d"]').click();
   await page.waitForTimeout(400);
 
+  await page.evaluate(()=>{
+    localStorage.setItem('alantu_price_range_v1','BROKEN_RANGE');
+    localStorage.setItem('alantu_chart_open_v1','{broken-json');
+    localStorage.setItem('alantu_intrinsic_visible_v1','0');
+  });
+  await page.reload({waitUntil:'domcontentloaded',timeout:60000});
+  await page.waitForTimeout(3500);
+  const storageSanitized=await page.evaluate(()=>({
+    priceRange:typeof priceRange==='undefined'?null:priceRange,
+    storedRange:localStorage.getItem('alantu_price_range_v1'),
+    chartOpenRaw:localStorage.getItem('alantu_chart_open_v1'),
+    showIntrinsic:typeof showIntrinsic==='undefined'?null:showIntrinsic,
+    pressed:document.getElementById('intrinsicToggle')?.getAttribute('aria-pressed'),
+    active:document.getElementById('intrinsicToggle')?.classList.contains('active'),
+    intrinsicHidden:(ivChart?.data?.datasets||[]).find(d=>d.label==='Innerer Wert')?.hidden
+  }));
+  await page.locator('#intrinsicToggle').click();
+  await page.waitForTimeout(250);
+  const storageImmediate=await page.evaluate(()=>({
+    showIntrinsic:typeof showIntrinsic==='undefined'?null:showIntrinsic,
+    stored:localStorage.getItem('alantu_intrinsic_visible_v1'),
+    pressed:document.getElementById('intrinsicToggle')?.getAttribute('aria-pressed'),
+    active:document.getElementById('intrinsicToggle')?.classList.contains('active'),
+    intrinsicHidden:(ivChart?.data?.datasets||[]).find(d=>d.label==='Innerer Wert')?.hidden
+  }));
+  await page.reload({waitUntil:'domcontentloaded',timeout:60000});
+  await page.waitForTimeout(3000);
+  const storageReloaded=await page.evaluate(()=>({
+    showIntrinsic:typeof showIntrinsic==='undefined'?null:showIntrinsic,
+    stored:localStorage.getItem('alantu_intrinsic_visible_v1'),
+    pressed:document.getElementById('intrinsicToggle')?.getAttribute('aria-pressed'),
+    active:document.getElementById('intrinsicToggle')?.classList.contains('active'),
+    intrinsicHidden:(ivChart?.data?.datasets||[]).find(d=>d.label==='Innerer Wert')?.hidden
+  }));
+
   const allowedHttp=httpErrors.filter(x=>!x.url.includes('favicon'));
   const errors=[];
   const required=['modelDecision','forecastProof'];
@@ -144,7 +207,16 @@ async function run(name,viewport){
   if(state.width.overflow>4)errors.push('horizontal-overflow:'+state.width.overflow);
   if(!Array.isArray(state.chartEvents)||!state.chartEvents.includes('mousemove')||!state.chartEvents.includes('touchmove'))errors.push('chart-events-missing:'+JSON.stringify(state.chartEvents));
   if(!interactionState.scrubActive||!interactionState.scrubPoint||!Number.isFinite(interactionState.scrubPoint.y))errors.push('price-scrub-not-active:'+JSON.stringify(interactionState));
+  if(projectionTarget){
+    if(!projectionTarget.hintVisible)errors.push('projection-not-visually-labeled:'+JSON.stringify(projectionTarget));
+    if(!projectionTarget.style||!Array.isArray(projectionTarget.style.borderDash)||projectionTarget.style.borderDash.length<2||Number(projectionTarget.style.borderWidth)<2.4)errors.push('projection-style-too-subtle:'+JSON.stringify(projectionTarget));
+    if(projectionTarget.available&&(!projectionInteraction||!projectionInteraction.active||projectionInteraction.kind!=='projection'))errors.push('projection-scrub-not-active:'+JSON.stringify({projectionTarget,projectionInteraction}));
+  }
   if(!interactionState.priceAxis||interactionState.priceAxis.minBerlin!=='08:00'||interactionState.priceAxis.maxBerlin!=='22:00')errors.push('day-axis-not-08-22:'+JSON.stringify(interactionState.priceAxis));
+  if(storageSanitized.priceRange!=='1d'||storageSanitized.storedRange!=='1d'||storageSanitized.chartOpenRaw!=='{}')errors.push('local-storage-sanitize-failed:'+JSON.stringify(storageSanitized));
+  if(storageSanitized.showIntrinsic!==false||storageSanitized.pressed!=='false'||storageSanitized.active!==false||storageSanitized.intrinsicHidden!==true)errors.push('intrinsic-storage-load-failed:'+JSON.stringify(storageSanitized));
+  if(storageImmediate.showIntrinsic!==true||storageImmediate.stored!=='1'||storageImmediate.pressed!=='true'||storageImmediate.active!==true||storageImmediate.intrinsicHidden!==false)errors.push('intrinsic-toggle-needs-reload:'+JSON.stringify(storageImmediate));
+  if(storageReloaded.showIntrinsic!==true||storageReloaded.stored!=='1'||storageReloaded.pressed!=='true'||storageReloaded.active!==true||storageReloaded.intrinsicHidden!==false)errors.push('intrinsic-toggle-persistence-failed:'+JSON.stringify(storageReloaded));
   if(monthState.range!=='1m'||monthState.points<10)errors.push('month-range-invalid:'+JSON.stringify(monthState));
   if(monthState.overflow>4)errors.push('month-horizontal-overflow:'+monthState.overflow);
   if(wgoState.disabled||/nicht erreichbar|Frontend-Abbruch/i.test(wgoState.answer+' '+wgoState.meta)||!wgoState.answer)errors.push('wgo-live-failed:'+JSON.stringify(wgoState));
@@ -169,7 +241,7 @@ async function run(name,viewport){
   if(!state.forecastCollapsed)errors.push('forecast-not-collapsed-by-default');
   if(!/MODELLSTATUS: (KAUFSIGNAL|KEIN KAUFSIGNAL|VERKAUFSSIGNAL)/.test(state.modelDecisionText))errors.push('model-decision-missing');
 
-  console.log(JSON.stringify({name,url,state,interactionState,monthState,wgoState,wgoMonthState,consoleErrors,pageErrors,httpErrors:allowedHttp,failed,ok:errors.length===0,errors},null,2));
+  console.log(JSON.stringify({name,url,state,interactionState,projectionTarget,projectionInteraction,monthState,wgoState,wgoMonthState,storageSanitized,storageImmediate,storageReloaded,consoleErrors,pageErrors,httpErrors:allowedHttp,failed,ok:errors.length===0,errors},null,2));
   await browser.close();
   if(errors.length)throw new Error(name+' smoke failed: '+errors.join(' | '));
 }
