@@ -137,7 +137,8 @@
         linear-gradient(145deg,#ddd3c5 0%,#cfc4b4 50%,#b8ad9e 100%);
       border:1px solid rgba(13,13,11,.08);
       isolation:isolate;
-      touch-action:pan-y;
+      touch-action:none;
+      overscroll-behavior:contain;
     }
     .stage:after{
       content:"";
@@ -618,7 +619,7 @@
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand308";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=touch309";
     import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view404";
 
     const canvas = document.getElementById("bookCanvas");
