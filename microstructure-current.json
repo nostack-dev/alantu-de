@@ -4,11 +4,11 @@
   "symbol": "ORCL",
   "mode": "shadow-live",
   "configured": true,
-  "at": "2026-09-25T10:19:28+02:00",
+  "at": "2026-09-25T10:21:26+02:00",
   "quality": {
     "usable": false,
     "reasons": [
-      "awaiting_railway_sse"
+      "static_bootstrap_replaced_by_railway_poll"
     ]
   },
   "minutes": [],
@@ -68,7 +68,7 @@
   },
   "wave_forecast": {
     "status": "blocked",
-    "reason": "awaiting_railway_sse",
+    "reason": "awaiting_live_poll",
     "source": "yahoo_shadow"
   },
   "l2": {
