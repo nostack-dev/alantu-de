@@ -4,6 +4,8 @@ on:
   push:
     branches: ["main"]
     paths:
+      - "alantu-unlimited-ocr.js"
+      - "pdf-convert-anchor.html"
       - ".github/workflows/uocr-real-browser-smoke.yml"
       - "tools/uocr-real-browser-smoke.mjs"
   workflow_dispatch:
@@ -23,8 +25,11 @@ jobs:
           set -euo pipefail
           for i in $(seq 1 45); do
             if curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?real=${{ github.sha }}" -o /tmp/uocr.js \
-              && grep -q 'Unlimited-OCR-Q4_K_M.gguf' /tmp/uocr.js \
-              && grep -q 'mmproj-Unlimited-OCR-F16.gguf' /tmp/uocr.js \
+              && grep -q 'sabafallah/Unlimited-OCR-GGUF' /tmp/uocr.js \
+              && grep -q 'mmprojQuant:"Q8_0"' /tmp/uocr.js \
+              && grep -q 'loadModelFromHF' /tmp/uocr.js \
+              && grep -q 'chat_template:"deepseek-ocr"' /tmp/uocr.js \
+              && grep -q 'text:"document parsing."' /tmp/uocr.js \
               && grep -q 'image_max_tokens:imageMaxTokens' /tmp/uocr.js \
               && grep -q 'n_gpu_layers:0' /tmp/uocr.js; then
               exit 0
