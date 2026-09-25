@@ -2484,8 +2484,8 @@ function applyMicroMarketSnapshot(d){
   if(d.wave_forecast){waveForecastState=d.wave_forecast;renderWaveForecasts();}
   if(d.sentiment)applyRailwaySentiment(d.sentiment);
   if(ivChart&&priceRange==='1d'){
-    var base=ivChart.data&&ivChart.data.datasets&&ivChart.data.datasets[0];
-    if(base)refreshTrajectoryDatasets(base.data||[],berlinTradingWindowFor(Date.now()),false);
+    var base=ivChart.data&&ivChart.data.datasets&&ivChart.data.datasets[0],basePts=base&&base.data||[],baseLast=basePts.length?basePts[basePts.length-1]:null;
+    if(base)refreshTrajectoryDatasets(basePts,baseLast&&isFinite(Number(baseLast.x))?berlinTradingWindowFor(Number(baseLast.x)):null,false);
   }
   lastFlowRenderAt=0;
   try{renderMarketFlowVisual(getMarketWaveVector());}catch(e){}
