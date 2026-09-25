@@ -51,11 +51,13 @@ jobs:
               && grep -q 'touch-action:none;' /tmp/pdf-live.html \
               && grep -q 'pointerdown",pointerDown,{passive:false}' /tmp/core-live.js \
               && grep -q 'lostpointercapture' /tmp/core-live.js \
-              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-6' /tmp/convert-live.html \
+              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-7' /tmp/convert-live.html \
               && grep -q 'function fetchWithRetry' /tmp/uocr-live.js \
               && grep -q 'withHeartbeat' /tmp/uocr-live.js \
               && grep -q 'diagnoseLocalOcrBottleneck' /tmp/uocr-live.js \
               && grep -q 'runSmallFallbackOcr' /tmp/uocr-live.js \
+              && grep -q 'forceFallbackOcr' /tmp/uocr-live.js \
+              && grep -q 'tesseract.js@5.1.1' /tmp/uocr-live.js \
               && grep -q 'Fallback-OCR auf' /tmp/uocr-live.js \
               && grep -q 'NakliTechie/gemma4-webgpu@0ca5e3a' /tmp/uocr-live.js \
               && grep -q 'createGemmaEngine' /tmp/engine-live.js \
