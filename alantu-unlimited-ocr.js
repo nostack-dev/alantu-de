@@ -1,5 +1,5 @@
-import { Wllama } from "https://cdn.jsdelivr.net/npm/@wllama/wllama@3.7.0/esm/index.js";
-import WasmFromCDN from "https://cdn.jsdelivr.net/npm/@wllama/wllama@3.7.0/esm/wasm-from-cdn.js";
+import { Wllama } from "https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/esm/index.js";
+import WasmFromCDN from "https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/esm/wasm-from-cdn.js";
 import { PDFDocument, StandardFonts, rgb } from "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm";
 
 const pdfjsLib=window.pdfjsLib;
