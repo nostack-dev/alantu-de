@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Mark SVG smoke pending
+      - name: Mark searchable PDF smoke pending
         env:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ github.sha }}
@@ -45,7 +45,7 @@ jobs:
           grep -q '<|grounding|>OCR this image.' alantu-unlimited-ocr.js
           grep -q 'buildMergedSvg' alantu-unlimited-ocr.js
 
-      - name: Wait for live SVG converter
+      - name: Wait for live Unlimited-OCR converter
         shell: bash
         run: |
           set -euo pipefail
@@ -60,7 +60,7 @@ jobs:
             fi
             sleep 10
           done
-          echo "Live SVG converter did not reach current main" >&2
+          echo "Live Unlimited-OCR converter did not reach current main" >&2
           exit 1
 
       - name: Check Unlimited-OCR model and runtime endpoints
@@ -83,7 +83,7 @@ jobs:
           PDF_SAMPLE: assets/sunside-living-expose.pdf
         run: node tools/pdf-convert-anchor-smoke.mjs
 
-      - name: Publish SVG smoke result
+      - name: Publish searchable PDF smoke result
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
