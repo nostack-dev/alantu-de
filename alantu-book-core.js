@@ -183,6 +183,7 @@ export function createAlantuBookCore(options){
   let settlingTurns=[];
   let activeBoundary=null;
   let dragState=null;
+  let touchScrollLocked=false;
   let lastMotionTime=performance.now();
   let suppressTapUntil=0;
 
@@ -663,6 +664,7 @@ export function createAlantuBookCore(options){
 
     dragState={
       id:e.pointerId,
+      pointerType:e.pointerType,
       startX:e.clientX,
       startY:e.clientY,
       lastX:e.clientX,
@@ -675,6 +677,7 @@ export function createAlantuBookCore(options){
       samples:[{x:e.clientX,t:now}],
       moved:false
     };
+    touchScrollLocked=e.pointerType==="touch"&&Boolean(activeBoundary);
 
     // Direct-manipulation feedback: while the user physically holds the
     // draggable book surface, hide the pointer and let the view highlight
@@ -693,7 +696,18 @@ export function createAlantuBookCore(options){
 
     if(dragState.mode===null){
       if(Math.abs(dx)<.8)return;
+      // Preserve normal vertical page scrolling until the gesture is clearly
+      // a horizontal page/cover drag. Once horizontal intent wins, lock page
+      // scroll for this exact touch sequence so browser scrolling cannot steal
+      // the flip mid-transaction.
       if(Math.abs(dy)>4&&Math.abs(dx)<Math.abs(dy)*.38)return;
+      if(
+        dragState.pointerType==="touch" &&
+        Math.abs(dx)>=4 &&
+        Math.abs(dx)>Math.abs(dy)*1.08
+      ){
+        touchScrollLocked=true;
+      }
 
       if(closedSide==="start"&&dx<0){
         dragState.mode="boundary";
@@ -767,7 +781,21 @@ export function createAlantuBookCore(options){
     dragState.moved=dragState.moved||Math.abs(dx)>2;
     notify();
 
-    if(dragState.moved)e.preventDefault();
+    if(dragState.moved||touchScrollLocked)e.preventDefault();
+  }
+
+  function blockNativeTouchScroll(e){
+    if(!dragState||dragState.pointerType!=="touch")return;
+    const touch=[...e.changedTouches,...e.touches].find(item=>item.identifier===dragState.id)||e.touches[0];
+    if(!touch)return;
+
+    const dx=touch.clientX-dragState.startX;
+    const dy=touch.clientY-dragState.startY;
+
+    if(!touchScrollLocked&&Math.abs(dx)>=4&&Math.abs(dx)>Math.abs(dy)*1.08){
+      touchScrollLocked=true;
+    }
+    if(touchScrollLocked)e.preventDefault();
   }
 
   function releaseDrag(cancelled=false){
@@ -822,6 +850,7 @@ export function createAlantuBookCore(options){
 
     if(dragState.moved)suppressTapUntil=performance.now()+260;
     dragState=null;
+    touchScrollLocked=false;
     stage.classList.remove("is-book-dragging");
     ensureTurn();
     notify();
@@ -841,6 +870,9 @@ export function createAlantuBookCore(options){
   stage.addEventListener("pointermove",pointerMove);
   stage.addEventListener("pointerup",pointerUp);
   stage.addEventListener("pointercancel",pointerCancel);
+  // Must be non-passive: only an already-recognized horizontal book gesture
+  // suppresses native vertical page scrolling. Vertical gestures stay native.
+  stage.addEventListener("touchmove",blockNativeTouchScroll,{passive:false});
 
   if(prevButton)prevButton.addEventListener("click",prev);
   if(nextButton)nextButton.addEventListener("click",next);
