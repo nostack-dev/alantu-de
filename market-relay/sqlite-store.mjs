@@ -245,6 +245,7 @@ export function openMarketStore(file=process.env.ALANTU_SQLITE_PATH||'/data/alan
       return {stored:true};
     },
     recordOutcome(o){
+      if(!db.prepare('SELECT 1 FROM predictions WHERE id=?').get(o.id))api.recordPrediction(o);
       const pm=ms(o.endpoint_market_at||o.endpoint_at),pr=ms(o.endpoint_received_at),ba=ms(o.barrier_at),lb=ms(o.last_before_target_at);
       outcome.run({prediction_id:o.id,status:o.status,reason:o.reason||null,evaluated_at_ms:Date.now(),endpoint_market_at_ms:pm,
         endpoint_received_at_ms:pr,endpoint_price:o.endpoint_price??null,endpoint_return_bps:o.endpoint_return_bps??null,
