@@ -73,7 +73,7 @@ async function blobToArrayBuffer(blob){return blob.arrayBuffer()}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 function shortError(err){
   const msg=String(err?.message||err||"Load failed");
-  if(/Load failed|Failed to fetch|NetworkError|fetch|aborted|cancelled|body/i.test(msg))return "Download abgebrochen oder Browser-Speicher zu knapp. Seite neu laden oder Desktop-Chrome nutzen.";
+  if(/Load failed|Failed to fetch|NetworkError|fetch|aborted|cancelled|body/i.test(msg))return "Download abgebrochen oder Browser-Speicher zu knapp.";
   return msg;
 }
 let heartbeatTimer=null;
@@ -583,7 +583,7 @@ async function convertPage(pageNo,token,onPreview=()=>{}){
       if(err?.message==="cancelled")throw err;
       const primaryError=shortError(err);
       provisional.ocrPrimaryError=primaryError;
-      console.error(err);
+      console.warn("3B-OCR → Fallback-OCR",err);
       try{
         const fallback=await runSmallFallbackOcr(ocrCanvas,base.width,base.height,primaryError);
         if(token!==loadToken)throw new Error("cancelled");
