@@ -1,4 +1,4 @@
-export const V5_VERSION='yahoo-monetary-dt-v5';
+export const V5_VERSION='yahoo-monetary-dt-v6';
 export const V5_HORIZONS=[1,5,15,30];
 export const V5_WINDOWS_SEC=[5,15,30,60,180,300];
 export const V5_LOCAL=['MSFT','AMZN','GOOGL','NVDA','IGV'];
@@ -23,7 +23,8 @@ function median(a){const x=a.filter(Number.isFinite).slice().sort((a,b)=>a-b);if
 function sigmoid(z){if(z>=0){const e=Math.exp(-Math.min(40,z));return 1/(1+e);}const e=Math.exp(Math.max(-40,z));return e/(1+e);}
 function squash(x,scale=1){return Math.tanh((Number(x)||0)/Math.max(1e-9,scale));}
 function hdr(a,b){a=Number(a);b=Number(b);if(!Number.isFinite(a)||!Number.isFinite(b))return 0;return clamp((a-b)/(Math.abs(a)+Math.abs(b)+1e-9),-1,1);}
-function eventTime(e){const r=Number(e?.recv_at),t=Number(e?.t);return Number.isFinite(r)&&r>0?r:t;}
+function eventTime(e){const t=Number(e?.t);return Number.isFinite(t)&&t>0?t:NaN;}
+function receiveTime(e){const r=Number(e?.recv_at);return Number.isFinite(r)&&r>0?r:NaN;}
 export function nyDayKeyV5(ms){try{return NY_DAY.format(new Date(ms));}catch{return '';}}
 function nyParts(ms){const o={};for(const p of NY_PARTS.formatToParts(new Date(ms)))if(p.type!=='literal')o[p.type]=p.value;return o;}
 export function v5SessionEligible(nowMs,horizonMinutes){
@@ -57,7 +58,7 @@ function windowStats(rows,nowMs,windowSec){
   }
   const elapsed=Math.max(1,endMs-firstMs),mins=elapsed/60000,ret=Math.log(Number(end.p)/Number(first.p))*10000,steps=up+down,dir=Math.sign(ret);
   const range=Math.log(maxP/minP)*10000;
-  const delays=pts.map(e=>Number(e.recv_at)-Number(e.t)).filter(x=>Number.isFinite(x)&&x>=0&&x<60000);
+  const delays=pts.map(e=>receiveTime(e)-eventTime(e)).filter(x=>Number.isFinite(x)&&x>=0&&x<60000);
   return {
     window_seconds:windowSec,count:pts.length,coverage:clamp(elapsed/win,0,1.5),elapsed_ms:elapsed,return_bps:ret,
     velocity_bps_min:ret/Math.max(mins,1/120),flow_ratio:totalVol?signedVol/totalVol:(steps?(up-down)/steps:0),
@@ -112,7 +113,7 @@ export function extractV5Features(series,nowMs=Date.now()){
   };
   const vector=V5_FEATURE_NAMES.map(k=>featureValue(f[k]));
   return {
-    status:'ok',version:V5_VERSION,asof:new Date(nowMs).toISOString(),clock:'receiver_time_actionable',
+    status:'ok',version:V5_VERSION,asof:new Date(eventTime((series.ORCL||[]).at(-1))).toISOString(),computed_at:new Date(nowMs).toISOString(),clock:'market_event_time',
     windows_seconds:V5_WINDOWS_SEC,feature_names:V5_FEATURE_NAMES,features:f,vector,
     diagnostics:{self,local,global,residual_bps:{'15':r15,'60':r60,'300':r300},coupling:{'15':c15,'60':c60,'300':c300},
       peer_blend_bps:{'5':blend(5),'15':blend(15),'60':blend(60),'300':blend(300)},min_coverage:minCoverage,median_delivery_lag_ms:latency}
@@ -180,7 +181,7 @@ export function evaluateV5Path(prediction,events,nowMs=Date.now()){
     return {gross_bps:gross,net_bps:net,profitable:net>0};
   };
   return {
-    status:'evaluated',endpoint_price:Number(endpoint.p),endpoint_at:new Date(eventTime(endpoint)).toISOString(),endpoint_market_at:new Date(Number(endpoint.t)).toISOString(),
+    status:'evaluated',endpoint_price:Number(endpoint.p),endpoint_at:new Date(eventTime(endpoint)).toISOString(),endpoint_market_at:new Date(eventTime(endpoint)).toISOString(),endpoint_received_at:Number.isFinite(receiveTime(endpoint))?new Date(receiveTime(endpoint)).toISOString():null,
     endpoint_return_bps:endpointRet,timing_error_ms:eventTime(endpoint)-target,barrier_label:barrierLabel,barrier_hit:barrierLabel!==0,
     barrier_at:barrierAt?new Date(barrierAt).toISOString():null,mfe_bps:Number.isFinite(maxRet)?maxRet:null,mae_bps:Number.isFinite(minRet)?minRet:null,
     structural:trade(prediction.structural_dir),learned:trade(prediction.learned_dir),last_before_target_at:lastBefore?new Date(eventTime(lastBefore)).toISOString():null
@@ -218,7 +219,7 @@ export function summarizeV5State(state){
     if(reasons.length&&model.ready&&learned.n>=60&&learned.days>=3&&learned.mean_net_bps>.75&&learned.profit_factor>1.15&&mean(delta)>.25)proof[String(h)].gate.status='promising';
   }
   const valid=[5,15,1,30].filter(h=>proof[String(h)].gate.status==='validated');
-  return {version:V5_VERSION,contract:'true_dt_residual_barrier_causal_online_v1',clock:'receiver_time_actionable',objective:'first_profit_or_loss_barrier_then_horizon_close',
+  return {version:V5_VERSION,contract:'market_event_time_true_dt_no_synthetic_samples_v2',clock:'market_event_time',objective:'first_profit_or_loss_barrier_then_horizon_close',
     assumed_roundtrip_cost_bps:V5_COST_BPS,windows_seconds:V5_WINDOWS_SEC,feature_names:V5_FEATURE_NAMES,proof,
     production:{enabled:valid.length>0,validated_horizons:valid,selected_horizon:valid[0]||null},started_at:state?.started_at||null,updated_at:state?.updated_at||null};
 }
