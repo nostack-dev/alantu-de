@@ -44,6 +44,42 @@ async function run(kind,viewport){
       assert(!html.includes('PRIVATE RESIDENCE'),'stale private-residence cover copy still present');
     }
     const stage=page.locator('#stage');
+
+    if(viewport.width<=700){
+      const axisLock=await stage.evaluate(el=>{
+        const fire=(type,x,y)=>{
+          const event=new Event(type,{bubbles:true,cancelable:true});
+          const touches=type==='touchend'||type==='touchcancel'
+            ? []
+            : [{clientX:x,clientY:y}];
+          Object.defineProperty(event,'touches',{value:touches});
+          el.dispatchEvent(event);
+          return {
+            prevented:event.defaultPrevented,
+            locked:el.classList.contains('is-book-scroll-locked')
+          };
+        };
+
+        fire('touchstart',120,320);
+        const horizontal=fire('touchmove',190,326);
+        const horizontalEnd=fire('touchend',190,326);
+
+        fire('touchstart',120,320);
+        const vertical=fire('touchmove',125,390);
+        fire('touchend',125,390);
+
+        return {horizontal,horizontalEnd,vertical};
+      });
+      assert.equal(axisLock.horizontal.prevented,true,
+        `horizontal touch did not suppress page scroll: ${JSON.stringify(axisLock)}`);
+      assert.equal(axisLock.horizontal.locked,true,
+        `horizontal touch did not engage book scroll lock: ${JSON.stringify(axisLock)}`);
+      assert.equal(axisLock.horizontalEnd.locked,false,
+        `book scroll lock survived touch end: ${JSON.stringify(axisLock)}`);
+      assert.equal(axisLock.vertical.prevented,false,
+        `vertical touch was incorrectly blocked: ${JSON.stringify(axisLock)}`);
+    }
+
     const marker=`${kind}-${viewport.width}`;
     await page.waitForTimeout(1500);
     const initial=await stage.screenshot({path:`${out}/${marker}-initial.png`});
