@@ -2295,6 +2295,14 @@ function refreshTrajectoryDatasets(pts,session,update){
   if(mx&&ivChart.options&&ivChart.options.scales&&ivChart.options.scales.x)ivChart.options.scales.x.max=Math.max(Number(ivChart.options.scales.x.max)||0,mx);
   if(update!==false)ivChart.update('none');
 }
+function stableDayYBounds(pricePts,fairPts){
+  if(priceRange!=='1d')return null;
+  var vals=(pricePts||[]).map(function(p){return Number(p.y);}).filter(isFinite);
+  if(showIntrinsic)vals=vals.concat((fairPts||[]).map(function(p){return Number(p.y);}).filter(isFinite));
+  if(!vals.length)return null;
+  var lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals),span=Math.max(.5,hi-lo),pad=Math.max(.35,span*.18);
+  return {min:lo-pad,max:hi+pad};
+}
 function updateLivePriceChart1d(){
   if(priceRange!=='1d'||!ivChart||!liveMarket.orclUsd||!liveMarket.at)return false;
   var ms=new Date(liveMarket.at).getTime(),session=berlinTradingWindowFor(ms);

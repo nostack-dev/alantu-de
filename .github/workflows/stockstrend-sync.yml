@@ -149,6 +149,7 @@ jobs:
           grep -q 'function latestBerlinTradingWindow' index.html
           grep -Fq 'var end=Math.min(session.close,Math.max(session.open+60000,ms))' index.html
           grep -q 'function updateLivePriceChart1d' index.html
+          grep -q 'function stableDayYBounds' index.html
           grep -q 'id="marketFlow"' index.html
           grep -q 'id="waveForecasts"' index.html
           grep -q 'id="forecastProofStrip"' index.html
