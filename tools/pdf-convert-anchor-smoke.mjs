@@ -161,7 +161,7 @@ if(failed.length)errors.push('requestfailed:'+JSON.stringify(failed));
 if(side.pages!=='2')errors.push('pages:'+side.pages);
 if(Number(side.native)<2)errors.push('native-text-count:'+side.native);
 if(Number(side.imageText)<1)errors.push('image-text-count:'+side.imageText);
-if(!/^100 % Bildseiten mit OCR · 100 % erkannter OCR-Text → echt · /.test(side.imageTextPercent))errors.push('image-text-percent:'+side.imageTextPercent);
+if(!/^100 % Bildseiten mit OCR · 3B-OCR · /.test(side.imageTextPercent))errors.push('image-text-percent:'+side.imageTextPercent);
 if(side.baked!=='2')errors.push('baked-pages:'+side.baked);
 if(side.visual!=='100 % Originalbild')errors.push('visual:'+side.visual);
 if(!/Unlimited-OCR 3B/.test(side.engine))errors.push('engine:'+side.engine);
@@ -179,6 +179,43 @@ if(!/Native PDF Text/.test(allText))errors.push('native-text-not-searchable:'+al
 if(!/ALANTU EXPOSE/.test(allText))errors.push('ocr-text-not-searchable:'+allText);
 
 console.log(JSON.stringify({url,loadingView,side,overlay,download:{name:dl.suggestedFilename(),bytes:stat.size,textPages},ok:errors.length===0,errors},null,2));
+if(errors.length){
+  await browser.close();
+  throw new Error('Unlimited OCR searchable PDF smoke failed: '+errors.join(' | '));
+}
+
+// Real lightweight cascade test: skip 3B deliberately and prove that the
+// browser falls through to Tesseract, creates real image text, and enables export.
+const fallbackPage=await browser.newPage({viewport:{width:1100,height:900}});
+const fallbackConsoleErrors=[],fallbackPageErrors=[];
+fallbackPage.on('console',m=>{if(m.type()==='error')fallbackConsoleErrors.push(m.text())});
+fallbackPage.on('pageerror',e=>fallbackPageErrors.push(String(e?.stack||e)));
+const fallbackUrl=base+(base.includes('?')?'&':'?')+'forceFallbackOcr=1';
+await fallbackPage.goto(fallbackUrl,{waitUntil:'domcontentloaded',timeout:60000});
+await fallbackPage.locator('#pdfInput').setInputFiles(fixture);
+await fallbackPage.waitForFunction(()=>{
+  const b=document.getElementById('downloadPdfBtn');
+  const status=document.getElementById('status')?.textContent||'';
+  return b?.disabled===false||/Export gesperrt|Bild-OCR fehlgeschlagen/.test(status);
+},null,{timeout:240000});
+const fallback=await fallbackPage.evaluate(()=>({
+  status:document.getElementById('status')?.textContent||'',
+  engine:document.getElementById('mEngine')?.textContent||'',
+  imageText:document.getElementById('mImageText')?.textContent||'',
+  coverage:document.getElementById('mImageTextPercent')?.textContent||'',
+  buttonDisabled:document.getElementById('downloadPdfBtn')?.disabled,
+  debug:window.__alantuUocrDebug?.fallback||null
+}));
+const fallbackErrors=[];
+if(fallback.buttonDisabled)fallbackErrors.push('fallback-export-disabled:'+fallback.status);
+if(!/Fallback-OCR/.test(fallback.engine))fallbackErrors.push('fallback-engine:'+fallback.engine);
+if(Number(fallback.imageText)<1)fallbackErrors.push('fallback-no-image-text:'+fallback.imageText);
+if(!/Fallback-OCR auf/.test(fallback.coverage))fallbackErrors.push('fallback-coverage:'+fallback.coverage);
+if(!fallback.debug||fallback.debug.engine!=='tesseract.js 5.1.1')fallbackErrors.push('fallback-debug:'+JSON.stringify(fallback.debug));
+if(fallbackConsoleErrors.length)fallbackErrors.push('fallback-console:'+JSON.stringify(fallbackConsoleErrors));
+if(fallbackPageErrors.length)fallbackErrors.push('fallback-pageerror:'+JSON.stringify(fallbackPageErrors));
+console.log(JSON.stringify({fallbackUrl,fallback,ok:fallbackErrors.length===0,errors:fallbackErrors},null,2));
 await browser.close();
-if(errors.length)throw new Error('Unlimited OCR searchable PDF smoke failed: '+errors.join(' | '));
+if(fallbackErrors.length)throw new Error('OCR fallback cascade smoke failed: '+fallbackErrors.join(' | '));
 console.log('UNLIMITED_OCR_SEARCHABLE_PDF_SMOKE_OK');
+console.log('UNLIMITED_OCR_FALLBACK_CASCADE_OK');
