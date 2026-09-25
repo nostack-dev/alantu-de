@@ -43,6 +43,9 @@ jobs:
           grep -q 'Unlimited-OCR-Q5_K_S.gguf' alantu-unlimited-ocr.js
           grep -q 'mmproj-Unlimited-OCR-F16.gguf' alantu-unlimited-ocr.js
           grep -q 'buildSearchablePdf' alantu-unlimited-ocr.js
+          grep -q 'const OCR_LONG_EDGE=1024' alantu-unlimited-ocr.js
+          grep -q 'makeOcrCanvas' alantu-unlimited-ocr.js
+          grep -q 'restartOnCpu' alantu-unlimited-ocr.js
           grep -q 'text:"<|grounding|>OCR"' alantu-unlimited-ocr.js
           grep -q '{type:"image",data:imageBuffer}' alantu-unlimited-ocr.js
           ! grep -q 'chat_template:"deepseek-ocr"' alantu-unlimited-ocr.js
@@ -59,6 +62,8 @@ jobs:
               && grep -q '@wllama/wllama@3.6.1' /tmp/unlimited-live.js \
               && grep -q 'src/wasm/wllama.wasm' /tmp/unlimited-live.js \
               && grep -q 'Unlimited-OCR-Q5_K_S.gguf' /tmp/unlimited-live.js \
+              && grep -q 'const OCR_LONG_EDGE=1024' /tmp/unlimited-live.js \
+              && grep -q 'restartOnCpu' /tmp/unlimited-live.js \
               && grep -q 'text:"<|grounding|>OCR"' /tmp/unlimited-live.js \
               && ! grep -q 'chat_template:"deepseek-ocr"' /tmp/unlimited-live.js \
               && grep -q 'buildSearchablePdf' /tmp/unlimited-live.js; then
