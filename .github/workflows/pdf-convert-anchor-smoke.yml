@@ -40,6 +40,7 @@ jobs:
           grep -q 'data-pdf-text' pdf-convert-anchor.html
           grep -q 'Text→SVG 100%' pdf-convert-anchor.html
           grep -q 'downloadCurrentSvg' pdf-convert-anchor.html
+          grep -q 'fontExtraProperties:true' pdf-convert-anchor.html
 
       - name: Wait for live SVG converter
         shell: bash
@@ -48,7 +49,8 @@ jobs:
           for i in $(seq 1 30); do
             if curl -fsSL --max-time 20 "https://www.alantu.de/pdf-convert-anchor.html?smoke=${{ github.sha }}" -o /tmp/pdf-convert-live.html \
               && grep -q 'SVGGraphics' /tmp/pdf-convert-live.html \
-              && grep -q 'Text→SVG 100%' /tmp/pdf-convert-live.html; then
+              && grep -q 'Text→SVG 100%' /tmp/pdf-convert-live.html \
+              && grep -q 'fontExtraProperties:true' /tmp/pdf-convert-live.html; then
               exit 0
             fi
             sleep 10
