@@ -69,6 +69,39 @@ function canvasToBlob(canvas,type="image/png",quality=.98){
 }
 async function blobToArrayBuffer(blob){return blob.arrayBuffer()}
 
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function shortError(err){
+  const msg=String(err?.message||err||"Load failed");
+  if(/Load failed|Failed to fetch|NetworkError|fetch|aborted|cancelled|body/i.test(msg))return "Download abgebrochen oder Browser-Speicher zu knapp. Seite neu laden oder Desktop-Chrome nutzen.";
+  return msg;
+}
+let heartbeatTimer=null;
+function startHeartbeat(label){
+  const start=Date.now();
+  clearInterval(heartbeatTimer);
+  busy.classList.add("show");
+  heartbeatTimer=setInterval(()=>{
+    const sec=Math.max(1,Math.round((Date.now()-start)/1000));
+    busy.textContent=label+" · "+sec+"s";
+    setStatus(label+" · läuft seit "+sec+"s");
+  },1000);
+  return ()=>{clearInterval(heartbeatTimer);heartbeatTimer=null};
+}
+async function withHeartbeat(label,fn,timeoutMs=300000){
+  const stop=startHeartbeat(label);let timer;
+  try{return await Promise.race([Promise.resolve().then(fn),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(label+": Timeout nach "+Math.round(timeoutMs/1000)+"s")),timeoutMs)})])}
+  catch(err){throw new Error(label+": "+shortError(err))}
+  finally{clearTimeout(timer);stop()}
+}
+async function fetchWithRetry(url,opts={},label="Datei"){
+  let last;
+  for(let i=1;i<=3;i++){
+    try{setStatus(label+" laden · Versuch "+i+"/3");const resp=await fetch(url,{...opts,cache:opts.cache||"force-cache"});if(resp.ok)return resp;last=new Error("HTTP "+resp.status)}catch(err){last=err}
+    await sleep(800*i);
+  }
+  throw new Error(label+": "+shortError(last));
+}
+
 // Tiny local NPZ reader for Unlimited-OCR's image_newline / view_seperator
 // sidecar. This removes the last runtime dependency on esm.sh.
 function parseNpyPayload(payload,key){
@@ -124,7 +157,7 @@ function parseNpz(buf){
   return out;
 }
 async function loadReferenceTensors(url){
-  const resp=await fetch(url,{cache:"force-cache"});
+  const resp=await fetchWithRetry(url,{cache:"force-cache"},"Unlimited-OCR Sidecar");
   if(!resp.ok)throw new Error(`Unlimited-OCR Sidecar konnte nicht geladen werden: HTTP ${resp.status}`);
   return {tensors:parseNpz(await resp.arrayBuffer())};
 }
@@ -260,12 +293,12 @@ async function ensureVision(){
     busy.classList.add("show");
     busy.textContent="Unlimited-OCR DeepEncoder wird geladen · 1,6 GB …";
     setStatus("Vision-Modell wird lokal geladen …");
-    const ort=await import(ORT_URL);
+    const ort=await withHeartbeat("ONNX Runtime wird geladen",()=>import(ORT_URL),60000);
     ort.env.wasm.wasmPaths="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/";
-    visionSession=await ort.InferenceSession.create(MODEL.visionUrl,{
+    visionSession=await withHeartbeat("Vision-Modell wird lokal geladen",()=>ort.InferenceSession.create(MODEL.visionUrl,{
       executionProviders:["webgpu"],
       graphOptimizationLevel:"all"
-    });
+    }),420000);
     window.__alantuUocrOrt=ort;
     return visionSession;
   })().finally(()=>{visionPromise=null});
@@ -321,7 +354,7 @@ async function runUnlimited(ocrCanvas){
   const ort=window.__alantuUocrOrt;
   const pixels=preprocessOcrCanvas(ocrCanvas);
   const tVision=performance.now();
-  const result=await session.run({pixel_values:new ort.Tensor("float32",pixels,[1,3,1024,1024])});
+  const result=await withHeartbeat("Bildtext wird erkannt",()=>session.run({pixel_values:new ort.Tensor("float32",pixels,[1,3,1024,1024])}),180000);
   const patches=result.vision_embeds?.data;
   if(!(patches instanceof Float32Array))throw new Error("Unlimited-OCR DeepEncoder lieferte keine vision_embeds.");
   const visionSeq=spliceVision(patches,extras.newline,extras.seperator);
@@ -399,10 +432,18 @@ async function convertPage(pageNo,token,onPreview=()=>{}){
     // official 1024px base vision resolution. This matches the model's documented base input and bounds browser memory
     // without reducing the final PDF/preview resolution.
     const ocrCanvas=makeOcrCanvas(canvas);
-    rawOcr=await runUnlimited(ocrCanvas);
-    ocrCanvas.width=1;ocrCanvas.height=1;
-    if(token!==loadToken)throw new Error("cancelled");
-    ocr=filterNativeDuplicates(parseUnlimited(rawOcr,base.width,base.height),native);
+    try{
+      rawOcr=await runUnlimited(ocrCanvas);
+      if(token!==loadToken)throw new Error("cancelled");
+      ocr=filterNativeDuplicates(parseUnlimited(rawOcr,base.width,base.height),native);
+    }catch(err){
+      if(err?.message==="cancelled")throw err;
+      provisional.ocrError=shortError(err);
+      console.error(err);
+      setStatus("Bild-OCR fehlgeschlagen · PDF bleibt exportierbar.","error");
+    }finally{
+      ocrCanvas.width=1;ocrCanvas.height=1;
+    }
   }
   canvas.width=1;canvas.height=1;
 
@@ -420,17 +461,19 @@ function updateMetrics(){
   const aiPages=pages.filter(p=>p.usedAi).length;
   const convertedImagePages=pages.filter(p=>p.usedAi&&p.ocr.length>0).length;
   const pendingAi=pages.some(p=>p.processing);
+  const failedAi=pages.filter(p=>p.ocrError).length;
   const coverage=aiPages?Math.round(convertedImagePages/aiPages*100):null;
   mPages.textContent=pages.length?String(pages.length):"—";
   mNative.textContent=pages.length?String(native):"—";
   mImageText.textContent=pages.length?String(imageText):"—";
   if(!pages.length)mImageTextPercent.textContent="—";
   else if(pendingAi)mImageTextPercent.textContent="läuft …";
+  else if(failedAi)mImageTextPercent.textContent=`OCR fehlgeschlagen auf ${failedAi}/${aiPages} Bildseiten · PDF exportierbar`;
   else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 100 % erkannter OCR-Text → echt · ${imageText} Blöcke / ${imageChars} Zeichen`;
   else mImageTextPercent.textContent="— · keine Rasterbilder";
   mBaked.textContent=pages.length?String(pages.length):"—";
   mVisual.textContent=pages.length?"100 % Originalbild":"—";
-  if(!modelLoaded)mEngine.textContent=`${MODEL.name} · CPU/WASM`;
+  if(!modelLoaded)mEngine.textContent=MODEL.name;
 }
 function makeBoxes(container,page){
   container.innerHTML="";
@@ -573,7 +616,8 @@ async function loadPdf(file){
       await new Promise(requestAnimationFrame);
     }
     setProgress(100);busy.classList.remove("show");
-    setStatus(`${pages.length} Seiten fertig · visuell Original, zusätzlicher echter Textlayer.`,"ok");
+    const failed=pages.filter(p=>p.ocrError).length;
+    setStatus(failed?`${pages.length} Seiten fertig · ${failed} Bildseiten ohne OCR · PDF exportierbar.`:`${pages.length} Seiten fertig · visuell Original, zusätzlicher echter Textlayer.`,failed?"error":"ok");
     downloadPdfBtn.disabled=false;downloadSvgBtn.disabled=false;currentPage=0;renderCompare();setTimeout(()=>setProgress(0),900);
   }catch(err){
     busy.classList.remove("show");
