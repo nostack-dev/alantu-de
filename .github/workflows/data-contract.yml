@@ -6,6 +6,10 @@ on:
     paths:
       - 'tools/yahoo-monetary-v5.mjs'
       - 'market-relay/server.mjs'
+      - 'market-relay/sqlite-store.mjs'
+      - 'market-relay/package.json'
+      - 'tools/test-sqlite-v6.mjs'
+      - 'tools/test-sqlite-store.mjs'
       - 'tools/test-data-contract.mjs'
       - '.github/workflows/data-contract.yml'
   workflow_dispatch:
