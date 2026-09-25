@@ -26,7 +26,6 @@ jobs:
       - name: Request GitHub Pages rebuild
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
         run: |
           set -euo pipefail
           code=$(curl -sS -o /tmp/pages.json -w "%{http_code}" -X POST \
@@ -35,13 +34,8 @@ jobs:
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${{ github.repository }}/pages/builds")
           cat /tmp/pages.json || true
-          if [ "$code" != "201" ] && [ "$code" != "202" ]; then
-            echo "Pages rebuild request failed with HTTP $code" >&2
-            exit 1
-          fi
-
+          test "$code" = "201" -o "$code" = "202"
       - name: Wait for current public files
-        shell: bash
         run: |
           set -euo pipefail
           for i in $(seq 1 60); do
@@ -57,16 +51,14 @@ jobs:
               && grep -q 'touch-action:none;' /tmp/pdf-live.html \
               && grep -q 'pointerdown",pointerDown,{passive:false}' /tmp/core-live.js \
               && grep -q 'lostpointercapture' /tmp/core-live.js \
-              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-3' /tmp/convert-live.html \
+              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-4' /tmp/convert-live.html \
+              && grep -q 'function fetchWithRetry' /tmp/uocr-live.js \
+              && grep -q 'withHeartbeat' /tmp/uocr-live.js \
               && grep -q 'NakliTechie/gemma4-webgpu@0ca5e3a' /tmp/uocr-live.js \
-              && grep -q 'Unlimited-OCR-DeepEncoder-ONNX' /tmp/uocr-live.js \
-              && grep -q 'beginRingDecode(pos+1)' /tmp/uocr-live.js \
               && grep -q 'createGemmaEngine' /tmp/engine-live.js \
               && ! grep -q '@wllama/wllama' /tmp/uocr-live.js; then
-              echo "Current public files are live."
               exit 0
             fi
             sleep 10
           done
-          echo "Pages rebuilt but current public files did not appear on www.alantu.de." >&2
           exit 1
