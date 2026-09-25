@@ -3,7 +3,7 @@ import {extractV5Features,structuralV5Score,v5BarrierBps,fitV5Logistic,predictV5
 
 function seriesFor(base,drift,now){
   const a=[];let day=100000;
-  for(let s=360;s>=0;s-=3){
+  for(let s=360;s>=0;s--){
     const recv=now-s*1000,price=base*Math.exp((drift*(360-s)/360)/10000);
     day+=100;a.push({t:recv-200,p:price,dv:100,day_volume:day,recv_at:recv});
   }
