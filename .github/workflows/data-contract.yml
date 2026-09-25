@@ -39,3 +39,9 @@ jobs:
           grep -Fq "if(last&&Number(e.t)===Number(last.t))" market-relay/server.mjs
           grep -Fq "entry_market_ms:marketAt" market-relay/server.mjs
           grep -Fq "if(already)return;" market-relay/server.mjs
+          grep -Fq "feature_names:state.feature_names" market-relay/server.mjs
+          grep -Fq "persistEvidence(marketDb" market-relay/server.mjs
+          grep -Fq "prev_market_at_ms" market-relay/sqlite-store.mjs
+          grep -Fq "delta_t_ms" market-relay/sqlite-store.mjs
+          grep -Fq "learned_net_bps" market-relay/sqlite-store.mjs
+          grep -Fq "/v1/research-v6" market-relay/server.mjs
