@@ -105,19 +105,16 @@ jobs:
             validate_german_chart "$out"
           }
           fetch_german_orcl() {
-            local have_f=0 have_de=0
-            fetch_german_pair ORC.F /tmp/orc-frankfurt.json && have_f=1 || true
-            fetch_german_pair ORC.DE /tmp/orc-xetra.json && have_de=1 || true
-
-            if [ "$have_f" -eq 1 ] && [ "$have_de" -eq 1 ]; then
-              # Union Deutsche Börse Frankfurt (08:00+) and Xetra (09:00+) minute trades.
-              # Xetra wins on identical minutes; Frankfurt fills the earlier session.
-              node tools/merge-yahoo-minute.mjs /tmp/orc-frankfurt.json /tmp/orc-xetra.json orcl-germany-minute.json 14
+            # One venue per displayed series. Never splice Frankfurt and Xetra minute
+            # prices into one line; that creates an artificial venue handoff.
+            if fetch_german_pair ORC.F /tmp/orc-frankfurt.json; then
+              cp /tmp/orc-frankfurt.json orcl-germany-minute.json
               return 0
             fi
-            if [ "$have_f" -eq 1 ]; then cp /tmp/orc-frankfurt.json orcl-germany-minute.json; return 0; fi
-            if [ "$have_de" -eq 1 ]; then cp /tmp/orc-xetra.json orcl-germany-minute.json; return 0; fi
-
+            if fetch_german_pair ORC.DE /tmp/orc-xetra.json; then
+              cp /tmp/orc-xetra.json orcl-germany-minute.json
+              return 0
+            fi
             if [ -s /tmp/orcl-germany-minute.prev.json ]; then
               echo "German minute refresh unavailable; keeping last-known-good snapshot."
               cp /tmp/orcl-germany-minute.prev.json orcl-germany-minute.json
@@ -128,7 +125,8 @@ jobs:
           fetch_german_orcl
 
           node tools/merge-yahoo-minute.mjs /tmp/orcl-minute.prev.json orcl-minute.json orcl-minute.json 14
-          node tools/merge-yahoo-minute.mjs /tmp/orcl-germany-minute.prev.json orcl-germany-minute.json orcl-germany-minute.json 14
+          # German 1T chart intentionally keeps a single venue snapshot; do not merge
+          # prior rows from a potentially different fallback venue.
 
           fetch_pair \
             'https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?range=10y&interval=1d&includePrePost=false&events=div%2Csplits' \
