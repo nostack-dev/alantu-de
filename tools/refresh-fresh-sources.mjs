@@ -26,6 +26,6 @@ const social = ticker.concat(relevant).filter(x => {
   seen.add(key); return true;
 }).sort((a, b) => b.time - a.time).slice(0, 300);
 
-const data = { fetched_at: new Date().toISOString(), providers: ['TickerTick News', 'TickerTick ORCL UGC', 'TickerTick Oracle Entity UGC'], news_providers: ['TickerTick News'], social_providers: ['TickerTick ORCL UGC', 'TickerTick Oracle Entity UGC'], social_breakdown: { ticker: ticker.length, entity: relevant.length }, sufficient: news.length > 0 && social.length >= 50, news, social };
+const data = { fetched_at: new Date().toISOString(), providers: ['TickerTick News', 'TickerTick ORCL UGC', 'TickerTick Oracle Entity UGC'], news_providers: ['TickerTick News'], social_providers: ['TickerTick ORCL UGC', 'TickerTick Oracle Entity UGC'], social_breakdown: { ticker: ticker.length, entity: relevant.length }, sufficient: news.length > 0 || social.length > 0, news, social };
 await fs.writeFile('fresh-sources.json', JSON.stringify(data) + '\n');
 console.log(`Fresh source snapshot: ${news.length} news, ${social.length} social`);

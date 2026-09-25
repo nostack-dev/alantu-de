@@ -134,7 +134,10 @@ jobs:
           grep -q 'TickerTick ORCL UGC' tools/refresh-fresh-sources.mjs
           grep -q "T:ugc)" tools/refresh-fresh-sources.mjs
           grep -q "E:oracle T:ugc" tools/refresh-fresh-sources.mjs
-          grep -q 'minSocial=50' index.html
+          ! grep -q 'minSocial=50' index.html
+          grep -Fq "archive_count||0)+' Quellen / 36h" index.html
+          grep -Fq "X_BEARER_TOKEN missing" market-relay/server.mjs
+          grep -Fq "mentions_24h" market-relay/server.mjs
           grep -q 'id="sentimentRelation"' index.html
           grep -q 'function hdrRelationSeries' index.html
           grep -q 'while(windowStart<i&&cur.t-daily\[windowStart\].t>yearMs)windowStart++' index.html

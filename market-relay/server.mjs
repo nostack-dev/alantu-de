@@ -54,6 +54,8 @@ const V6_RUNTIME_STARTED_AT=Date.now(),V6_CANONICAL_WARMUP_MS=5*60000;
 let wgoPreviousCloseCache={checked_at:0,orcl:null,eurusd:null,source:null};
 const WHATS_GOING_ON_PROMPT=`Du erklärst ORCL in höchstens 5 kurzen Sätzen. Beginne mit der Bewegung der letzten 5/10 Minuten. Wenn der aktuelle Zeitraum ruhig ist, aber in den letzten 3 Stunden ein deutlich stärkerer 5/10-Minuten-Impuls lag, nenne diesen mit Uhrzeit und Größe. Ordne danach den heutigen Tagesmove ein und nutze relevante Meldungen der letzten 18 Stunden. Vergleiche den Impuls mit QQQ/SPY, um breiten Marktstress von ORCL-spezifischer Bewegung zu unterscheiden. Priorisiere konkrete Unternehmensereignisse vor allgemeiner Stimmung. Unterscheide klar zwischen belegtem Ereignis, wahrscheinlich relevantem Katalysator und bloßer zeitlicher Korrelation. Keine Kauf-/Verkaufsempfehlung.`;
 let sourceRefreshBusy=false,sourceLastLogAt=0,sourceLastEventAt=null,sourcePrimed=false;
+let redditAggregateCache={at:0,data:null};
+const SOCIAL_AGGREGATE_CACHE_MS=2*60*1000;
 const wgoRangeCache=new Map(),WGO_RANGE_CACHE_MS=10*60*1000;
 const sourceSeen=new Map();
 let sourceState={
@@ -237,6 +239,36 @@ async function wgoRangeBackground(range){
 }
 
 async function optionalSource(fn){try{return await fn();}catch{return [];}}
+async function sourceAttempt(name,fn){
+  try{const items=await fn();return {name,status:'ok',items:Array.isArray(items)?items:[],error:null};}
+  catch(e){return {name,status:'error',items:[],error:String(e?.message||e)};}
+}
+async function apeWisdomAggregate(){
+  if(redditAggregateCache.data&&Date.now()-redditAggregateCache.at<SOCIAL_AGGREGATE_CACHE_MS)return redditAggregateCache.data;
+  let mentions=null,sentiment=null,provider='apewisdom.io';
+  try{
+    const r=await fetch('https://apewisdom.io/stocks/ORCL/',{headers:{'user-agent':'Mozilla/5.0 alantu-market/1.0'},signal:AbortSignal.timeout(12000)});
+    if(r.ok){
+      const text=(await r.text()).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+      const mm=text.match(/Overall Summary.*?Mentions\s+([\d,]+)/i),sm=text.match(/Overall Summary.*?Sentiment\s+([\d]{1,3})%/i);
+      if(mm)mentions=Number(mm[1].replace(/,/g,''));
+      if(sm)sentiment=Number(sm[1]);
+    }
+  }catch{}
+  if(!Number.isFinite(mentions)){
+    try{
+      for(let page=1;page<=6;page++){
+        const r=await fetch('https://apewisdom.io/api/v1.0/filter/all-stocks/page/'+page,{headers:{'user-agent':'Mozilla/5.0 alantu-market/1.0'},signal:AbortSignal.timeout(12000)});
+        if(!r.ok)break;
+        const j=await r.json(),hit=(j.results||[]).find(x=>String(x.ticker||'').toUpperCase()==='ORCL');
+        if(hit){mentions=Number(hit.mentions);provider='apewisdom.io API';break;}
+        if(page>=Number(j.pages||0))break;
+      }
+    }catch{}
+  }
+  const data={provider,mentions_24h:Number.isFinite(mentions)?mentions:null,sentiment_pct:Number.isFinite(sentiment)?sentiment:null,checked_at:new Date().toISOString()};
+  redditAggregateCache={at:Date.now(),data};return data;
+}
 function sourceChannel(x,type){
   if(type==='news')return 'news';
   const u=(String(x.url||'')+' '+String(x.site||'')).toLowerCase();
@@ -368,15 +400,22 @@ async function refreshSources(){
   if(sourceRefreshBusy)return;
   sourceRefreshBusy=true;
   try{
-    const [ttNews,ticker,entity,reddit,x,bluesky,gnews]=await Promise.all([
-      optionalSource(()=>tickerTick('(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))',160)),
-      optionalSource(()=>tickerTick('(and tt:orcl T:ugc)',300)),
-      optionalSource(()=>tickerTick('(and E:oracle T:ugc)',300)),
-      optionalSource(redditRecent),
-      optionalSource(xRecent),
-      optionalSource(blueskyRecent),
-      optionalSource(googleNewsRecent)
+    const xEnabled=!!String(process.env.X_BEARER_TOKEN||'').trim();
+    const attempts=await Promise.all([
+      sourceAttempt('ticker_news',()=>tickerTick('(and tt:orcl (or T:curated T:market T:analysis T:industry T:earning T:sec))',160)),
+      sourceAttempt('ticker_ugc',()=>tickerTick('(and tt:orcl T:ugc)',300)),
+      sourceAttempt('entity_ugc',()=>tickerTick('(and E:oracle T:ugc)',300)),
+      sourceAttempt('reddit',redditRecent),
+      xEnabled?sourceAttempt('x',xRecent):Promise.resolve({name:'x',status:'disabled',items:[],error:'X_BEARER_TOKEN missing'}),
+      sourceAttempt('bluesky',blueskyRecent),
+      sourceAttempt('google_news',googleNewsRecent),
+      sourceAttempt('reddit_aggregate',async()=>[await apeWisdomAggregate()])
     ]);
+    const by=Object.fromEntries(attempts.map(a=>[a.name,a]));
+    const ttNews=by.ticker_news.items,ticker=by.ticker_ugc.items,entity=by.entity_ugc.items,reddit=by.reddit.items,x=by.x.items,bluesky=by.bluesky.items,gnews=by.google_news.items;
+    const redditAggregate=by.reddit_aggregate.items[0]||null;
+    const sourceHealth=Object.fromEntries(['ticker_news','ticker_ugc','entity_ugc','reddit','x','bluesky','google_news'].map(k=>[k,{status:by[k].status,count:by[k].items.length,error:by[k].error||null}]));
+    sourceHealth.x.enabled=xEnabled;
     const news=dedupeStories(ttNews.concat(gnews)).slice(0,240);
     const relevant=entity.filter(x=>/\$orcl\b|\borcl\b/i.test(x.title)||(/oracle/i.test(x.title)&&/stock|share|earn|cloud|ai|market|bull|bear|buy|sell|valuation|price|contract|capex/i.test(x.title)));
     const social=dedupeStories(ticker.concat(relevant,reddit,x,bluesky)).slice(0,600);
@@ -390,6 +429,8 @@ async function refreshSources(){
     if(x.length)providers.push('X live');
     const degraded=providers.length<2;
     sourceState=deriveSourceState(news,social,providers,degraded?'degraded':'ok');
+    sourceState.source_health=sourceHealth;
+    sourceState.social_aggregates={reddit:redditAggregate};
     if(marketDb){
       persistEvidence(marketDb,{kind:'source_state',approach_version:'source-state-v1',symbol:'ORCL',event_at:sourceState.checked_at,payload:sourceSummary()});
       for(const item of (sourceState.items||[]).filter(x=>x.new)){

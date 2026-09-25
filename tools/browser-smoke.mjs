@@ -121,6 +121,15 @@ async function run(name,viewport){
     priceRange:typeof priceRange==='undefined'?null:priceRange
   }));
 
+  const sourceStateUi=await page.evaluate(()=>({
+    live:typeof liveSourceState!=='undefined'?liveSourceState:null,
+    status:(document.getElementById('sentimentPanelStatus')?.textContent||'').trim(),
+    counts:(document.getElementById('sentimentSourceCounts')?.textContent||'').trim(),
+    freshItems:(document.getElementById('freshItems')?.textContent||'').trim(),
+    freshAt:(document.getElementById('freshAt')?.textContent||'').trim(),
+    redditRows:document.querySelectorAll('[data-source-kind="reddit"]').length,
+    xText:(document.getElementById('sentimentSourceCounts')?.textContent||'').trim()
+  }));
   const state=await page.evaluate(()=>{
     let renderForecastError=null;
     try{ if(typeof renderForecastTrail==='function') renderForecastTrail(); }catch(e){ renderForecastError=String(e?.stack||e); }
@@ -275,6 +284,14 @@ async function run(name,viewport){
   if(uiPctMatch&&briefPctMatch){
     const uiPct=Number(uiPctMatch[1]),briefPct=Number(briefPctMatch[1]);
     if(Number.isFinite(uiPct)&&Number.isFinite(briefPct)&&Math.abs(uiPct-briefPct)>.45)errors.push('wgo-day-percent-mismatch:'+JSON.stringify({uiPct,briefPct,wgoState}));
+  }
+  if(sourceStateUi.live){
+    const age=Date.now()-Date.parse(sourceStateUi.live.checked_at||'');
+    if(!Number.isFinite(age)||age>180000)errors.push('source-state-not-fresh:'+JSON.stringify(sourceStateUi));
+    if(Number(sourceStateUi.live.archive_count||0)>0&&Number(sourceStateUi.freshItems)!==Number(sourceStateUi.live.archive_count))errors.push('source-archive-count-not-primary:'+JSON.stringify(sourceStateUi));
+    const redditArchive=Number(sourceStateUi.live.archive_source_counts?.reddit||0);
+    if(redditArchive>0&&sourceStateUi.redditRows<1)errors.push('reddit-archive-not-visible:'+JSON.stringify(sourceStateUi));
+    if(sourceStateUi.live.source_health?.x?.status==='disabled'&&!/X\s*nicht verbunden/i.test(sourceStateUi.counts))errors.push('x-disabled-not-explicit:'+JSON.stringify(sourceStateUi));
   }
   if(!state.bodyText.includes('Prognosen vs. Realität'))errors.push('forecast-label-missing');
   if(!state.modelDecisionText.includes('MODELLSTATUS:'))errors.push('model-status-text-missing');
