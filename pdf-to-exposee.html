@@ -191,6 +191,9 @@
         linear-gradient(145deg,#ddd3c5,#b8ad9f);
       isolation:isolate;
       touch-action:pan-y;
+      overscroll-behavior:contain;
+      -webkit-user-select:none;
+      user-select:none;
     }
     .stage:after{
       content:"";
@@ -554,7 +557,7 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=prepdf-fix1";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=touch-axis-lock1";
     import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=prepdf-fix1";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
