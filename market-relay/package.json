@@ -3,6 +3,11 @@
   "private": true,
   "type": "module",
   "version": "1.0.0",
-  "engines": {"node": ">=22"},
-  "dependencies": {"ws": "^8.18.0"}
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "better-sqlite3": "^12.4.1"
+  }
 }
