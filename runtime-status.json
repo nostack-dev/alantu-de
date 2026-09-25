@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-25T09:45:19+02:00",
+  "updated_at": "2026-09-25T09:51:14+02:00",
   "sources": {
     "reddit": {
       "ok": true,
@@ -20,10 +20,10 @@
   },
   "derived": {
     "signal": "hold",
-    "hype_bull": 42,
+    "hype_bull": 44,
     "hype_bear": 33,
-    "hype_mixed": 25,
-    "hype_net": 9,
+    "hype_mixed": 23,
+    "hype_net": 11,
     "confidence": 80
   }
 }
