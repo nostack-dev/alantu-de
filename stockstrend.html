@@ -1444,7 +1444,7 @@ function priceScrubOverlayPlugin(){
       var p=priceScrubState.point,a=chart.chartArea,x=chart.scales.x.getPixelForValue(p.x),y=chart.scales.y.getPixelForValue(p.y);
       if(!a||!isFinite(x)||!isFinite(y))return;
       var ctx=chart.ctx,time=new Date(p.x).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'});
-      var projection=p.kind==='projection',label=(projection?'PROJEKTION · ':'')+time+' · '+euro(p.y,2);
+      var projection=p.kind==='projection',label=(projection?'SHADOW v3 · ':'')+time+' · '+euro(p.y,2);
       var band=projection&&isFinite(p.low)&&isFinite(p.high)?('Band '+euro(p.low,2)+' – '+euro(p.high,2)):'';
       ctx.save();
       ctx.strokeStyle=projection?'rgba(91,108,255,.75)':'rgba(17,17,19,.36)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
@@ -1645,7 +1645,7 @@ function renderLiveMarket(isLive){
   isLive=livePriceFresh(20000);
   var p=document.getElementById('livePrice'),c=document.getElementById('liveChange'),s=document.getElementById('liveState');
   if(!p||!c||!s)return;
-  var eur=usdToEur(liveMarket.orclUsd,Date.now());
+  var eur=usdToEur(liveMarket.orclUsd,liveMarket.at||Date.now());
   if(!eur){
     if(!liveMarket.lastRenderedEur){
       p.textContent='—';
@@ -2221,14 +2221,14 @@ function renderTrajectoryNote(meta,path){
   var el=document.getElementById('trajectoryNote'),hint=document.getElementById('projectionHint');
   if(hint){hint.hidden=true;hint.setAttribute('aria-hidden','true');}
   if(!meta){
-    if(el)el.innerHTML='<span><strong>1T Projektionspfad</strong> · wartet auf Live-Modell</span><span>Shadow · keine Kurszusage</span>';
+    if(el)el.innerHTML='<span><strong>v3 Shadow-Pfad</strong> · wartet auf Live-Modell</span><span>Forschungs-Overlay · nicht V6</span>';
     return;
   }
   var dir=meta.dir>0?'aufwärts':meta.dir<0?'abwärts':'seitwärts';
   var move=(meta.end_bps>=0?'+':'')+meta.end_bps.toFixed(1)+' bp';
   var turn=meta.turn?(' · Dreht ~'+meta.turn+'m'):'';
   var band=isFinite(meta.band_bps)?(' · Band ±'+meta.band_bps.toFixed(1)+' bp'):'';
-  if(el)el.innerHTML='<span><strong>'+dir+' '+move+'</strong> · Horizont-Abgleich '+meta.agree+'/'+meta.total+turn+band+'</span><span>Pfad statt Punktwolke · Shadow</span>';
+  if(el)el.innerHTML='<span><strong>v3 Shadow · '+dir+' '+move+'</strong> · Horizont-Abgleich '+meta.agree+'/'+meta.total+turn+band+'</span><span>Forschungs-Overlay · nicht V6</span>';
 }
 function trajectoryDatasets(pts,session){
   if(priceRange!=='1d'||!pts||!pts.length){renderTrajectoryNote(null);return [];}
@@ -2629,7 +2629,7 @@ function wgoRowsForRange(r){
     rows=filterByAt((ivData&&ivData.history)||[],function(h){return h.at;},r).map(function(h){return {at:h.at,value:ivEur(h,'price')};}).filter(function(h){return isFinite(h.value);});
   }
   if(liveMarket.orclUsd){
-    var le=usdToEur(liveMarket.orclUsd,Date.now()),la=new Date(liveMarket.at||Date.now()).toISOString(),lm=new Date(la).getTime();
+    var le=usdToEur(liveMarket.orclUsd,liveMarket.at||Date.now()),la=new Date(liveMarket.at||Date.now()).toISOString(),lm=new Date(la).getTime();
     if(isFinite(le)){
       var liveSession=r==='1d'?berlinTradingWindowFor(la):null,same=r!=='1d'||(session&&liveSession&&session.key===liveSession.key&&lm>=session.open&&lm<=session.close);
       if(same){
@@ -3096,32 +3096,25 @@ function renderMagnitudeChart(){
   }
 }
 function compositeDayPriceSession(){
-  var rows=[],today=berlinDayKey(Date.now());
-  function add(arr,isEuro,priority){
+  var today=berlinDayKey(Date.now()),todayWindow=berlinTradingWindowFor(Date.now());
+  function rowsFor(arr,isEuro){
+    var rows=[];
     (arr||[]).forEach(function(h){
       var ms=new Date(h&&h.at||0).getTime(),close=Number(h&&h.close);
       if(!isFinite(ms)||!isFinite(close)||close<=0)return;
-      var w=berlinTradingWindowFor(ms);if(!w||ms<w.open||ms>w.close)return;
+      var w=berlinTradingWindowFor(ms);if(!w||w.key!==today||ms<w.open||ms>w.close)return;
       var value=isEuro?close:usdToEur(close,h.at);if(!isFinite(value)||value<=0)return;
-      rows.push({at:new Date(ms).toISOString(),value:value,key:w.key,priority:priority,ms:ms,open:w.open,close:w.close});
+      rows.push({at:new Date(ms).toISOString(),value:value,ms:ms});
     });
+    rows.sort(function(a,b){return a.ms-b.ms;});
+    var byMinute={};rows.forEach(function(r){byMinute[String(Math.floor(r.ms/60000))]=r;});
+    return Object.keys(byMinute).map(function(k){return byMinute[k];}).sort(function(a,b){return a.ms-b.ms;});
   }
-  add(orclGermanyBars,true,1);
-  add(orclMinuteBars,false,2);
-  var todayWindow=berlinTradingWindowFor(Date.now());
-  if(!rows.length)return {key:today,open:todayWindow&&todayWindow.open,close:todayWindow&&todayWindow.close,rows:[]};
-  var keys={};rows.forEach(function(r){keys[r.key]=1;});
-  var key=today;
-  var chosen=rows.filter(function(r){return r.key===key;}).sort(function(a,b){return a.ms-b.ms||a.priority-b.priority;});
-  if(!chosen.length)return {key:today,open:todayWindow&&todayWindow.open,close:todayWindow&&todayWindow.close,rows:[]};
-  var byMinute={};
-  chosen.forEach(function(r){
-    var mk=String(Math.floor(r.ms/60000)),prev=byMinute[mk];
-    if(!prev||r.priority>=prev.priority)byMinute[mk]=r;
-  });
-  var out=Object.keys(byMinute).map(function(k){return byMinute[k];}).sort(function(a,b){return a.ms-b.ms;});
-  var w=berlinTradingWindowFor(out.length?out[0].ms:Date.now());
-  return {key:key,open:w&&w.open,close:w&&w.close,rows:out.map(function(r){return {at:r.at,value:r.value};})};
+  // One venue/source per visible 1T line. Prefer the EUR German listing for the full day;
+  // only fall back to US ORCL+time-matched FX when no German observations exist today.
+  var de=rowsFor(orclGermanyBars,true),us=de.length?[]:rowsFor(orclMinuteBars,false),out=de.length?de:us;
+  return {key:today,open:todayWindow&&todayWindow.open,close:todayWindow&&todayWindow.close,
+    source:de.length?'germany_eur':'us_orcl_fx',rows:out.map(function(r){return {at:r.at,value:r.value};})};
 }
 function valueSeries(){
   var ivHist=filterByAt((ivData&&ivData.history)||[],function(h){return h.at;},priceRange),priceRows,session=null;
@@ -3132,7 +3125,7 @@ function valueSeries(){
   else if(orclDailyBars.length)priceRows=filterByAt(orclDailyBars,function(h){return h.at;},priceRange).map(function(h){return {at:h.at,value:usdToEur(h.close,h.at)};}).filter(function(h){return isFinite(h.value);});
   else priceRows=ivHist.map(function(h){return {at:h.at,value:ivEur(h,'price')};}).filter(function(h){return isFinite(h.value);});
   if(liveMarket.orclUsd){
-    var le=usdToEur(liveMarket.orclUsd,Date.now());
+    var le=usdToEur(liveMarket.orclUsd,liveMarket.at||Date.now());
     if(isFinite(le)){
       var la=new Date(liveMarket.at||Date.now()).toISOString(),lp=priceRows.length?priceRows[priceRows.length-1]:null;
       var liveSession=priceRange==='1d'?berlinTradingWindowFor(la):null;
