@@ -1,0 +1,4 @@
+Source: https://github.com/NakliTechie/gemma4-webgpu
+Commit: 0ca5e3a129200ac84b3c3098311a88949ea4ca0e
+Build: npx vite build --config vite.lib.config.ts
+Purpose: browser-native Unlimited-OCR 3B decoder
