@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
+import * as pdfjsImport from 'pdfjs-dist/legacy/build/pdf.js';
+const pdfjsLib=pdfjsImport.default||pdfjsImport;
 import fs from 'node:fs/promises';
 
 const base=process.env.PDF_CONVERT_URL||'https://www.alantu.de/pdf-convert-anchor.html';
