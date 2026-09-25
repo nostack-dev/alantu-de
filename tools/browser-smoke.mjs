@@ -296,6 +296,9 @@ async function run(name,viewport){
     for(const k of ['score','bull','bear','mixed','net','archive_sentiment','live_pulse'])if(Object.prototype.hasOwnProperty.call(sourceStateUi.live,k))errors.push('directional-source-field-leaked:'+k);
     if(sourceStateUi.live.activity?.model_eligible!==false||sourceStateUi.live.activity?.direction!==null)errors.push('source-activity-not-fail-closed:'+JSON.stringify(sourceStateUi.live.activity));
     if((sourceStateUi.live.items||[]).some(x=>Object.prototype.hasOwnProperty.call(x,'lean')))errors.push('source-item-lean-leaked');
+    if(sourceStateUi.live.event_clock!=='first_seen_at')errors.push('source-event-clock-not-first-seen:'+JSON.stringify(sourceStateUi.live));
+    if((sourceStateUi.live.items||[]).some(x=>!x.first_seen_at))errors.push('source-item-missing-first-seen');
+    if(sourceStateUi.live.social_aggregates?.reddit&&Object.prototype.hasOwnProperty.call(sourceStateUi.live.social_aggregates.reddit,'sentiment_pct'))errors.push('vendor-sentiment-leaked');
     if(Number(sourceStateUi.live.archive_count||0)>0&&Number(sourceStateUi.compactNumber)!==Number(sourceStateUi.live.archive_count))errors.push('source-activity-ui-count-mismatch:'+JSON.stringify(sourceStateUi));
     if(/\/100|positiv|negativ|bullisch|bearisch/i.test(sourceStateUi.compactLabel))errors.push('source-ui-directional-language:'+JSON.stringify(sourceStateUi));
     const irrelevant=(sourceStateUi.live.items||[]).filter(x=>/oracle academy|university workshop|oracle financial services/i.test(String(x.title||'')));
@@ -304,6 +307,8 @@ async function run(name,viewport){
     if(redditArchive>0&&sourceStateUi.redditRows<1)errors.push('reddit-archive-not-visible:'+JSON.stringify(sourceStateUi));
     if(sourceStateUi.live.source_health?.x?.status==='disabled'&&!/X\s*nicht verbunden/i.test(sourceStateUi.counts))errors.push('x-disabled-not-explicit:'+JSON.stringify(sourceStateUi));
   }
+  const sourceDirectionContract=await page.evaluate(()=>({legacySentimentWave:typeof sentimentWave==='function',legacyApply:typeof applyRailwaySentiment==='function',rawFeature:typeof sourceDirectionalFeature==='function'}));
+  if(sourceDirectionContract.legacySentimentWave||sourceDirectionContract.legacyApply||!sourceDirectionContract.rawFeature)errors.push('frontend-source-direction-contract:'+JSON.stringify(sourceDirectionContract));
   const obsoleteStableRef=await page.evaluate(()=>document.documentElement.innerHTML.includes('stableDayYBounds('));
   if(obsoleteStableRef)errors.push('stable-day-y-bounds-reference');
   if(!state.bodyText.includes('Prognosen vs. Realität'))errors.push('forecast-label-missing');

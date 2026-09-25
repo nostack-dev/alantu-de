@@ -240,14 +240,13 @@ async function sourceAttempt(name,fn){
 }
 async function apeWisdomAggregate(){
   if(redditAggregateCache.data&&Date.now()-redditAggregateCache.at<SOCIAL_AGGREGATE_CACHE_MS)return redditAggregateCache.data;
-  let mentions=null,sentiment=null,provider='apewisdom.io';
+  let mentions=null,provider='apewisdom.io';
   try{
     const r=await fetch('https://apewisdom.io/stocks/ORCL/',{headers:{'user-agent':'Mozilla/5.0 alantu-market/1.0'},signal:AbortSignal.timeout(12000)});
     if(r.ok){
       const text=(await r.text()).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
-      const mm=text.match(/Overall Summary.*?Mentions\s+([\d,]+)/i),sm=text.match(/Overall Summary.*?Sentiment\s+([\d]{1,3})%/i);
+      const mm=text.match(/Overall Summary.*?Mentions\s+([\d,]+)/i);
       if(mm)mentions=Number(mm[1].replace(/,/g,''));
-      if(sm)sentiment=Number(sm[1]);
     }
   }catch{}
   if(!Number.isFinite(mentions)){
@@ -261,7 +260,7 @@ async function apeWisdomAggregate(){
       }
     }catch{}
   }
-  const data={provider,mentions_24h:Number.isFinite(mentions)?mentions:null,sentiment_pct:Number.isFinite(sentiment)?sentiment:null,checked_at:new Date().toISOString()};
+  const data={provider,mentions_24h:Number.isFinite(mentions)?mentions:null,checked_at:new Date().toISOString(),interpretation_status:'not_imported'};
   redditAggregateCache={at:Date.now(),data};return data;
 }
 function sourceChannel(x,type){
@@ -399,7 +398,7 @@ function deriveSourceState(news,social,providers,status='ok'){
   };
 }
 function broadcastSources(){
-  const payload={symbol:'ORCL',sentiment:sourceState};
+  const payload={symbol:'ORCL',source_state:sourceState};
   for(const c of [...clients]){try{sendEvent(c.res,payload,'sources');}catch{clients.delete(c);try{c.res.end();}catch{}}}
 }
 async function refreshSources(){
@@ -441,7 +440,7 @@ async function refreshSources(){
       persistEvidence(marketDb,{kind:'source_state',approach_version:'source-state-v3',symbol:'ORCL',event_at:sourceState.checked_at,payload:sourceSummary()});
       for(const item of (sourceState.items||[]).filter(x=>x.new)){
         persistEvidence(marketDb,{evidence_key:'source:'+item.key,kind:'source_event',approach_version:'source-event-v3',symbol:'ORCL',
-          event_at_ms:Number(item.time),received_at_ms:Date.parse(item.discovered_at||''),payload:item});
+          event_at_ms:Number(item.time),received_at_ms:Date.parse(item.first_seen_at||''),payload:item});
       }
     }
     await flushSourceEvents();
@@ -937,9 +936,9 @@ function snapshot(symbol){
   };
 }
 function wgoEventMs(x){
-  const direct=Number(x&&x.time);if(Number.isFinite(direct)&&direct>0)return direct;
-  for(const k of ['published_at','first_seen_at','at']){const t=Date.parse(x&&x[k]||'');if(Number.isFinite(t))return t;}
-  return NaN;
+  const seen=Date.parse(x&&x.first_seen_at||'');if(Number.isFinite(seen))return seen;
+  for(const k of ['published_at','at']){const t=Date.parse(x&&x[k]||'');if(Number.isFinite(t))return t;}
+  const direct=Number(x&&x.time);return Number.isFinite(direct)&&direct>0?direct:NaN;
 }
 function wgoSymbolWindowPrice(symbol,minutes,now=Date.now()){
   const cut=now-minutes*60000,base=(wgoSeries[symbol]&&wgoSeries[symbol].length?wgoSeries[symbol]:yahooSeries[symbol])||[],a=base.filter(e=>Number(e.recv_at||e.t)>=cut&&Number(e.recv_at||e.t)<=now&&Number(e.p)>0);
@@ -1209,7 +1208,7 @@ const server=http.createServer((req,res)=>{
     const heartbeat=setInterval(()=>{if(res.writableEnded||res.destroyed)return;try{res.write(': heartbeat '+Date.now()+'\n\n');}catch{}},15000);
     heartbeat.unref?.();
     const c={res,symbol,heartbeat};clients.add(c);
-    sendEvent(res,{symbol,sentiment:sourceState},'sources');
+    sendEvent(res,{symbol,source_state:sourceState},'sources');
     sendEvent(res,{symbol,trail:shadowTrail(5000,'history')},'shadow');
     const cleanup=()=>{clearInterval(heartbeat);clients.delete(c);};
     req.on('close',cleanup);res.on('close',cleanup);res.on('error',cleanup);return;

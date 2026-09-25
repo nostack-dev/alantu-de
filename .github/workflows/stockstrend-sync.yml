@@ -146,6 +146,14 @@ jobs:
           ! grep -q "termScore(" market-relay/server.mjs
           ! grep -q "archive_sentiment" market-relay/server.mjs
           ! grep -q "live_pulse" market-relay/server.mjs
+          ! grep -q "sentiment_pct" market-relay/server.mjs
+          grep -q "source_state:sourceState" market-relay/server.mjs
+          grep -q "const seen=Date.parse(x&&x.first_seen_at" market-relay/server.mjs
+          ! grep -q "applyRailwaySentiment" index.html
+          ! grep -q "function sentimentWave(" index.html
+          ! grep -q "function sentimentMass(" index.html
+          grep -q "function sourceDirectionalFeature(" index.html
+          grep -q "if(d.source_state)applyRailwaySources(d.source_state)" index.html
           ! grep -q "liveHeadlineLean(" index.html
           ! grep -q "Social bestätigt" index.html
           grep -Fq "Quellenrichtung nicht validiert · nicht im Modell" index.html

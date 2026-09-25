@@ -1868,16 +1868,9 @@ function volumeWave(){
   var med=medianNum(base),ratio=f30&&med&&med>0?f30.avg/med:null;
   return {dir:dir,reliable:!!dir,pressure:f30?f30.pressure:0,pressure90:f90?f90.pressure:0,ratio:ratio,persist:f30?f30.persist:0,short:f30,long:f90};
 }
-function sentimentMass(h){
-  var direct=Number(h&&h.social_count||0)*2+Number(h&&h.news_count||0);
-  if(direct>0)return direct;
-  var voice=Number(h&&h.voice_bull||0)+Number(h&&h.voice_bear||0)+Number(h&&h.voice_mixed||0);
-  var alt=Number(h&&h.x_posts||0)+Number(h&&h.reddit_posts||0)+Number(h&&h.news||0);
-  return Math.max(0,voice||alt||0);
-}
-function sentimentWave(){
-  var x=liveSourceState||{},a=x.activity||{};
-  return {dir:0,reliable:false,massDir:0,reason:'directional_source_feature_not_validated',activity:a,asof:x.checked_at||null};
+function sourceDirectionalFeature(){
+  var x=liveSourceState||{};
+  return {dir:0,reliable:false,reason:'directional_source_feature_not_validated',activity:x.activity||{},asof:x.checked_at||null};
 }
 function hdrRelativeImpulse(localValue,globalValue){
   var local=Number(localValue),global=Number(globalValue);
@@ -1931,34 +1924,19 @@ function hdrImpulseVector(p,v,s){
   };
 }
 function marketWaveVector(){
-  var p=priceWave(),v=volumeWave(),s=sentimentWave(),label='',dir=0,kind='',micro=validatedMicrostructureSignal(),wave=validatedWaveForecast();
-  var crowd=s.dir,price=p.dir,vol=v.dir;
-  var impulse=hdrImpulseVector(p,v,s);
-  var massSupports=crowd&&((vol===crowd)||(s.massDir===crowd)||(v.ratio!=null&&v.ratio>=1.15&&Math.sign(v.pressure)===crowd));
-
-  if(wave){
-    label='Wave Forecast';dir=wave.dir;kind='wave';
-  }else if(crowd&&massSupports&&(!price||price!==crowd)){
-    label='Welle baut sich auf';dir=crowd;kind='build';
-  }else if(crowd&&price===crowd&&(vol===crowd||massSupports)){
-    label='Welle bestätigt';dir=crowd;kind='confirm';
-  }else if(price&&crowd===-price&&vol===crowd){
-    label='Welle dreht';dir=crowd;kind='turn';
-  }else if(price&&(!crowd||crowd===-price)&&vol===-price){
-    label='Welle läuft aus';dir=price;kind='exhaust';
-  }else if(crowd&&vol===crowd&&price===0){
-    label='Crowd führt';dir=crowd;kind='lead';
-  }
-
-  var evidence=(crowd?1:0)+(price?1:0)+(vol?1:0)+(massSupports?1:0);
+  var p=priceWave(),v=volumeWave(),sourceFeature=sourceDirectionalFeature(),label='',dir=0,kind='',micro=validatedMicrostructureSignal(),wave=validatedWaveForecast();
+  var price=p.dir,vol=v.dir,impulse=hdrImpulseVector(p,v,null);
+  if(wave){label='Wave Forecast';dir=wave.dir;kind='wave';}
+  else if(price&&vol===price){label='Welle bestätigt';dir=price;kind='confirm';}
+  else if(price&&vol===-price){label='Welle läuft aus';dir=price;kind='exhaust';}
+  var evidence=(price?1:0)+(vol?1:0);
   if(!wave&&evidence<2){label='';dir=0;kind='';}
   if(!label&&micro){label=micro.source==='l2'?'100E Forecast':'SIP Edge';dir=micro.dir;kind=micro.source==='l2'?'l2':'micro';}
-
   return {
-    label:label,dir:dir,kind:kind,crowdDir:crowd,priceDir:price,volumeDir:vol,
+    label:label,dir:dir,kind:kind,sourceDir:0,crowdDir:0,priceDir:price,volumeDir:vol,
     volumeRatio:v.ratio,volumePressure:v.pressure,pricePersist:p.persist||0,
-    priceEfficiency:p.eff||0,priceAccel:p.accel||0,sentPersist:s.short?s.short.persist:0,
-    massDir:s.massDir||0,evidence:evidence,impulse:impulse,microSignal:micro,waveForecast:wave
+    priceEfficiency:p.eff||0,priceAccel:p.accel||0,evidence:evidence,impulse:impulse,
+    sourceFeature:sourceFeature,microSignal:micro,waveForecast:wave
   };
 }
 function getMarketWaveVector(){
@@ -1972,7 +1950,6 @@ function marketFlowText(f){
     return parts.join(' · ');
   }
   var agrees=[];
-  if(f.crowdDir===f.dir)agrees.push('Crowd');
   if(f.volumeDir===f.dir)agrees.push('Volumen');
   if(f.priceDir===f.dir)agrees.push('Kurs');
   if(agrees.length)parts.push(agrees.join('+'));
@@ -2001,7 +1978,7 @@ function renderMarketFlowVisual(f){
     dir=f.dir;
     phase=dir>0?'BUY-POTENZIAL':'SELL-POTENZIAL';
     var wf=f.waveForecast||{},hh=Number(wf.horizon_minutes)||0,hit=Number(wf.holdout_hit);
-    sub='HDR-Δt · ≈ '+hh+' Min'+(isFinite(hit)?' · Test '+Math.round(hit*100)+' %':'')+' · '+(wf.social_context||'Social neutral');
+    sub='HDR-Δt · ≈ '+hh+' Min'+(isFinite(hit)?' · Test '+Math.round(hit*100)+' %':'')+' · '+(wf.source_context||'Quellenrichtung gesperrt');
   }else if(f.kind==='l2'){
     dir=f.dir;
     phase=dir>0?'BUY-POTENZIAL':'SELL-POTENZIAL';
@@ -2022,10 +1999,8 @@ function renderMarketFlowVisual(f){
     var why=[];
     if(f.priceDir===dir)why.push('Kurs');
     if(f.volumeDir===dir)why.push('Volumen');
-    if(f.crowdDir===dir)why.push('Crowd');
-    if(f.massDir===dir&&why.indexOf('Crowd')<0)why.push('Teilnahme');
     sub='Beobachtete Welle · '+(why.length?why.join('+'):'Mehrfach-Bestätigung')
-      +' · '+Math.max(2,Number(f.evidence||0))+'/4'
+      +' · '+Math.max(2,Number(f.evidence||0))+'/2'
       +(f.kind==='confirm'?' · bestätigt':f.kind==='turn'?' · dreht':' · baut sich auf');
   }else if(f.kind==='exhaust'){
     phase='NEUTRAL / WARTEN';
@@ -2055,7 +2030,7 @@ function renderMarketFlowVisual(f){
     ];
   }else{
     vals=[
-      {name:'Crowd',v:flowComponentValue(f,'Crowd',f.crowdDir)},
+      {name:'Quellen',v:0},
       {name:'Volumen',v:flowComponentValue(f,'Volumen',f.volumeDir)},
       {name:'Kurs',v:flowComponentValue(f,'Kurs',f.priceDir)}
     ];
@@ -2370,7 +2345,7 @@ function marketPriceAtTimestamp(ms){
   for(var j=orclMinuteBars.length-1;j>=0;j--){var bt=new Date(orclMinuteBars[j].at||0).getTime();if(bt<=ms&&ms-bt<=60000)return Number(orclMinuteBars[j].close)||null;}
   return null;
 }
-function applyRailwaySentiment(x){
+function applyRailwaySources(x){
   if(!x)return;
   liveSourceState=Object.assign({},liveSourceState||{},x);
   var checked=x.checked_at||new Date().toISOString();
@@ -2545,7 +2520,7 @@ function applyMicroMarketSnapshot(d){
   microstructureData=d;
   if(d.wave)orclWaveModel=d.wave;
   if(d.wave_forecast){waveForecastState=d.wave_forecast;renderWaveForecasts();}
-  if(d.sentiment)applyRailwaySentiment(d.sentiment);
+  if(d.source_state)applyRailwaySources(d.source_state);
   if(ivChart&&priceRange==='1d'){
     var base=ivChart.data&&ivChart.data.datasets&&ivChart.data.datasets[0],basePts=base&&base.data||[],baseLast=basePts.length?basePts[basePts.length-1]:null;
     if(base)refreshTrajectoryDatasets(basePts,baseLast&&isFinite(Number(baseLast.x))?berlinTradingWindowFor(Number(baseLast.x)):null,false);
@@ -2568,7 +2543,7 @@ async function pollMicroSources(base){
   try{
     var r=await fetch(base+'/v1/source-state?_='+Date.now(),{cache:'no-store',headers:{Accept:'application/json'}});
     if(!r.ok)throw new Error('source_http_'+r.status);
-    var s=await r.json();if(!s||s.contract!=='source-event-v3')throw new Error('source_contract_mismatch');applyRailwaySentiment(s);
+    var s=await r.json();if(!s||s.contract!=='source-event-v3')throw new Error('source_contract_mismatch');applyRailwaySources(s);
   }catch(e){
     var nowIso=new Date().toISOString();
     if(liveSourceState&&liveSourceState.checked_at)liveSourceState=Object.assign({},liveSourceState,{status:'stale',last_error:String(e&&e.message||e)});
@@ -2717,7 +2692,7 @@ function validatedMicrostructureSignal(){
   var dir=Number(s.dir);if(dir!==1&&dir!==-1)return null;
   return Object.assign({},s,{source:'raw_sip'});
 }
-function waveSocialContext(dir){return 'Quellenrichtung nicht validiert · nicht im Modell';}
+function waveSourceContext(){return 'Quellenrichtung nicht validiert · nicht im Modell';}
 function refreshWaveForecasts(){
   if(!(microstructureData&&microstructureData.wave_forecast))waveForecastState={status:'blocked',reason:'waiting_event_stream'};
   else waveForecastState=microstructureData.wave_forecast;
@@ -2734,7 +2709,7 @@ function validatedWaveForecast(){
   a=a.filter(function(x){return !m.model_id||x.model_id===m.model_id;});if(!a.length)return null;
   a.sort(function(x,y){var dm=Number(y.margin||0)-Number(x.margin||0);if(Math.abs(dm)>.12)return dm;return Number(x.horizon_minutes)-Number(y.horizon_minutes);});
   var f=a[0],hit=Number(f.proof&&f.proof.holdout&&f.proof.holdout.hit);
-  return Object.assign({},f,{source:'raw_sip',asof:s.asof,social_context:waveSocialContext(Number(f.dir)),holdout_hit:isFinite(hit)?hit:null});
+  return Object.assign({},f,{source:'raw_sip',asof:s.asof,source_context:waveSourceContext(),holdout_hit:isFinite(hit)?hit:null});
 }
 function renderHypothesisDecision(){
   var el=document.getElementById('hypothesisDecision');if(!el)return;
