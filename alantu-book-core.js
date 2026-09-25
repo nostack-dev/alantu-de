@@ -652,6 +652,11 @@ export function createAlantuBookCore(options){
     if(getTotalLeaves()<=0)return;
     if(ignorePointerSelector&&e.target.closest?.(ignorePointerSelector))return;
 
+    // Once a finger starts on the book surface, the gesture belongs to the
+    // book until release. Do not let the browser promote a slightly vertical
+    // first movement into page scrolling and cancel the page turn.
+    if(e.pointerType==="touch"&&e.cancelable)e.preventDefault();
+
     const totalLeaves=getTotalLeaves();
     const now=performance.now();
 
@@ -681,11 +686,18 @@ export function createAlantuBookCore(options){
     // the rendered book itself.
     stage.classList.add("is-book-dragging");
 
-    if(stage.setPointerCapture)stage.setPointerCapture(e.pointerId);
+    if(stage.setPointerCapture){
+      try{stage.setPointerCapture(e.pointerId)}catch{}
+    }
   }
 
   function pointerMove(e){
     if(!dragState||dragState.id!==e.pointerId)return;
+
+    // Keep ownership even before horizontal intent is large enough to choose
+    // a leaf/boundary. This is the critical window where mobile browsers used
+    // to steal the gesture for vertical scrolling.
+    if(e.pointerType==="touch"&&e.cancelable)e.preventDefault();
 
     const totalLeaves=getTotalLeaves();
     const dx=e.clientX-dragState.startX;
@@ -767,7 +779,7 @@ export function createAlantuBookCore(options){
     dragState.moved=dragState.moved||Math.abs(dx)>2;
     notify();
 
-    if(dragState.moved)e.preventDefault();
+    if(dragState.moved&&e.cancelable)e.preventDefault();
   }
 
   function releaseDrag(cancelled=false){
@@ -832,15 +844,27 @@ export function createAlantuBookCore(options){
     releaseDrag(false);
   }
 
-  function pointerCancel(){
-    releaseDrag(true);
+  function pointerCancel(e){
+    if(!dragState)return;
+    // With touch-action:none this should be rare. If the platform still drops
+    // capture after a real drag, settle exactly like a finger release instead
+    // of snapping the page back and making the gesture feel broken.
+    const completedGesture=dragState.mode!==null||dragState.moved;
+    releaseDrag(!completedGesture);
+  }
+
+  function lostPointerCapture(e){
+    if(!dragState||dragState.id!==e.pointerId)return;
+    const completedGesture=dragState.mode!==null||dragState.moved;
+    releaseDrag(!completedGesture);
   }
 
   stage.addEventListener("contextmenu",e=>e.preventDefault());
-  stage.addEventListener("pointerdown",pointerDown);
-  stage.addEventListener("pointermove",pointerMove);
+  stage.addEventListener("pointerdown",pointerDown,{passive:false});
+  stage.addEventListener("pointermove",pointerMove,{passive:false});
   stage.addEventListener("pointerup",pointerUp);
   stage.addEventListener("pointercancel",pointerCancel);
+  stage.addEventListener("lostpointercapture",lostPointerCapture);
 
   if(prevButton)prevButton.addEventListener("click",prev);
   if(nextButton)nextButton.addEventListener("click",next);
