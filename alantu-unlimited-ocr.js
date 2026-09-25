@@ -87,22 +87,34 @@ function sampleTextStyle(ctx,rect){
   const fg=[0,1,2].map(c=>top.length?top.reduce((n,q)=>n+q.p[c],0)/top.length:(bg[0]+bg[1]+bg[2])/3>128?20:235);
   return {fill:rgbHex(...fg),rgb:fg.map(v=>clampByte(v)/255),background:bg};
 }
-function inpaintTextRect(ctx,rect){
+function inpaintTextRect(ctx,rect,style){
   const W=ctx.canvas.width,H=ctx.canvas.height;
   const x0=Math.max(1,Math.floor(rect.x0)-1),y0=Math.max(1,Math.floor(rect.y0)-1),x1=Math.min(W-2,Math.ceil(rect.x1)+1),y1=Math.min(H-2,Math.ceil(rect.y1)+1);
-  const w=x1-x0+1,h=y1-y0+1;if(w<2||h<2)return;
+  const w=x1-x0+1,h=y1-y0+1;if(w<2||h<2)return 0;
   const patch=ctx.getImageData(x0-1,y0-1,w+2,h+2),pd=patch.data,pw=w+2,out=ctx.createImageData(w,h),od=out.data;
+  const bg=style?.background||[255,255,255],fg=(style?.rgb||[0,0,0]).map(v=>v*255);
   const pix=(x,y,c)=>pd[((y+1)*pw+(x+1))*4+c];
+  let removed=0;
   for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){
     const tx=w<=1?0:xx/(w-1),ty=h<=1?0:yy/(h-1),oi=(yy*w+xx)*4;
+    const original=[pix(xx,yy,0),pix(xx,yy,1),pix(xx,yy,2)];
+    const dBg=colorDistance(original,bg),dFg=colorDistance(original,fg);
+    // Only erase pixels that look like the inferred glyph color. Keeping
+    // background-like pixels is the "diff bake": artwork inside the OCR box
+    // survives instead of blanking the whole rectangle.
+    const isGlyph=dBg>18 && dFg+10<dBg;
     for(let c=0;c<3;c++){
-      const top=pix(xx,-1,c),bottom=pix(xx,h,c),left=pix(-1,yy,c),right=pix(w,yy,c);
-      const vertical=top*(1-ty)+bottom*ty,horizontal=left*(1-tx)+right*tx;
-      od[oi+c]=clampByte((vertical+horizontal)/2);
+      if(isGlyph){
+        const top=pix(xx,-1,c),bottom=pix(xx,h,c),left=pix(-1,yy,c),right=pix(w,yy,c);
+        const vertical=top*(1-ty)+bottom*ty,horizontal=left*(1-tx)+right*tx;
+        od[oi+c]=clampByte((vertical+horizontal)/2);
+      }else od[oi+c]=original[c];
     }
+    if(isGlyph)removed++;
     od[oi+3]=255;
   }
   ctx.putImageData(out,x0,y0);
+  return removed;
 }
 async function makeVectorizedRaster(sourceCanvas,ocr,pageW,pageH){
   const c=document.createElement("canvas");c.width=sourceCanvas.width;c.height=sourceCanvas.height;
@@ -111,7 +123,7 @@ async function makeVectorizedRaster(sourceCanvas,ocr,pageW,pageH){
   for(const r of ocr){
     const px={x0:r.bbox.x0*sx,y0:r.bbox.y0*sy,x1:r.bbox.x1*sx,y1:r.bbox.y1*sy};
     r.vectorStyle=sampleTextStyle(ctx,px);
-    inpaintTextRect(ctx,px);
+    r.vectorPixelsRemoved=inpaintTextRect(ctx,px,r.vectorStyle);
   }
   const blob=await canvasToBlob(c,"image/png");
   const bytes=new Uint8Array(await blobToArrayBuffer(blob));
@@ -677,6 +689,7 @@ function updateMetrics(){
   const native=pages.reduce((n,p)=>n+p.native.length,0);
   const imageText=pages.reduce((n,p)=>n+p.ocr.length,0);
   const imageChars=pages.reduce((n,p)=>n+p.ocr.reduce((m,r)=>m+normalizeText(r.text).replace(/\s/g,"").length,0),0);
+  const vectorPixels=pages.reduce((n,p)=>n+p.ocr.reduce((m,r)=>m+(r.vectorPixelsRemoved||0),0),0);
   const aiPages=pages.filter(p=>p.usedAi).length;
   const convertedImagePages=pages.filter(p=>p.usedAi&&p.ocr.length>0).length;
   const pendingAi=pages.some(p=>p.processing);
@@ -689,8 +702,8 @@ function updateMetrics(){
   if(!pages.length)mImageTextPercent.textContent="—";
   else if(pendingAi)mImageTextPercent.textContent="läuft …";
   else if(failedAi)mImageTextPercent.textContent=`${coverage||0} % Bildseiten mit OCR · ${failedAi}/${aiPages} ohne Textlayer`;
-  else if(fallbackAi)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · Fallback-OCR auf ${fallbackAi}/${aiPages} · ${imageText} Blöcke / ${imageChars} Zeichen`;
-  else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 3B-OCR · ${imageText} Blöcke / ${imageChars} Zeichen`;
+  else if(fallbackAi)mImageTextPercent.textContent=`${coverage} % Bildseiten · Fallback · ${imageText} Blöcke / ${imageChars} Zeichen → Vektor · ${vectorPixels.toLocaleString("de-DE")} Rasterpixel ersetzt`;
+  else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten · 3B-OCR · ${imageText} Blöcke / ${imageChars} Zeichen → Vektor · ${vectorPixels.toLocaleString("de-DE")} Rasterpixel ersetzt`;
   else mImageTextPercent.textContent="— · keine Rasterbilder";
   mBaked.textContent=pages.length?String(pages.length):"—";
   mVisual.textContent=pages.length?(imageText?"Raster-Diff + Vektortext":"Original / kein OCR-Text"):"—";
