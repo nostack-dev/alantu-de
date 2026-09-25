@@ -1868,10 +1868,6 @@ function volumeWave(){
   var med=medianNum(base),ratio=f30&&med&&med>0?f30.avg/med:null;
   return {dir:dir,reliable:!!dir,pressure:f30?f30.pressure:0,pressure90:f90?f90.pressure:0,ratio:ratio,persist:f30?f30.persist:0,short:f30,long:f90};
 }
-function sourceDirectionalFeature(){
-  var x=liveSourceState||{};
-  return {dir:0,reliable:false,reason:'directional_source_feature_not_validated',activity:x.activity||{},asof:x.checked_at||null};
-}
 function hdrRelativeImpulse(localValue,globalValue){
   var local=Number(localValue),global=Number(globalValue);
   if(!isFinite(local)||!isFinite(global))return null;
@@ -1924,7 +1920,7 @@ function hdrImpulseVector(p,v,s){
   };
 }
 function marketWaveVector(){
-  var p=priceWave(),v=volumeWave(),sourceFeature=sourceDirectionalFeature(),label='',dir=0,kind='',micro=validatedMicrostructureSignal(),wave=validatedWaveForecast();
+  var p=priceWave(),v=volumeWave(),label='',dir=0,kind='',micro=validatedMicrostructureSignal(),wave=validatedWaveForecast();
   var price=p.dir,vol=v.dir,impulse=hdrImpulseVector(p,v,null);
   if(wave){label='Wave Forecast';dir=wave.dir;kind='wave';}
   else if(price&&vol===price){label='Welle bestätigt';dir=price;kind='confirm';}
@@ -1936,7 +1932,7 @@ function marketWaveVector(){
     label:label,dir:dir,kind:kind,sourceDir:0,crowdDir:0,priceDir:price,volumeDir:vol,
     volumeRatio:v.ratio,volumePressure:v.pressure,pricePersist:p.persist||0,
     priceEfficiency:p.eff||0,priceAccel:p.accel||0,evidence:evidence,impulse:impulse,
-    sourceFeature:sourceFeature,microSignal:micro,waveForecast:wave
+    microSignal:micro,waveForecast:wave
   };
 }
 function getMarketWaveVector(){
@@ -2030,7 +2026,7 @@ function renderMarketFlowVisual(f){
     ];
   }else{
     vals=[
-      {name:'Quellen',v:0},
+      {name:'Quellen',v:0,locked:true},
       {name:'Volumen',v:flowComponentValue(f,'Volumen',f.volumeDir)},
       {name:'Kurs',v:flowComponentValue(f,'Kurs',f.priceDir)}
     ];
@@ -2041,11 +2037,11 @@ function renderMarketFlowVisual(f){
     return '<div class="flow-col"><span class="flow-node '+flowClass(x.v)+'" style="top:'+yp[i].toFixed(2)+'%"></span></div>';
   }).join('');
   var labels=vals.map(function(x){
-    return '<div class="flow-label '+flowClass(x.v)+'">'+x.name+' '+flowArrow(x.v)+'</div>';
+    return '<div class="flow-label '+flowClass(x.v)+'">'+x.name+' '+(x.locked?'gesperrt':flowArrow(x.v))+'</div>';
   }).join('');
   el.innerHTML=
     '<div class="flow-head"><span class="flow-phase '+flowClass(dir)+'">'+(dir?flowArrow(dir)+' ':'')+phase+'</span>'+(sub?'<span class="flow-sub">'+sub+'</span>':'')+'</div>'+
-    '<div class="flow-geometry" role="img" aria-label="'+phase+'. '+vals[0].name+' '+flowArrow(vals[0].v)+', '+vals[1].name+' '+flowArrow(vals[1].v)+', '+vals[2].name+' '+flowArrow(vals[2].v)+'.">'+
+    '<div class="flow-geometry" role="img" aria-label="'+phase+'. '+vals[0].name+' '+(vals[0].locked?'gesperrt':flowArrow(vals[0].v))+', '+vals[1].name+' '+flowArrow(vals[1].v)+', '+vals[2].name+' '+flowArrow(vals[2].v)+'.">'+
       '<div class="flow-scale">'+
         '<svg class="flow-link-layer" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"><polyline class="flow-link" points="'+points+'"/></svg>'+
         nodes+
