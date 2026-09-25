@@ -34,9 +34,10 @@ jobs:
         run: |
           set -euo pipefail
           grep -Fq "clock:'market_event_time'" tools/yahoo-monetary-v5.mjs
-          grep -Fq "evaluation_contract:'market_event_time_true_dt_no_synthetic_samples_v2'" market-relay/server.mjs
-          grep -Fq "if(last&&Number(e.t)<Number(last.t))return;" market-relay/server.mjs
-          grep -Fq "if(last&&Number(e.t)===Number(last.t))" market-relay/server.mjs
+          grep -Fq "evaluation_contract:'market_event_time_true_dt_no_synthetic_samples_v3'" market-relay/server.mjs
+          grep -Fq "reason:'out_of_order'" market-relay/server.mjs
+          grep -Fq "reason:'duplicate_market_timestamp'" market-relay/server.mjs
+          grep -Fq "persistTransportObservation" market-relay/server.mjs
           grep -Fq "entry_market_ms:marketAt" market-relay/server.mjs
           grep -Fq "if(already)return;" market-relay/server.mjs
           grep -Fq "feature_names:state.feature_names" market-relay/server.mjs
