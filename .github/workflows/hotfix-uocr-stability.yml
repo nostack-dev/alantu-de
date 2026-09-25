@@ -27,7 +27,7 @@ jobs:
           grep -q 'runSmallFallbackOcr' alantu-unlimited-ocr.js
           grep -q 'Fallback-OCR auf' alantu-unlimited-ocr.js
           grep -q 'browser-webgpu-6' pdf-convert-anchor.html
-      - name: Commit
+      - name: Commit cascade
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
