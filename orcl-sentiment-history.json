@@ -2,9 +2,9 @@
   "symbol": "ORCL",
   "source": "watchlist-data.json",
   "coverage": {
-    "points": 417,
+    "points": 418,
     "first_at": "2026-08-18T12:00:00+02:00",
-    "last_at": "2026-09-24T23:45:22+02:00"
+    "last_at": "2026-09-25T02:04:34+02:00"
   },
   "history": [
     {
@@ -5855,6 +5855,20 @@
       "voice_bear": 10,
       "voice_mixed": 11,
       "price": 139.41
+    },
+    {
+      "at": "2026-09-25T02:04:34+02:00",
+      "hype_bull": 34,
+      "hype_bear": 44,
+      "hype_net": -10,
+      "social_impulse": -2,
+      "signal": "hold",
+      "confidence": 80,
+      "hype_mixed": 22,
+      "voice_bull": 1,
+      "voice_bear": 11,
+      "voice_mixed": 10,
+      "price": 139.79
     }
   ]
 }
