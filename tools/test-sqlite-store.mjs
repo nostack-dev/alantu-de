@@ -23,11 +23,11 @@ const {openMarketStore,persistObservation,persistPrediction,persistOutcome,store
 const db=openMarketStore();
 assert.equal(db.db.prepare('select count(*) n from market_events').get().n,1);
 const eventCols=new Set(db.db.prepare('pragma table_info(market_events)').all().map(x=>x.name));
-for(const c of ['prev_market_at_ms','delta_t_ms','return_bps'])assert.ok(eventCols.has(c),c);
+for(const c of ['prev_market_at_ms','delta_t_ms','return_bps','source_time_resolution_ms','market_day_ny','session_phase'])assert.ok(eventCols.has(c),c);
 const predCols=new Set(db.db.prepare('pragma table_info(predictions)').all().map(x=>x.name));
 for(const c of ['feature_names_json','clock','input_contract'])assert.ok(predCols.has(c),c);
 const outcomeCols=new Set(db.db.prepare('pragma table_info(outcomes)').all().map(x=>x.name));
-for(const c of ['learned_net_bps','structural_net_bps','barrier_hit','last_before_target_at_ms'])assert.ok(outcomeCols.has(c),c);
+for(const c of ['learned_net_bps','structural_net_bps','barrier_hit','last_before_target_at_ms','path_label'])assert.ok(outcomeCols.has(c),c);
 
 const t=2000;
 persistObservation(db,{s:'ORCL',t,p:100.1,day_volume:1015,dv:15,recv_at:2200});
@@ -35,13 +35,14 @@ const row=db.db.prepare('select * from market_events where market_at_ms=?').get(
 assert.equal(row.prev_market_at_ms,1000);
 assert.equal(row.delta_t_ms,1000);
 
-const p={id:'migration-v6-'+t,version:'yahoo-monetary-dt-v6',horizon_minutes:1,at:new Date(t).toISOString(),target_at:new Date(t+60000).toISOString(),
+const p={id:'migration-v6-'+t,version:'yahoo-monetary-dt-v6-r2',horizon_minutes:1,at:new Date(t).toISOString(),target_at:new Date(t+60000).toISOString(),
  entry_market_ms:t,entry_received_at:new Date(t+200).toISOString(),entry_price:100.1,structural_dir:1,structural_score:.2,learned_dir:1,p_up:.6,confidence:.2,
  barrier_bps:5,model_n:10,model_ready:true,gate_sample:true,feature_names:['a','b'],feature_vector:[1,2],feature_summary:{x:1},
- clock:'market_event_time',input_contract:'observed_market_events_only',evaluation_contract:'market_event_time_true_dt_no_synthetic_samples_v2'};
+ clock:'market_event_time',input_contract:'observed_market_events_only',evaluation_contract:'market_event_time_true_dt_no_synthetic_samples_v3'};
 persistPrediction(db,p);
 persistOutcome(db,{...p,status:'invalid',reason:'target_price_unavailable'});
 assert.equal(db.db.prepare('select contract_version from predictions where id=?').get(p.id).contract_version,V6_CONTRACT_ID);
 assert.equal(storeStats(db).events,2);
+assert.equal(db.db.prepare("select count(*) n from sqlite_master where type='table' and name='transport_observations'").get().n,1);
 console.log('SQLITE_MIGRATION_OK',storeStats(db));
 db.db.close();
