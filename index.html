@@ -881,7 +881,7 @@
       <div class="model-decision-meta">Gate noch nicht bestanden · warten</div>
     </div>
     <div class="chart-sub"><span id="ivCoverage"></span></div>
-    <div class="projection-hint" id="projectionHint" hidden><span class="projection-swatch"></span><strong>Live-Projektion</strong><span class="projection-live-value" id="projectionLiveValue">—</span><span class="projection-live-delta" id="projectionLiveDelta"></span><span>30 Min · Hover oder ziehen</span></div>
+    <div class="projection-hint" id="projectionHint" hidden aria-hidden="true"></div>
     <div class="chart-wrap chart-wrap-lg"><canvas id="ivChart"></canvas></div>
     <div class="mini-range" id="priceRange" aria-label="Zeitraum Kurs und Wert">
       <button type="button" data-price-range="1d">1T</button><button type="button" data-price-range="1w">1W</button><button type="button" data-price-range="1m">1M</button><button type="button" data-price-range="year">1J</button><button type="button" data-price-range="5y">5J</button><button type="button" data-price-range="all">MAX</button>
@@ -1358,7 +1358,7 @@ function axisX(rows,getAt,range){
   return {type:'linear',min:b.min,max:b.max,offset:false,bounds:'ticks',ticks:{color:'#6b6b76',maxRotation:0,autoSkip:true,maxTicksLimit:mob?4:6,font:{size:mob?12:11},callback:function(v){return fmtAxisValue(v,range);}},grid:{display:false},border:{display:false}};
 }
 function chartInteract(){return {mode:'nearest',intersect:false,axis:'x'};}
-function chartEvents(){return ['mousemove','mouseout','click','touchstart','touchmove'];}
+function chartEvents(){return ['click','touchstart','touchmove'];}
 var priceChartScrubUntil=0;
 var priceScrubState={active:false,point:null,source:null};
 function markPriceChartScrub(ms){priceChartScrubUntil=Math.max(priceChartScrubUntil,Date.now()+(Number(ms)||2200));}
@@ -1407,22 +1407,28 @@ function armPriceChartScrub(){
   var c=document.getElementById('ivChart');
   if(!c||c.dataset.alantuScrub==='1')return;
   c.dataset.alantuScrub='1';
-  var hold=null,startX=0,startY=0,lastX=0;
-  c.addEventListener('mousemove',function(e){setPriceScrub(e.clientX,'mouse');},{passive:true});
-  c.addEventListener('mouseleave',function(){clearPriceScrub();},{passive:true});
+  var mouseDown=false,startX=0,startY=0;
+  // Clean by default: no hover readout. Values appear only while the user actively presses/drags.
+  c.addEventListener('mousedown',function(e){
+    if(e.button!==0)return;
+    mouseDown=true;setPriceScrub(e.clientX,'mouse-press');
+  },{passive:true});
+  c.addEventListener('mousemove',function(e){
+    if(mouseDown)setPriceScrub(e.clientX,'mouse-drag');
+  },{passive:true});
+  window.addEventListener('mouseup',function(){if(mouseDown){mouseDown=false;clearPriceScrub();}},{passive:true});
+  c.addEventListener('mouseleave',function(){if(!mouseDown)clearPriceScrub();},{passive:true});
   c.addEventListener('touchstart',function(e){
     var t=e.touches&&e.touches[0];if(!t)return;
-    startX=lastX=t.clientX;startY=t.clientY;markPriceChartScrub(2400);
-    if(hold)clearTimeout(hold);
-    hold=setTimeout(function(){hold=null;setPriceScrub(lastX,'touch');},180);
+    startX=t.clientX;startY=t.clientY;setPriceScrub(t.clientX,'touch-press');
   },{passive:true});
   c.addEventListener('touchmove',function(e){
-    var t=e.touches&&e.touches[0];if(!t)return;lastX=t.clientX;
+    var t=e.touches&&e.touches[0];if(!t)return;
     var dx=Math.abs(t.clientX-startX),dy=Math.abs(t.clientY-startY);
-    if(!priceScrubState.active&&dy>12&&dy>dx*1.25){if(hold){clearTimeout(hold);hold=null;}return;}
-    if(priceScrubState.active){e.preventDefault();setPriceScrub(t.clientX,'touch');}
+    if(!priceScrubState.active&&dy>12&&dy>dx*1.25)return;
+    if(priceScrubState.active){e.preventDefault();setPriceScrub(t.clientX,'touch-drag');}
   },{passive:false});
-  ['touchend','touchcancel'].forEach(function(ev){c.addEventListener(ev,function(){if(hold){clearTimeout(hold);hold=null;}setTimeout(clearPriceScrub,140);},{passive:true});});
+  ['touchend','touchcancel'].forEach(function(ev){c.addEventListener(ev,function(){clearPriceScrub();},{passive:true});});
 }
 function priceScrubOverlayPlugin(){
   return {
@@ -2184,11 +2190,10 @@ function trajectoryPathMeta(path,bands,rows){
   return {dir:dir,end_bps:endBps,agree:agree,total:rows.length,turn:turn,band_bps:band?band.bps:null};
 }
 function renderTrajectoryNote(meta,path){
-  var el=document.getElementById('trajectoryNote'),hint=document.getElementById('projectionHint'),value=document.getElementById('projectionLiveValue'),delta=document.getElementById('projectionLiveDelta');
+  var el=document.getElementById('trajectoryNote'),hint=document.getElementById('projectionHint');
+  if(hint){hint.hidden=true;hint.setAttribute('aria-hidden','true');}
   if(!meta){
     if(el)el.innerHTML='<span><strong>1T Projektionspfad</strong> · wartet auf Live-Modell</span><span>Shadow · keine Kurszusage</span>';
-    if(hint)hint.hidden=true;
-    if(value)value.textContent='—';if(delta)delta.textContent='';
     return;
   }
   var dir=meta.dir>0?'aufwärts':meta.dir<0?'abwärts':'seitwärts';
@@ -2196,13 +2201,6 @@ function renderTrajectoryNote(meta,path){
   var turn=meta.turn?(' · Dreht ~'+meta.turn+'m'):'';
   var band=isFinite(meta.band_bps)?(' · Band ±'+meta.band_bps.toFixed(1)+' bp'):'';
   if(el)el.innerHTML='<span><strong>'+dir+' '+move+'</strong> · Konsens '+meta.agree+'/'+meta.total+turn+band+'</span><span>Pfad statt Punktwolke · Shadow</span>';
-  var end=path&&path.length?path[path.length-1]:null,start=path&&path.length?path[0]:null;
-  if(value)value.textContent=end&&isFinite(Number(end.y))?euro(Number(end.y),2):'—';
-  if(delta){
-    var pct=end&&start&&Number(start.y)>0?(Number(end.y)/Number(start.y)-1)*100:NaN;
-    delta.textContent=isFinite(pct)?((pct>=0?'+':'')+pct.toFixed(2).replace('.',',')+' %'):'';
-  }
-  if(hint){hint.hidden=false;hint.setAttribute('data-projection-active','1');}
 }
 function trajectoryDatasets(pts,session){
   if(priceRange!=='1d'||!pts||!pts.length){renderTrajectoryNote(null);return [];}
