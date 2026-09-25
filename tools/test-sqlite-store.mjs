@@ -14,14 +14,18 @@ for(const x of [process.env.ALANTU_SQLITE_PATH,process.env.ALANTU_SQLITE_PATH+'-
     CREATE TABLE predictions(id TEXT PRIMARY KEY,model_version TEXT NOT NULL,horizon_minutes INTEGER NOT NULL,entry_market_at_ms INTEGER NOT NULL,entry_received_at_ms INTEGER,target_market_at_ms INTEGER NOT NULL,entry_price REAL NOT NULL,structural_dir INTEGER,structural_score REAL,learned_dir INTEGER,p_up REAL,confidence REAL,model_n INTEGER,barrier_bps REAL,assumed_roundtrip_cost_bps REAL,gate_sample INTEGER NOT NULL DEFAULT 0,feature_vector_json TEXT NOT NULL,feature_summary_json TEXT,evaluation_contract TEXT NOT NULL,contract_version TEXT NOT NULL,contract_text TEXT NOT NULL,contract_json TEXT NOT NULL,computed_at_ms INTEGER NOT NULL,UNIQUE(model_version,horizon_minutes,entry_market_at_ms));
     CREATE TABLE outcomes(prediction_id TEXT PRIMARY KEY REFERENCES predictions(id),status TEXT NOT NULL,reason TEXT,evaluated_at_ms INTEGER NOT NULL,endpoint_market_at_ms INTEGER,endpoint_received_at_ms INTEGER,endpoint_price REAL,endpoint_return_bps REAL,timing_error_ms INTEGER,barrier_label INTEGER,barrier_at_ms INTEGER,mfe_bps REAL,mae_bps REAL,net_return_bps REAL,correct INTEGER,raw_json TEXT NOT NULL);
   `);
-  old.prepare("insert into market_events(symbol,market_at_ms,received_at_ms,price,source,contract_version,raw_json,inserted_at_ms) values('ORCL',?,?,?,?,?,?,?)")
-    .run(1000,1100,100,'yahoo','old','{}',1200);
+  old.prepare("insert into market_events(symbol,market_at_ms,received_at_ms,price,day_volume,delta_volume,source,contract_version,raw_json,inserted_at_ms) values('ORCL',?,?,?,?,?,?,?,?,?)")
+    .run(1000,1100,100,2000,40,'yahoo_streamer','alantu-v6-market-event-time-v2','{"provider":"yahoo_streamer"}',1200);
   old.close();
 }
 
-const {openMarketStore,persistObservation,persistPrediction,persistOutcome,storeStats,V6_CONTRACT_ID}=await import('../market-relay/sqlite-store.mjs');
+const {openMarketStore,persistObservation,persistPrediction,persistOutcome,loadRecentMarketEvents,storeStats,V6_CONTRACT_ID}=await import('../market-relay/sqlite-store.mjs');
 const db=openMarketStore();
 assert.equal(db.db.prepare('select count(*) n from market_events').get().n,1);
+const migratedLegacy=db.db.prepare('select day_volume,delta_volume from market_events where market_at_ms=1000').get();
+assert.equal(migratedLegacy.day_volume,1000);
+assert.equal(migratedLegacy.delta_volume,null);
+assert.equal(db.db.prepare("select count(*) n from store_migrations where migration_id='2026-09-yahoo-sint64-volume-v1'").get().n,1);
 const eventCols=new Set(db.db.prepare('pragma table_info(market_events)').all().map(x=>x.name));
 for(const c of ['prev_market_at_ms','delta_t_ms','return_bps','source_time_resolution_ms','market_day_ny','session_phase'])assert.ok(eventCols.has(c),c);
 const predCols=new Set(db.db.prepare('pragma table_info(predictions)').all().map(x=>x.name));
@@ -34,6 +38,10 @@ persistObservation(db,{s:'ORCL',t,p:100.1,day_volume:1015,dv:15,recv_at:2200});
 const row=db.db.prepare('select * from market_events where market_at_ms=?').get(t);
 assert.equal(row.prev_market_at_ms,1000);
 assert.equal(row.delta_t_ms,1000);
+const recent=loadRecentMarketEvents(db,0);
+assert.equal(recent.length,2);
+assert.equal(recent[0].day_volume,1000);
+assert.equal(recent[1].day_volume,1015);
 
 const p={id:'migration-v6-'+t,version:'yahoo-monetary-dt-v6-r2',horizon_minutes:1,at:new Date(t).toISOString(),target_at:new Date(t+60000).toISOString(),
  entry_market_ms:t,entry_received_at:new Date(t+200).toISOString(),entry_price:100.1,structural_dir:1,structural_score:.2,learned_dir:1,p_up:.6,confidence:.2,
