@@ -9,6 +9,7 @@ on:
       - "pdf-to-exposee-anchor.html"
       - "pdf-convert-anchor.html"
       - "alantu-unlimited-ocr.js"
+      - "vendor/unlimited-ocr-browser-engine.js"
       - "alantu-book-core.js"
       - "alantu-book-view.js"
       - ".github/workflows/exposee-pages-rebuild.yml"
@@ -28,30 +29,44 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          code=$(curl -sS -o /tmp/pages.json -w "%{http_code}" -X POST             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             -H "X-GitHub-Api-Version: 2022-11-28"             "https://api.github.com/repos/${{ github.repository }}/pages/builds")
+          code=$(curl -sS -o /tmp/pages.json -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/pages/builds")
           cat /tmp/pages.json || true
-          if [ "$code" != "201" ]; then
+          if [ "$code" != "201" ] && [ "$code" != "202" ]; then
             echo "Pages rebuild request failed with HTTP $code" >&2
             exit 1
           fi
 
-      - name: Wait for current Exposee files live
+      - name: Wait for current public files
         shell: bash
         run: |
           set -euo pipefail
-          for i in $(seq 1 45); do
+          for i in $(seq 1 60); do
             ok=1
             curl -fsSL --max-time 20 "https://www.alantu.de/index-brand.html?deploy=${{ github.sha }}" -o /tmp/index-brand-live.html || ok=0
             curl -fsSL --max-time 20 "https://www.alantu.de/pdf-to-exposee.html?deploy=${{ github.sha }}" -o /tmp/pdf-live.html || ok=0
             curl -fsSL --max-time 20 "https://www.alantu.de/alantu-book-core.js?deploy=${{ github.sha }}" -o /tmp/core-live.js || ok=0
-            curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?deploy=${{ github.sha }}" -o /tmp/unlimited-live.js || ok=0
-            if [ "$ok" = "1" ]               && grep -q 'touch-action:none;' /tmp/index-brand-live.html               && grep -q 'touch-action:none;' /tmp/pdf-live.html               && grep -q 'pointerdown",pointerDown,{passive:false}' /tmp/core-live.js               && grep -q 'lostpointercapture' /tmp/core-live.js \
-              && grep -q 'text:"<|grounding|>OCR"' /tmp/unlimited-live.js \
-              && ! grep -q 'chat_template:"deepseek-ocr"' /tmp/unlimited-live.js; then
-              echo "Current Exposee touch fix is live."
+            curl -fsSL --max-time 20 "https://www.alantu.de/pdf-convert-anchor.html?deploy=${{ github.sha }}" -o /tmp/convert-live.html || ok=0
+            curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?deploy=${{ github.sha }}" -o /tmp/uocr-live.js || ok=0
+            curl -fsSL --max-time 20 "https://www.alantu.de/vendor/unlimited-ocr-browser-engine.js?deploy=${{ github.sha }}" -o /tmp/engine-live.js || ok=0
+            if [ "$ok" = "1" ] \
+              && grep -q 'touch-action:none;' /tmp/index-brand-live.html \
+              && grep -q 'touch-action:none;' /tmp/pdf-live.html \
+              && grep -q 'pointerdown",pointerDown,{passive:false}' /tmp/core-live.js \
+              && grep -q 'lostpointercapture' /tmp/core-live.js \
+              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-2' /tmp/convert-live.html \
+              && grep -q 'NakliTechie/gemma4-webgpu@0ca5e3a' /tmp/uocr-live.js \
+              && grep -q 'Unlimited-OCR-DeepEncoder-ONNX' /tmp/uocr-live.js \
+              && grep -q 'beginRingDecode(pos+1)' /tmp/uocr-live.js \
+              && grep -q 'createGemmaEngine' /tmp/engine-live.js \
+              && ! grep -q '@wllama/wllama' /tmp/uocr-live.js; then
+              echo "Current public files are live."
               exit 0
             fi
             sleep 10
           done
-          echo "Pages rebuilt but current Exposee files did not appear on www.alantu.de." >&2
+          echo "Pages rebuilt but current public files did not appear on www.alantu.de." >&2
           exit 1
