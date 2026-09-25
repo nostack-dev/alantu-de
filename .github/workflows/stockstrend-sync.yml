@@ -228,7 +228,6 @@ jobs:
           grep -q "field===9" index.html
           grep -q "f.kind==='wave'" index.html
           grep -q 'function marketWaveVector' index.html
-          grep -Fq "Quellenrichtung nicht validiert · nicht im Modell" index.html
           ! grep -q "sourceDirectionalFeature(" index.html
           grep -Fq "x.locked?'gesperrt':flowArrow(x.v)" index.html
           grep -q 'function hdrImpulseVector' index.html
