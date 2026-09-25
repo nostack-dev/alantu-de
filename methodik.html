@@ -31,9 +31,9 @@ ul{padding-left:18px}.exact{border-left:3px solid #151517;padding-left:12px}
 <p class="intro">Diese Seite ist die technische Rechen- und Quellenbeschreibung der Aktienansicht. Sie trennt bewusst <b>Live-Daten im Browser</b>, <b>GitHub-Fallbackdaten</b> und die <b>Intrinsic-Value-Berechnung</b>. Die angezeigten SEC-Werte und Zwischenrechnungen werden direkt aus den produktiven JSON-Daten geladen.</p>
 
 <section id="sentiment">
-<p class="small"><b>Live-Betrieb:</b> Die Aktienseite bezieht Stimmung primär vom Railway-Runtime-Service. News/UGC werden laufend neu aggregiert; Reddit wird zusätzlich direkt abgefragt. X/Twitter wird über gelieferte UGC-Links erkannt und kann optional über die offizielle Recent-Search-API ergänzt werden. Jeder sichtbare Eintrag behält Quelle, Original-Link und Zeitstempel; die Darstellung erfolgt in deutscher Zeit.</p><span id="live"></span>
+<p class="small"><b>Live-Betrieb:</b> Die Aktienseite bezieht Quellenereignisse primär vom Railway-Runtime-Service. News/UGC werden laufend als Rohereignisse aggregiert; Reddit wird zusätzlich direkt abgefragt. X/Twitter wird über gelieferte UGC-Links erkannt und kann optional über die offizielle Recent-Search-API ergänzt werden. Jeder sichtbare Eintrag behält Quelle, Original-Link und Zeitstempel; die Darstellung erfolgt in deutscher Zeit.</p><span id="live"></span>
 <h2>1 · Live-Sync: was beim Klick auf „Sync“ wirklich passiert</h2>
-<p>Der Browser lädt nicht nur eine vorhandene Datei neu. Er fragt frische Signalquellen ab, berechnet daraus den aktuellen Stimmungsstand neu und setzt <code>Sync xx:xx</code> erst nach erfolgreichem Abschluss.</p>
+<p>Der Browser lädt nicht nur eine vorhandene Datei neu. Er fragt frische Quellenereignisse ab, aktualisiert deren beobachtete Aktivität und setzt <code>Sync xx:xx</code> erst nach erfolgreichem Abschluss.</p>
 
 <h3>Primäre Live-Datensätze</h3>
 <ul>
@@ -46,52 +46,35 @@ ul{padding-left:18px}.exact{border-left:3px solid #151517;padding-left:12px}
 <li><b>Kurs:</b> Yahoo Finance WebSocket <code>wss://streamer.finance.yahoo.com/?version=2</code>, Subscription <code>ORCL</code> und <code>EURUSD=X</code>.</li>
 </ul>
 
-<h3>Exakte Browser-Heuristik</h3>
-<div class="formula">Headline-Klassifikation:
-bull = positive Schlüsselwörter überwiegen
-bear = negative Schlüsselwörter überwiegen
-mixed = Gleichstand / kein Treffer
+<h3>Quellenvertrag: Rohbeobachtung, keine erfundene Richtung</h3>
+<div class="formula">source-event-v3
 
-Gewichtung:
-News = 1 Stimme pro Treffer
-UGC/Social = 2 Stimmen pro Treffer
+Gespeichert:
+Quelle / Kanal / Originaltext / URL
+published_at
+first_seen_at
+delivery_lag_ms
+Engagement (wenn verfügbar)
+canonical_story_id
+Marktanker bei published_at
+Marktanker bei first_seen_at
 
-Social-Stichprobe:
-TickerTick ORCL-UGC bis 200 Treffer
-+ TickerTick Oracle-Entity-UGC bis 200 Treffer
-→ Aktien-/ORCL-Relevanzfilter
-→ Deduplizierung
-→ Mindestgröße 50
+Nicht erzeugt:
+kein bull / bear / mixed
+kein 0–100-Stimmungsscore
+kein Keyword-Sentiment
+keine Confidence
+kein BUY-/SELL-Signal aus News oder Social
 
-Zeitgewicht je Treffer:
-≤ 2h  = 1,50×
-≤ 8h  = 1,25×
-≤ 24h = 1,00×
-≤ 36h = 0,65×
+Handlungsrelevante Uhr:
+first_seen_at = frühester Zeitpunkt,
+zu dem ALANTU das Ereignis tatsächlich kannte.
 
-Social erhält zusätzlich den Faktor 2 gegenüber News.
-
-bull_pct  = round(100 × bull_votes / all_votes)
-bear_pct  = round(100 × bear_votes / all_votes)
-mixed_pct = 100 - bull_pct - bear_pct
-net       = bull_pct - bear_pct
-
-coverage_score = clamp(
-  round(42 + 0,55 × min(30, news_count) + 0,28 × min(120, social_count)),
-  50, 90
-)
-
-coverage_score beschreibt ausschließlich Datenmenge/Abdeckung.
-Er ist keine Trefferwahrscheinlichkeit und erzeugt kein BUY-/SELL-Signal.
-Die sichtbare Stimmung bleibt eine Quellenklassifikation; Handelsprognosen kommen ausschließlich aus separat prospektiv geprüften Modellen.
-
-magnitude = clamp(round(28 + 0.55 × |net|), 25, 75)
-early_signal = |net| ≥ 12</div>
-
-<details><summary>Exakte Schlüsselwortlisten</summary>
-<p class="small"><b>Positiv:</b> beat, beats, growth, surge, surges, rally, rallies, rise, rises, gain, gains, upgrade, upgraded, outperform, strong, record, backlog, contract, deal, boost, expands, expansion, demand, wins, win, bullish, buy rating</p>
-<p class="small"><b>Negativ:</b> debt, risk, risks, fall, falls, drop, drops, decline, declines, downgrade, downgraded, concern, concerns, lawsuit, probe, headwind, headwinds, cost, costs, capex, stress, stressed, junk bond, layoff, layoffs, slump, miss, misses, bearish, sell rating</p>
-</details>
+ApeWisdom:
+nur mentions_24h als unvalidierte Aktivitätsmessung.
+Kein fremder Sentiment-Prozentsatz wird übernommen.</div>
+<p>News und Social sind <b>Beobachtungen, keine Richtungsstimmen</b>. Sie dürfen Richtung oder Prognosen erst beeinflussen, wenn ein separat versioniertes Feature prospektiv gegen spätere Marktdaten getestet wurde und sein Gate bestanden hat. Bis dahin ist <code>model_eligible=false</code> und <code>direction=null</code>.</p>
+<p>Die frühere Keyword-Stimmung bleibt lediglich als historische Altserie nachvollziehbar. Neue Live-Quellen schreiben keine solchen Werte mehr und speisen sie nicht in Welle oder Handelssignal ein.</p>
 
 <h3>Relationale HDR-Auswertung</h3>
 <p>Zusätzlich zum absoluten Stimmungswert wird jeder Tageszustand relativ zu seiner eigenen Historie ausgewertet. Daraus entsteht <b>kein neuer Gesamtscore</b>, sondern drei getrennte Beziehungen:</p>

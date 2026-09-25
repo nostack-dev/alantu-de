@@ -129,6 +129,7 @@ async function run(name,viewport){
     freshAt:(document.getElementById('freshAt')?.textContent||'').trim(),
     redditRows:document.querySelectorAll('[data-source-kind="reddit"]').length,
     xText:(document.getElementById('sentimentSourceCounts')?.textContent||'').trim(),
+    sourceFeatureContract:(()=>{try{const f=typeof getMarketWaveVector==='function'?getMarketWaveVector():{};return {model_eligible:f?.sourceFeature?.model_eligible,direction:f?.sourceFeature?.direction,status:f?.sourceFeature?.status,hasSourceDir:Object.prototype.hasOwnProperty.call(f||{},'sourceDir'),hasCrowdDir:Object.prototype.hasOwnProperty.call(f||{},'crowdDir'),hasMassDir:Object.prototype.hasOwnProperty.call(f||{},'massDir')};}catch(e){return {error:String(e)}}})(),
     compactNumber:(document.getElementById('sentimentCompactNumber')?.textContent||'').trim(),
     compactLabel:(document.getElementById('sentimentCompactLabel')?.textContent||'').trim()
   }));
@@ -295,6 +296,9 @@ async function run(name,viewport){
     if(sourceStateUi.live.interpretation_status!=='unvalidated_not_used')errors.push('source-interpretation-status-invalid:'+JSON.stringify(sourceStateUi.live));
     for(const k of ['score','bull','bear','mixed','net','archive_sentiment','live_pulse'])if(Object.prototype.hasOwnProperty.call(sourceStateUi.live,k))errors.push('directional-source-field-leaked:'+k);
     if(sourceStateUi.live.activity?.model_eligible!==false||sourceStateUi.live.activity?.direction!==null)errors.push('source-activity-not-fail-closed:'+JSON.stringify(sourceStateUi.live.activity));
+    if(Object.prototype.hasOwnProperty.call(sourceStateUi.live.social_aggregates?.reddit||{},'sentiment_pct'))errors.push('source-aggregate-sentiment-leaked');
+    const sf=sourceStateUi.sourceFeatureContract||{};
+    if(sf.model_eligible!==false||sf.direction!==null||sf.status!=='unvalidated_not_used'||sf.hasSourceDir||sf.hasCrowdDir||sf.hasMassDir)errors.push('wave-source-feature-not-fail-closed:'+JSON.stringify(sf));
     if((sourceStateUi.live.items||[]).some(x=>Object.prototype.hasOwnProperty.call(x,'lean')))errors.push('source-item-lean-leaked');
     if(sourceStateUi.live.event_clock!=='first_seen_at')errors.push('source-event-clock-not-first-seen:'+JSON.stringify(sourceStateUi.live));
     if((sourceStateUi.live.items||[]).some(x=>!x.first_seen_at))errors.push('source-item-missing-first-seen');

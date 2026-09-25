@@ -1874,7 +1874,7 @@ function hdrRelativeImpulse(localValue,globalValue){
   var scale=Math.max(1e-9,Math.abs(local)+Math.abs(global));
   return liveClamp((local-global)/scale,-1,1);
 }
-function hdrImpulseVector(p,v,s){
+function hdrImpulseVector(p,v){
   var components=[];
   function add(name,value,quality){
     var n=Number(value),q=Number(quality);
@@ -1921,18 +1921,25 @@ function hdrImpulseVector(p,v,s){
 }
 function marketWaveVector(){
   var p=priceWave(),v=volumeWave(),label='',dir=0,kind='',micro=validatedMicrostructureSignal(),wave=validatedWaveForecast();
-  var price=p.dir,vol=v.dir,impulse=hdrImpulseVector(p,v,null);
-  if(wave){label='Wave Forecast';dir=wave.dir;kind='wave';}
-  else if(price&&vol===price){label='Welle bestätigt';dir=price;kind='confirm';}
-  else if(price&&vol===-price){label='Welle läuft aus';dir=price;kind='exhaust';}
-  var evidence=(price?1:0)+(vol?1:0);
-  if(!wave&&evidence<2){label='';dir=0;kind='';}
-  if(!label&&micro){label=micro.source==='l2'?'100E Forecast':'SIP Edge';dir=micro.dir;kind=micro.source==='l2'?'l2':'micro';}
+  var price=p.dir,vol=v.dir,impulse=hdrImpulseVector(p,v);
+
+  if(wave){
+    label='Wave Forecast';dir=wave.dir;kind='wave';
+  }else if(impulse&&impulse.reliable){
+    label='Preis+Volumen Impuls';dir=impulse.dir;kind='impulse';
+  }else if(price&&vol&&price===vol){
+    label='Welle bestätigt';dir=price;kind='confirm';
+  }
+  if(!label&&micro){
+    label=micro.source==='l2'?'100E Forecast':'SIP Edge';dir=micro.dir;kind=micro.source==='l2'?'l2':'micro';
+  }
+
   return {
-    label:label,dir:dir,kind:kind,sourceDir:0,crowdDir:0,priceDir:price,volumeDir:vol,
+    label:label,dir:dir,kind:kind,priceDir:price,volumeDir:vol,
     volumeRatio:v.ratio,volumePressure:v.pressure,pricePersist:p.persist||0,
-    priceEfficiency:p.eff||0,priceAccel:p.accel||0,evidence:evidence,impulse:impulse,
-    microSignal:micro,waveForecast:wave
+    priceEfficiency:p.eff||0,priceAccel:p.accel||0,
+    evidence:(price?1:0)+(vol?1:0),impulse:impulse,microSignal:micro,waveForecast:wave,
+    sourceFeature:{model_eligible:false,direction:null,status:'unvalidated_not_used',activity:(liveSourceState&&liveSourceState.activity)||{}}
   };
 }
 function getMarketWaveVector(){
@@ -1974,7 +1981,7 @@ function renderMarketFlowVisual(f){
     dir=f.dir;
     phase=dir>0?'BUY-POTENZIAL':'SELL-POTENZIAL';
     var wf=f.waveForecast||{},hh=Number(wf.horizon_minutes)||0,hit=Number(wf.holdout_hit);
-    sub='HDR-Δt · ≈ '+hh+' Min'+(isFinite(hit)?' · Test '+Math.round(hit*100)+' %':'')+' · '+(wf.source_context||'Quellenrichtung gesperrt');
+    sub='HDR-Δt · ≈ '+hh+' Min'+(isFinite(hit)?' · Test '+Math.round(hit*100)+' %':'')+' · Quellenrichtung gesperrt';
   }else if(f.kind==='l2'){
     dir=f.dir;
     phase=dir>0?'BUY-POTENZIAL':'SELL-POTENZIAL';
@@ -1989,19 +1996,13 @@ function renderMarketFlowVisual(f){
     dir=f.dir;
     phase=dir>0?'BUY-POTENZIAL':'SELL-POTENZIAL';
     sub='Tape + NBBO · validierter Live-Edge';
-  }else if(f.kind==='build'||f.kind==='lead'||f.kind==='confirm'||f.kind==='turn'){
+  }else if(f.kind==='confirm'||f.kind==='impulse'){
     dir=f.dir;
     phase=dir>0?'WELLE AUFWÄRTS':'WELLE ABWÄRTS';
     var why=[];
     if(f.priceDir===dir)why.push('Kurs');
     if(f.volumeDir===dir)why.push('Volumen');
-    sub='Beobachtete Welle · '+(why.length?why.join('+'):'Mehrfach-Bestätigung')
-      +' · '+Math.max(2,Number(f.evidence||0))+'/2'
-      +(f.kind==='confirm'?' · bestätigt':f.kind==='turn'?' · dreht':' · baut sich auf');
-  }else if(f.kind==='exhaust'){
-    phase='NEUTRAL / WARTEN';
-    dir=0;
-    sub='laufende Richtung verliert Unterstützung';
+    sub='Beobachtete Welle · '+(why.length?why.join('+'):'Preis+Volumen')+' · Quellenrichtung nicht im Modell';
   }else if(counter){
     phase='NEUTRAL / WARTEN';
     dir=0;
@@ -2037,7 +2038,7 @@ function renderMarketFlowVisual(f){
     return '<div class="flow-col"><span class="flow-node '+flowClass(x.v)+'" style="top:'+yp[i].toFixed(2)+'%"></span></div>';
   }).join('');
   var labels=vals.map(function(x){
-    return '<div class="flow-label '+flowClass(x.v)+'">'+x.name+' '+(x.locked?'gesperrt':flowArrow(x.v))+'</div>';
+    return '<div class="flow-label '+(x.locked?'flat':flowClass(x.v))+'">'+x.name+' '+(x.locked?'gesperrt':flowArrow(x.v))+'</div>';
   }).join('');
   el.innerHTML=
     '<div class="flow-head"><span class="flow-phase '+flowClass(dir)+'">'+(dir?flowArrow(dir)+' ':'')+phase+'</span>'+(sub?'<span class="flow-sub">'+sub+'</span>':'')+'</div>'+
@@ -2378,7 +2379,7 @@ function renderSentimentSources(){
   }):[];
   list.innerHTML=items.length?items.map(function(v){
     var href=String(v.url||''),summary=String(v.summary||v.title||''),scope=v.live?'NEU · live gekoppelt':v.delayed?'neu, aber zu spät für Live':'Archiv';
-    var market=v.market&&v.market.before?(' · Markt '+Number(v.market.before.price).toLocaleString('de-DE',{maximumFractionDigits:2})+' @ '+berlinStamp(Date.parse(v.market.before.at))):'';
+    var ma=v.market_at_first_seen||v.market_at_published||{},mp=ma.before||ma.after||null;var market=mp?(' · Markt '+Number(mp.price).toLocaleString('de-DE',{maximumFractionDigits:2})+' @ '+berlinStamp(Date.parse(mp.at))):'';
     var kind=sourceKind(v),site=String(v.site||channelLabel(kind));
     return '<article class="source-row" data-source-kind="'+esc(kind)+'"><div class="source-row-top"><span class="source-channel">'+sourceBadge(v)+'<span>'+esc(site)+' · '+scope+'</span></span><time class="source-time">'+esc(berlinStamp(v.time))+'</time></div><div class="source-summary">'+esc(summary)+'</div><div class="source-foot"><span>'+esc(channelLabel(kind)+market)+'</span>'+(href?'<a href="'+esc(href)+'" target="_blank" rel="noopener">Original öffnen ↗</a>':'')+'</div></article>';
   }).join(''):'<div class="source-row"><div class="source-summary">Noch keine aktuellen Einzelquellen geliefert.</div></div>';
@@ -2688,7 +2689,6 @@ function validatedMicrostructureSignal(){
   var dir=Number(s.dir);if(dir!==1&&dir!==-1)return null;
   return Object.assign({},s,{source:'raw_sip'});
 }
-function waveSourceContext(){return 'Quellenrichtung nicht validiert · nicht im Modell';}
 function refreshWaveForecasts(){
   if(!(microstructureData&&microstructureData.wave_forecast))waveForecastState={status:'blocked',reason:'waiting_event_stream'};
   else waveForecastState=microstructureData.wave_forecast;
@@ -2705,7 +2705,7 @@ function validatedWaveForecast(){
   a=a.filter(function(x){return !m.model_id||x.model_id===m.model_id;});if(!a.length)return null;
   a.sort(function(x,y){var dm=Number(y.margin||0)-Number(x.margin||0);if(Math.abs(dm)>.12)return dm;return Number(x.horizon_minutes)-Number(y.horizon_minutes);});
   var f=a[0],hit=Number(f.proof&&f.proof.holdout&&f.proof.holdout.hit);
-  return Object.assign({},f,{source:'raw_sip',asof:s.asof,source_context:waveSourceContext(),holdout_hit:isFinite(hit)?hit:null});
+  return Object.assign({},f,{source:'raw_sip',asof:s.asof,holdout_hit:isFinite(hit)?hit:null});
 }
 function renderHypothesisDecision(){
   var el=document.getElementById('hypothesisDecision');if(!el)return;
