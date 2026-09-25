@@ -1033,13 +1033,22 @@ var fxBars=[], orclMinuteBars=[], orclGermanyBars=[], orclDailyBars=[];
 var liveMarket={orclUsd:null,eurusd:null,prevOrclUsd:null,prevEurusd:null,at:null,receivedAt:null,source:null,connected:false,lastRenderedEur:null};
 var livePriceTicks=[],liveWs=null,liveHeartbeat=null,liveReconnect=null,liveShockTimer=null,waveForecastTimer=null,lastFlowRenderAt=0,lastLiveTickPruneAt=0,microLiveEventSource=null,microPollTimer=null,microSourcePollTimer=null,microShadowPollTimer=null,microPollBusy=false,microSourcePollBusy=false,microShadowPollBusy=false;
 var wgoRange='current',wgoBusy=false,wgoCache={},wgoContextCache={at:0,data:null},WGO_CACHE_MS=10*60*1000;
-function loadAccOpen(){ try{ return JSON.parse(localStorage.getItem(LS_ACC)||'{}'); }catch(e){ return {}; } }
+function loadAccOpen(){
+  try{
+    var v=JSON.parse(localStorage.getItem(LS_ACC)||'{}');
+    if(v&&typeof v==='object'&&!Array.isArray(v))return v;
+  }catch(e){}
+  try{localStorage.setItem(LS_ACC,'{}');}catch(e){}
+  return {};
+}
 function saveAccOpen(map){ try{ localStorage.setItem(LS_ACC, JSON.stringify(map)); }catch(e){} }
 function loadLocalSentimentHistory(){
   try{
     var a=JSON.parse(localStorage.getItem(SENTIMENT_HISTORY_LS)||'[]');
-    return Array.isArray(a)?a:[];
-  }catch(e){return [];}
+    if(Array.isArray(a))return a;
+  }catch(e){}
+  try{localStorage.setItem(SENTIMENT_HISTORY_LS,'[]');}catch(e){}
+  return [];
 }
 function saveLocalSentimentPoint(p){
   try{
@@ -3375,7 +3384,11 @@ document.getElementById('intrinsicToggle').onclick=function(){
 syncIntrinsicToggle();
 var SHOCK_LS='botbot_orcl_price_shocks_v1', SHOCK_NOTIFY_LS='botbot_orcl_shock_notify_v1';
 var shockLastKey='', shockPollBusy=false;
-function shockEventsLoad(){try{return JSON.parse(localStorage.getItem(SHOCK_LS)||'[]');}catch(e){return [];}}
+function shockEventsLoad(){
+  try{var v=JSON.parse(localStorage.getItem(SHOCK_LS)||'[]');if(Array.isArray(v))return v;}catch(e){}
+  try{localStorage.setItem(SHOCK_LS,'[]');}catch(e){}
+  return [];
+}
 function shockEventsSave(x){try{localStorage.setItem(SHOCK_LS,JSON.stringify(x.slice(0,30)));}catch(e){}}
 function shockNotifyEnabled(){try{return localStorage.getItem(SHOCK_NOTIFY_LS)==='1';}catch(e){return false;}}
 function renderShockEvents(){
