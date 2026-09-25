@@ -93,18 +93,18 @@
 <body>
   <header class="shell topbar">
     <div class="brand"><span class="mark" aria-hidden="true"><i></i></span><span>ALANTU</span></div>
-    <div class="topnote">Unlimited-OCR 3B · browser-native WebGPU · lokal · kein Upload</div>
+    <div class="topnote">3B-OCR → lokales Fallback · kein Upload</div>
   </header>
 
   <main class="shell layout">
     <aside class="panel">
       <div class="eyebrow">PDF → Searchable PDF</div>
       <h1>Gleich aussehen. Mehr echter Text.</h1>
-      <p class="intro">Das Original wird pro Seite gebacken. Vorhandener PDF-Text bleibt als echter Text erhalten. Text in Bildern erkennt ausschließlich Unlimited-OCR 3B und wird als zusätzlicher echter Textlayer an derselben Position eingebettet.</p>
+      <p class="intro">Das Original bleibt visuell unverändert. Vorhandener PDF-Text bleibt echter Text. Bildtext wird zuerst mit Unlimited-OCR 3B erkannt; passt das Gerät dafür nicht, fällt die Verarbeitung automatisch auf ein kleineres lokales OCR zurück.</p>
 
       <label class="dropzone" id="dropzone">
         <input id="pdfInput" type="file" accept="application/pdf,.pdf" aria-label="PDF auswählen">
-        <div><strong>PDF auswählen oder hier ablegen</strong><span>Beim ersten Bildtext lädt Unlimited-OCR 3B einmalig lokal in den Browser-Cache.</span></div>
+        <div><strong>PDF auswählen oder hier ablegen</strong><span>Die Seite prüft zuerst den lokalen Flaschenhals und wählt automatisch die stärkste OCR-Stufe, die auf diesem Browser tatsächlich läuft.</span></div>
       </label>
 
       <div class="status" id="status"><span class="dot"></span><span>Bereit</span></div>
@@ -178,6 +178,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
-  <script type="module" src="./alantu-unlimited-ocr.js?v=browser-webgpu-6"></script>
+  <script type="module" src="./alantu-unlimited-ocr.js?v=browser-webgpu-7"></script>
 </body>
 </html>
