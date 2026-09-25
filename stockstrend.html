@@ -2080,8 +2080,10 @@ function flowPoint(pricePts,f){
 }
 var activePriceSessionKey=null;
 function trajectoryForecastRows(){
-  var st=waveForecastState||{},hs=[1,5,15,30],rows=[],at=Date.parse(st.at||st.updated_at||st.generated_at||'');
-  if(isFinite(at)&&Date.now()-at>2*60000)return [];
+  var st=waveForecastState||{},hs=[1,5,15,30],rows=[],at=Date.parse(st.asof||st.at||st.updated_at||st.generated_at||'');
+  // A forecast may only remain active while its underlying market observation is fresh.
+  // Missing timestamps fail closed; a stalled feed must not masquerade as a new prediction.
+  if(!isFinite(at)||Date.now()-at>2*60000)return [];
   if(st.status==='ok'&&Array.isArray(st.forecasts)){
     rows=st.forecasts.filter(function(f){return hs.indexOf(Number(f.horizon_minutes))>=0;}).map(function(f){
       var score=Number(f.score),dir=Number(f.dir);
