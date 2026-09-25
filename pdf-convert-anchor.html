@@ -93,7 +93,7 @@
 <body>
   <header class="shell topbar">
     <div class="brand"><span class="mark" aria-hidden="true"><i></i></span><span>ALANTU</span></div>
-    <div class="topnote">Unlimited-OCR 3B · lokal im Browser · CPU/WASM stabil · kein Upload</div>
+    <div class="topnote">Unlimited-OCR 3B · Q4_K_M · lokal im Browser · kein Upload</div>
   </header>
 
   <main class="shell layout">
@@ -116,7 +116,7 @@
           <div class="metric"><span>Seiten</span><strong id="mPages">—</strong></div>
           <div class="metric"><span>PDF-Text</span><strong id="mNative">—</strong></div>
           <div class="metric"><span>Bildtext erkannt</span><strong id="mImageText">—</strong></div>
-          <div class="metric"><span>Erkannter Bildtext → echt</span><strong id="mImageTextPercent">—</strong></div>
+          <div class="metric"><span>Bildseiten → echter Text</span><strong id="mImageTextPercent">—</strong></div>
           <div class="metric"><span>Geb. Originalseiten</span><strong id="mBaked">—</strong></div>
           <div class="metric"><span>Visuell</span><strong id="mVisual">—</strong></div>
           <div class="metric"><span>Engine</span><strong id="mEngine">Unlimited-OCR 3B</strong></div>
@@ -178,6 +178,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
-  <script type="module" src="./alantu-unlimited-ocr.js?v=cpu-safe-2"></script>
+  <script type="module" src="./alantu-unlimited-ocr.js?v=uocr-q4-f16-4"></script>
 </body>
 </html>
