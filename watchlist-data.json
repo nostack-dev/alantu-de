@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-25T08:51:01+02:00",
+  "updated_at": "2026-09-25T08:52:20+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,7 +9,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-25T08:51:01+02:00",
+        "at": "2026-09-25T08:52:20+02:00",
         "signal": "hold",
         "social_impulse": 2,
         "hype_bull": 42,
@@ -6258,6 +6258,20 @@
           "voice_bear": 7,
           "voice_mixed": 11,
           "price": 139.79
+        },
+        {
+          "at": "2026-09-25T08:52:20+02:00",
+          "hype_bull": 42,
+          "hype_bear": 33,
+          "hype_net": 9,
+          "social_impulse": 2,
+          "signal": "hold",
+          "confidence": 80,
+          "hype_mixed": 25,
+          "voice_bull": 4,
+          "voice_bear": 7,
+          "voice_mixed": 11,
+          "price": 139.79
         }
       ],
       "voices_archive": [
@@ -6580,7 +6594,7 @@
       "hype_net": 9,
       "confidence": 80,
       "hype_state": "mixed",
-      "updated_at": "2026-09-25T08:51:01+02:00",
+      "updated_at": "2026-09-25T08:52:20+02:00",
       "why": "Reddit 68% positiv bei 53 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $139.79.",
       "evidence": {
         "x_posts": 0,
@@ -6588,16 +6602,16 @@
         "news": 20,
         "snippets": [
           "ApeWisdom: 53 Mentions/24h, Sentiment 68%",
+          "Oracle Corporation (ORCL) Stock Price, News, Quote & History",
           "Oracle Cites ‘Force Majeure’ to Shield Itself on Controversial Data Center",
-          "Oracle’s stock is falling as investors fear a data-center setback",
-          "Oracle stock drops as the company moves to shield itself from costs linked to controversial data center"
+          "Oracle’s stock is falling as investors fear a data-center setback"
         ]
       },
       "voices": {
         "bull": 4,
         "bear": 7,
         "mixed": 11,
-        "updated_at": "2026-09-25T08:51:01+02:00"
+        "updated_at": "2026-09-25T08:52:20+02:00"
       },
       "hype_mixed": 25,
       "sentiment_unit": "percent_all_classified",
