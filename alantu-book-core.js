@@ -786,7 +786,10 @@ export function createAlantuBookCore(options){
 
   function blockNativeTouchScroll(e){
     if(!dragState||dragState.pointerType!=="touch")return;
-    const touch=[...e.changedTouches,...e.touches].find(item=>item.identifier===dragState.id)||e.touches[0];
+    // Book turning is a single-touch gesture. PointerEvent.pointerId and
+    // Touch.identifier are not guaranteed to share the same value on WebKit,
+    // so never couple the two ID spaces here.
+    const touch=e.touches[0]||e.changedTouches[0];
     if(!touch)return;
 
     const dx=touch.clientX-dragState.startX;
