@@ -23,12 +23,14 @@ jobs:
           node tools/patch-uocr-stability.cjs
           node --check alantu-unlimited-ocr.js
           grep -q 'function fetchWithRetry' alantu-unlimited-ocr.js
-          grep -q 'browser-webgpu-4' pdf-convert-anchor.html
+          grep -q 'diagnoseLocalOcrBottleneck' alantu-unlimited-ocr.js
+          grep -q 'requireLocalOcrCapability' alantu-unlimited-ocr.js
+          grep -q 'browser-webgpu-5' pdf-convert-anchor.html
       - name: Commit
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add alantu-unlimited-ocr.js pdf-convert-anchor.html
-          git commit -m "Make Unlimited OCR load failures non-blocking" || exit 0
+          git commit -m "Add local OCR bottleneck preflight" || exit 0
           git push
