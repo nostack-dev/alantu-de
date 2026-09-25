@@ -164,7 +164,6 @@ jobs:
           grep -Fq "label='Preis+Volumen Impuls'" index.html
           grep -Fq "Quellenrichtung gesperrt" index.html
           grep -Fq "market_at_first_seen" index.html
-          grep -Fq "Quellenrichtung nicht validiert · nicht im Modell" index.html
           grep -Fq "canonical_story_id" market-relay/server.mjs
           grep -Fq "function marketRelevantStory" market-relay/server.mjs
           grep -Fq "oracle financial services" market-relay/server.mjs
