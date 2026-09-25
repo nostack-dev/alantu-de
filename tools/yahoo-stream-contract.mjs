@@ -1,6 +1,6 @@
 export const YAHOO_EVENT_CONTRACT='yahoo-stream-sint64-first-timestamp-v1';
 export function zigZag64(v){v=BigInt(v);return Number((v>>1n)^(-(v&1n)));}
-export function finiteNonNegative(v){const n=Number(v);return Number.isFinite(n)&&n>=0?n:null;}
+export function finiteNonNegative(v){if(v==null||v==='')return null;const n=Number(v);return Number.isFinite(n)&&n>=0?n:null;}
 export function canonicalVolumeDelta(prevDayVolume,currentDayVolume){
   const prev=finiteNonNegative(prevDayVolume),cur=finiteNonNegative(currentDayVolume);
   if(cur==null||prev==null||cur<prev)return 0;
