@@ -876,12 +876,12 @@
     <div class="value-status flat" id="ivStatus"></div>
     <div class="market-flow" id="marketFlow" aria-live="polite"><div class="flow-head"><span class="flow-phase flat">WIRD BERECHNET</span></div></div>
     <div class="model-decision no-signal" id="modelDecision" aria-live="polite">
-      <div class="model-decision-kicker">ALANTU v5</div>
+      <div class="model-decision-kicker">ALANTU v6</div>
       <div class="model-decision-main">MODELLSTATUS: KEIN KAUFSIGNAL</div>
       <div class="model-decision-meta">Gate noch nicht bestanden · warten</div>
     </div>
     <div class="chart-sub"><span id="ivCoverage"></span></div>
-    <div class="projection-hint" id="projectionHint" hidden><span class="projection-swatch"></span><strong>Live-Projektion</strong><span class="projection-live-value" id="projectionLiveValue">—</span><span class="projection-live-delta" id="projectionLiveDelta"></span><span>30 Min · Hover oder ziehen</span></div>
+    <div class="projection-hint" id="projectionHint" hidden aria-hidden="true"></div>
     <div class="chart-wrap chart-wrap-lg"><canvas id="ivChart"></canvas></div>
     <div class="mini-range" id="priceRange" aria-label="Zeitraum Kurs und Wert">
       <button type="button" data-price-range="1d">1T</button><button type="button" data-price-range="1w">1W</button><button type="button" data-price-range="1m">1M</button><button type="button" data-price-range="year">1J</button><button type="button" data-price-range="5y">5J</button><button type="button" data-price-range="all">MAX</button>
@@ -1036,7 +1036,7 @@ function initChartPanels(){
 var tickData=null, wlData=null, ivData=null, fxData=null, orclMinutePayload=null, orclGermanyPayload=null, orclHistoryPayload=null, sentimentBackfillData=null, microstructureStatus=null, microstructureData=null, microstructureEdgeStatus=null, microstructureLiveConfig=null, orclL2Model=null, orclWaveModel=null, waveCore=null, waveForecastState=null, liveSourceState=null, shadowTrailState=null, shadowTrailFetchedAt=0, trajectoryLastRows=[], trajectoryGuessCloud=[];
 var hypeChart=null, magChart=null, ivChart=null, pieChart=null;
 var fxBars=[], orclMinuteBars=[], orclGermanyBars=[], orclDailyBars=[];
-var liveMarket={orclUsd:null,eurusd:null,prevOrclUsd:null,prevEurusd:null,at:null,receivedAt:null,source:null,connected:false,lastRenderedEur:null};
+var liveMarket={orclUsd:null,eurusd:null,eurusdAt:null,eurusdReceivedAt:null,dayVolume:null,prevOrclUsd:null,prevEurusd:null,at:null,receivedAt:null,source:null,connected:false,lastRenderedEur:null};
 var livePriceTicks=[],liveWs=null,liveHeartbeat=null,liveReconnect=null,liveShockTimer=null,waveForecastTimer=null,lastFlowRenderAt=0,lastLiveTickPruneAt=0,microLiveEventSource=null,microPollTimer=null,microSourcePollTimer=null,microShadowPollTimer=null,microPollBusy=false,microSourcePollBusy=false,microShadowPollBusy=false;
 var wgoRange='current',wgoBusy=false,wgoCache={},wgoContextCache={at:0,data:null},WGO_CACHE_MS=10*60*1000;
 function loadAccOpen(){
@@ -1358,7 +1358,7 @@ function axisX(rows,getAt,range){
   return {type:'linear',min:b.min,max:b.max,offset:false,bounds:'ticks',ticks:{color:'#6b6b76',maxRotation:0,autoSkip:true,maxTicksLimit:mob?4:6,font:{size:mob?12:11},callback:function(v){return fmtAxisValue(v,range);}},grid:{display:false},border:{display:false}};
 }
 function chartInteract(){return {mode:'nearest',intersect:false,axis:'x'};}
-function chartEvents(){return ['mousemove','mouseout','click','touchstart','touchmove'];}
+function chartEvents(){return ['click','touchstart','touchmove'];}
 var priceChartScrubUntil=0;
 var priceScrubState={active:false,point:null,source:null};
 function markPriceChartScrub(ms){priceChartScrubUntil=Math.max(priceChartScrubUntil,Date.now()+(Number(ms)||2200));}
@@ -1407,22 +1407,28 @@ function armPriceChartScrub(){
   var c=document.getElementById('ivChart');
   if(!c||c.dataset.alantuScrub==='1')return;
   c.dataset.alantuScrub='1';
-  var hold=null,startX=0,startY=0,lastX=0;
-  c.addEventListener('mousemove',function(e){setPriceScrub(e.clientX,'mouse');},{passive:true});
-  c.addEventListener('mouseleave',function(){clearPriceScrub();},{passive:true});
+  var mouseDown=false,startX=0,startY=0;
+  // Clean by default: no hover readout. Values appear only while the user actively presses/drags.
+  c.addEventListener('mousedown',function(e){
+    if(e.button!==0)return;
+    mouseDown=true;setPriceScrub(e.clientX,'mouse-press');
+  },{passive:true});
+  c.addEventListener('mousemove',function(e){
+    if(mouseDown)setPriceScrub(e.clientX,'mouse-drag');
+  },{passive:true});
+  window.addEventListener('mouseup',function(){if(mouseDown){mouseDown=false;clearPriceScrub();}},{passive:true});
+  c.addEventListener('mouseleave',function(){if(!mouseDown)clearPriceScrub();},{passive:true});
   c.addEventListener('touchstart',function(e){
     var t=e.touches&&e.touches[0];if(!t)return;
-    startX=lastX=t.clientX;startY=t.clientY;markPriceChartScrub(2400);
-    if(hold)clearTimeout(hold);
-    hold=setTimeout(function(){hold=null;setPriceScrub(lastX,'touch');},180);
+    startX=t.clientX;startY=t.clientY;setPriceScrub(t.clientX,'touch-press');
   },{passive:true});
   c.addEventListener('touchmove',function(e){
-    var t=e.touches&&e.touches[0];if(!t)return;lastX=t.clientX;
+    var t=e.touches&&e.touches[0];if(!t)return;
     var dx=Math.abs(t.clientX-startX),dy=Math.abs(t.clientY-startY);
-    if(!priceScrubState.active&&dy>12&&dy>dx*1.25){if(hold){clearTimeout(hold);hold=null;}return;}
-    if(priceScrubState.active){e.preventDefault();setPriceScrub(t.clientX,'touch');}
+    if(!priceScrubState.active&&dy>12&&dy>dx*1.25)return;
+    if(priceScrubState.active){e.preventDefault();setPriceScrub(t.clientX,'touch-drag');}
   },{passive:false});
-  ['touchend','touchcancel'].forEach(function(ev){c.addEventListener(ev,function(){if(hold){clearTimeout(hold);hold=null;}setTimeout(clearPriceScrub,140);},{passive:true});});
+  ['touchend','touchcancel'].forEach(function(ev){c.addEventListener(ev,function(){clearPriceScrub();},{passive:true});});
 }
 function priceScrubOverlayPlugin(){
   return {
@@ -1552,15 +1558,21 @@ function buildOrclGermanyBars(){
   orclGermanyBars=typeof PriceShock!=='undefined'&&orclGermanyPayload?PriceShock.parseYahoo(orclGermanyPayload):[];
 }
 function fxAt(at){
-  var t=new Date(at||Date.now()).getTime();
-  if(liveMarket.eurusd&&Math.abs(Date.now()-t)<2*864e5)return liveMarket.eurusd;
-  if(!fxBars.length)return liveMarket.eurusd||null;
-  var lo=0,hi=fxBars.length-1,best=0;
+  var t=new Date(at||Date.now()).getTime();if(!isFinite(t))return null;
+  var liveT=Number(liveMarket.eurusdAt),liveFx=Number(liveMarket.eurusd);
+  if(liveFx>0&&isFinite(liveT)&&Math.abs(t-liveT)<=2*60000)return liveFx;
+  if(!fxBars.length)return null;
+  var lo=0,hi=fxBars.length-1,best=-1;
   while(lo<=hi){
     var m=(lo+hi)>>1,mt=new Date(fxBars[m].at).getTime();
     if(mt<=t){best=m;lo=m+1;}else hi=m-1;
   }
-  return Number(fxBars[best].close)||liveMarket.eurusd||null;
+  if(best>=0){
+    var bt=new Date(fxBars[best].at).getTime(),bv=Number(fxBars[best].close);
+    if(bv>0&&t-bt<=12*3600000)return bv;
+  }
+  var firstMs=new Date(fxBars[0].at).getTime(),first=Number(fxBars[0].close);
+  return first>0&&firstMs-t>=0&&firstMs-t<=12*3600000?first:null;
 }
 function usdToEur(v,at){
   var n=Number(v),fx=fxAt(at);
@@ -1702,7 +1714,7 @@ function decodePricingBase64(raw){
     var tag=readPbVarint(bytes,state),field=Number(tag>>3n),wire=Number(tag&7n);
     if(wire===0){
       var v=readPbVarint(bytes,state);
-      if(field===3){var sv=(v>>1n)^(-(v&1n));var n=Number(sv);out.time=n<1e12?n*1000:n;} else if(field===9){out.dayVolume=Number(v);}
+      if(field===3){var sv=(v>>1n)^(-(v&1n));var n=Number(sv);out.time=n<1e12?n*1000:n;} else if(field===9){var dv=(v>>1n)^(-(v&1n));out.dayVolume=Number(dv);}
     }else if(wire===1){
       if(state.i+8>bytes.length)break; state.i+=8;
     }else if(wire===2){
@@ -1725,15 +1737,16 @@ async function handleYahooFrame(data){
     var q=decodePricingBase64(raw);
     if(!q)return;
     if(q.id==='EURUSD=X'){
-      liveMarket.eurusd=Number(q.price);
+      if(!(Number(q.time)>0))return;
+      liveMarket.eurusd=Number(q.price);liveMarket.eurusdAt=Number(q.time);liveMarket.eurusdReceivedAt=Date.now();
       if(q.previousClose)liveMarket.prevEurusd=Number(q.previousClose);
       renderLiveMarket(liveMarket.connected);
       return;
     }
-    if(q.id!=='ORCL')return;
+    if(q.id!=='ORCL'||!(Number(q.time)>0))return;
     liveMarket.orclUsd=Number(q.price);
     if(q.previousClose)liveMarket.prevOrclUsd=Number(q.previousClose);
-    liveMarket.at=q.time||Date.now();
+    liveMarket.at=Number(q.time);
     liveMarket.receivedAt=Date.now();liveMarket.source='browser-yahoo';
     livePriceTicks.push({at:new Date(liveMarket.at).getTime(),price:liveMarket.orclUsd});
     var tickNow=Date.now();
@@ -1757,6 +1770,12 @@ async function handleYahooFrame(data){
   }catch(e){}
 }
 function connectLiveMarket(){
+  var cfg=microstructureLiveConfig||{},relayConfigured=cfg.enabled===true&&cfg.transport==='poll'&&/^https:\/\//.test(String(cfg.endpoint||''));
+  if(relayConfigured){
+    if(liveWs){try{liveWs.close();}catch(e){}liveWs=null;}
+    liveMarket.connected=false;
+    return;
+  }
   if(liveWs&&(liveWs.readyState===0||liveWs.readyState===1))return;
   clearTimeout(liveReconnect);
   try{
@@ -2084,6 +2103,7 @@ function trajectoryForecastRows(){
   // A forecast may only remain active while its underlying market observation is fresh.
   // Missing timestamps fail closed; a stalled feed must not masquerade as a new prediction.
   if(!isFinite(at)||Date.now()-at>2*60000)return [];
+  if(st.status!=='ok'||!Array.isArray(st.forecasts))return [];
   if(st.status==='ok'&&Array.isArray(st.forecasts)){
     rows=st.forecasts.filter(function(f){return hs.indexOf(Number(f.horizon_minutes))>=0;}).map(function(f){
       var score=Number(f.score),dir=Number(f.dir);
@@ -2092,13 +2112,21 @@ function trajectoryForecastRows(){
     }).filter(function(f){return f.projection_dir===1||f.projection_dir===-1;}).sort(function(a,b){return Number(a.horizon_minutes)-Number(b.horizon_minutes);});
     if(rows.length)trajectoryLastRows=rows;
   }
-  return rows.length?rows:trajectoryLastRows.slice();
+  return rows;
 }
 function medianNum(a){a=(a||[]).filter(isFinite).sort(function(x,y){return x-y;});if(!a.length)return null;var m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2;}
 function recentVolBps(pts){
-  var a=(pts||[]).slice(-24),v=[];
-  for(var i=1;i<a.length;i++){var p0=Number(a[i-1].y),p1=Number(a[i].y);if(p0>0&&p1>0)v.push(Math.abs(Math.log(p1/p0))*10000);}
-  var m=medianNum(v);return isFinite(m)?Math.max(1.5,Math.min(35,m)):5;
+  var all=(pts||[]).filter(function(p){return p&&isFinite(Number(p.x))&&Number(p.y)>0;});
+  if(all.length<2)return 5;
+  var end=Number(all[all.length-1].x),a=all.filter(function(p){return end-Number(p.x)<=30*60000;}),sumSq=0,sumMin=0,n=0;
+  for(var i=1;i<a.length;i++){
+    var t0=Number(a[i-1].x),t1=Number(a[i].x),dt=(t1-t0)/60000,p0=Number(a[i-1].y),p1=Number(a[i].y);
+    // Large observation gaps are unknown paths, not flat time. Do not use them to infer volatility.
+    if(!(dt>0)||dt>5||!(p0>0&&p1>0))continue;
+    var bps=Math.log(p1/p0)*10000;sumSq+=bps*bps;sumMin+=dt;n++;
+  }
+  var sigma=n&&sumMin>0?Math.sqrt(sumSq/sumMin):NaN;
+  return isFinite(sigma)?Math.max(1.5,Math.min(35,sigma)):5;
 }
 function projectionBps(f,vol){
   var h=Number(f.horizon_minutes)||1,dir=Number(f.projection_dir||f.dir)||0,margin=Math.max(.2,Math.min(2.5,Number(f.margin)||.7)),proof=f.proof||{};
@@ -2184,25 +2212,17 @@ function trajectoryPathMeta(path,bands,rows){
   return {dir:dir,end_bps:endBps,agree:agree,total:rows.length,turn:turn,band_bps:band?band.bps:null};
 }
 function renderTrajectoryNote(meta,path){
-  var el=document.getElementById('trajectoryNote'),hint=document.getElementById('projectionHint'),value=document.getElementById('projectionLiveValue'),delta=document.getElementById('projectionLiveDelta');
+  var el=document.getElementById('trajectoryNote'),hint=document.getElementById('projectionHint');
+  if(hint){hint.hidden=true;hint.setAttribute('aria-hidden','true');}
   if(!meta){
     if(el)el.innerHTML='<span><strong>1T Projektionspfad</strong> · wartet auf Live-Modell</span><span>Shadow · keine Kurszusage</span>';
-    if(hint)hint.hidden=true;
-    if(value)value.textContent='—';if(delta)delta.textContent='';
     return;
   }
   var dir=meta.dir>0?'aufwärts':meta.dir<0?'abwärts':'seitwärts';
   var move=(meta.end_bps>=0?'+':'')+meta.end_bps.toFixed(1)+' bp';
   var turn=meta.turn?(' · Dreht ~'+meta.turn+'m'):'';
   var band=isFinite(meta.band_bps)?(' · Band ±'+meta.band_bps.toFixed(1)+' bp'):'';
-  if(el)el.innerHTML='<span><strong>'+dir+' '+move+'</strong> · Konsens '+meta.agree+'/'+meta.total+turn+band+'</span><span>Pfad statt Punktwolke · Shadow</span>';
-  var end=path&&path.length?path[path.length-1]:null,start=path&&path.length?path[0]:null;
-  if(value)value.textContent=end&&isFinite(Number(end.y))?euro(Number(end.y),2):'—';
-  if(delta){
-    var pct=end&&start&&Number(start.y)>0?(Number(end.y)/Number(start.y)-1)*100:NaN;
-    delta.textContent=isFinite(pct)?((pct>=0?'+':'')+pct.toFixed(2).replace('.',',')+' %'):'';
-  }
-  if(hint){hint.hidden=false;hint.setAttribute('data-projection-active','1');}
+  if(el)el.innerHTML='<span><strong>'+dir+' '+move+'</strong> · Horizont-Abgleich '+meta.agree+'/'+meta.total+turn+band+'</span><span>Pfad statt Punktwolke · Shadow</span>';
 }
 function trajectoryDatasets(pts,session){
   if(priceRange!=='1d'||!pts||!pts.length){renderTrajectoryNote(null);return [];}
@@ -2495,13 +2515,17 @@ function fetchRelayDetails(){return Promise.resolve();}
 function ingestRelayMarket(d){
   var m=d&&d.market||{},price=Number(m.price_usd),eventMs=Date.parse(m.price_at||''),recvMs=Date.parse(m.received_at||'');
   var now=Date.now(),fresh=price>0&&isFinite(eventMs)&&isFinite(recvMs)&&now-recvMs>=-5000&&now-recvMs<=30000&&now-eventMs>=-5000&&now-eventMs<=60000;
-  var fx=Number(m.eurusd),fxRecv=Date.parse(m.eurusd_received_at||'');
-  if(fx>0&&isFinite(fxRecv)&&now-fxRecv>=-5000&&now-fxRecv<=120000)liveMarket.eurusd=fx;
+  var fx=Number(m.eurusd),fxRecv=Date.parse(m.eurusd_received_at||''),fxEvent=Date.parse(m.eurusd_at||'');
+  if(fx>0&&isFinite(fxRecv)&&isFinite(fxEvent)&&now-fxRecv>=-5000&&now-fxRecv<=120000){
+    liveMarket.eurusd=fx;liveMarket.eurusdAt=fxEvent;liveMarket.eurusdReceivedAt=fxRecv;
+  }
   if(!fresh)return false;
   if(Number(liveMarket.receivedAt)>recvMs)return false;
   var changed=Number(liveMarket.receivedAt)!==recvMs||Number(liveMarket.orclUsd)!==price;
   liveMarket.orclUsd=price;liveMarket.at=eventMs;liveMarket.receivedAt=recvMs;liveMarket.source='railway-yahoo';
-  if(changed){appendLiveMinute(price,eventMs,0);renderLiveMarket(true);scheduleLiveChartUpdate();scheduleLiveShock();}
+  if(Number.isFinite(Number(m.day_volume)))liveMarket.dayVolume=Number(m.day_volume);
+  var volumeDelta=Number.isFinite(Number(m.delta_volume))?Math.max(0,Number(m.delta_volume)):0;
+  if(changed){appendLiveMinute(price,eventMs,volumeDelta);renderLiveMarket(true);scheduleLiveChartUpdate();scheduleLiveShock();}
   return true;
 }
 function applyMicroMarketSnapshot(d){
@@ -2724,16 +2748,16 @@ function renderModelDecision(){
   var cls='no-signal',main='MODELLSTATUS: KEIN KAUFSIGNAL',meta='';
   if(validated&&action==='BUY'){
     cls='buy';main='MODELLSTATUS: KAUFSIGNAL';
-    meta='v5 validiert'+(h?' · '+h+' Min':'')+(Number.isFinite(Number(r.confidence))?' · Konfidenz '+Math.round(Number(r.confidence)*100)+' %':'');
+    meta='v6 validiert'+(h?' · '+h+' Min':'')+(Number.isFinite(Number(r.confidence))?' · Konfidenz '+Math.round(Number(r.confidence)*100)+' %':'');
   }else if(validated&&action==='SELL'){
     cls='sell';main='MODELLSTATUS: VERKAUFSSIGNAL';
-    meta='v5 validiert'+(h?' · '+h+' Min':'')+(Number.isFinite(Number(r.confidence))?' · Konfidenz '+Math.round(Number(r.confidence)*100)+' %':'');
+    meta='v6 validiert'+(h?' · '+h+' Min':'')+(Number.isFinite(Number(r.confidence))?' · Konfidenz '+Math.round(Number(r.confidence)*100)+' %':'');
   }else{
     var best=[5,15,1,30].map(function(x){var p=v.proof&&v.proof[String(x)]||{},m=p.model||{},g=p.gate||{};return {h:x,n:Number(m.n)||0,min:Number(m.min_n)||120,gate:g.status||'collecting'};}).sort(function(a,b){return b.n-a.n;})[0]||{h:5,n:0,min:120,gate:'collecting'};
-    meta='v5 Gate '+best.gate+' · Learner '+best.n+'/'+best.min+' · warten statt raten';
+    meta='v6 Gate '+best.gate+' · Learner '+best.n+'/'+best.min+' · warten statt raten';
   }
   el.className='model-decision '+cls;
-  el.innerHTML='<div class="model-decision-kicker">ALANTU v5</div><div class="model-decision-main">'+main+'</div><div class="model-decision-meta">'+meta+'</div>';
+  el.innerHTML='<div class="model-decision-kicker">ALANTU v6</div><div class="model-decision-main">'+main+'</div><div class="model-decision-meta">'+meta+'</div>';
 }
 function renderV5Research(){
   var el=document.getElementById('v5Research');if(!el)return;
@@ -2741,7 +2765,7 @@ function renderV5Research(){
   var best=[5,15,1,30].map(function(h){var x=p[String(h)]||{},m=x.model||{},g=x.gate||{};return {h:h,n:Number(m.n)||0,min:Number(m.min_n)||120,ready:!!m.ready,gate:g.status||'collecting',mean:Number(x.learned&&x.learned.mean_net_bps),trades:Number(x.learned&&x.learned.n)||0};}).sort(function(a,b){return b.n-a.n;})[0]||{h:5,n:0,min:120,ready:false,gate:'collecting',trades:0};
   var signal=cand&&Number(cand.learned_dir)?((Number(cand.learned_dir)>0?'↑ TEST LONG':'↓ TEST SHORT')+' · '+Number(cand.horizon_minutes)+'m'):'RESEARCH · WARTEN';
   var meanTxt=Number.isFinite(best.mean)?(' · Ø '+best.mean.toLocaleString('de-DE',{maximumFractionDigits:2})+' bp netto'):'';
-  el.innerHTML='<div class="v5-main">v5 · '+signal+'</div><div class="v5-meta">echte Δt 5s–5m · Residual/Kopplung · Barrier-Ziel · Learner '+best.n+'/'+best.min+' · OOS '+best.trades+'/180'+meanTxt+' · kein Handelssignal bis Gate</div>';
+  el.innerHTML='<div class="v5-main">v6 · '+signal+'</div><div class="v5-meta">echte Δt 5s–5m · Residual/Kopplung · Barrier-Ziel · Learner '+best.n+'/'+best.min+' · OOS '+best.trades+'/180'+meanTxt+' · kein Handelssignal bis Gate</div>';
 }
 function renderWaveForecasts(){
   var el=document.getElementById('waveForecasts');if(!el)return;
