@@ -1,0 +1,59 @@
+name: ALANTU 3h Live Monitor
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/live-monitor.mjs'
+      - '.github/workflows/live-monitor.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 200
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for monitor-capable live build
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            if curl -fsSL --max-time 15 https://www.alantu.de/ -o /tmp/alantu-live.html \
+              && grep -Fq 'function projectionZonePlugin()' /tmp/alantu-live.html \
+              && grep -Fq 'function nearestPointByX' /tmp/alantu-live.html \
+              && grep -Fq 'function syncIntrinsicToggle()' /tmp/alantu-live.html \
+              && grep -Fq "tooltip:{enabled:false}" /tmp/alantu-live.html; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Live site did not expose the current monitor markers" >&2
+          exit 1
+
+      - name: Install Playwright
+        shell: bash
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Monitor desktop and mobile for 3 hours
+        env:
+          MONITOR_URL: https://www.alantu.de/
+          MONITOR_OUT: /tmp/alantu-live-monitor
+          MONITOR_ITERATIONS: '19'
+          MONITOR_INTERVAL_MS: '600000'
+        run: node tools/live-monitor.mjs
+
+      - name: Upload screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alantu-live-monitor-3h
+          path: /tmp/alantu-live-monitor/
+          if-no-files-found: warn
+          retention-days: 14
