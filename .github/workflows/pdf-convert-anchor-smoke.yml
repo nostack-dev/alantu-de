@@ -33,17 +33,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-1' pdf-convert-anchor.html
-          grep -q 'NakliTechie/gemma4-webgpu@0ca5e3a129200ac84b3c3098311a88949ea4ca0e' alantu-unlimited-ocr.js
+          grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-2' pdf-convert-anchor.html
+          grep -q 'from "./vendor/unlimited-ocr-browser-engine.js"' alantu-unlimited-ocr.js
           grep -q 'Unlimited-OCR-DeepEncoder-ONNX' alantu-unlimited-ocr.js
           grep -q 'Unlimited-OCR-Q4_K_M.gguf' alantu-unlimited-ocr.js
           grep -q 'onnxruntime-web@1.26.0' alantu-unlimited-ocr.js
           grep -q 'PROMPT_IDS=\[34030,76466,16\]' alantu-unlimited-ocr.js
           grep -q 'beginRingDecode(pos+1)' alantu-unlimited-ocr.js
+          grep -q 'function parseNpz' alantu-unlimited-ocr.js
           grep -q 'buildSearchablePdf' alantu-unlimited-ocr.js
           grep -q 'mImageTextPercent' alantu-unlimited-ocr.js
+          test -s vendor/unlimited-ocr-browser-engine.js
           ! grep -q '@wllama/wllama' alantu-unlimited-ocr.js
           ! grep -q 'loadModelFromHF' alantu-unlimited-ocr.js
+          ! grep -q 'https://esm.sh/gh/' alantu-unlimited-ocr.js
 
       - name: Wait for current runtime live
         shell: bash
@@ -62,11 +65,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSIL --max-time 30 "https://esm.sh/gh/NakliTechie/gemma4-webgpu@0ca5e3a129200ac84b3c3098311a88949ea4ca0e/src/index.ts?target=es2022" >/dev/null
-          curl -fsSIL --max-time 30 "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/ort.webgpu.min.mjs" >/dev/null
-          curl -fsSIL --max-time 30 "https://huggingface.co/sahilchachra/Unlimited-OCR-GGUF/resolve/main/Unlimited-OCR-Q4_K_M.gguf" >/dev/null
-          curl -fsSIL --max-time 30 "https://huggingface.co/naklitechie/Unlimited-OCR-DeepEncoder-ONNX/resolve/main/deepencoder_fp32.onnx" >/dev/null
-          curl -fsSIL --max-time 30 "https://huggingface.co/naklitechie/Unlimited-OCR-DeepEncoder-ONNX/resolve/main/deepencoder_extras.npz" >/dev/null
+          check_range() {
+            local url="$1"
+            for attempt in 1 2 3 4; do
+              code=$(curl -L -sS --retry 2 --retry-all-errors --max-time 45 \
+                -H "Range: bytes=0-1023" -o /tmp/endpoint.bin -w "%{http_code}" "$url" || true)
+              if [ "$code" = "200" ] || [ "$code" = "206" ]; then
+                test -s /tmp/endpoint.bin
+                return 0
+              fi
+              echo "endpoint attempt $attempt failed: HTTP $code $url" >&2
+              sleep $((attempt * 2))
+            done
+            return 1
+          }
+          check_range "https://www.alantu.de/vendor/unlimited-ocr-browser-engine.js"
+          check_range "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/ort.webgpu.min.mjs"
+          check_range "https://huggingface.co/sahilchachra/Unlimited-OCR-GGUF/resolve/main/Unlimited-OCR-Q4_K_M.gguf"
+          check_range "https://huggingface.co/naklitechie/Unlimited-OCR-DeepEncoder-ONNX/resolve/main/deepencoder_fp32.onnx"
+          check_range "https://huggingface.co/naklitechie/Unlimited-OCR-DeepEncoder-ONNX/resolve/main/deepencoder_extras.npz"
 
       - name: Install Playwright
         run: |
