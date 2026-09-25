@@ -6,6 +6,7 @@ on:
     paths:
       - "pdf-convert-anchor.html"
       - "alantu-unlimited-ocr.js"
+      - "vendor/unlimited-ocr-browser-engine.js"
       - "tools/pdf-convert-anchor-smoke.mjs"
       - ".github/workflows/pdf-convert-anchor-smoke.yml"
   workflow_dispatch:
@@ -13,11 +14,12 @@ on:
 permissions:
   contents: read
   statuses: write
+  pages: write
 
 jobs:
   unlimited-ocr-pdf-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -27,7 +29,11 @@ jobs:
           SHA: ${{ github.sha }}
         shell: bash
         run: |
-          curl -fsS -X POST             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             https://api.github.com/repos/${{ github.repository }}/statuses/$SHA             -d '{"state":"pending","context":"unlimited-ocr-pdf-smoke","description":"Checking browser-native Unlimited-OCR PDF flow"}'
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/$SHA \
+            -d '{"state":"pending","context":"unlimited-ocr-pdf-smoke","description":"Checking browser-native Unlimited-OCR PDF flow"}'
 
       - name: Guard browser-native Unlimited-OCR source
         shell: bash
@@ -35,6 +41,7 @@ jobs:
           set -euo pipefail
           grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-2' pdf-convert-anchor.html
           grep -q 'from "./vendor/unlimited-ocr-browser-engine.js"' alantu-unlimited-ocr.js
+          grep -q 'NakliTechie/gemma4-webgpu@0ca5e3a' alantu-unlimited-ocr.js
           grep -q 'Unlimited-OCR-DeepEncoder-ONNX' alantu-unlimited-ocr.js
           grep -q 'Unlimited-OCR-Q4_K_M.gguf' alantu-unlimited-ocr.js
           grep -q 'onnxruntime-web@1.26.0' alantu-unlimited-ocr.js
@@ -48,12 +55,39 @@ jobs:
           ! grep -q 'loadModelFromHF' alantu-unlimited-ocr.js
           ! grep -q 'https://esm.sh/gh/' alantu-unlimited-ocr.js
 
+      - name: Request GitHub Pages rebuild
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/pages.json -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/pages/builds")
+          cat /tmp/pages.json || true
+          if [ "$code" != "201" ] && [ "$code" != "202" ]; then
+            echo "Pages rebuild request failed with HTTP $code" >&2
+            exit 1
+          fi
+
       - name: Wait for current runtime live
         shell: bash
         run: |
           set -euo pipefail
-          for i in $(seq 1 36); do
-            if curl -fsSL --max-time 20 "https://www.alantu.de/pdf-convert-anchor.html?smoke=${{ github.sha }}" -o /tmp/page.html               && curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?smoke=${{ github.sha }}" -o /tmp/uocr.js               && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-1' /tmp/page.html               && grep -q 'NakliTechie/gemma4-webgpu@0ca5e3a129200ac84b3c3098311a88949ea4ca0e' /tmp/uocr.js               && grep -q 'Unlimited-OCR-DeepEncoder-ONNX' /tmp/uocr.js               && grep -q 'beginRingDecode(pos+1)' /tmp/uocr.js               && ! grep -q '@wllama/wllama' /tmp/uocr.js; then
+          for i in $(seq 1 60); do
+            if curl -fsSL --max-time 20 "https://www.alantu.de/pdf-convert-anchor.html?smoke=${{ github.sha }}" -o /tmp/page.html \
+              && curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?smoke=${{ github.sha }}" -o /tmp/uocr.js \
+              && curl -fsSL --max-time 20 "https://www.alantu.de/vendor/unlimited-ocr-browser-engine.js?smoke=${{ github.sha }}" -o /tmp/engine.js \
+              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-2' /tmp/page.html \
+              && grep -q 'NakliTechie/gemma4-webgpu@0ca5e3a' /tmp/uocr.js \
+              && grep -q 'Unlimited-OCR-DeepEncoder-ONNX' /tmp/uocr.js \
+              && grep -q 'beginRingDecode(pos+1)' /tmp/uocr.js \
+              && grep -q 'function parseNpz' /tmp/uocr.js \
+              && grep -q 'createGemmaEngine' /tmp/engine.js \
+              && ! grep -q '@wllama/wllama' /tmp/uocr.js; then
+              echo "Current browser-native Unlimited-OCR runtime is live."
               exit 0
             fi
             sleep 10
@@ -110,4 +144,8 @@ jobs:
             state=failure
             description="Browser-native Unlimited-OCR PDF smoke failed"
           fi
-          curl -fsS -X POST             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             https://api.github.com/repos/${{ github.repository }}/statuses/$SHA             -d "{\"state\":\"$state\",\"context\":\"unlimited-ocr-pdf-smoke\",\"description\":\"$description\"}"
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/$SHA \
+            -d "{\"state\":\"$state\",\"context\":\"unlimited-ocr-pdf-smoke\",\"description\":\"$description\"}"
