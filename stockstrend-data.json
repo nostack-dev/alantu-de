@@ -1,15 +1,15 @@
 {
-  "updated_at": "2026-09-25T11:26:00+02:00",
+  "updated_at": "2026-09-25T11:27:09+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-25T11:26:00+02:00",
-    "scraped_at": "2026-09-25T11:26:00+02:00",
+    "tick_id": "2026-09-25T11:27:09+02:00",
+    "scraped_at": "2026-09-25T11:27:09+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "CanonicalEventStream": {
         "status": "quiet",
         "provider": "Railway source-event-v2",
-        "checked_at": "2026-09-25T09:25:52.211Z",
+        "checked_at": "2026-09-25T09:27:04.263Z",
         "latest_published_at": "2026-09-25T08:47:18.000Z",
         "items": 140,
         "window": "36h"
@@ -35,11 +35,11 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-25T09:25:52.211Z",
+      "freshest_absolute": "2026-09-25T09:27:04.263Z",
       "latest_published_at": "2026-09-25T08:47:18.000Z",
       "primary_signal": "Railway source-event-v2",
       "quality": "single source of truth · descriptive sentiment only",
-      "scrape_berlin": "2026-09-25T09:25:52.211Z",
+      "scrape_berlin": "2026-09-25T09:27:04.263Z",
       "sample_window": "individual events ≤36h; first_seen_at is actionable clock",
       "freshest_item_age": "",
       "oldest_usable_signal": ""
@@ -506,11 +506,11 @@
   "signals_disclaimer": "",
   "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
   "freshness": {
-    "freshest_absolute": "2026-09-25T09:25:52.211Z",
+    "freshest_absolute": "2026-09-25T09:27:04.263Z",
     "latest_published_at": "2026-09-25T08:47:18.000Z",
     "primary_signal": "Railway source-event-v2",
     "quality": "single source of truth · descriptive sentiment only",
-    "scrape_berlin": "2026-09-25T09:25:52.211Z",
+    "scrape_berlin": "2026-09-25T09:27:04.263Z",
     "sample_window": "individual events ≤36h; first_seen_at is actionable clock",
     "freshest_item_age": "",
     "oldest_usable_signal": ""

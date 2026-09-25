@@ -1,10 +1,10 @@
 {
-  "updated_at": "2026-09-25T11:26:00+02:00",
+  "updated_at": "2026-09-25T11:27:09+02:00",
   "sources": {
     "source_state": {
       "ok": true,
       "contract": "source-event-v2",
-      "checked_at": "2026-09-25T09:25:52.211Z",
+      "checked_at": "2026-09-25T09:27:04.263Z",
       "archive_count": 140,
       "archive_source_counts": {
         "news": 138,

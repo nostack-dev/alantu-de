@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-25T11:26:00+02:00",
+  "updated_at": "2026-09-25T11:27:09+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,7 +9,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-25T09:25:52.211Z",
+        "at": "2026-09-25T09:27:04.263Z",
         "signal": "hold",
         "social_impulse": null,
         "hype_bull": 9,
@@ -7074,7 +7074,7 @@
       "hype_net": -30,
       "confidence": null,
       "hype_state": "bearish",
-      "updated_at": "2026-09-25T09:25:52.211Z",
+      "updated_at": "2026-09-25T09:27:04.263Z",
       "why": "Deskriptive Quellenlage: 138 News · 2 Social / 36h. Kein Handelssignal aus Sentiment.",
       "evidence": {
         "source_contract": "source-event-v2",
