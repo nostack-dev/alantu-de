@@ -70,17 +70,60 @@ async function run(url,label,viewport){
     };
   });
   await page.keyboard.press('f');
-  await page.waitForTimeout(350);
+  await page.waitForFunction(()=>{
+    const stage=document.getElementById('stage');
+    return !(document.fullscreenElement===stage||document.webkitFullscreenElement===stage||stage?.classList.contains('is-faux-fullscreen'));
+  },null,{timeout:3000}).catch(()=>{});
+  await page.waitForTimeout(120);
 
-  // Canvas double click must independently toggle fullscreen.
+  // Canvas double click must independently toggle fullscreen. Wait for the
+  // previous native/faux fullscreen exit to settle first; otherwise Chromium
+  // can treat this as a second exit request and produce a false negative.
   await page.locator('#bookCanvas').dblclick({force:true});
-  await page.waitForTimeout(450);
+  await page.waitForFunction(()=>{
+    const stage=document.getElementById('stage');
+    return document.fullscreenElement===stage||document.webkitFullscreenElement===stage||stage?.classList.contains('is-faux-fullscreen')||false;
+  },null,{timeout:3000}).catch(()=>{});
   const dblOn=await page.evaluate(()=>{
     const stage=document.getElementById('stage');
     return document.fullscreenElement===stage||document.webkitFullscreenElement===stage||stage?.classList.contains('is-faux-fullscreen')||false;
   });
   await page.locator('#bookCanvas').dblclick({force:true});
   await page.waitForTimeout(350);
+
+  let anchorExport=null;
+  if(url.includes('pdf-to-exposee-anchor.html')&&viewport.width>500){
+    const input=page.locator('#pdfInput');
+    await input.setInputFiles('assets/sunside-living-expose.pdf');
+    await page.waitForFunction(()=>{
+      const btn=document.getElementById('exportPdfBtn');
+      const status=document.getElementById('status')?.textContent||'';
+      return !!btn&&!btn.disabled&&/Download verfügbar|Seiten bereit/.test(status);
+    },null,{timeout:120000});
+
+    // Verify the deep-zoom control reaches the intended experimental range
+    // without moving or replacing the page geometry.
+    await page.keyboard.press('d');
+    for(let i=0;i<34;i++)await page.locator('#zoomMore').click();
+    const deepZoom=await page.locator('#zoomValue').evaluate(el=>el.value||el.textContent||'');
+    if(parseInt(deepZoom,10)<2500)throw new Error('anchor deep zoom did not reach expected range: '+deepZoom);
+
+    const downloadPromise=page.waitForEvent('download',{timeout:120000});
+    await page.locator('#exportPdfBtn').click();
+    const download=await downloadPromise;
+    const downloadPath=await download.path();
+    const stat=await fs.stat(downloadPath);
+    const fd=await fs.open(downloadPath,'r');
+    const header=Buffer.alloc(5);
+    await fd.read(header,0,5,0);
+    await fd.close();
+    anchorExport={
+      suggestedFilename:download.suggestedFilename(),
+      size:stat.size,
+      header:header.toString('ascii'),
+      deepZoom
+    };
+  }
 
   let touchOwnership=null;
   if(viewport.width<=500){
@@ -163,6 +206,14 @@ async function run(url,label,viewport){
   if(!fOn.active)errors.push('keyboard-fullscreen-failed');
   if(fOn.uiDisplay!=='none')errors.push('controls-visible-in-fullscreen:'+String(fOn.uiDisplay));
   if(!dblOn)errors.push('doubleclick-fullscreen-failed');
+  if(url.includes('pdf-to-exposee-anchor.html')&&viewport.width>500){
+    if(!anchorExport)errors.push('anchor-export-not-run');
+    else{
+      if(!anchorExport.suggestedFilename.endsWith('-alantu-anchor.pdf'))errors.push('anchor-export-name:'+anchorExport.suggestedFilename);
+      if(anchorExport.size<5000)errors.push('anchor-export-too-small:'+anchorExport.size);
+      if(anchorExport.header!=='%PDF-')errors.push('anchor-export-invalid-header:'+anchorExport.header);
+    }
+  }
   if(touchOwnership){
     const drift=Math.max(
       Math.abs(touchOwnership.afterVertical.scrollY-touchOwnership.scrollBefore),
@@ -181,7 +232,7 @@ async function run(url,label,viewport){
   if(label.startsWith('landing')&&(!initial.share.exists||!initial.share.outsideStage))errors.push('share-link-not-outside-renderer');
   if(label.startsWith('builder')&&initial.share.exists)errors.push('share-link-present-in-builder');
 
-  console.log(JSON.stringify({url,label,viewport,initial,debug,changed,fOn,dblOn,touchOwnership,consoleErrors,pageErrors,httpErrors,failed,ok:errors.length===0,errors},null,2));
+  console.log(JSON.stringify({url,label,viewport,initial,debug,changed,fOn,dblOn,anchorExport,touchOwnership,consoleErrors,pageErrors,httpErrors,failed,ok:errors.length===0,errors},null,2));
   await browser.close();
   if(errors.length)throw new Error(label+' smoke failed: '+errors.join(' | '));
 }
