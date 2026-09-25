@@ -1,4 +1,4 @@
-export const V5_VERSION='yahoo-monetary-dt-v6';
+export const V5_VERSION='yahoo-monetary-dt-v6-r2';
 export const V5_HORIZONS=[1,5,15,30];
 export const V5_WINDOWS_SEC=[5,15,30,60,180,300];
 export const V5_LOCAL=['MSFT','AMZN','GOOGL','NVDA','IGV'];
@@ -12,7 +12,7 @@ export const V5_FEATURE_NAMES=[
   'residual5','residual15','residual60','residual300','residual_accel_5_15','residual_accel_fast','residual_accel_slow',
   'coupling5','coupling15','coupling60','coupling300','coupling_delta_5_15','coupling_delta_fast','coupling_delta_slow',
   'peer_lead5','peer_lead15','peer_lead60','flow5','flow15','flow60','flow_delta_5_15','flow_delta',
-  'event_rate_ratio','vol60','vol300','latency','coverage'
+  'vol60','vol300','coverage'
 ];
 
 const NY_PARTS=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',weekday:'short',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
@@ -27,14 +27,46 @@ function eventTime(e){const t=Number(e?.t);return Number.isFinite(t)&&t>0?t:NaN;
 function receiveTime(e){const r=Number(e?.recv_at);return Number.isFinite(r)&&r>0?r:NaN;}
 export function nyDayKeyV5(ms){try{return NY_DAY.format(new Date(ms));}catch{return '';}}
 function nyParts(ms){const o={};for(const p of NY_PARTS.formatToParts(new Date(ms)))if(p.type!=='literal')o[p.type]=p.value;return o;}
+function utcWeekday(y,m,d){return new Date(Date.UTC(y,m-1,d)).getUTCDay();}
+function addUtcDays(y,m,d,n){const z=new Date(Date.UTC(y,m-1,d+n));return {year:z.getUTCFullYear(),month:z.getUTCMonth()+1,day:z.getUTCDate()};}
+function nthWeekday(y,m,w,n){const first=utcWeekday(y,m,1);return 1+((w-first+7)%7)+(n-1)*7;}
+function lastWeekday(y,m,w){const last=new Date(Date.UTC(y,m,0)).getUTCDate(),lw=utcWeekday(y,m,last);return last-((lw-w+7)%7);}
+function easter(y){const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),hh=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-hh-k)%7,mm=Math.floor((a+11*hh+22*l)/451),month=Math.floor((hh+l-7*mm+114)/31),day=((hh+l-7*mm+114)%31)+1;return {year:y,month,day};}
+function sameDate(x,y,m,d){return x.year===y&&x.month===m&&x.day===d;}
+function observedFixed(y,m,d){const w=utcWeekday(y,m,d);return w===6?addUtcDays(y,m,d,-1):w===0?addUtcDays(y,m,d,1):{year:y,month:m,day:d};}
+function v5Holiday(y,m,d){
+  const w=utcWeekday(y,m,d);
+  if(m===1&&d===1&&w>=1&&w<=5)return true;
+  if(m===1&&d===2&&utcWeekday(y,1,1)===0)return true;
+  if(m===1&&d===nthWeekday(y,1,1,3))return true;
+  if(m===2&&d===nthWeekday(y,2,1,3))return true;
+  const e=easter(y),gf=addUtcDays(e.year,e.month,e.day,-2);if(sameDate(gf,y,m,d))return true;
+  if(m===5&&d===lastWeekday(y,5,1))return true;
+  if(y>=2022&&sameDate(observedFixed(y,6,19),y,m,d))return true;
+  if(sameDate(observedFixed(y,7,4),y,m,d))return true;
+  if(m===9&&d===nthWeekday(y,9,1,1))return true;
+  if(m===11&&d===nthWeekday(y,11,4,4))return true;
+  if(sameDate(observedFixed(y,12,25),y,m,d))return true;
+  return false;
+}
+function v5CloseMinute(y,m,d){
+  if(v5Holiday(y,m,d))return null;
+  const wd=utcWeekday(y,m,d);if(wd===0||wd===6)return null;
+  const thanksgiving=nthWeekday(y,11,4,4);
+  if(m===11&&d===thanksgiving+1)return 13*60;
+  if(m===12&&d===24)return 13*60;
+  if(m===7&&d===3)return 13*60;
+  return 16*60;
+}
 export function v5SessionEligible(nowMs,horizonMinutes){
-  const p=nyParts(nowMs),wd=p.weekday,minute=Number(p.hour)*60+Number(p.minute),h=Number(horizonMinutes)||0;
-  if(wd==='Sat'||wd==='Sun')return false;
-  return minute>=575&&minute<960&&minute+h<=960;
+  const p=nyParts(nowMs),minute=Number(p.hour)*60+Number(p.minute),h=Number(horizonMinutes)||0,close=v5CloseMinute(Number(p.year),Number(p.month),Number(p.day));
+  if(close==null)return false;
+  // Deliberately skip the first five regular-session minutes.
+  return minute>=575&&minute<close&&minute+h<=close;
 }
 function windowStats(rows,nowMs,windowSec){
   if(!Array.isArray(rows)||rows.length<2)return null;
-  const win=windowSec*1000,start=nowMs-win,anchorTol=clamp(win*.35,2000,15000),endTol=clamp(win*.25,2000,10000);
+  const win=windowSec*1000,start=nowMs-win,anchorTol=clamp(win*.20,1000,5000),endTol=clamp(win*.15,1000,5000);
   let before=null,recent=[];
   for(const e of rows){
     const t=eventTime(e);if(!Number.isFinite(t)||t>nowMs)continue;
@@ -60,7 +92,7 @@ function windowStats(rows,nowMs,windowSec){
   const range=Math.log(maxP/minP)*10000;
   const delays=pts.map(e=>receiveTime(e)-eventTime(e)).filter(x=>Number.isFinite(x)&&x>=0&&x<60000);
   return {
-    window_seconds:windowSec,count:pts.length,coverage:clamp(elapsed/win,0,1.5),elapsed_ms:elapsed,return_bps:ret,
+    window_seconds:windowSec,count:pts.length,coverage:clamp(elapsed/win,0,1.5),elapsed_ms:elapsed,first_at_ms:firstMs,end_at_ms:endMs,return_bps:ret,
     velocity_bps_min:ret/Math.max(mins,1/120),flow_ratio:totalVol?signedVol/totalVol:(steps?(up-down)/steps:0),
     event_rate_hz:pts.length/(elapsed/1000),persistence:steps?(dir>0?up:down)/steps:0,
     realized_bps:Math.sqrt(sumSq)*10000,range_bps:range,median_delivery_lag_ms:median(delays)
@@ -87,7 +119,8 @@ export function extractV5Features(series,nowMs=Date.now()){
     local[w]=groupStats(series,V5_LOCAL,nowMs,w);
     global[w]=groupStats(series,V5_GLOBAL,nowMs,w);
   }
-  if(!self[15]||!self[60]||!self[300]||!local[15]||!local[60]||!global[15]||!global[60]||local[60].members<2||global[60].members<1){
+  if(!self[5]||!self[15]||!self[60]||!self[300]||!local[5]||!local[15]||!local[60]||!local[300]||!global[5]||!global[15]||!global[60]||!global[300]||
+    local[5].members<2||local[15].members<2||local[60].members<2||local[300].members<2||global[5].members<1||global[15].members<1||global[60].members<1||global[300].members<1){
     return {status:'blocked',reason:'insufficient_true_dt_coverage',windows_seconds:V5_WINDOWS_SEC,self,local,global};
   }
   const blend=w=>peerBlend(local[w],global[w]);
@@ -97,7 +130,7 @@ export function extractV5Features(series,nowMs=Date.now()){
   const r5=residual(5),r15=residual(15),r60=residual(60),r300=residual(300),c5=coupling(5),c15=coupling(15),c60=coupling(60),c300=coupling(300);
   const rateRatio=Math.log((self[60].event_rate_hz+.01)/((local[60]?.event_rate_hz||0)+.01));
   const latency=median([self[15]?.median_delivery_lag_ms,self[60]?.median_delivery_lag_ms,self[300]?.median_delivery_lag_ms].filter(Number.isFinite));
-  const minCoverage=Math.min(self[15].coverage,self[60].coverage,self[300].coverage,local[60].coverage||0,global[60].coverage||0);
+  const minCoverage=Math.min(self[5].coverage,self[15].coverage,self[60].coverage,self[300].coverage,local[5].coverage||0,local[60].coverage||0,global[5].coverage||0,global[60].coverage||0);
   const f={
     self5:squash(self[5]?.return_bps,4),self15:squash(self[15].return_bps,8),self60:squash(self[60].return_bps,18),self300:squash(self[300].return_bps,45),
     local5:squash(local[5]?.return_bps,4),local15:squash(local[15]?.return_bps,7),local60:squash(local[60]?.return_bps,16),local300:squash(local[300]?.return_bps,40),
@@ -108,16 +141,16 @@ export function extractV5Features(series,nowMs=Date.now()){
     peer_lead5:squash(peerLead(5),4),peer_lead15:squash(peerLead(15),7),peer_lead60:squash(peerLead(60),14),
     flow5:squash(self[5]?.flow_ratio,.5),flow15:squash(self[15].flow_ratio,.5),flow60:squash(self[60].flow_ratio,.5),
     flow_delta_5_15:squash((self[5]?.flow_ratio||0)-self[15].flow_ratio,.4),flow_delta:squash(self[15].flow_ratio-self[60].flow_ratio,.4),
-    event_rate_ratio:squash(rateRatio,1.5),vol60:squash(self[60].realized_bps,20),vol300:squash(self[300].realized_bps,45),
-    // Delivery lag is diagnostic only. Transport/network timing must never become a market feature.
-    latency:0,coverage:clamp((minCoverage-.55)/.45,-1,1)
+    // Provider event cadence and network latency are diagnostics only, never predictive inputs.
+    vol60:squash(self[60].realized_bps,20),vol300:squash(self[300].realized_bps,45),
+    coverage:clamp((minCoverage-.55)/.45,-1,1)
   };
   const vector=V5_FEATURE_NAMES.map(k=>featureValue(f[k]));
   return {
     status:'ok',version:V5_VERSION,asof:new Date(eventTime((series.ORCL||[]).at(-1))).toISOString(),computed_at:new Date(nowMs).toISOString(),clock:'market_event_time',
     windows_seconds:V5_WINDOWS_SEC,feature_names:V5_FEATURE_NAMES,features:f,vector,
     diagnostics:{self,local,global,residual_bps:{'15':r15,'60':r60,'300':r300},coupling:{'15':c15,'60':c60,'300':c300},
-      peer_blend_bps:{'5':blend(5),'15':blend(15),'60':blend(60),'300':blend(300)},min_coverage:minCoverage,median_delivery_lag_ms:latency}
+      peer_blend_bps:{'5':blend(5),'15':blend(15),'60':blend(60),'300':blend(300)},min_coverage:minCoverage,median_delivery_lag_ms:latency,event_rate_ratio_diagnostic:rateRatio}
   };
 }
 export function structuralV5Score(features,h){
@@ -134,15 +167,15 @@ export function v5BarrierBps(featureState,h){
   return Number(clamp(Math.max(fallback*.75,scaled),4,45).toFixed(3));
 }
 export function fitV5Logistic(outcomes,h){
-  const rows=(outcomes||[]).filter(x=>x?.version===V5_VERSION&&Number(x.horizon_minutes)===Number(h)&&x.status==='evaluated'&&
-    (Number(x.barrier_label)===1||Number(x.barrier_label)===-1)&&Array.isArray(x.feature_vector)&&x.feature_vector.length===V5_FEATURE_NAMES.length);
+  const rows=(outcomes||[]).filter(x=>x?.version===V5_VERSION&&Number(x.horizon_minutes)===Number(h)&&x.status==='evaluated'&&x.gate_sample===true&&
+    (Number(x.path_label)===1||Number(x.path_label)===-1)&&Array.isArray(x.feature_vector)&&x.feature_vector.length===V5_FEATURE_NAMES.length);
   if(rows.length<V5_MIN_TRAIN_LABELS)return {ready:false,n:rows.length,min_n:V5_MIN_TRAIN_LABELS,feature_names:V5_FEATURE_NAMES};
   const n=rows.length,d=V5_FEATURE_NAMES.length,w=new Array(d).fill(0),rate=0.12,l2=.035;
-  const pos=rows.filter(r=>Number(r.barrier_label)===1).length,b0=Math.log((pos+.5)/(n-pos+.5));let b=clamp(b0,-2,2);
+  const pos=rows.filter(r=>Number(r.path_label)===1).length,b0=Math.log((pos+.5)/(n-pos+.5));let b=clamp(b0,-2,2);
   for(let epoch=0;epoch<90;epoch++){
     const gw=new Array(d).fill(0);let gb=0;
     for(const r of rows){
-      const x=r.feature_vector.map(featureValue),y=Number(r.barrier_label)===1?1:0;
+      const x=r.feature_vector.map(featureValue),y=Number(r.path_label)===1?1:0;
       let z=b;for(let j=0;j<d;j++)z+=w[j]*x[j];
       const e=sigmoid(z)-y;gb+=e;for(let j=0;j<d;j++)gw[j]+=e*x[j];
     }
@@ -181,9 +214,10 @@ export function evaluateV5Path(prediction,events,nowMs=Date.now()){
     const gross=barrierLabel?dir*barrierLabel*barrier:dir*endpointRet,net=gross-cost;
     return {gross_bps:gross,net_bps:net,profitable:net>0};
   };
+  const pathLabel=barrierLabel||(endpointRet>0?1:endpointRet<0?-1:0);
   return {
     status:'evaluated',endpoint_price:Number(endpoint.p),endpoint_at:new Date(eventTime(endpoint)).toISOString(),endpoint_market_at:new Date(eventTime(endpoint)).toISOString(),endpoint_received_at:Number.isFinite(receiveTime(endpoint))?new Date(receiveTime(endpoint)).toISOString():null,
-    endpoint_return_bps:endpointRet,timing_error_ms:eventTime(endpoint)-target,barrier_label:barrierLabel,barrier_hit:barrierLabel!==0,
+    endpoint_return_bps:endpointRet,timing_error_ms:eventTime(endpoint)-target,barrier_label:barrierLabel,path_label:pathLabel,barrier_hit:barrierLabel!==0,
     barrier_at:barrierAt?new Date(barrierAt).toISOString():null,mfe_bps:Number.isFinite(maxRet)?maxRet:null,mae_bps:Number.isFinite(minRet)?minRet:null,
     structural:trade(prediction.structural_dir),learned:trade(prediction.learned_dir),last_before_target_at:lastBefore?new Date(eventTime(lastBefore)).toISOString():null
   };
@@ -220,7 +254,7 @@ export function summarizeV5State(state){
     if(reasons.length&&model.ready&&learned.n>=60&&learned.days>=3&&learned.mean_net_bps>.75&&learned.profit_factor>1.15&&mean(delta)>.25)proof[String(h)].gate.status='promising';
   }
   const valid=[5,15,1,30].filter(h=>proof[String(h)].gate.status==='validated');
-  return {version:V5_VERSION,contract:'market_event_time_true_dt_no_synthetic_samples_v2',clock:'market_event_time',objective:'first_profit_or_loss_barrier_then_horizon_close',
+  return {version:V5_VERSION,contract:'market_event_time_true_dt_no_synthetic_samples_v3',clock:'market_event_time',objective:'first_profit_or_loss_barrier_then_horizon_close',
     assumed_roundtrip_cost_bps:V5_COST_BPS,windows_seconds:V5_WINDOWS_SEC,feature_names:V5_FEATURE_NAMES,proof,
     production:{enabled:valid.length>0,validated_horizons:valid,selected_horizon:valid[0]||null},started_at:state?.started_at||null,updated_at:state?.updated_at||null};
 }
