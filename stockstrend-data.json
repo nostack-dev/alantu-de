@@ -1,17 +1,17 @@
 {
-  "updated_at": "2026-09-25T11:54:26+02:00",
+  "updated_at": "2026-09-25T11:58:28+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-25T11:54:26+02:00",
-    "scraped_at": "2026-09-25T11:54:26+02:00",
+    "tick_id": "2026-09-25T11:58:28+02:00",
+    "scraped_at": "2026-09-25T11:58:28+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "CanonicalEventStream": {
         "status": "quiet",
         "provider": "Railway source-event-v3",
         "role": "raw_observation_only",
-        "checked_at": "2026-09-25T09:54:15.680Z",
-        "latest_published_at": "2026-09-25T09:49:37.000Z",
+        "checked_at": "2026-09-25T09:58:28.171Z",
+        "latest_published_at": "2026-09-25T09:55:08.000Z",
         "items": 139,
         "window": "36h",
         "activity": {
@@ -21,9 +21,9 @@
           "unique_events_36h": 139,
           "first_seen_windows": {
             "m1": 0,
-            "m5": 1,
-            "m15": 4,
-            "m60": 6
+            "m5": 2,
+            "m15": 6,
+            "m60": 8
           }
         }
       },
@@ -31,9 +31,9 @@
         "status": "ok",
         "items": 1,
         "prices": {
-          "ORCL": 139.9
+          "ORCL": 140
         },
-        "price_at": "2026-09-25T09:51:48.000Z",
+        "price_at": "2026-09-25T09:56:48.000Z",
         "note": "Yahoo chart 5d/1m price feed"
       }
     },
@@ -48,11 +48,11 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-25T09:54:15.680Z",
-      "latest_published_at": "2026-09-25T09:49:37.000Z",
+      "freshest_absolute": "2026-09-25T09:58:28.171Z",
+      "latest_published_at": "2026-09-25T09:55:08.000Z",
       "primary_signal": "Railway source-event-v3",
       "quality": "single source of truth · raw observations only",
-      "scrape_berlin": "2026-09-25T09:54:15.680Z",
+      "scrape_berlin": "2026-09-25T09:58:28.171Z",
       "sample_window": "individual events ≤36h; first_seen_at is actionable clock",
       "freshest_item_age": "",
       "oldest_usable_signal": ""
@@ -496,17 +496,17 @@
             "reddit": {
               "provider": "apewisdom.io",
               "mentions_24h": 53,
-              "checked_at": "2026-09-25T09:53:27.733Z",
+              "checked_at": "2026-09-25T09:58:16.444Z",
               "interpretation_status": "not_imported"
             }
           },
           "snippets": [
-            "Oracle force majeure notice triggers 3% stock drop on Project Jupiter - Wealth Professional",
-            "Cracks in Oracle’s AI Data-Center Build-Out Appear in Massive New Mexico Project - WSJ",
-            "Oracle invokes ‘force majeure’ to shield itself from data center issues: Bloomberg - The American Bazaar"
+            "Oracle Japan (TSE:4716) Stock Faces A Valuation Reckoning After Profit Jump - simplywall.st",
+            "Oracle's $165 billion AI data center is flashing a warning sign - Opening Bell Daily",
+            "Oracle, Blue Owl project delay sends ripples through AI financing, sources say - The Edge Malaysia"
           ]
         },
-        "price": 139.9,
+        "price": 140,
         "source_activity": {
           "role": "observed_only",
           "model_eligible": false,
@@ -514,9 +514,9 @@
           "unique_events_36h": 139,
           "first_seen_windows": {
             "m1": 0,
-            "m5": 1,
-            "m15": 4,
-            "m60": 6
+            "m5": 2,
+            "m15": 6,
+            "m60": 8
           }
         }
       }
@@ -527,11 +527,11 @@
   "signals_disclaimer": "",
   "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
   "freshness": {
-    "freshest_absolute": "2026-09-25T09:54:15.680Z",
-    "latest_published_at": "2026-09-25T09:49:37.000Z",
+    "freshest_absolute": "2026-09-25T09:58:28.171Z",
+    "latest_published_at": "2026-09-25T09:55:08.000Z",
     "primary_signal": "Railway source-event-v3",
     "quality": "single source of truth · raw observations only",
-    "scrape_berlin": "2026-09-25T09:54:15.680Z",
+    "scrape_berlin": "2026-09-25T09:58:28.171Z",
     "sample_window": "individual events ≤36h; first_seen_at is actionable clock",
     "freshest_item_age": "",
     "oldest_usable_signal": ""

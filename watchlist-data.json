@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-25T11:54:26+02:00",
+  "updated_at": "2026-09-25T11:58:28+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,7 +9,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-25T09:54:15.680Z",
+        "at": "2026-09-25T09:58:28.171Z",
         "signal": null,
         "confidence": null,
         "source_contract": "source-event-v3",
@@ -22,9 +22,9 @@
           "unique_events_36h": 139,
           "first_seen_windows": {
             "m1": 0,
-            "m5": 1,
-            "m15": 4,
-            "m60": 6
+            "m5": 2,
+            "m15": 6,
+            "m60": 8
           }
         }
       },
@@ -7097,7 +7097,7 @@
       "hype_net": null,
       "confidence": null,
       "hype_state": null,
-      "updated_at": "2026-09-25T09:54:15.680Z",
+      "updated_at": "2026-09-25T09:58:28.171Z",
       "why": "Beobachtete Quellenaktivität: 137 News · 2 Social / 36h. Keine Richtungswertung ohne validiertes Feature.",
       "evidence": {
         "source_contract": "source-event-v3",
@@ -7112,14 +7112,14 @@
           "reddit": {
             "provider": "apewisdom.io",
             "mentions_24h": 53,
-            "checked_at": "2026-09-25T09:53:27.733Z",
+            "checked_at": "2026-09-25T09:58:16.444Z",
             "interpretation_status": "not_imported"
           }
         },
         "snippets": [
-          "Oracle force majeure notice triggers 3% stock drop on Project Jupiter - Wealth Professional",
-          "Cracks in Oracle’s AI Data-Center Build-Out Appear in Massive New Mexico Project - WSJ",
-          "Oracle invokes ‘force majeure’ to shield itself from data center issues: Bloomberg - The American Bazaar"
+          "Oracle Japan (TSE:4716) Stock Faces A Valuation Reckoning After Profit Jump - simplywall.st",
+          "Oracle's $165 billion AI data center is flashing a warning sign - Opening Bell Daily",
+          "Oracle, Blue Owl project delay sends ripples through AI financing, sources say - The Edge Malaysia"
         ]
       },
       "voices": {
@@ -7130,7 +7130,7 @@
       },
       "hype_mixed": null,
       "sentiment_unit": "retired_unvalidated",
-      "price": 139.9,
+      "price": 140,
       "sentiment_role": "retired_unvalidated",
       "source_activity": {
         "role": "observed_only",
@@ -7139,9 +7139,9 @@
         "unique_events_36h": 139,
         "first_seen_windows": {
           "m1": 0,
-          "m5": 1,
-          "m15": 4,
-          "m60": 6
+          "m5": 2,
+          "m15": 6,
+          "m60": 8
         }
       },
       "source_activity_history": [
