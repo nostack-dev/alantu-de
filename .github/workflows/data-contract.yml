@@ -38,8 +38,8 @@ jobs:
           set -euo pipefail
           grep -Fq "clock:'market_event_time'" tools/yahoo-monetary-v5.mjs
           grep -Fq "evaluation_contract:'market_event_time_true_dt_no_synthetic_samples_v3'" market-relay/server.mjs
-          grep -Fq "reason:'out_of_order'" market-relay/server.mjs
-          grep -Fq "reason:'duplicate_market_timestamp'" market-relay/server.mjs
+          grep -Fq "reason:'out_of_order'" tools/yahoo-stream-contract.mjs
+          grep -Fq "reason:'duplicate_market_timestamp'" tools/yahoo-stream-contract.mjs
           grep -Fq "persistTransportObservation" market-relay/server.mjs
           grep -Fq "YAHOO_EVENT_CONTRACT" market-relay/server.mjs
           grep -Fq "zigZag64(v)" market-relay/server.mjs
