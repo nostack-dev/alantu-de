@@ -15,10 +15,22 @@ page.on('requestfailed',r=>failed.push({url:r.url(),error:r.failure()?.errorText
 await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});
 await page.locator('#pdfInput').setInputFiles(sample);
 
-await page.waitForFunction(()=>{
-  const status=document.getElementById('status')?.textContent||'';
-  return /Text.?SVG 100%/i.test(status)&&!!document.getElementById('pageSvg');
-},null,{timeout:120000});
+try{
+  await page.waitForFunction(()=>{
+    const status=document.getElementById('status')?.textContent||'';
+    return /Text.?SVG 100%/i.test(status)&&!!document.getElementById('pageSvg');
+  },null,{timeout:45000});
+}catch(err){
+  const diagnostic=await page.evaluate(()=>({
+    status:document.getElementById('status')?.textContent||'',
+    svg:!!document.getElementById('pageSvg'),
+    metric:document.getElementById('mTextSvg')?.textContent||'',
+    mode:document.getElementById('modeBadge')?.textContent||'',
+    busy:document.getElementById('busy')?.className||''
+  })).catch(()=>({}));
+  console.error('READY_TIMEOUT_DIAGNOSTIC',JSON.stringify({diagnostic,consoleErrors,pageErrors,httpErrors,failed},null,2));
+  throw err;
+}
 
 const initial=await page.evaluate(()=>{
   const svg=document.getElementById('pageSvg');
