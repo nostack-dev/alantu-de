@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-25T11:27:09+02:00",
+  "updated_at": "2026-09-25T11:28:32+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,7 +9,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-25T09:27:04.263Z",
+        "at": "2026-09-25T09:28:23.777Z",
         "signal": "hold",
         "social_impulse": null,
         "hype_bull": 9,
@@ -6752,6 +6752,21 @@
           "social_count": 2,
           "source_contract": "source-event-v2",
           "sentiment_role": "descriptive_only_not_model_signal"
+        },
+        {
+          "at": "2026-09-25T09:28:23.777Z",
+          "signal": "hold",
+          "social_impulse": null,
+          "confidence": null,
+          "hype_bull": 9,
+          "hype_bear": 39,
+          "hype_mixed": 52,
+          "hype_net": -30,
+          "price": 139.88,
+          "news_count": 137,
+          "social_count": 2,
+          "source_contract": "source-event-v2",
+          "sentiment_role": "descriptive_only_not_model_signal"
         }
       ],
       "voices_archive": [
@@ -7074,12 +7089,12 @@
       "hype_net": -30,
       "confidence": null,
       "hype_state": "bearish",
-      "updated_at": "2026-09-25T09:27:04.263Z",
-      "why": "Deskriptive Quellenlage: 138 News · 2 Social / 36h. Kein Handelssignal aus Sentiment.",
+      "updated_at": "2026-09-25T09:28:23.777Z",
+      "why": "Deskriptive Quellenlage: 137 News · 2 Social / 36h. Kein Handelssignal aus Sentiment.",
       "evidence": {
         "source_contract": "source-event-v2",
         "sentiment_role": "descriptive_only_not_model_signal",
-        "news": 138,
+        "news": 137,
         "reddit_posts": 2,
         "x_posts": 0,
         "bluesky_posts": 0,
@@ -7089,13 +7104,13 @@
             "provider": "apewisdom.io",
             "mentions_24h": 53,
             "sentiment_pct": 68,
-            "checked_at": "2026-09-25T09:25:28.274Z"
+            "checked_at": "2026-09-25T09:28:00.041Z"
           }
         },
         "snippets": [
           "Oracle invokes ‘force majeure’ to shield itself from data center issues: Bloomberg - The American Bazaar",
           "Oracle Rekindles Doubts About Funding for AI Infrastructure - marketscreener.com",
-          "Oracle Financial Services shares set for their worst week in 20 months; Here's what is concerning the street - CNBC TV18 - LinkedIn"
+          "What Is Oracle (ORCL) Signaling With Its New AI Push In Healthcare And Finance? - simplywall.st"
         ]
       },
       "voices": {
@@ -7106,7 +7121,7 @@
       },
       "hype_mixed": 52,
       "sentiment_unit": "percent_unique_events_descriptive",
-      "price": 139.9
+      "price": 139.88
     }
   }
 }
