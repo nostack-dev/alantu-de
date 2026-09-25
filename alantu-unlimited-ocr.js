@@ -8,20 +8,22 @@ pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@
 const WLLAMA_PATHS={default:"https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/src/wasm/wllama.wasm"};
 
 const MODEL={
-  // Use one verified matching Unlimited-OCR pair. The previous community Q8
-  // projector loaded as a file but was not recognized by wllama as multimodal.
-  name:"Unlimited-OCR 3B · Q4_K_M",
-  modelUrl:"https://huggingface.co/sahilchachra/Unlimited-OCR-GGUF/resolve/main/Unlimited-OCR-Q4_K_M.gguf?download=true",
-  mmprojUrl:"https://huggingface.co/sahilchachra/Unlimited-OCR-GGUF/resolve/main/mmproj-Unlimited-OCR-F16.gguf?download=true",
-  approxGiB:2.75,
-  context:2048
+  // Exact GGUF source referenced by llama.cpp's merged Unlimited-OCR support.
+  // wllama resolves the Q4_K_M LM + Q8_0 mmproj itself so the projector is
+  // identified as the multimodal "clip" GGUF instead of being guessed by URL.
+  name:"Unlimited-OCR 3B · Q4_K_M + Q8 mmproj",
+  repo:"sabafallah/Unlimited-OCR-GGUF",
+  quant:"Q4_K_M",
+  mmprojQuant:"Q8_0",
+  approxGiB:2.41,
+  context:4096
 };
 const MAX_PAGES=60;
 const RENDER_LONG_EDGE=2200;
 // Unlimited-OCR's DeepEncoder base path is a 1024×1024 vision input.
 // Feeding the full 2200px preview into wllama WebGPU made ggml dispatch
 // >65,535 workgroups and hard-aborted the WASM runtime on real browsers.
-const OCR_LONG_EDGE=768;
+const OCR_LONG_EDGE=1024;
 const QUERY=new URLSearchParams(location.search);
 const MOCK_OCR=QUERY.get("mockOcr")==="1";
 const MOCK_OCR_DELAY=Math.max(0,Number(QUERY.get("mockOcrDelay"))||0);
@@ -168,25 +170,33 @@ function filterNativeDuplicates(ocr,native){
   });
 }
 
-async function createRuntime(imageMaxTokens=100){
+async function createRuntime(imageMaxTokens=128){
   const inst=new Wllama(WLLAMA_PATHS,{parallelDownloads:3,suppressNativeLog:true});
   inst.setCompat("default");
-  await inst.loadModelFromUrl({url:MODEL.modelUrl,mmprojUrl:MODEL.mmprojUrl},{
+
+  // Follow the two relevant upstream contracts literally:
+  // 1) wllama v3 multimodal: loadModelFromHF(repo, quant, mmprojQuant)
+  // 2) llama.cpp Unlimited-OCR: deepseek-ocr chat template, no Jinja,
+  //    prompt "document parsing.", temp 0, flash-attn off, no warmup.
+  await inst.loadModelFromHF({
+    repo:MODEL.repo,
+    quant:MODEL.quant,
+    mmprojQuant:MODEL.mmprojQuant
+  },{
     useCache:true,
-    // Unlimited-OCR + wllama currently has two independent browser failure
-    // modes: WebGPU dispatch overflow and WASM CLIP graph OOM. Avoid WebGPU
-    // entirely and cap vision tokens so clip_encode stays inside browser RAM.
     n_gpu_layers:0,
     mmproj_offload:false,
-    image_min_tokens:32,
-    image_max_tokens:imageMaxTokens,
     n_ctx:MODEL.context,
-    cache_type_k:"q4_0",
-    cache_type_v:"q4_0",
     n_threads:Math.max(1,Math.min(4,Math.floor((navigator.hardwareConcurrency||4)/2))),
     n_parallel:1,
     flash_attn:false,
     warmup:false,
+    chat_template:"deepseek-ocr",
+    jinja:false,
+    image_min_tokens:64,
+    image_max_tokens:imageMaxTokens,
+    cache_type_k:"q4_0",
+    cache_type_v:"q4_0",
     progressCallback:({loaded,total})=>{
       if(total>0){
         const pct=Math.round(loaded/total*100);
@@ -196,13 +206,24 @@ async function createRuntime(imageMaxTokens=100){
       }
     }
   });
+
   if(!inst.supportInputModality("image")){
+    const meta=(()=>{try{return inst.getModelMetadata()}catch{return null}})();
     try{await inst.exit()}catch{}
-    throw new Error("Unlimited-OCR Vision-Projektor wurde nicht als multimodal erkannt. Der Runtime-Cache ist veraltet oder Modell/Projektor passen nicht zusammen.");
+    throw new Error("Unlimited-OCR mmproj wurde geladen, aber wllama meldet keinen Bildkanal. Runtime/Modell-Metadaten sind inkompatibel."+ (meta?.meta?.["general.architecture"]?` Architektur: ${meta.meta["general.architecture"]}.`:""));
   }
+
   runtimeImageMaxTokens=imageMaxTokens;
   window.__alantuUocrDebug=window.__alantuUocrDebug||{};
-  window.__alantuUocrDebug.runtime={imageMaxTokens,model:MODEL.name,backend:"CPU/WASM"};
+  window.__alantuUocrDebug.runtime={
+    imageMaxTokens,
+    model:MODEL.name,
+    repo:MODEL.repo,
+    quant:MODEL.quant,
+    mmprojQuant:MODEL.mmprojQuant,
+    backend:"CPU/WASM",
+    imageSupported:true
+  };
   return inst;
 }
 async function ensureModel(){
@@ -213,10 +234,10 @@ async function ensureModel(){
     busy.classList.add("show");
     busy.textContent=`Unlimited-OCR 3B · ca. ${MODEL.approxGiB.toFixed(1)} GB einmalig`;
     setStatus("Unlimited-OCR 3B wird lokal gestartet · stabiler CPU/WASM-Modus …");
-    wllama=await createRuntime(100);
+    wllama=await createRuntime(128);
     modelLoaded=true;
     modelGpu=false;
-    mEngine.textContent="Unlimited-OCR 3B · CPU/WASM · Q4_K_M · 100 vision tokens";
+    mEngine.textContent="Unlimited-OCR 3B · CPU/WASM · Q4_K_M/Q8 · 128 vision tokens";
     return wllama;
   })().finally(()=>{modelPromise=null});
   return modelPromise;
@@ -237,10 +258,10 @@ async function runUnlimited(imageBuffer){
   // The grounded prompt gives us detection boxes required for placement.
   const request={
     messages:[{role:"user",content:[
-      {type:"text",text:"<|grounding|>OCR"},
-      {type:"image",data:imageBuffer}
+      {type:"image",data:imageBuffer},
+      {type:"text",text:"document parsing."}
     ]}],
-    max_tokens:1000,
+    max_tokens:3000,
     temperature:0,
     top_p:1,
     repeat_penalty:1.0,
@@ -266,7 +287,7 @@ async function runUnlimited(imageBuffer){
       setStatus("Vision-Speichergrenze erkannt · automatischer 64-Token-Retry …");
       const retry=await createRuntime(64);
       wllama=retry;modelLoaded=true;modelGpu=false;
-      mEngine.textContent="Unlimited-OCR 3B · CPU/WASM · Q4_K_M · 64 vision tokens";
+      mEngine.textContent="Unlimited-OCR 3B · CPU/WASM · Q4_K_M/Q8 · 64 vision tokens";
       const response=await retry.createChatCompletion(request);
       return response?.choices?.[0]?.message?.content||"";
     }
@@ -311,7 +332,7 @@ async function convertPage(pageNo,token,onPreview=()=>{}){
   let ocr=[],rawOcr="";
   if(provisional.usedAi){
     // Keep the 2200px raster for visual fidelity, but feed the model only its
-    // native 1024px vision resolution. This prevents WebGPU workgroup overflow
+    // official 1024px base vision resolution. This matches the model's documented base input and bounds browser memory
     // without reducing the final PDF/preview resolution.
     const ocrCanvas=makeOcrCanvas(canvas);
     const inputBlob=await canvasToBlob(ocrCanvas,"image/jpeg",.94);
