@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-09-25T06:56:20+02:00",
+  "updated_at": "2026-09-25T06:56:46+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-25T06:56:20+02:00",
-    "scraped_at": "2026-09-25T06:56:20+02:00",
+    "tick_id": "2026-09-25T06:56:46+02:00",
+    "scraped_at": "2026-09-25T06:56:46+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "PublicReddit": {
@@ -11,7 +11,7 @@
         "items": 53,
         "provider": "apewisdom.io",
         "window": "24h aggregate snapshot",
-        "freshest": "2026-09-25T06:56:20+02:00",
+        "freshest": "2026-09-25T06:56:46+02:00",
         "sentiment_pct_bullish": 68,
         "upvotes_24h": 96
       },
@@ -20,7 +20,7 @@
         "items": 20,
         "provider": "news.google.com",
         "window": "last 36h, fetched now",
-        "freshest": "2026-09-25T06:56:20+02:00",
+        "freshest": "2026-09-25T06:56:46+02:00",
         "notes": [
           "Oracle’s stock is falling as investors fear a data-center setback",
           "Oracle stock drops as the company moves to shield itself from costs linked to controversial data center",
@@ -49,10 +49,10 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-25T06:56:20+02:00",
+      "freshest_absolute": "2026-09-25T06:56:46+02:00",
       "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
       "quality": "medium-high public sources",
-      "scrape_berlin": "2026-09-25T06:56:20+02:00",
+      "scrape_berlin": "2026-09-25T06:56:46+02:00",
       "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
       "freshest_item_age": "snapshot fetched now",
       "oldest_usable_signal": "Oracle Seeks ‘Force Majeure’ on Data Center. Why It’s Sinking the Stock."
@@ -511,10 +511,10 @@
   "signals_disclaimer": "",
   "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
   "freshness": {
-    "freshest_absolute": "2026-09-25T06:56:20+02:00",
+    "freshest_absolute": "2026-09-25T06:56:46+02:00",
     "primary_signal": "fresh Reddit aggregate + News RSS + Yahoo quote",
     "quality": "medium-high public sources",
-    "scrape_berlin": "2026-09-25T06:56:20+02:00",
+    "scrape_berlin": "2026-09-25T06:56:46+02:00",
     "sample_window": "Reddit 24h aggregate; news ≤36h; Yahoo latest available quote",
     "freshest_item_age": "snapshot fetched now",
     "oldest_usable_signal": "Oracle Seeks ‘Force Majeure’ on Data Center. Why It’s Sinking the Stock."
@@ -4118,6 +4118,15 @@
     {
       "tick_id": "2026-09-25T06:56:20+02:00",
       "scraped_at": "2026-09-25T06:56:20+02:00",
+      "magnitude": 30,
+      "confidence": 80,
+      "direction": "mixed_cautious",
+      "items": 21,
+      "early_signal": false
+    },
+    {
+      "tick_id": "2026-09-25T06:56:46+02:00",
+      "scraped_at": "2026-09-25T06:56:46+02:00",
       "magnitude": 30,
       "confidence": 80,
       "direction": "mixed_cautious",
