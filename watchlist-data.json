@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-25T11:58:28+02:00",
+  "updated_at": "2026-09-25T17:09:06+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,7 +9,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-25T09:58:28.171Z",
+        "at": "2026-09-25T15:08:58.791Z",
         "signal": null,
         "confidence": null,
         "source_contract": "source-event-v3",
@@ -19,12 +19,12 @@
           "role": "observed_only",
           "model_eligible": false,
           "direction": null,
-          "unique_events_36h": 139,
+          "unique_events_36h": 140,
           "first_seen_windows": {
             "m1": 0,
-            "m5": 2,
-            "m15": 6,
-            "m60": 8
+            "m5": 0,
+            "m15": 1,
+            "m60": 2
           }
         }
       },
@@ -7097,29 +7097,29 @@
       "hype_net": null,
       "confidence": null,
       "hype_state": null,
-      "updated_at": "2026-09-25T09:58:28.171Z",
-      "why": "Beobachtete Quellenaktivität: 137 News · 2 Social / 36h. Keine Richtungswertung ohne validiertes Feature.",
+      "updated_at": "2026-09-25T15:08:58.791Z",
+      "why": "Beobachtete Quellenaktivität: 137 News · 3 Social / 36h. Keine Richtungswertung ohne validiertes Feature.",
       "evidence": {
         "source_contract": "source-event-v3",
         "role": "raw_observation_only",
         "interpretation_status": "unvalidated_not_used",
         "news": 137,
-        "reddit_posts": 2,
+        "reddit_posts": 3,
         "x_posts": 0,
         "bluesky_posts": 0,
         "social_other": 0,
         "external_unvalidated_aggregates": {
           "reddit": {
             "provider": "apewisdom.io",
-            "mentions_24h": 53,
-            "checked_at": "2026-09-25T09:58:16.444Z",
+            "mentions_24h": 31,
+            "checked_at": "2026-09-25T15:08:34.489Z",
             "interpretation_status": "not_imported"
           }
         },
         "snippets": [
-          "Oracle Japan (TSE:4716) Stock Faces A Valuation Reckoning After Profit Jump - simplywall.st",
-          "Oracle's $165 billion AI data center is flashing a warning sign - Opening Bell Daily",
-          "Oracle, Blue Owl project delay sends ripples through AI financing, sources say - The Edge Malaysia"
+          "AI financing fears are mounting, sparked by Oracle's force majeure notice - Yahoo Finance",
+          "Oracle’s $165 Billion AI Data Center Is Flashing a Warning Sign - inc.com",
+          "Oracle's Stock Falls 3.5% on Data Center Delay Concerns - The Globe and Mail"
         ]
       },
       "voices": {
@@ -7130,18 +7130,18 @@
       },
       "hype_mixed": null,
       "sentiment_unit": "retired_unvalidated",
-      "price": 140,
+      "price": 138.17999267578125,
       "sentiment_role": "retired_unvalidated",
       "source_activity": {
         "role": "observed_only",
         "model_eligible": false,
         "direction": null,
-        "unique_events_36h": 139,
+        "unique_events_36h": 140,
         "first_seen_windows": {
           "m1": 0,
-          "m5": 2,
-          "m15": 6,
-          "m60": 8
+          "m5": 0,
+          "m15": 1,
+          "m60": 2
         }
       },
       "source_activity_history": [
@@ -7157,6 +7157,20 @@
             "m5": 1,
             "m15": 4,
             "m60": 6
+          }
+        },
+        {
+          "at": "2026-09-25T15:08:58.791Z",
+          "archive_count": 140,
+          "news": 137,
+          "social": 3,
+          "new_count": 0,
+          "live_count": 0,
+          "first_seen_windows": {
+            "m1": 0,
+            "m5": 0,
+            "m15": 1,
+            "m60": 2
           }
         }
       ]
