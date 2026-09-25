@@ -1,0 +1,42 @@
+name: Unlimited OCR real browser smoke
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/uocr-real-browser-smoke.yml"
+      - "tools/uocr-real-browser-smoke.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-uocr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for live runtime revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 45); do
+            if curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?real=${{ github.sha }}" -o /tmp/uocr.js \
+              && grep -q 'Unlimited-OCR-Q4_K_M.gguf' /tmp/uocr.js \
+              && grep -q 'mmproj-Unlimited-OCR-F16.gguf' /tmp/uocr.js \
+              && grep -q 'image_max_tokens:imageMaxTokens' /tmp/uocr.js \
+              && grep -q 'n_gpu_layers:0' /tmp/uocr.js; then
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0 pdf-lib@1.17.1
+          npx playwright install --with-deps chromium
+      - name: Run real Unlimited-OCR 3B inference in browser
+        env:
+          PDF_CONVERT_URL: https://www.alantu.de/pdf-convert-anchor.html
+        run: node tools/uocr-real-browser-smoke.mjs
