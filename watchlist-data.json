@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-25T10:00:12+02:00",
+  "updated_at": "2026-09-25T10:01:03+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,7 +9,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-25T10:00:12+02:00",
+        "at": "2026-09-25T10:01:03+02:00",
         "signal": "hold",
         "social_impulse": 2,
         "hype_bull": 44,
@@ -6608,6 +6608,20 @@
           "voice_bear": 7,
           "voice_mixed": 10,
           "price": 139.79
+        },
+        {
+          "at": "2026-09-25T10:01:03+02:00",
+          "hype_bull": 44,
+          "hype_bear": 33,
+          "hype_net": 11,
+          "social_impulse": 2,
+          "signal": "hold",
+          "confidence": 80,
+          "hype_mixed": 23,
+          "voice_bull": 5,
+          "voice_bear": 7,
+          "voice_mixed": 10,
+          "price": 140.2
         }
       ],
       "voices_archive": [
@@ -6930,8 +6944,8 @@
       "hype_net": 11,
       "confidence": 80,
       "hype_state": "mixed",
-      "updated_at": "2026-09-25T10:00:12+02:00",
-      "why": "Reddit 68% positiv bei 53 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $139.79.",
+      "updated_at": "2026-09-25T10:01:03+02:00",
+      "why": "Reddit 68% positiv bei 53 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $140.20.",
       "evidence": {
         "x_posts": 0,
         "reddit_posts": 53,
@@ -6939,19 +6953,19 @@
         "snippets": [
           "ApeWisdom: 53 Mentions/24h, Sentiment 68%",
           "Oracle Corporation (ORCL) Stock Price, News, Quote & History",
-          "Oracle Cites ‘Force Majeure’ to Shield Itself on Controversial Data Center",
-          "Oracle’s stock is falling as investors fear a data-center setback"
+          "Oracle’s stock is falling as investors fear a data-center setback",
+          "Oracle Seeks ‘Force Majeure’ on Data Center. Why It’s Sinking the Stock."
         ]
       },
       "voices": {
         "bull": 5,
         "bear": 7,
         "mixed": 10,
-        "updated_at": "2026-09-25T10:00:12+02:00"
+        "updated_at": "2026-09-25T10:01:03+02:00"
       },
       "hype_mixed": 23,
       "sentiment_unit": "percent_all_classified",
-      "price": 139.79
+      "price": 140.2
     }
   }
 }
