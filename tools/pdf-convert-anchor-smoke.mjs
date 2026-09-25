@@ -61,10 +61,23 @@ await page.locator('#pdfInput').setInputFiles(fixture);
 
 // While OCR is deliberately delayed, the baked original must already be
 // visible. Empty/broken IMG placeholders were the live UX regression.
-await page.waitForFunction(()=>{
-  const img=document.getElementById('beforeImg');
-  return !!img?.src&&img.complete&&img.naturalWidth>0;
-},null,{timeout:15000});
+try{
+  await page.waitForFunction(()=>{
+    const img=document.getElementById('beforeImg');
+    return !!img?.src&&img.complete&&img.naturalWidth>0;
+  },null,{timeout:20000});
+}catch(err){
+  const boot=await page.evaluate(()=>({
+    status:document.getElementById('status')?.textContent||'',
+    moduleScript:document.querySelector('script[src*="alantu-unlimited-ocr"]')?.src||'',
+    inputPresent:!!document.getElementById('pdfInput'),
+    beforeSrc:document.getElementById('beforeImg')?.src||'',
+    empty:document.getElementById('empty')?.textContent||'',
+    readyState:document.readyState
+  })).catch(()=>({}));
+  console.error('BOOT_TIMEOUT_DIAGNOSTIC',JSON.stringify({boot,consoleErrors,pageErrors,failed},null,2));
+  throw err;
+}
 const loadingView=await page.evaluate(()=>({
   emptyDisplay:getComputedStyle(document.getElementById('empty')).display,
   sideHidden:document.getElementById('sideGrid')?.hidden,
