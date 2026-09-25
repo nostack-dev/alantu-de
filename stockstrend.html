@@ -207,7 +207,11 @@
   .line-toggle:before{content:"";width:11px;height:2px;background:#c6c6cc;display:inline-block;border-radius:2px}
   .line-toggle.active{color:#151517}
   .line-toggle.active:before{background:#151517}
-  @media(max-width:700px){.mini-range button,.line-toggle{font-size:9px}.mini-range{margin-top:4px}}
+  .projection-hint{display:flex;align-items:center;gap:6px;margin:2px 0 3px;font-size:10px;line-height:1.2;color:#696975;font-variant-numeric:tabular-nums}
+  .projection-hint[hidden]{display:none!important}
+  .projection-hint strong{color:#4857d6;font-weight:820}
+  .projection-swatch{width:20px;height:0;border-top:2px dashed #5b6cff;display:inline-block;flex:0 0 auto}
+  @media(max-width:700px){.mini-range button,.line-toggle{font-size:9px}.mini-range{margin-top:4px}.projection-hint{font-size:9px;gap:5px}.projection-hint span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
   .sentiment-source{font-size:12px;line-height:1.4;color:#74747c;margin:6px 0 9px;font-variant-numeric:tabular-nums}
 
   .model-decision{
@@ -871,6 +875,7 @@
       <div class="model-decision-meta">Gate noch nicht bestanden · warten</div>
     </div>
     <div class="chart-sub"><span id="ivCoverage"></span></div>
+    <div class="projection-hint" id="projectionHint" hidden><span class="projection-swatch"></span><strong>Live-Projektion</strong><span>1 / 5 / 15 / 30 Min · Hover oder ziehen</span></div>
     <div class="chart-wrap chart-wrap-lg"><canvas id="ivChart"></canvas></div>
     <div class="mini-range" id="priceRange" aria-label="Zeitraum Kurs und Wert">
       <button type="button" data-price-range="1d">1T</button><button type="button" data-price-range="1w">1W</button><button type="button" data-price-range="1m">1M</button><button type="button" data-price-range="year">1J</button><button type="button" data-price-range="5y">5J</button><button type="button" data-price-range="all">MAX</button>
@@ -964,23 +969,36 @@
 var LS_ACC='botbot_acc_open', SENTIMENT_HISTORY_LS='alantu_orcl_sentiment_history_v1';
 var RANGE_KEYS={price:'alantu_price_range_v1',forecast:'alantu_forecast_range_v1',sentiment:'alantu_sentiment_range_v1',magnitude:'alantu_magnitude_range_v1',opinions:'alantu_opinions_range_v1'}, INTRINSIC_VISIBLE_LS='alantu_intrinsic_visible_v1', CHART_OPEN_LS='alantu_chart_open_v1';
 function loadChartRange(key,def){
+  var fallback=def||'1d';
   try{
-    var r=localStorage.getItem(RANGE_KEYS[key])||def||'1d';
-    return ['1d','1w','1m','year','5y','all'].indexOf(r)>=0?r:(def||'1d');
-  }catch(e){return def||'1d';}
+    var r=localStorage.getItem(RANGE_KEYS[key])||fallback;
+    if(['1d','1w','1m','year','5y','all'].indexOf(r)>=0)return r;
+    localStorage.setItem(RANGE_KEYS[key],fallback);
+    return fallback;
+  }catch(e){return fallback;}
 }
-function saveChartRange(key,r){try{localStorage.setItem(RANGE_KEYS[key],r);}catch(e){}}
+function saveChartRange(key,r){
+  if(['1d','1w','1m','year','5y','all'].indexOf(r)<0)return;
+  try{localStorage.setItem(RANGE_KEYS[key],r);}catch(e){}
+}
 var priceRange=loadChartRange('price','1d');
 var forecastRange=loadChartRange('forecast','1d');
 var sentimentRange=loadChartRange('sentiment','1m');
 var magnitudeRange=loadChartRange('magnitude','1m');
 var opinionsRange=loadChartRange('opinions','1m');
-var showIntrinsic=(function(){try{return localStorage.getItem(INTRINSIC_VISIBLE_LS)!=='0';}catch(e){return true;}})();
+var showIntrinsic=(function(){
+  try{
+    var v=localStorage.getItem(INTRINSIC_VISIBLE_LS);
+    if(v!=='0'&&v!=='1'){localStorage.setItem(INTRINSIC_VISIBLE_LS,'1');return true;}
+    return v!=='0';
+  }catch(e){return true;}
+})();
 function loadChartOpenState(){
   try{
-    var v=JSON.parse(localStorage.getItem(CHART_OPEN_LS)||'{}');
-    return v&&typeof v==='object'?v:{};
-  }catch(e){return {};}
+    var raw=localStorage.getItem(CHART_OPEN_LS)||'{}',v=JSON.parse(raw);
+    if(v&&typeof v==='object'&&!Array.isArray(v))return v;
+    localStorage.setItem(CHART_OPEN_LS,'{}');return {};
+  }catch(e){try{localStorage.setItem(CHART_OPEN_LS,'{}');}catch(_e){}return {};}
 }
 var chartOpenState=loadChartOpenState();
 function chartIsOpen(key){return chartOpenState[key]!==false;}
@@ -1329,15 +1347,35 @@ var priceChartScrubUntil=0;
 var priceScrubState={active:false,point:null,source:null};
 function markPriceChartScrub(ms){priceChartScrubUntil=Math.max(priceChartScrubUntil,Date.now()+(Number(ms)||2200));}
 function priceChartScrubbing(){return Date.now()<priceChartScrubUntil;}
-function nearestPricePointForClientX(clientX){
-  if(!ivChart||!ivChart.scales||!ivChart.scales.x)return null;
-  var c=document.getElementById('ivChart'),r=c&&c.getBoundingClientRect();if(!r)return null;
-  var px=Number(clientX)-r.left,xv=ivChart.scales.x.getValueForPixel(px),ds=ivChart.data&&ivChart.data.datasets&&ivChart.data.datasets[0],pts=ds&&Array.isArray(ds.data)?ds.data:[];
+function nearestPointByX(pts,xv){
+  pts=(pts||[]).filter(function(p){return p&&isFinite(Number(p.x))&&isFinite(Number(p.y));});
   if(!pts.length||!isFinite(xv))return null;
   var lo=0,hi=pts.length-1;
   while(lo<hi){var m=(lo+hi)>>1;if(Number(pts[m].x)<xv)lo=m+1;else hi=m;}
-  var a=pts[lo],b=lo>0?pts[lo-1]:null,p=!b||Math.abs(Number(a.x)-xv)<=Math.abs(Number(b.x)-xv)?a:b;
-  return p&&isFinite(Number(p.x))&&isFinite(Number(p.y))?{x:Number(p.x),y:Number(p.y)}:null;
+  var a=pts[lo],b=lo>0?pts[lo-1]:null;
+  return !b||Math.abs(Number(a.x)-xv)<=Math.abs(Number(b.x)-xv)?a:b;
+}
+function projectionBandAt(x){
+  if(!ivChart||!ivChart.data||!Array.isArray(ivChart.data.datasets))return null;
+  var loDs=ivChart.data.datasets.find(function(d){return d.label==='Projektionsband unten';});
+  var hiDs=ivChart.data.datasets.find(function(d){return d.label==='Unsicherheitsband';});
+  var lo=nearestPointByX(loDs&&loDs.data,Number(x)),hi=nearestPointByX(hiDs&&hiDs.data,Number(x));
+  if(!lo||!hi)return null;
+  return {low:Number(lo.y),high:Number(hi.y)};
+}
+function nearestPricePointForClientX(clientX){
+  if(!ivChart||!ivChart.scales||!ivChart.scales.x)return null;
+  var c=document.getElementById('ivChart'),r=c&&c.getBoundingClientRect();if(!r)return null;
+  var px=Number(clientX)-r.left,xv=ivChart.scales.x.getValueForPixel(px),sets=ivChart.data&&ivChart.data.datasets||[];
+  var priceDs=sets.find(function(d){return d.label==='Kurs';})||sets[0],pricePts=priceDs&&Array.isArray(priceDs.data)?priceDs.data:[];
+  if(!pricePts.length||!isFinite(xv))return null;
+  var lastPrice=pricePts[pricePts.length-1],projectionDs=sets.find(function(d){return d.label==='Projektionspfad';});
+  var useProjection=projectionDs&&Array.isArray(projectionDs.data)&&projectionDs.data.length>1&&xv>Number(lastPrice.x);
+  var raw=useProjection?nearestPointByX(projectionDs.data,xv):nearestPointByX(pricePts,xv);
+  if(!raw)return null;
+  var out={x:Number(raw.x),y:Number(raw.y),kind:useProjection?'projection':'price'};
+  if(useProjection){var band=projectionBandAt(out.x);if(band){out.low=band.low;out.high=band.high;}out.h=Number(raw._h)||null;}
+  return out;
 }
 function setPriceScrub(clientX,source){
   var p=nearestPricePointForClientX(clientX);if(!p)return;
@@ -1377,15 +1415,35 @@ function priceScrubOverlayPlugin(){
       if(!chart||!chart.canvas||chart.canvas.id!=='ivChart'||!priceScrubState.active||!priceScrubState.point)return;
       var p=priceScrubState.point,a=chart.chartArea,x=chart.scales.x.getPixelForValue(p.x),y=chart.scales.y.getPixelForValue(p.y);
       if(!a||!isFinite(x)||!isFinite(y))return;
-      var ctx=chart.ctx,time=new Date(p.x).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'}),label=time+' · '+euro(p.y,2);
+      var ctx=chart.ctx,time=new Date(p.x).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'});
+      var projection=p.kind==='projection',label=(projection?'PROJEKTION · ':'')+time+' · '+euro(p.y,2);
+      var band=projection&&isFinite(p.low)&&isFinite(p.high)?('Band '+euro(p.low,2)+' – '+euro(p.high,2)):'';
       ctx.save();
-      ctx.strokeStyle='rgba(17,17,19,.36)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+      ctx.strokeStyle=projection?'rgba(91,108,255,.75)':'rgba(17,17,19,.36)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
       ctx.beginPath();ctx.moveTo(x,a.top);ctx.lineTo(x,a.bottom);ctx.stroke();ctx.setLineDash([]);
-      ctx.fillStyle='#111';ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=projection?'#5b6cff':'#111';ctx.beginPath();ctx.arc(x,y,4.5,0,Math.PI*2);ctx.fill();
       ctx.font='700 12px Inter, ui-sans-serif, system-ui, sans-serif';
-      var pad=8,w=ctx.measureText(label).width+pad*2,h=26,bx=Math.min(Math.max(a.left+2,x-w/2),a.right-w-2),by=Math.max(a.top+4,y-h-12);
-      ctx.fillStyle='rgba(17,17,19,.96)';ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,w,h,7):ctx.rect(bx,by,w,h);ctx.fill();
-      ctx.fillStyle='#fff';ctx.textBaseline='middle';ctx.fillText(label,bx+pad,by+h/2);
+      var pad=8,w=Math.max(ctx.measureText(label).width,band?ctx.measureText(band).width:0)+pad*2,h=band?42:26,bx=Math.min(Math.max(a.left+2,x-w/2),a.right-w-2),by=Math.max(a.top+4,y-h-12);
+      ctx.fillStyle=projection?'rgba(55,67,190,.96)':'rgba(17,17,19,.96)';ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,w,h,7):ctx.rect(bx,by,w,h);ctx.fill();
+      ctx.fillStyle='#fff';ctx.textBaseline='middle';ctx.fillText(label,bx+pad,by+(band?14:h/2));
+      if(band){ctx.font='600 10px Inter, ui-sans-serif, system-ui, sans-serif';ctx.fillStyle='rgba(255,255,255,.88)';ctx.fillText(band,bx+pad,by+30);}
+      ctx.restore();
+    }
+  };
+}
+function projectionZonePlugin(){
+  return {
+    id:'projectionZone',
+    beforeDatasetsDraw:function(chart){
+      if(!chart||!chart.canvas||chart.canvas.id!=='ivChart'||priceRange!=='1d')return;
+      var sets=chart.data&&chart.data.datasets||[],price=sets.find(function(d){return d.label==='Kurs';}),proj=sets.find(function(d){return d.label==='Projektionspfad';});
+      var pp=price&&price.data||[],pj=proj&&proj.data||[];if(!pp.length||pj.length<2)return;
+      var a=chart.chartArea,x0=chart.scales.x.getPixelForValue(Number(pp[pp.length-1].x)),x1=chart.scales.x.getPixelForValue(Number(pj[pj.length-1].x));
+      if(!a||!isFinite(x0)||!isFinite(x1)||x1<=x0)return;
+      var ctx=chart.ctx;ctx.save();
+      ctx.fillStyle='rgba(91,108,255,.035)';ctx.fillRect(x0,a.top,Math.max(1,x1-x0),a.bottom-a.top);
+      ctx.strokeStyle='rgba(91,108,255,.34)';ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(x0,a.top);ctx.lineTo(x0,a.bottom);ctx.stroke();ctx.setLineDash([]);
+      ctx.font='800 9px Inter, ui-sans-serif, system-ui, sans-serif';ctx.fillStyle='rgba(72,87,214,.92)';ctx.fillText('PROJEKTION',Math.min(x0+6,a.right-58),a.top+12);
       ctx.restore();
     }
   };
@@ -1413,6 +1471,7 @@ function currentPriceMarkerPlugin(){
     }
   };
 }
+Chart.register(projectionZonePlugin());
 Chart.register(currentPriceMarkerPlugin());
 Chart.register(priceScrubOverlayPlugin());
 function clearChartInteraction(chart){
@@ -2101,13 +2160,18 @@ function trajectoryPathMeta(path,bands,rows){
   return {dir:dir,end_bps:endBps,agree:agree,total:rows.length,turn:turn,band_bps:band?band.bps:null};
 }
 function renderTrajectoryNote(meta){
-  var el=document.getElementById('trajectoryNote');if(!el)return;
-  if(!meta){el.innerHTML='<span><strong>1T Projektionspfad</strong> · wartet auf Live-Modell</span><span>Shadow · keine Kurszusage</span>';return;}
+  var el=document.getElementById('trajectoryNote'),hint=document.getElementById('projectionHint');
+  if(!meta){
+    if(el)el.innerHTML='<span><strong>1T Projektionspfad</strong> · wartet auf Live-Modell</span><span>Shadow · keine Kurszusage</span>';
+    if(hint)hint.hidden=true;
+    return;
+  }
   var dir=meta.dir>0?'aufwärts':meta.dir<0?'abwärts':'seitwärts';
   var move=(meta.end_bps>=0?'+':'')+meta.end_bps.toFixed(1)+' bp';
   var turn=meta.turn?(' · Dreht ~'+meta.turn+'m'):'';
   var band=isFinite(meta.band_bps)?(' · Band ±'+meta.band_bps.toFixed(1)+' bp'):'';
-  el.innerHTML='<span><strong>'+dir+' '+move+'</strong> · Konsens '+meta.agree+'/'+meta.total+turn+band+'</span><span>Pfad statt Punktwolke · Shadow</span>';
+  if(el)el.innerHTML='<span><strong>'+dir+' '+move+'</strong> · Konsens '+meta.agree+'/'+meta.total+turn+band+'</span><span>Pfad statt Punktwolke · Shadow</span>';
+  if(hint){hint.hidden=false;hint.setAttribute('data-projection-active','1');}
 }
 function trajectoryDatasets(pts,session){
   if(priceRange!=='1d'||!pts||!pts.length){renderTrajectoryNote(null);return [];}
@@ -2131,7 +2195,7 @@ function trajectoryDatasets(pts,session){
   });
   sets.push({
     label:'Unsicherheitsband',data:upper,parsing:false,spanGaps:false,
-    borderColor:'rgba(0,0,0,0)',backgroundColor:'rgba(70,75,82,.09)',fill:'-1',
+    borderColor:'rgba(0,0,0,0)',backgroundColor:'rgba(91,108,255,.12)',fill:'-1',
     tension:.28,pointRadius:0,borderWidth:0
   });
   var turns={};
@@ -2143,14 +2207,15 @@ function trajectoryDatasets(pts,session){
   }
   sets.push({
     label:'Projektionspfad',data:path,parsing:false,spanGaps:false,
-    borderColor:'#151517',backgroundColor:'#151517',fill:false,tension:.28,
+    borderColor:'#5b6cff',backgroundColor:'#5b6cff',fill:false,tension:.28,borderDash:[6,4],
     pointRadius:function(ctx){
-      if(ctx.dataIndex===path.length-1)return 4;
-      return turns[ctx.dataIndex]?3.4:0;
+      if(ctx.dataIndex===0)return 0;
+      if(ctx.dataIndex===path.length-1)return 4.5;
+      return turns[ctx.dataIndex]?4:2.8;
     },
     pointStyle:function(ctx){return turns[ctx.dataIndex]?'triangle':'circle';},
     pointRotation:function(ctx){return turns[ctx.dataIndex]?90:0;},
-    pointHoverRadius:5,borderWidth:2.35
+    pointHoverRadius:6,borderWidth:2.6
   });
   renderTrajectoryNote(trajectoryPathMeta(path,bands,rows));
   return sets;
@@ -3029,6 +3094,7 @@ function renderValueChart(){
     clearChartInteraction(ivChart);
     ivChart.data.datasets=datasets;ivChart.options.scales.x=xAxis;if(yb){ivChart.options.scales.y.min=yb.min;ivChart.options.scales.y.max=yb.max;}else{delete ivChart.options.scales.y.min;delete ivChart.options.scales.y.max;}ivChart.update('none');
   }
+  syncIntrinsicToggle();
   armPriceChartScrub();
 }
 function renderOpinions(){
@@ -3286,13 +3352,24 @@ document.getElementById('wgoWindow').onclick=function(e){var b=e.target.closest(
 document.getElementById('wgoRun').onclick=runWhatsGoingOn;
 document.getElementById('wgoCard').addEventListener('toggle',function(){if(this.open)runWhatsGoingOn();});
 syncWgoWindow();
+function syncIntrinsicToggle(){
+  var b=document.getElementById('intrinsicToggle');if(!b)return;
+  b.classList.toggle('active',showIntrinsic);b.setAttribute('aria-pressed',showIntrinsic?'true':'false');
+}
+function applyIntrinsicVisibility(){
+  syncIntrinsicToggle();
+  if(ivChart&&ivChart.data&&Array.isArray(ivChart.data.datasets)){
+    var ds=ivChart.data.datasets.find(function(d){return d.label==='Innerer Wert';});
+    if(ds){ds.hidden=!showIntrinsic;ivChart.update('none');return;}
+  }
+  renderValueChart();
+}
 document.getElementById('intrinsicToggle').onclick=function(){
   showIntrinsic=!showIntrinsic;
   try{localStorage.setItem(INTRINSIC_VISIBLE_LS,showIntrinsic?'1':'0');}catch(e){}
-  var b=document.getElementById('intrinsicToggle');b.classList.toggle('active',showIntrinsic);b.setAttribute('aria-pressed',showIntrinsic?'true':'false');
-  if(ivChart&&ivChart.data&&ivChart.data.datasets&&ivChart.data.datasets[1]){ivChart.data.datasets[1].hidden=!showIntrinsic;ivChart.update('none');}
-  else renderValueChart();
+  applyIntrinsicVisibility();
 };
+syncIntrinsicToggle();
 var SHOCK_LS='botbot_orcl_price_shocks_v1', SHOCK_NOTIFY_LS='botbot_orcl_shock_notify_v1';
 var shockLastKey='', shockPollBusy=false;
 function shockEventsLoad(){try{return JSON.parse(localStorage.getItem(SHOCK_LS)||'[]');}catch(e){return [];}}
