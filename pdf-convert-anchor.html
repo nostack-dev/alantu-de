@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0d0d0b">
-  <title>ALANTU — PDF Convert / Anchor</title>
+  <title>ALANTU — PDF → SVG</title>
   <style>
     :root{
-      --ink:#0d0d0b;--paper:#f4f0e8;--muted:#746e65;--line:rgba(13,13,11,.14);
-      --gold:#b89a63;--ok:#536b50;--danger:#9c3f32;--panel:rgba(255,255,255,.44);
+      --ink:#0d0d0b;--paper:#f4f0e8;--muted:#756f66;--line:rgba(13,13,11,.14);
+      --gold:#b89a63;--ok:#4f6b50;--danger:#9c3f32;--panel:rgba(255,255,255,.48);
     }
     *{box-sizing:border-box}
     html,body{margin:0;min-width:320px;background:var(--paper);color:var(--ink)}
@@ -23,528 +23,550 @@
     .mark:before{top:16px;transform:rotate(-58deg)}.mark:after{top:4px;transform:rotate(58deg)}
     .mark i{position:absolute;left:7px;right:7px;top:12px;height:1.5px;background:var(--gold)}
     .topnote{font-size:11px;color:var(--muted)}
-    .layout{display:grid;grid-template-columns:340px minmax(0,1fr);gap:24px;padding:24px 0 32px;min-height:calc(100vh - 68px)}
+    .layout{display:grid;grid-template-columns:350px minmax(0,1fr);gap:24px;padding:24px 0 32px;min-height:calc(100vh - 68px)}
     .panel{border:1px solid var(--line);border-radius:22px;background:var(--panel);padding:22px;align-self:start}
     .eyebrow{font-size:10px;font-weight:750;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
     h1{font:400 42px/1 Georgia,"Times New Roman",serif;letter-spacing:-.045em;margin:10px 0 12px}
     .intro{font-size:13px;line-height:1.55;color:#5c554c;margin:0 0 18px}
-    .dropzone{position:relative;display:grid;place-items:center;text-align:center;min-height:142px;padding:20px;border:1px dashed rgba(13,13,11,.28);border-radius:16px;background:rgba(255,255,255,.32);transition:.15s ease}
+    .dropzone{position:relative;display:grid;place-items:center;text-align:center;min-height:146px;padding:20px;border:1px dashed rgba(13,13,11,.28);border-radius:16px;background:rgba(255,255,255,.32);transition:.15s ease}
     .dropzone.drag{border-color:var(--gold);background:rgba(184,154,99,.08)}
     .dropzone input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
     .dropzone strong{font-size:14px}.dropzone span{display:block;margin-top:6px;font-size:11px;color:var(--muted);line-height:1.45}
     .status{margin-top:12px;min-height:20px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
     .status.ok{color:var(--ok)}.status.error{color:var(--danger)}
     .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:0 0 auto}
+    .progress{height:4px;border-radius:999px;background:rgba(13,13,11,.10);overflow:hidden;margin-top:10px}
+    .progress span{display:block;height:100%;width:0;background:var(--gold);transition:width .18s ease}
     .section{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
     .section-title{font-size:10px;font-weight:750;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
-    .zoom-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-    .zoom-grid button,.nav button,.action{border:1px solid var(--line);background:rgba(255,255,255,.55);color:var(--ink);border-radius:10px;min-height:38px;padding:0 10px;font-size:12px}
-    .zoom-grid button.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-    .zoom-grid button:disabled,.nav button:disabled,.action:disabled{opacity:.35;cursor:default}
-    .nav{display:grid;grid-template-columns:42px 1fr 42px;gap:6px;align-items:center}
-    .counter{text-align:center;font-size:12px;font-weight:650;font-variant-numeric:tabular-nums}
-    .action{width:100%;margin-top:8px}
-    .action.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-    .metrics{display:grid;gap:0;border-top:1px solid var(--line)}
+    .metrics{display:grid;border-top:1px solid var(--line)}
     .metric{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);font-size:11px}
     .metric span{color:var(--muted)}.metric strong{text-align:right;font-weight:650;font-variant-numeric:tabular-nums}
-    .note{font-size:11px;color:#777066;line-height:1.5;margin-top:12px}
+    .action{width:100%;min-height:44px;border:1px solid var(--line);background:rgba(255,255,255,.55);color:var(--ink);border-radius:999px;padding:0 16px;font-size:12px;margin-top:8px}
+    .action.primary{background:var(--ink);color:var(--paper);border-color:var(--ink);font-weight:700}
+    .action:disabled{opacity:.35;cursor:default}
+    .note{font-size:11px;color:#777066;line-height:1.5;margin:12px 0 0}
     .viewer{min-width:0;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px}
     .toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:40px}
     .toolbar-left,.toolbar-right{display:flex;align-items:center;gap:8px;min-width:0}
-    .badge{font-size:11px;border:1px solid var(--line);background:rgba(255,255,255,.55);padding:8px 10px;border-radius:999px;color:#5d564d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52vw}
+    .badge{font-size:11px;border:1px solid var(--line);background:rgba(255,255,255,.55);padding:8px 10px;border-radius:999px;color:#5d564d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50vw}
+    .icon-btn{min-width:38px;height:34px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.58);color:var(--ink)}
+    .counter{min-width:64px;text-align:center;font-size:11px;font-weight:650;font-variant-numeric:tabular-nums}
     .viewport{position:relative;min-height:660px;height:calc(100vh - 142px);overflow:auto;overscroll-behavior:contain;border:1px solid rgba(13,13,11,.10);border-radius:24px;background:linear-gradient(145deg,#ddd3c5,#b8ad9f);box-shadow:inset 0 0 0 1px rgba(255,255,255,.24)}
-    .viewport.grabbing{cursor:grabbing}
-    .surface{position:relative;margin:56px;box-shadow:0 18px 52px rgba(28,22,16,.20);background:#fff;transform-origin:0 0}
-    .tile{position:absolute;display:block;background:#fff;z-index:0}
-    .page-svg{position:absolute;inset:0;display:block;z-index:1;overflow:visible;pointer-events:none;text-rendering:geometricPrecision;shape-rendering:geometricPrecision}
-    .anchor{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:1px solid var(--gold);pointer-events:none;z-index:20;box-shadow:0 0 0 2px rgba(255,255,255,.72)}
-    .anchor:before,.anchor:after{content:"";position:absolute;background:var(--gold)}
-    .anchor:before{left:10px;top:-7px;width:1px;height:34px}.anchor:after{left:-7px;top:10px;width:34px;height:1px}
-    .anchor.hidden{display:none}
-    .empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:40px;pointer-events:none;color:#5d564d}
+    .preview-wrap{min-width:100%;min-height:100%;padding:56px;display:grid;place-items:start center}
+    .preview-page{background:#fff;box-shadow:0 18px 52px rgba(28,22,16,.20);transform-origin:top center}
+    .preview-page svg{display:block;max-width:none}
+    .empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:40px;color:#5d564d;pointer-events:none}
     .empty strong{display:block;font:400 30px/1.05 Georgia,"Times New Roman",serif;color:var(--ink)}
     .empty span{display:block;margin-top:8px;font-size:12px;line-height:1.5}
-    .busy{position:sticky;left:14px;top:14px;z-index:50;width:max-content;max-width:calc(100% - 28px);padding:8px 10px;border-radius:999px;background:rgba(244,240,232,.90);border:1px solid var(--line);font-size:11px;display:none}
+    .busy{position:sticky;left:14px;top:14px;z-index:50;width:max-content;max-width:calc(100% - 28px);padding:8px 10px;border-radius:999px;background:rgba(244,240,232,.92);border:1px solid var(--line);font-size:11px;display:none}
     .busy.show{display:block}
     @media(max-width:900px){
-      .shell{width:min(100% - 20px,1500px)}
-      .layout{grid-template-columns:1fr;min-height:0}
-      .viewport{height:72vh;min-height:500px}
-      .panel{order:2}.viewer{order:1}
-      .surface{margin:30px}
+      .shell{width:min(100% - 20px,1500px)}.layout{grid-template-columns:1fr;min-height:0}
+      .viewport{height:70vh;min-height:500px}.panel{order:2}.viewer{order:1}.preview-wrap{padding:30px}
     }
     @media(max-width:560px){
-      .topnote{display:none}.layout{padding-top:12px}.panel{padding:16px}
-      h1{font-size:36px}.zoom-grid{grid-template-columns:repeat(4,1fr)}
-      .viewport{height:68vh;min-height:420px;border-radius:18px}.surface{margin:20px}
-      .badge{max-width:66vw}
+      .topnote{display:none}.layout{padding-top:12px}.panel{padding:16px}h1{font-size:36px}
+      .viewport{height:66vh;min-height:420px;border-radius:18px}.preview-wrap{padding:20px}.badge{max-width:54vw}
     }
   </style>
 </head>
 <body>
   <header class="shell topbar">
     <div class="brand"><span class="mark" aria-hidden="true"><i></i></span><span>ALANTU</span></div>
-    <div class="topnote">PDF Convert · 100% Text → SVG · canonical anchors</div>
+    <div class="topnote">PDF → sauberes Hybrid-SVG</div>
   </header>
 
   <main class="shell layout">
     <aside class="panel">
-      <div class="eyebrow">PDF Convert V3 · SVG</div>
-      <h1>Text bleibt Vektor.</h1>
-      <p class="intro">Jede PDF-Seite wird direkt als SVG aufgebaut. Erkannter PDF-Text bleibt vollständig als SVG-Text enthalten; Vektoren bleiben Vektoren. Zoom skaliert nur denselben SVG-Seitenraum — keine neu berechneten Zeichenpositionen, kein Drift über die Zoomtiefe.</p>
+      <div class="eyebrow">PDF Konverter</div>
+      <h1>PDF rein. SVG raus.</h1>
+      <p class="intro">Text wird automatisch als scharfes SVG übernommen. Was nicht sicher erkannt wird, bleibt exakt aus dem Original eingebettet. Keine manuellen Anker, keine Nacharbeit.</p>
 
       <label class="dropzone" id="dropzone">
         <input id="pdfInput" type="file" accept="application/pdf,.pdf" aria-label="PDF auswählen">
-        <div><strong>PDF auswählen oder ablegen</strong><span>Nur lokal im Browser · bis 80 Seiten</span></div>
+        <div><strong>PDF auswählen oder hier ablegen</strong><span>Konvertierung läuft lokal im Browser · bis 60 Seiten</span></div>
       </label>
+
       <div class="status" id="status"><span class="dot"></span><span>Bereit</span></div>
+      <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
 
       <div class="section">
-        <div class="section-title">Seite</div>
-        <div class="nav">
-          <button id="prevBtn" type="button" aria-label="Vorherige Seite">←</button>
-          <div class="counter" id="pageCounter">— / —</div>
-          <button id="nextBtn" type="button" aria-label="Nächste Seite">→</button>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Zoomtiefe</div>
-        <div class="zoom-grid" id="zoomGrid">
-          <button type="button" data-zoom="1">1×</button>
-          <button type="button" data-zoom="1.3">1,3×</button>
-          <button type="button" data-zoom="2.7">2,7×</button>
-          <button type="button" data-zoom="4">4×</button>
-          <button type="button" data-zoom="7.5">7,5×</button>
-          <button type="button" data-zoom="16">16×</button>
-          <button type="button" data-zoom="32">32×</button>
-          <button type="button" id="fitBtn">Fit</button>
-        </div>
-        <button class="action primary" id="centerAnchorBtn" type="button">Anker zentrieren</button>
-        <button class="action" id="downloadSvgBtn" type="button" disabled>Aktuelle SVG-Seite herunterladen</button>
-        <button class="action" id="clearAnchorBtn" type="button">Anker löschen</button>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Messung</div>
+        <div class="section-title">Ergebnis</div>
         <div class="metrics">
-          <div class="metric"><span>Zoom</span><strong id="mZoom">—</strong></div>
-          <div class="metric"><span>PDF-Anker X / Y</span><strong id="mAnchor">—</strong></div>
-          <div class="metric"><span>Round-trip Δ</span><strong id="mDelta">—</strong></div>
-          <div class="metric"><span>Text → SVG</span><strong id="mTextSvg">—</strong></div>
-          <div class="metric"><span>SVG-Knoten</span><strong id="mSvgNodes">—</strong></div>
-          <div class="metric"><span>PDF-Seite</span><strong id="mSize">—</strong></div>
+          <div class="metric"><span>Seiten</span><strong id="mPages">—</strong></div>
+          <div class="metric"><span>SVG-Text</span><strong id="mVectorText">—</strong></div>
+          <div class="metric"><span>Fallback gebacken</span><strong id="mBaked">—</strong></div>
+          <div class="metric"><span>Dokument</span><strong id="mComplete">—</strong></div>
         </div>
-        <p class="note">Klick auf eine Stelle der Seite setzt den Hauptanker. Der SVG-ViewBox bleibt identisch zum PDF-Seitenraum. 1× bis 32× verändert nur die Darstellung desselben Vektorraums. Der Text-Check ist fail-closed: Fehlt auch nur ein extrahierter Text-Run im SVG-Layer, wird die Seite nicht als 100% markiert.</p>
+        <button class="action primary" id="downloadMergedBtn" type="button" disabled>SVG-Dokument herunterladen</button>
+        <button class="action" id="downloadPageBtn" type="button" disabled>Aktuelle Seite als SVG</button>
+        <p class="note">„Vollständig“ bedeutet: Nichts verschwindet. Sicher erkannter Text wird Vektor; alles andere bleibt als gebackener Original-Diff erhalten. OCR wird nicht als 100 % korrekt ausgegeben, wenn es das nicht ist.</p>
       </div>
     </aside>
 
     <section class="viewer">
       <div class="toolbar">
-        <div class="toolbar-left"><span class="badge" id="fileBadge">Noch keine PDF geladen</span></div>
-        <div class="toolbar-right"><span class="badge" id="modeBadge">SVG · Text 100% · PDF anchors</span></div>
-      </div>
-      <div class="viewport" id="viewport">
-        <div class="busy" id="busy">Rendere …</div>
-        <div class="surface" id="surface">
-          <div class="anchor hidden" id="anchor"></div>
+        <div class="toolbar-left">
+          <span class="badge" id="fileBadge">Noch keine PDF geladen</span>
         </div>
-        <div class="empty" id="empty"><div><strong>PDF laden.</strong><span>Dann bis 32× zoomen und denselben Punkt prüfen.</span></div></div>
+        <div class="toolbar-right">
+          <button class="icon-btn" id="prevBtn" type="button" aria-label="Vorherige Seite">←</button>
+          <span class="counter" id="pageCounter">— / —</span>
+          <button class="icon-btn" id="nextBtn" type="button" aria-label="Nächste Seite">→</button>
+          <button class="icon-btn" id="zoomOutBtn" type="button" aria-label="Verkleinern">−</button>
+          <span class="counter" id="zoomLabel">Fit</span>
+          <button class="icon-btn" id="zoomInBtn" type="button" aria-label="Vergrößern">+</button>
+        </div>
+      </div>
+
+      <div class="viewport" id="viewport">
+        <div class="busy" id="busy">Konvertiere …</div>
+        <div class="preview-wrap" id="previewWrap">
+          <div class="preview-page" id="previewPage"></div>
+        </div>
+        <div class="empty" id="empty"><div><strong>PDF laden.</strong><span>ALANTU erkennt Text automatisch und baut ein vollständiges Hybrid-SVG.</span></div></div>
       </div>
     </section>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
   <script type="module">
     const pdfjsLib=window.pdfjsLib;
+    const Tesseract=window.Tesseract;
     if(!pdfjsLib?.SVGGraphics)throw new Error("PDF.js SVG backend unavailable.");
+    if(!Tesseract?.createWorker)throw new Error("OCR backend unavailable.");
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js";
 
-    const MAX_PAGES=80;
-    const TILE_CSS=768;
-    const TILE_MARGIN=1;
-    const MAX_TILE_DPR=2;
-    const ZOOMS=[1,1.3,2.7,4,7.5,16,32];
+    const MAX_PAGES=60;
+    const NATIVE_TEXT_MIN_CHARS=12;
+    const OCR_CONFIDENCE=62;
+    const OCR_LONG_EDGE=2200;
 
     const input=document.getElementById("pdfInput");
     const dropzone=document.getElementById("dropzone");
     const statusEl=document.getElementById("status");
+    const progressBar=document.getElementById("progressBar");
+    const fileBadge=document.getElementById("fileBadge");
+    const mPages=document.getElementById("mPages");
+    const mVectorText=document.getElementById("mVectorText");
+    const mBaked=document.getElementById("mBaked");
+    const mComplete=document.getElementById("mComplete");
+    const downloadMergedBtn=document.getElementById("downloadMergedBtn");
+    const downloadPageBtn=document.getElementById("downloadPageBtn");
     const prevBtn=document.getElementById("prevBtn");
     const nextBtn=document.getElementById("nextBtn");
     const pageCounter=document.getElementById("pageCounter");
-    const zoomGrid=document.getElementById("zoomGrid");
-    const fitBtn=document.getElementById("fitBtn");
-    const centerAnchorBtn=document.getElementById("centerAnchorBtn");
-    const clearAnchorBtn=document.getElementById("clearAnchorBtn");
-    const downloadSvgBtn=document.getElementById("downloadSvgBtn");
-    const viewportEl=document.getElementById("viewport");
-    const surface=document.getElementById("surface");
-    const anchorEl=document.getElementById("anchor");
+    const zoomOutBtn=document.getElementById("zoomOutBtn");
+    const zoomInBtn=document.getElementById("zoomInBtn");
+    const zoomLabel=document.getElementById("zoomLabel");
+    const viewport=document.getElementById("viewport");
+    const previewWrap=document.getElementById("previewWrap");
+    const previewPage=document.getElementById("previewPage");
     const empty=document.getElementById("empty");
     const busy=document.getElementById("busy");
-    const fileBadge=document.getElementById("fileBadge");
-    const mZoom=document.getElementById("mZoom");
-    const mAnchor=document.getElementById("mAnchor");
-    const mDelta=document.getElementById("mDelta");
-    const mTextSvg=document.getElementById("mTextSvg");
-    const mSvgNodes=document.getElementById("mSvgNodes");
-    const mSize=document.getElementById("mSize");
-    const modeBadge=document.getElementById("modeBadge");
 
     let pdfDoc=null;
-    let pageObj=null;
-    let pageNo=1;
-    let pageBaseViewport=null;
-    let renderViewport=null;
-    let zoom=1;
-    let anchorPdf=null;
+    let sourceName="exposee";
+    let convertedPages=[];
+    let currentPageIndex=0;
+    let previewScale=0;
     let loadToken=0;
-    let renderEpoch=0;
-    let scrollRAF=0;
-    let isPointerDown=false;
-    let pointerMoved=false;
-    let dragStart=null;
-    let pageSvg=null;
-    let pageSvgSource="";
-    let svgTextCoverage=0;
-    const tiles=new Map();
+    let ocrWorker=null;
 
     function setStatus(text,kind=""){
       statusEl.className="status"+(kind?" "+kind:"");
       statusEl.lastElementChild.textContent=text;
     }
 
-    function fmt(n,d=2){return Number.isFinite(n)?Number(n).toFixed(d):"—"}
+    function setProgress(value){
+      progressBar.style.width=Math.max(0,Math.min(100,value||0))+"%";
+    }
 
-    function clearTiles(){
-      renderEpoch++;
-      for(const tile of tiles.values()){
-        try{tile.task?.cancel()}catch{}
-        tile.canvas.remove();
+    function escapeXml(value){
+      return String(value??"")
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;").replace(/'/g,"&apos;");
+    }
+
+    function sanitizeName(name){
+      return (name||"exposee").replace(/\.pdf$/i,"").replace(/[\\/:*?"<>|]+/g,"-").replace(/\s+/g," ").trim()||"exposee";
+    }
+
+    function normalizeText(value){return String(value??"").replace(/\s+/g," ").trim()}
+
+    function textColorCss(rgb){
+      const [r,g,b]=rgb.map(v=>Math.max(0,Math.min(255,Math.round(v))));
+      return `rgb(${r} ${g} ${b})`;
+    }
+
+    function median(values){
+      if(!values.length)return 255;
+      const a=[...values].sort((x,y)=>x-y);
+      const m=Math.floor(a.length/2);
+      return a.length%2?a[m]:(a[m-1]+a[m])/2;
+    }
+
+    function sampleBorderStats(data,w,h,b){
+      const x0=Math.max(0,Math.floor(b.x0)-3),y0=Math.max(0,Math.floor(b.y0)-3);
+      const x1=Math.min(w-1,Math.ceil(b.x1)+3),y1=Math.min(h-1,Math.ceil(b.y1)+3);
+      const rs=[],gs=[],bs=[];
+      const push=(x,y)=>{
+        const i=(y*w+x)*4;
+        rs.push(data[i]);gs.push(data[i+1]);bs.push(data[i+2]);
+      };
+      for(let x=x0;x<=x1;x++){
+        for(let k=0;k<2;k++){
+          if(y0+k<h)push(x,y0+k);
+          if(y1-k>=0)push(x,y1-k);
+        }
       }
-      tiles.clear();
-    }
-
-    function clearPageSvg(){
-      if(pageSvg){pageSvg.remove();pageSvg=null}
-      pageSvgSource="";
-      svgTextCoverage=0;
-      mTextSvg.textContent="—";
-      mSvgNodes.textContent="—";
-      downloadSvgBtn.disabled=true;
-    }
-
-    function tileDpr(){
-      const device=Math.max(1,window.devicePixelRatio||1);
-      if(zoom>=7.5)return 1;
-      if(zoom>=4)return Math.min(1.25,device);
-      return Math.min(MAX_TILE_DPR,device);
-    }
-
-    function pagePointFromClient(clientX,clientY){
-      if(!renderViewport)return null;
-      const r=surface.getBoundingClientRect();
-      const x=clientX-r.left;
-      const y=clientY-r.top;
-      if(x<0||y<0||x>renderViewport.width||y>renderViewport.height)return null;
-      const [pdfX,pdfY]=renderViewport.convertToPdfPoint(x,y);
-      return {pdfX,pdfY,x,y};
-    }
-
-    function pixelForPdfPoint(pdfPoint,viewport=renderViewport){
-      if(!pdfPoint||!viewport)return null;
-      const [x,y]=viewport.convertToViewportPoint(pdfPoint.x,pdfPoint.y);
-      return {x,y};
-    }
-
-    function updateAnchorVisual(){
-      if(!anchorPdf||!renderViewport){
-        anchorEl.classList.add("hidden");
-        mAnchor.textContent="—";
-        mDelta.textContent="—";
-        return;
+      for(let y=y0;y<=y1;y++){
+        for(let k=0;k<2;k++){
+          if(x0+k<w)push(x0+k,y);
+          if(x1-k>=0)push(x1-k,y);
+        }
       }
-      const p=pixelForPdfPoint(anchorPdf);
-      anchorEl.style.left=p.x+"px";
-      anchorEl.style.top=p.y+"px";
-      anchorEl.classList.remove("hidden");
-      mAnchor.textContent=fmt(anchorPdf.x,3)+" / "+fmt(anchorPdf.y,3)+" pt";
-
-      const [rx,ry]=renderViewport.convertToPdfPoint(p.x,p.y);
-      const [px2,py2]=renderViewport.convertToViewportPoint(rx,ry);
-      const delta=Math.hypot(px2-p.x,py2-p.y);
-      mDelta.textContent=delta<0.0005?"< 0,001 px":fmt(delta,4)+" px";
+      const bg=[median(rs),median(gs),median(bs)];
+      let variance=0,count=0;
+      for(let i=0;i<rs.length;i++){
+        const dr=rs[i]-bg[0],dg=gs[i]-bg[1],db=bs[i]-bg[2];
+        variance+=(dr*dr+dg*dg+db*db)/3;count++;
+      }
+      return {bg,variance:count?variance/count:0};
     }
 
-    function centerOnPdfPoint(pdfPoint,behavior="auto"){
-      if(!pdfPoint||!renderViewport)return;
-      const p=pixelForPdfPoint(pdfPoint);
-      const left=surface.offsetLeft+p.x-viewportEl.clientWidth/2;
-      const top=surface.offsetTop+p.y-viewportEl.clientHeight/2;
-      viewportEl.scrollTo({left:Math.max(0,left),top:Math.max(0,top),behavior});
+    function inpaintRecognizedWord(img,w,h,bbox){
+      const x0=Math.max(0,Math.floor(bbox.x0)-1),y0=Math.max(0,Math.floor(bbox.y0)-1);
+      const x1=Math.min(w-1,Math.ceil(bbox.x1)+1),y1=Math.min(h-1,Math.ceil(bbox.y1)+1);
+      if(x1<=x0||y1<=y0)return [20,20,20];
+      const {bg,variance}=sampleBorderStats(img.data,w,h,{x0,y0,x1,y1});
+      const regionW=x1-x0+1,regionH=y1-y0+1;
+      const mask=new Uint8Array(regionW*regionH);
+      const dists=[];
+      const threshold=Math.max(38,Math.min(105,34+Math.sqrt(variance)*1.55));
+
+      for(let y=y0;y<=y1;y++){
+        for(let x=x0;x<=x1;x++){
+          const i=(y*w+x)*4;
+          const dr=img.data[i]-bg[0],dg=img.data[i+1]-bg[1],db=img.data[i+2]-bg[2];
+          const d=Math.sqrt(dr*dr+dg*dg+db*db);
+          dists.push({x,y,d,r:img.data[i],g:img.data[i+1],b:img.data[i+2]});
+          if(d>threshold)mask[(y-y0)*regionW+(x-x0)]=1;
+        }
+      }
+
+      const dilated=mask.slice();
+      for(let ry=0;ry<regionH;ry++)for(let rx=0;rx<regionW;rx++){
+        if(!mask[ry*regionW+rx])continue;
+        for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){
+          const nx=rx+ox,ny=ry+oy;
+          if(nx>=0&&ny>=0&&nx<regionW&&ny<regionH)dilated[ny*regionW+nx]=1;
+        }
+      }
+
+      const fg=dists.filter(p=>p.d>threshold).sort((a,b)=>b.d-a.d).slice(0,Math.max(1,Math.ceil(dists.length*.28)));
+      const textColor=fg.length?[median(fg.map(p=>p.r)),median(fg.map(p=>p.g)),median(fg.map(p=>p.b))]:[20,20,20];
+
+      const original=new Uint8ClampedArray(img.data);
+      const isMasked=(x,y)=>x>=x0&&y>=y0&&x<=x1&&y<=y1&&dilated[(y-y0)*regionW+(x-x0)]===1;
+
+      for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+        if(!isMasked(x,y))continue;
+        let rr=0,gg=0,bb=0,n=0;
+        for(let radius=1;radius<=6&&n<4;radius++){
+          for(let oy=-radius;oy<=radius;oy++){
+            for(let ox=-radius;ox<=radius;ox++){
+              if(Math.abs(ox)!==radius&&Math.abs(oy)!==radius)continue;
+              const nx=x+ox,ny=y+oy;
+              if(nx<0||ny<0||nx>=w||ny>=h||isMasked(nx,ny))continue;
+              const j=(ny*w+nx)*4;
+              rr+=original[j];gg+=original[j+1];bb+=original[j+2];n++;
+            }
+          }
+        }
+        const i=(y*w+x)*4;
+        img.data[i]=n?rr/n:bg[0];
+        img.data[i+1]=n?gg/n:bg[1];
+        img.data[i+2]=n?bb/n:bg[2];
+        img.data[i+3]=255;
+      }
+      return textColor;
     }
 
-    function currentCenterPdfPoint(){
-      if(!renderViewport)return null;
-      const x=viewportEl.scrollLeft+viewportEl.clientWidth/2-surface.offsetLeft;
-      const y=viewportEl.scrollTop+viewportEl.clientHeight/2-surface.offsetTop;
-      const cx=Math.max(0,Math.min(renderViewport.width,x));
-      const cy=Math.max(0,Math.min(renderViewport.height,y));
-      const [pdfX,pdfY]=renderViewport.convertToPdfPoint(cx,cy);
-      return {x:pdfX,y:pdfY};
+    function parseTsv(tsv){
+      const lines=String(tsv||"").split(/\r?\n/);
+      const words=[];
+      for(let i=1;i<lines.length;i++){
+        if(!lines[i])continue;
+        const p=lines[i].split("\t");
+        if(p.length<12)continue;
+        const level=Number(p[0]),conf=Number(p[10]);
+        const text=normalizeText(p.slice(11).join("\t"));
+        if(level!==5||!text||!Number.isFinite(conf)||conf<OCR_CONFIDENCE)continue;
+        const left=Number(p[6]),top=Number(p[7]),width=Number(p[8]),height=Number(p[9]);
+        if(![left,top,width,height].every(Number.isFinite)||width<2||height<2)continue;
+        words.push({text,conf,bbox:{x0:left,y0:top,x1:left+width,y1:top+height}});
+      }
+      return words;
     }
 
-    function visibleTileRange(){
-      if(!renderViewport)return null;
-      const sx=surface.offsetLeft;
-      const sy=surface.offsetTop;
-      const left=Math.max(0,viewportEl.scrollLeft-sx);
-      const top=Math.max(0,viewportEl.scrollTop-sy);
-      const right=Math.min(renderViewport.width,viewportEl.scrollLeft+viewportEl.clientWidth-sx);
-      const bottom=Math.min(renderViewport.height,viewportEl.scrollTop+viewportEl.clientHeight-sy);
-      if(right<=0||bottom<=0||left>=renderViewport.width||top>=renderViewport.height)return null;
-      const maxCol=Math.max(0,Math.ceil(renderViewport.width/TILE_CSS)-1);
-      const maxRow=Math.max(0,Math.ceil(renderViewport.height/TILE_CSS)-1);
+    function prefixSvgIds(svg,prefix){
+      const map=new Map();
+      svg.querySelectorAll("[id]").forEach(el=>{
+        const old=el.id,newId=prefix+old;
+        map.set(old,newId);el.id=newId;
+      });
+      if(!map.size)return;
+      const attrs=["href","xlink:href","clip-path","mask","filter","fill","stroke","style"];
+      svg.querySelectorAll("*").forEach(el=>{
+        for(const attr of attrs){
+          const value=el.getAttribute(attr);
+          if(!value)continue;
+          let next=value;
+          for(const [old,newId] of map){
+            next=next.replaceAll(`url(#${old})`,`url(#${newId})`);
+            if(next===`#${old}`)next=`#${newId}`;
+          }
+          if(next!==value)el.setAttribute(attr,next);
+        }
+      });
+      svg.querySelectorAll("style").forEach(style=>{
+        let css=style.textContent||"";
+        for(const [old,newId] of map)css=css.replaceAll(`url(#${old})`,`url(#${newId})`);
+        style.textContent=css;
+      });
+    }
+
+    function addSemanticNativeText(svg,textContent,viewport){
+      const ns="http://www.w3.org/2000/svg";
+      const g=document.createElementNS(ns,"g");
+      g.setAttribute("data-role","native-semantic-text");
+      g.setAttribute("opacity","0");
+      g.setAttribute("pointer-events","none");
+      let count=0;
+      for(const item of textContent.items||[]){
+        if(typeof item?.str!=="string"||!item.str.length)continue;
+        const tx=pdfjsLib.Util.transform(viewport.transform,item.transform);
+        const el=document.createElementNS(ns,"text");
+        el.setAttribute("x","0");el.setAttribute("y","0");
+        el.setAttribute("transform",`matrix(${tx.map(v=>Number(v).toFixed(8)).join(" ")})`);
+        el.setAttribute("font-size","1");
+        el.setAttribute("data-native-text","1");
+        el.textContent=item.str;
+        g.appendChild(el);count++;
+      }
+      svg.appendChild(g);
+      return count;
+    }
+
+    async function ensureOcrWorker(){
+      if(ocrWorker)return ocrWorker;
+      busy.textContent="Texterkennung wird geladen …";
+      ocrWorker=await Tesseract.createWorker(["deu","eng"],1,{
+        logger:m=>{
+          if(m?.status==="recognizing text"&&Number.isFinite(m.progress)){
+            busy.textContent="Texterkennung "+Math.round(m.progress*100)+" %";
+          }
+        }
+      });
+      await ocrWorker.setParameters({
+        preserve_interword_spaces:"1",
+        user_defined_dpi:"300"
+      });
+      return ocrWorker;
+    }
+
+    async function canvasDataUrl(canvas,type="image/png",quality=.96){
+      return canvas.toDataURL(type,quality);
+    }
+
+    async function convertNativePage(page,pageNo,viewport,textContent,token){
+      const opList=await page.getOperatorList();
+      if(token!==loadToken)throw new Error("cancelled");
+      const gfx=new pdfjsLib.SVGGraphics(page.commonObjs,page.objs);
+      gfx.embedFonts=true;
+      const svg=await gfx.getSVG(opList,viewport);
+      if(token!==loadToken)throw new Error("cancelled");
+      svg.setAttribute("xmlns","http://www.w3.org/2000/svg");
+      svg.setAttribute("viewBox",`0 0 ${viewport.width} ${viewport.height}`);
+      svg.setAttribute("width",String(viewport.width));
+      svg.setAttribute("height",String(viewport.height));
+      svg.setAttribute("preserveAspectRatio","none");
+      svg.setAttribute("data-page",String(pageNo));
+      svg.setAttribute("data-mode","native");
+      prefixSvgIds(svg,`p${pageNo}-`);
+      const semantic=addSemanticNativeText(svg,textContent,viewport);
+      const baked=svg.querySelectorAll("image").length;
       return {
-        c0:Math.max(0,Math.floor(left/TILE_CSS)-TILE_MARGIN),
-        r0:Math.max(0,Math.floor(top/TILE_CSS)-TILE_MARGIN),
-        c1:Math.min(maxCol,Math.floor(Math.max(0,right-1)/TILE_CSS)+TILE_MARGIN),
-        r1:Math.min(maxRow,Math.floor(Math.max(0,bottom-1)/TILE_CSS)+TILE_MARGIN)
+        pageNo,width:viewport.width,height:viewport.height,mode:"native",
+        svgString:new XMLSerializer().serializeToString(svg),
+        vectorRuns:semantic,bakedCount:baked,ocrWords:0
       };
     }
 
-    function tileKey(row,col){return pageNo+"@"+zoom+":"+row+":"+col}
-
-    async function createTile(row,col,epoch){
-      if(!pageObj||!renderViewport||epoch!==renderEpoch)return;
-      const key=tileKey(row,col);
-      if(tiles.has(key))return;
-
-      const x=col*TILE_CSS;
-      const y=row*TILE_CSS;
-      const cssW=Math.max(1,Math.min(TILE_CSS,renderViewport.width-x));
-      const cssH=Math.max(1,Math.min(TILE_CSS,renderViewport.height-y));
-      const dpr=tileDpr();
+    async function convertOcrPage(page,pageNo,viewport,token){
+      const scale=Math.max(1.6,Math.min(3.4,OCR_LONG_EDGE/Math.max(viewport.width,viewport.height)));
+      const renderViewport=page.getViewport({scale});
       const canvas=document.createElement("canvas");
-      canvas.className="tile";
-      canvas.style.left=x+"px";
-      canvas.style.top=y+"px";
-      canvas.style.width=cssW+"px";
-      canvas.style.height=cssH+"px";
-      canvas.width=Math.max(1,Math.round(cssW*dpr));
-      canvas.height=Math.max(1,Math.round(cssH*dpr));
-      const ctx=canvas.getContext("2d",{alpha:false});
-      if(!ctx)return;
+      canvas.width=Math.max(1,Math.round(renderViewport.width));
+      canvas.height=Math.max(1,Math.round(renderViewport.height));
+      const ctx=canvas.getContext("2d",{alpha:false,willReadFrequently:true});
       ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);
-      surface.insertBefore(canvas,anchorEl);
-      const tile={canvas,task:null};
-      tiles.set(key,tile);
-      mTiles.textContent=String(tiles.size);
+      await page.render({canvasContext:ctx,viewport:renderViewport,background:"white"}).promise;
+      if(token!==loadToken)throw new Error("cancelled");
 
-      try{
-        tile.task=pageObj.render({
-          canvasContext:ctx,
-          viewport:renderViewport,
-          transform:[dpr,0,0,dpr,-x*dpr,-y*dpr],
-          background:"white"
-        });
-        await tile.task.promise;
-      }catch(err){
-        if(err?.name!=="RenderingCancelledException")console.error(err);
+      const worker=await ensureOcrWorker();
+      busy.textContent=`Seite ${pageNo}: Text erkennen …`;
+      const result=await worker.recognize(canvas,{}, {tsv:true,text:true});
+      if(token!==loadToken)throw new Error("cancelled");
+      const words=parseTsv(result?.data?.tsv);
+      const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+
+      const vectorWords=[];
+      for(const word of words){
+        const color=inpaintRecognizedWord(img,canvas.width,canvas.height,word.bbox);
+        vectorWords.push({...word,color});
       }
-    }
+      ctx.putImageData(img,0,0);
+      const residual=await canvasDataUrl(canvas,"image/png");
+      canvas.width=1;canvas.height=1;
 
-    function pruneTiles(activeKeys){
-      for(const [key,tile] of tiles){
-        if(activeKeys.has(key))continue;
-        try{tile.task?.cancel()}catch{}
-        tile.canvas.remove();
-        tiles.delete(key);
-      }
-      mTiles.textContent=String(tiles.size);
-    }
-
-    async function renderVisibleTiles(){
-      scrollRAF=0;
-      if(!pageObj||!renderViewport)return;
-      const range=visibleTileRange();
-      if(!range)return;
-      const epoch=renderEpoch;
-      const active=new Set();
-      const jobs=[];
-      for(let r=range.r0;r<=range.r1;r++){
-        for(let c=range.c0;c<=range.c1;c++){
-          const key=tileKey(r,c);
-          active.add(key);
-          if(!tiles.has(key))jobs.push(createTile(r,c,epoch));
-        }
-      }
-      pruneTiles(active);
-      if(jobs.length){
-        busy.classList.add("show");
-        await Promise.allSettled(jobs);
-        if(epoch===renderEpoch)busy.classList.remove("show");
-      }
-    }
-
-    function scheduleTiles(){
-      // V3 uses one canonical SVG page. Canvas tiling is intentionally not
-      // used while SVG mode is active, so text cannot be rasterized at zoom.
-      if(pageSvg)return;
-      if(scrollRAF)return;
-      scrollRAF=requestAnimationFrame(renderVisibleTiles);
-    }
-
-    function updateZoomButtons(){
-      zoomGrid.querySelectorAll("[data-zoom]").forEach(btn=>{
-        btn.classList.toggle("active",Math.abs(Number(btn.dataset.zoom)-zoom)<1e-9);
-      });
-      mZoom.textContent=(String(zoom).replace(".",","))+"×";
-    }
-
-    async function applyZoom(nextZoom,{keepPoint=null,center=true}={}){
-      if(!pageObj)return;
-      const preserve=keepPoint||anchorPdf||currentCenterPdfPoint();
-      zoom=Math.max(.2,Math.min(32,Number(nextZoom)||1));
-      renderViewport=pageObj.getViewport({scale:zoom});
-      surface.style.width=renderViewport.width+"px";
-      surface.style.height=renderViewport.height+"px";
-      if(pageSvg){
-        pageSvg.style.width=renderViewport.width+"px";
-        pageSvg.style.height=renderViewport.height+"px";
-      }
-      updateZoomButtons();
-      updateAnchorVisual();
-      await new Promise(requestAnimationFrame);
-      if(center&&preserve)centerOnPdfPoint(preserve);
-    }
-
-    function normalizedText(value){
-      return String(value??"").replace(/\s+/g," ").trim();
-    }
-
-    function appendSemanticSvgText(svg,textContent){
-      const ns="http://www.w3.org/2000/svg";
-      const group=document.createElementNS(ns,"g");
-      group.setAttribute("data-role","pdf-text-svg");
-      group.setAttribute("opacity","0");
-      group.setAttribute("pointer-events","none");
-      group.setAttribute("aria-label","PDF text layer");
-
-      const items=textContent.items.filter(item=>typeof item?.str==="string"&&item.str.length>0);
-      for(const item of items){
-        const style=textContent.styles?.[item.fontName]||{};
-        const tx=pdfjsLib.Util.transform(pageBaseViewport.transform,item.transform);
-        const el=document.createElementNS(ns,"text");
-        el.setAttribute("x","0");
-        el.setAttribute("y","0");
-        el.setAttribute("transform",`matrix(${tx.map(v=>Number(v).toFixed(8)).join(" ")})`);
-        el.setAttribute("font-size","1");
-        el.setAttribute("font-family",style.fontFamily||"sans-serif");
-        el.setAttribute("data-pdf-text","1");
-        el.textContent=item.str;
-        group.appendChild(el);
-      }
-      svg.appendChild(group);
-      return items;
-    }
-
-    async function buildSvgPage(token){
-      if(!pageObj||!pageBaseViewport)return;
-      const [opList,textContent]=await Promise.all([
-        pageObj.getOperatorList(),
-        pageObj.getTextContent({includeMarkedContent:true,disableNormalization:false})
-      ]);
-      if(token!==loadToken)return;
-
-      const gfx=new pdfjsLib.SVGGraphics(pageObj.commonObjs,pageObj.objs);
-      gfx.embedFonts=true;
-      const svg=await gfx.getSVG(opList,pageBaseViewport);
-      if(token!==loadToken)return;
-
-      svg.classList.add("page-svg");
-      svg.id="pageSvg";
-      svg.setAttribute("preserveAspectRatio","none");
-      if(!svg.getAttribute("viewBox")){
-        svg.setAttribute("viewBox",`0 0 ${pageBaseViewport.width} ${pageBaseViewport.height}`);
+      const sx=viewport.width/renderViewport.width;
+      const sy=viewport.height/renderViewport.height;
+      let textSvg="";
+      for(const word of vectorWords){
+        const x=word.bbox.x0*sx;
+        const y0=word.bbox.y0*sy;
+        const w=(word.bbox.x1-word.bbox.x0)*sx;
+        const h=(word.bbox.y1-word.bbox.y0)*sy;
+        const fontSize=Math.max(2,h*.82);
+        const y=y0+h*.84;
+        const fill=textColorCss(word.color);
+        textSvg+=`<text data-ocr-word="1" data-confidence="${word.conf.toFixed(1)}" x="${x.toFixed(4)}" y="${y.toFixed(4)}" font-family="Arial,Helvetica,sans-serif" font-size="${fontSize.toFixed(4)}" fill="${fill}" stroke="${fill}" stroke-width="${Math.max(.02,fontSize*.012).toFixed(4)}" paint-order="stroke fill" textLength="${Math.max(1,w).toFixed(4)}" lengthAdjust="spacingAndGlyphs">${escapeXml(word.text)}</text>`;
       }
 
-      const items=appendSemanticSvgText(svg,textContent);
-      const semanticCount=svg.querySelectorAll('[data-pdf-text="1"]').length;
-      svgTextCoverage=items.length===0?100:(semanticCount===items.length?100:Math.round(semanticCount/items.length*100));
-      if(svgTextCoverage!==100){
-        throw new Error(`Text→SVG unvollständig: ${semanticCount}/${items.length}`);
-      }
-
-      const serializer=new XMLSerializer();
-      pageSvgSource=serializer.serializeToString(svg);
-      clearPageSvg();
-      pageSvg=svg;
-      svgTextCoverage=100;
-      pageSvgSource=serializer.serializeToString(svg);
-      surface.insertBefore(pageSvg,anchorEl);
-      if(renderViewport){
-        pageSvg.style.width=renderViewport.width+"px";
-        pageSvg.style.height=renderViewport.height+"px";
-      }
-
-      mTextSvg.textContent=`${semanticCount} / ${items.length} · 100%`;
-      mSvgNodes.textContent=String(pageSvg.querySelectorAll("*").length);
-      modeBadge.textContent="SVG · Text 100% · PDF anchors";
-      downloadSvgBtn.disabled=false;
+      const svgString=`<svg xmlns="http://www.w3.org/2000/svg" width="${viewport.width}" height="${viewport.height}" viewBox="0 0 ${viewport.width} ${viewport.height}" preserveAspectRatio="none" data-page="${pageNo}" data-mode="ocr"><image data-baked-diff="1" x="0" y="0" width="${viewport.width}" height="${viewport.height}" href="${residual}"/><g data-role="ocr-text" text-rendering="geometricPrecision">${textSvg}</g></svg>`;
+      return {
+        pageNo,width:viewport.width,height:viewport.height,mode:"ocr",
+        svgString,vectorRuns:vectorWords.length,bakedCount:1,ocrWords:vectorWords.length
+      };
     }
 
-    function downloadCurrentSvg(){
-      if(!pageSvg||!pageSvgSource)return;
-      const xml='<?xml version="1.0" encoding="UTF-8"?>\n'+pageSvgSource;
-      const blob=new Blob([xml],{type:"image/svg+xml;charset=utf-8"});
+    async function convertPage(pageNo,token){
+      const page=await pdfDoc.getPage(pageNo);
+      const viewport=page.getViewport({scale:1});
+      const textContent=await page.getTextContent({includeMarkedContent:true,disableNormalization:false});
+      const nativeChars=(textContent.items||[]).reduce((n,item)=>n+(typeof item?.str==="string"?item.str.replace(/\s/g,"").length:0),0);
+      busy.textContent=`Seite ${pageNo} von ${pdfDoc.numPages} …`;
+      if(nativeChars>=NATIVE_TEXT_MIN_CHARS){
+        return convertNativePage(page,pageNo,viewport,textContent,token);
+      }
+      return convertOcrPage(page,pageNo,viewport,token);
+    }
+
+    function updateSummary(){
+      const vectorRuns=convertedPages.reduce((n,p)=>n+p.vectorRuns,0);
+      const baked=convertedPages.reduce((n,p)=>n+p.bakedCount,0);
+      mPages.textContent=convertedPages.length?String(convertedPages.length):"—";
+      mVectorText.textContent=convertedPages.length?String(vectorRuns):"—";
+      mBaked.textContent=convertedPages.length?String(baked):"—";
+      mComplete.textContent=convertedPages.length?"100 % vollständig":"—";
+    }
+
+    function fitScaleFor(page){
+      if(!page)return 1;
+      const availableW=Math.max(200,viewport.clientWidth-112);
+      const availableH=Math.max(260,viewport.clientHeight-112);
+      return Math.min(1,availableW/page.width,availableH/page.height);
+    }
+
+    function renderPreview(){
+      const page=convertedPages[currentPageIndex];
+      previewPage.innerHTML="";
+      if(!page){
+        pageCounter.textContent="— / —";return;
+      }
+      const parsed=new DOMParser().parseFromString(page.svgString,"image/svg+xml");
+      const svg=parsed.documentElement;
+      svg.removeAttribute("width");svg.removeAttribute("height");
+      svg.style.width=page.width+"px";
+      svg.style.height=page.height+"px";
+      previewPage.appendChild(document.importNode(svg,true));
+      if(previewScale<=0)previewScale=fitScaleFor(page);
+      previewPage.style.width=page.width+"px";
+      previewPage.style.height=page.height+"px";
+      previewPage.style.transform=`scale(${previewScale})`;
+      previewWrap.style.minWidth=Math.ceil(page.width*previewScale+112)+"px";
+      previewWrap.style.minHeight=Math.ceil(page.height*previewScale+112)+"px";
+      pageCounter.textContent=`${currentPageIndex+1} / ${convertedPages.length}`;
+      zoomLabel.textContent=previewScale===fitScaleFor(page)?"Fit":Math.round(previewScale*100)+"%";
+      prevBtn.disabled=currentPageIndex<=0;
+      nextBtn.disabled=currentPageIndex>=convertedPages.length-1;
+      downloadPageBtn.disabled=false;
+      empty.style.display="none";
+    }
+
+    function setPreviewScale(next){
+      const page=convertedPages[currentPageIndex];if(!page)return;
+      previewScale=Math.max(.2,Math.min(8,next));
+      renderPreview();
+    }
+
+    function buildMergedSvg(){
+      if(!convertedPages.length)return "";
+      const gap=24;
+      const maxWidth=Math.max(...convertedPages.map(p=>p.width));
+      const totalHeight=convertedPages.reduce((n,p)=>n+p.height,0)+gap*(convertedPages.length-1);
+      let y=0,body="";
+      for(const page of convertedPages){
+        const parsed=new DOMParser().parseFromString(page.svgString,"image/svg+xml");
+        const svg=parsed.documentElement;
+        prefixSvgIds(svg,`merged-p${page.pageNo}-`);
+        const x=(maxWidth-page.width)/2;
+        body+=`<svg x="${x}" y="${y}" width="${page.width}" height="${page.height}" viewBox="0 0 ${page.width} ${page.height}" preserveAspectRatio="none" data-merged-page="${page.pageNo}">${svg.innerHTML}</svg>`;
+        y+=page.height+gap;
+      }
+      const meta=escapeXml(JSON.stringify({
+        source:sourceName,pages:convertedPages.length,
+        nativePages:convertedPages.filter(p=>p.mode==="native").length,
+        ocrPages:convertedPages.filter(p=>p.mode==="ocr").length,
+        vectorRuns:convertedPages.reduce((n,p)=>n+p.vectorRuns,0)
+      }));
+      return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${maxWidth}" height="${totalHeight}" viewBox="0 0 ${maxWidth} ${totalHeight}" data-alantu-merged="1"><metadata>${meta}</metadata>${body}</svg>`;
+    }
+
+    function downloadBlob(text,type,name){
+      const blob=new Blob([text],{type});
       const url=URL.createObjectURL(blob);
-      const a=document.createElement("a");
-      const raw=(fileBadge.textContent||"exposee").replace(/\.pdf$/i,"").replace(/[\\/:*?"<>|]+/g,"-");
-      a.href=url;
-      a.download=`${raw}-seite-${String(pageNo).padStart(2,"0")}.svg`;
+      const a=document.createElement("a");a.href=url;a.download=name;a.rel="noopener";
       document.body.appendChild(a);a.click();a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url),1000);
+      setTimeout(()=>URL.revokeObjectURL(url),1500);
     }
 
-    async function fitPage(){
-      if(!pageObj||!pageBaseViewport)return;
-      const availableW=Math.max(160,viewportEl.clientWidth-112);
-      const availableH=Math.max(160,viewportEl.clientHeight-112);
-      const fit=Math.min(availableW/pageBaseViewport.width,availableH/pageBaseViewport.height);
-      await applyZoom(Math.max(.2,Math.min(4,fit)),{keepPoint:anchorPdf||null});
+    function downloadMerged(){
+      const svg=buildMergedSvg();if(!svg)return;
+      downloadBlob(svg,"image/svg+xml;charset=utf-8",sanitizeName(sourceName)+"-alantu.svg");
     }
 
-    async function showPage(nextNo,{fit=false}={}){
-      if(!pdfDoc)return;
-      const token=++loadToken;
-      clearTiles();
-      clearPageSvg();
-      busy.classList.add("show");
-      try{
-        try{pageObj?.cleanup()}catch{}
-        pageNo=Math.max(1,Math.min(pdfDoc.numPages,nextNo));
-        pageObj=await pdfDoc.getPage(pageNo);
-        if(token!==loadToken)return;
-        pageBaseViewport=pageObj.getViewport({scale:1});
-        mSize.textContent=fmt(pageBaseViewport.width,1)+" × "+fmt(pageBaseViewport.height,1)+" pt";
-        pageCounter.textContent=String(pageNo).padStart(2,"0")+" / "+String(pdfDoc.numPages).padStart(2,"0");
-        prevBtn.disabled=pageNo<=1;
-        nextBtn.disabled=pageNo>=pdfDoc.numPages;
-        anchorPdf={x:(pageBaseViewport.viewBox[0]+pageBaseViewport.viewBox[2])/2,y:(pageBaseViewport.viewBox[1]+pageBaseViewport.viewBox[3])/2};
-        empty.style.display="none";
-        renderViewport=pageObj.getViewport({scale:zoom});
-        await buildSvgPage(token);
-        if(token!==loadToken)return;
-        if(fit)await fitPage(); else await applyZoom(zoom,{keepPoint:anchorPdf});
-        setStatus("Seite "+pageNo+" bereit · Text→SVG 100%.","ok");
-      }catch(err){
-        console.error(err);
-        setStatus("Seite konnte nicht gerendert werden.","error");
-      }finally{
-        if(token===loadToken)busy.classList.remove("show");
-      }
+    function downloadCurrentPage(){
+      const page=convertedPages[currentPageIndex];if(!page)return;
+      const xml='<?xml version="1.0" encoding="UTF-8"?>\n'+page.svgString;
+      downloadBlob(xml,"image/svg+xml;charset=utf-8",`${sanitizeName(sourceName)}-seite-${String(page.pageNo).padStart(2,"0")}.svg`);
+    }
+
+    async function resetDocument(){
+      loadToken++;
+      convertedPages=[];
+      currentPageIndex=0;previewScale=0;
+      previewPage.innerHTML="";
+      downloadMergedBtn.disabled=true;downloadPageBtn.disabled=true;
+      prevBtn.disabled=true;nextBtn.disabled=true;
+      setProgress(0);updateSummary();
+      empty.style.display="grid";
+      try{await pdfDoc?.destroy()}catch{}
+      pdfDoc=null;
     }
 
     async function loadPdf(file){
@@ -552,28 +574,39 @@
       if(file.type!=="application/pdf"&&!file.name.toLowerCase().endsWith(".pdf")){
         setStatus("Bitte eine PDF-Datei auswählen.","error");return;
       }
+      await resetDocument();
       const token=++loadToken;
-      clearTiles();
-      clearPageSvg();
+      sourceName=file.name;fileBadge.textContent=file.name;
       busy.classList.add("show");
-      setStatus("PDF wird gelesen …");
+      setStatus("PDF wird gelesen …");setProgress(2);
       try{
-        try{await pdfDoc?.destroy()}catch{}
-        pdfDoc=null;pageObj=null;pageBaseViewport=null;renderViewport=null;
         const bytes=new Uint8Array(await file.arrayBuffer());
         if(token!==loadToken)return;
         pdfDoc=await pdfjsLib.getDocument({data:bytes,fontExtraProperties:true}).promise;
-        if(token!==loadToken)return;
         if(pdfDoc.numPages<1)throw new Error("PDF enthält keine Seiten.");
         if(pdfDoc.numPages>MAX_PAGES)throw new Error("Maximal "+MAX_PAGES+" Seiten.");
-        fileBadge.textContent=file.name;
-        pageNo=1;zoom=1;
-        await showPage(1,{fit:true});
+
+        for(let i=1;i<=pdfDoc.numPages;i++){
+          if(token!==loadToken)throw new Error("cancelled");
+          setStatus(`Seite ${i} von ${pdfDoc.numPages} wird konvertiert …`);
+          setProgress(4+((i-1)/pdfDoc.numPages)*90);
+          const converted=await convertPage(i,token);
+          convertedPages.push(converted);
+          updateSummary();
+          if(i===1){currentPageIndex=0;previewScale=0;renderPreview()}
+          await new Promise(requestAnimationFrame);
+        }
+
+        setProgress(100);
+        setStatus(`${convertedPages.length} Seiten fertig. Text ist Vektor, Rest bleibt vollständig erhalten.`,"ok");
+        downloadMergedBtn.disabled=false;downloadPageBtn.disabled=false;
+        currentPageIndex=0;previewScale=0;renderPreview();
+        setTimeout(()=>setProgress(0),900);
       }catch(err){
-        console.error(err);
-        setStatus(err?.message||"PDF konnte nicht gelesen werden.","error");
-        fileBadge.textContent="Noch keine PDF geladen";
-        empty.style.display="grid";
+        if(err?.message!=="cancelled"){
+          console.error(err);
+          setStatus(err?.message||"Konvertierung fehlgeschlagen.","error");
+        }
       }finally{
         if(token===loadToken)busy.classList.remove("show");
       }
@@ -584,59 +617,16 @@
     ["dragleave","drop"].forEach(type=>dropzone.addEventListener(type,e=>{e.preventDefault();dropzone.classList.remove("drag")}));
     dropzone.addEventListener("drop",e=>{const file=e.dataTransfer?.files?.[0];if(file)loadPdf(file)});
 
-    prevBtn.addEventListener("click",()=>showPage(pageNo-1));
-    nextBtn.addEventListener("click",()=>showPage(pageNo+1));
-    zoomGrid.addEventListener("click",e=>{
-      const btn=e.target.closest("button");if(!btn||!pageObj)return;
-      if(btn===fitBtn){fitPage();return}
-      if(btn.dataset.zoom)applyZoom(Number(btn.dataset.zoom));
-    });
-    centerAnchorBtn.addEventListener("click",()=>centerOnPdfPoint(anchorPdf,"smooth"));
-    downloadSvgBtn.addEventListener("click",downloadCurrentSvg);
-    clearAnchorBtn.addEventListener("click",()=>{anchorPdf=null;updateAnchorVisual()});
+    prevBtn.addEventListener("click",()=>{if(currentPageIndex>0){currentPageIndex--;previewScale=0;renderPreview()}});
+    nextBtn.addEventListener("click",()=>{if(currentPageIndex<convertedPages.length-1){currentPageIndex++;previewScale=0;renderPreview()}});
+    zoomOutBtn.addEventListener("click",()=>setPreviewScale((previewScale||fitScaleFor(convertedPages[currentPageIndex]))/1.25));
+    zoomInBtn.addEventListener("click",()=>setPreviewScale((previewScale||fitScaleFor(convertedPages[currentPageIndex]))*1.25));
+    zoomLabel.addEventListener("click",()=>{previewScale=0;renderPreview()});
+    downloadMergedBtn.addEventListener("click",downloadMerged);
+    downloadPageBtn.addEventListener("click",downloadCurrentPage);
+    window.addEventListener("resize",()=>{if(convertedPages.length&&previewScale<=fitScaleFor(convertedPages[currentPageIndex])+.001){previewScale=0;renderPreview()}});
 
-    viewportEl.addEventListener("scroll",scheduleTiles,{passive:true});
-    new ResizeObserver(()=>{if(!pageSvg)scheduleTiles()}).observe(viewportEl);
-
-    surface.addEventListener("pointerdown",e=>{
-      if(!pageObj||e.button!==0)return;
-      isPointerDown=true;pointerMoved=false;
-      dragStart={x:e.clientX,y:e.clientY,left:viewportEl.scrollLeft,top:viewportEl.scrollTop};
-      surface.setPointerCapture?.(e.pointerId);
-    });
-    surface.addEventListener("pointermove",e=>{
-      if(!isPointerDown||!dragStart)return;
-      const dx=e.clientX-dragStart.x,dy=e.clientY-dragStart.y;
-      if(Math.hypot(dx,dy)>5)pointerMoved=true;
-      if(pointerMoved){
-        viewportEl.classList.add("grabbing");
-        viewportEl.scrollLeft=dragStart.left-dx;
-        viewportEl.scrollTop=dragStart.top-dy;
-      }
-    });
-    surface.addEventListener("pointerup",e=>{
-      if(!isPointerDown)return;
-      isPointerDown=false;viewportEl.classList.remove("grabbing");
-      if(!pointerMoved){
-        const hit=pagePointFromClient(e.clientX,e.clientY);
-        if(hit){anchorPdf={x:hit.pdfX,y:hit.pdfY};updateAnchorVisual()}
-      }
-      dragStart=null;
-    });
-    surface.addEventListener("pointercancel",()=>{isPointerDown=false;dragStart=null;viewportEl.classList.remove("grabbing")});
-
-    window.addEventListener("keydown",e=>{
-      if(e.key==="ArrowLeft"&&pdfDoc)showPage(pageNo-1);
-      else if(e.key==="ArrowRight"&&pdfDoc)showPage(pageNo+1);
-      else if((e.key==="+"||e.key==="=")&&pageObj){
-        const i=ZOOMS.findIndex(z=>z>zoom+1e-6);applyZoom(i<0?ZOOMS.at(-1):ZOOMS[i]);
-      }else if(e.key==="-"&&pageObj){
-        const prev=[...ZOOMS].reverse().find(z=>z<zoom-1e-6);applyZoom(prev||ZOOMS[0]);
-      }
-    });
-
-    updateZoomButtons();
-    prevBtn.disabled=true;nextBtn.disabled=true;centerAnchorBtn.disabled=false;downloadSvgBtn.disabled=true;
+    updateSummary();prevBtn.disabled=true;nextBtn.disabled=true;
   </script>
 </body>
 </html>
