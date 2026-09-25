@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'tools/yahoo-monetary-v5.mjs'
+      - 'market-clock-core.js'
+      - 'tools/test-market-clock.mjs'
       - 'tools/yahoo-stream-contract.mjs'
       - 'tools/test-yahoo-stream-contract.mjs'
       - 'market-relay/server.mjs'
@@ -28,6 +30,7 @@ jobs:
         run: |
           node tools/test-data-contract.mjs
           node tools/test-yahoo-stream-contract.mjs
+          node tools/test-market-clock.mjs
           cd market-relay && npm install --ignore-scripts=false && cd ..
           node tools/test-sqlite-v6.mjs
       - name: SQLite audit-store invariants
