@@ -652,6 +652,13 @@ export function createAlantuBookCore(options){
     if(getTotalLeaves()<=0)return;
     if(ignorePointerSelector&&e.target.closest?.(ignorePointerSelector))return;
 
+    // Touch gestures that begin on the book belong to the book for their
+    // entire lifetime. Letting the browser start vertical panning first can
+    // fire pointercancel as soon as the user turns the gesture horizontal.
+    // Combined with touch-action:none on the stage this makes page turning
+    // deterministic instead of racing the document scroll gesture.
+    if(e.pointerType==="touch")e.preventDefault();
+
     const totalLeaves=getTotalLeaves();
     const now=performance.now();
 
@@ -686,6 +693,11 @@ export function createAlantuBookCore(options){
 
   function pointerMove(e){
     if(!dragState||dragState.id!==e.pointerId)return;
+
+    // Own touch movement immediately, even before horizontal intent has been
+    // resolved. Changing touch-action after pointerdown is too late on
+    // Safari/Chromium and is the source of intermittent pointercancel.
+    if(e.pointerType==="touch")e.preventDefault();
 
     const totalLeaves=getTotalLeaves();
     const dx=e.clientX-dragState.startX;
@@ -832,15 +844,25 @@ export function createAlantuBookCore(options){
     releaseDrag(false);
   }
 
-  function pointerCancel(){
+  function pointerCancel(e){
+    if(!dragState)return;
+    if(e?.pointerId!=null&&dragState.id!==e.pointerId)return;
     releaseDrag(true);
   }
 
+  function lostPointerCapture(e){
+    // Normally capture is released after pointerup, when dragState is already
+    // null. If capture disappears mid-gesture, cleanly settle instead of
+    // leaving the book in a half-held state.
+    if(dragState&&dragState.id===e.pointerId)releaseDrag(true);
+  }
+
   stage.addEventListener("contextmenu",e=>e.preventDefault());
-  stage.addEventListener("pointerdown",pointerDown);
-  stage.addEventListener("pointermove",pointerMove);
+  stage.addEventListener("pointerdown",pointerDown,{passive:false});
+  stage.addEventListener("pointermove",pointerMove,{passive:false});
   stage.addEventListener("pointerup",pointerUp);
   stage.addEventListener("pointercancel",pointerCancel);
+  stage.addEventListener("lostpointercapture",lostPointerCapture);
 
   if(prevButton)prevButton.addEventListener("click",prev);
   if(nextButton)nextButton.addEventListener("click",next);
