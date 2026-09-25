@@ -291,6 +291,8 @@ async function run(name,viewport){
     if(Number(sourceStateUi.live.archive_count||0)>0&&Number(sourceStateUi.freshItems)!==Number(sourceStateUi.live.archive_count))errors.push('source-archive-count-not-primary:'+JSON.stringify(sourceStateUi));
     if(sourceStateUi.live.contract!=='source-event-v2')errors.push('source-contract-not-v2:'+JSON.stringify(sourceStateUi.live));
     if(sourceStateUi.live.archive_sentiment?.role!=='descriptive_only_not_model_signal')errors.push('archive-sentiment-role-invalid:'+JSON.stringify(sourceStateUi.live.archive_sentiment));
+    const irrelevant=(sourceStateUi.live.items||[]).filter(x=>/oracle academy|university workshop|oracle financial services/i.test(String(x.title||'')));
+    if(irrelevant.length)errors.push('irrelevant-oracle-source:'+JSON.stringify(irrelevant.slice(0,3)));
     const redditArchive=Number(sourceStateUi.live.archive_source_counts?.reddit||0);
     if(redditArchive>0&&sourceStateUi.redditRows<1)errors.push('reddit-archive-not-visible:'+JSON.stringify(sourceStateUi));
     if(sourceStateUi.live.source_health?.x?.status==='disabled'&&!/X\s*nicht verbunden/i.test(sourceStateUi.counts))errors.push('x-disabled-not-explicit:'+JSON.stringify(sourceStateUi));

@@ -114,6 +114,7 @@ function dedupeStories(items,fuzzy=false){
 function marketRelevantStory(x){
   const s=normalizedText(x?.title||'');
   if(!s)return false;
+  if(/\boracle financial services\b/.test(s)&&!/\borcl\b/.test(s))return false;
   if(/\borcl\b/.test(s))return true;
   if(!/\boracle\b/.test(s))return false;
   const material=/\b(stock|share|shares|earnings|revenue|profit|margin|guidance|cloud|oci|ai|openai|stargate|datacenter|data center|capex|debt|bond|financing|contract|deal|analyst|rating|price target|dividend|acquisition|lawsuit|sec|investor|force majeure|blue owl|project jupiter|tiktok|database|java|software|healthcare|fusion|netsuite|partnership|customer)\b/;
