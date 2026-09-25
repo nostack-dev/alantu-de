@@ -8,21 +8,20 @@ pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@
 const WLLAMA_PATHS={default:"https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/src/wasm/wllama.wasm"};
 
 const MODEL={
-  // Same Unlimited-OCR 3B model, browser-safe quantization. Q4_K_M is the
-  // recommended size/quality balance and stays below wllama's 2 GB/file limit.
-  // The matching Q8 projector cuts vision-weight memory substantially vs F16.
+  // Use one verified matching Unlimited-OCR pair. The previous community Q8
+  // projector loaded as a file but was not recognized by wllama as multimodal.
   name:"Unlimited-OCR 3B · Q4_K_M",
-  modelUrl:"https://huggingface.co/sabafallah/Unlimited-OCR-GGUF/resolve/main/unlimited-ocr-Q4_K_M.gguf?download=true",
-  mmprojUrl:"https://huggingface.co/sabafallah/Unlimited-OCR-GGUF/resolve/main/mmproj-unlimited-ocr-q8_0.gguf?download=true",
-  approxGiB:2.25,
-  context:4096
+  modelUrl:"https://huggingface.co/sahilchachra/Unlimited-OCR-GGUF/resolve/main/Unlimited-OCR-Q4_K_M.gguf?download=true",
+  mmprojUrl:"https://huggingface.co/sahilchachra/Unlimited-OCR-GGUF/resolve/main/mmproj-Unlimited-OCR-F16.gguf?download=true",
+  approxGiB:2.75,
+  context:2048
 };
 const MAX_PAGES=60;
 const RENDER_LONG_EDGE=2200;
 // Unlimited-OCR's DeepEncoder base path is a 1024×1024 vision input.
 // Feeding the full 2200px preview into wllama WebGPU made ggml dispatch
 // >65,535 workgroups and hard-aborted the WASM runtime on real browsers.
-const OCR_LONG_EDGE=1024;
+const OCR_LONG_EDGE=768;
 const QUERY=new URLSearchParams(location.search);
 const MOCK_OCR=QUERY.get("mockOcr")==="1";
 const MOCK_OCR_DELAY=Math.max(0,Number(QUERY.get("mockOcrDelay"))||0);
@@ -179,7 +178,7 @@ async function createRuntime(imageMaxTokens=100){
     // entirely and cap vision tokens so clip_encode stays inside browser RAM.
     n_gpu_layers:0,
     mmproj_offload:false,
-    image_min_tokens:64,
+    image_min_tokens:32,
     image_max_tokens:imageMaxTokens,
     n_ctx:MODEL.context,
     cache_type_k:"q4_0",
@@ -197,7 +196,10 @@ async function createRuntime(imageMaxTokens=100){
       }
     }
   });
-  if(!inst.supportInputModality("image"))throw new Error("Unlimited-OCR Vision-Projektor konnte nicht aktiviert werden.");
+  if(!inst.supportInputModality("image")){
+    try{await inst.exit()}catch{}
+    throw new Error("Unlimited-OCR Vision-Projektor wurde nicht als multimodal erkannt. Der Runtime-Cache ist veraltet oder Modell/Projektor passen nicht zusammen.");
+  }
   runtimeImageMaxTokens=imageMaxTokens;
   window.__alantuUocrDebug=window.__alantuUocrDebug||{};
   window.__alantuUocrDebug.runtime={imageMaxTokens,model:MODEL.name,backend:"CPU/WASM"};
@@ -214,7 +216,7 @@ async function ensureModel(){
     wllama=await createRuntime(100);
     modelLoaded=true;
     modelGpu=false;
-    mEngine.textContent="Unlimited-OCR 3B · CPU/WASM · 100 vision tokens";
+    mEngine.textContent="Unlimited-OCR 3B · CPU/WASM · Q4_K_M · 100 vision tokens";
     return wllama;
   })().finally(()=>{modelPromise=null});
   return modelPromise;
@@ -238,7 +240,7 @@ async function runUnlimited(imageBuffer){
       {type:"text",text:"<|grounding|>OCR"},
       {type:"image",data:imageBuffer}
     ]}],
-    max_tokens:1400,
+    max_tokens:1000,
     temperature:0,
     top_p:1,
     repeat_penalty:1.0,
@@ -264,7 +266,7 @@ async function runUnlimited(imageBuffer){
       setStatus("Vision-Speichergrenze erkannt · automatischer 64-Token-Retry …");
       const retry=await createRuntime(64);
       wllama=retry;modelLoaded=true;modelGpu=false;
-      mEngine.textContent="Unlimited-OCR 3B · CPU/WASM · 64 vision tokens";
+      mEngine.textContent="Unlimited-OCR 3B · CPU/WASM · Q4_K_M · 64 vision tokens";
       const response=await retry.createChatCompletion(request);
       return response?.choices?.[0]?.message?.content||"";
     }
@@ -340,7 +342,7 @@ function updateMetrics(){
   mImageText.textContent=pages.length?String(imageText):"—";
   if(!pages.length)mImageTextPercent.textContent="—";
   else if(pendingAi)mImageTextPercent.textContent="läuft …";
-  else if(aiPages)mImageTextPercent.textContent=`${coverage} % · ${convertedImagePages}/${aiPages} Bildseiten · ${imageText} Blöcke / ${imageChars} Zeichen`;
+  else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 100 % erkannter OCR-Text → echt · ${imageText} Blöcke / ${imageChars} Zeichen`;
   else mImageTextPercent.textContent="— · keine Rasterbilder";
   mBaked.textContent=pages.length?String(pages.length):"—";
   mVisual.textContent=pages.length?"100 % Originalbild":"—";
@@ -403,7 +405,7 @@ function buildMergedSvg(){
     body+=`<svg x="${x}" y="${y}" width="${p.width}" height="${p.height}" viewBox="0 0 ${p.width} ${p.height}" preserveAspectRatio="none" data-page="${p.pageNo}"><image data-baked-original="1" x="0" y="0" width="${p.width}" height="${p.height}" href="${bytesToDataUrl(p.pngBytes)}"/>${xmlTextLayer(p,"0")}</svg>`;
     y+=p.height+gap;
   }
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${maxW}" height="${totalH}" viewBox="0 0 ${maxW} ${totalH}" data-alantu-merged="1" data-ocr-engine="Unlimited-OCR-3B-Q5">${body}</svg>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${maxW}" height="${totalH}" viewBox="0 0 ${maxW} ${totalH}" data-alantu-merged="1" data-ocr-engine="Unlimited-OCR-3B-Q4_K_M">${body}</svg>`;
 }
 function downloadBlob(blob,name){
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;a.rel="noopener";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
