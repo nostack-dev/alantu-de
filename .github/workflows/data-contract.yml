@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'tools/yahoo-monetary-v5.mjs'
+      - 'tools/yahoo-stream-contract.mjs'
+      - 'tools/test-yahoo-stream-contract.mjs'
       - 'market-relay/server.mjs'
       - 'market-relay/sqlite-store.mjs'
       - 'market-relay/package.json'
@@ -25,6 +27,7 @@ jobs:
       - name: First-principles data invariants
         run: |
           node tools/test-data-contract.mjs
+          node tools/test-yahoo-stream-contract.mjs
           cd market-relay && npm install --ignore-scripts=false && cd ..
           node tools/test-sqlite-v6.mjs
       - name: SQLite audit-store invariants
@@ -38,6 +41,8 @@ jobs:
           grep -Fq "reason:'out_of_order'" market-relay/server.mjs
           grep -Fq "reason:'duplicate_market_timestamp'" market-relay/server.mjs
           grep -Fq "persistTransportObservation" market-relay/server.mjs
+          grep -Fq "YAHOO_EVENT_CONTRACT" market-relay/server.mjs
+          grep -Fq "zigZag64(v)" market-relay/server.mjs
           grep -Fq "entry_market_ms:marketAt" market-relay/server.mjs
           grep -Fq "if(already)return;" market-relay/server.mjs
           grep -Fq "feature_names:state.feature_names" market-relay/server.mjs
