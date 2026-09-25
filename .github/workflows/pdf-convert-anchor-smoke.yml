@@ -39,6 +39,7 @@ jobs:
           set -euo pipefail
           grep -q 'alantu-unlimited-ocr.js' pdf-convert-anchor.html
           grep -q '@wllama/wllama@3.6.1' alantu-unlimited-ocr.js
+          grep -q 'src/wasm/wllama.wasm' alantu-unlimited-ocr.js
           grep -q 'Unlimited-OCR-Q5_K_S.gguf' alantu-unlimited-ocr.js
           grep -q 'mmproj-Unlimited-OCR-F16.gguf' alantu-unlimited-ocr.js
           grep -q 'buildSearchablePdf' alantu-unlimited-ocr.js
@@ -54,6 +55,7 @@ jobs:
               && curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?smoke=${{ github.sha }}" -o /tmp/unlimited-live.js \
               && grep -q 'alantu-unlimited-ocr.js' /tmp/pdf-convert-live.html \
               && grep -q '@wllama/wllama@3.6.1' /tmp/unlimited-live.js \
+              && grep -q 'src/wasm/wllama.wasm' /tmp/unlimited-live.js \
               && grep -q 'Unlimited-OCR-Q5_K_S.gguf' /tmp/unlimited-live.js \
               && grep -q 'buildSearchablePdf' /tmp/unlimited-live.js; then
               exit 0
@@ -68,6 +70,7 @@ jobs:
         run: |
           set -euo pipefail
           curl -fsSIL --max-time 30 "https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/esm/index.js" >/dev/null
+          curl -fsSIL --max-time 30 "https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/src/wasm/wllama.wasm" >/dev/null
           curl -fsSIL --max-time 30 "https://huggingface.co/sahilchachra/Unlimited-OCR-GGUF/resolve/main/Unlimited-OCR-Q5_K_S.gguf?download=true" >/dev/null
           curl -fsSIL --max-time 30 "https://huggingface.co/sahilchachra/Unlimited-OCR-GGUF/resolve/main/mmproj-Unlimited-OCR-F16.gguf?download=true" >/dev/null
 
