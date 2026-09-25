@@ -139,8 +139,8 @@ if(loadingView.before.naturalWidth<1||loadingView.after.naturalWidth<1)errors.pu
 if(!loadingView.before.src||loadingView.before.src!==loadingView.after.src)errors.push('loading-before-after-source-mismatch');
 if(!loadingView.ocrInput)errors.push('ocr-input-debug-missing');
 else{
-  if(loadingView.ocrInput.longEdge>768)errors.push('ocr-input-too-large:'+JSON.stringify(loadingView.ocrInput));
-  if(loadingView.ocrInput.sourceWidth<=loadingView.ocrInput.width&&loadingView.ocrInput.sourceHeight<=loadingView.ocrInput.height)errors.push('ocr-input-not-downscaled:'+JSON.stringify(loadingView.ocrInput));
+  if(loadingView.ocrInput.width!==1024||loadingView.ocrInput.height!==1024||loadingView.ocrInput.longEdge!==1024)errors.push('ocr-input-contract:'+JSON.stringify(loadingView.ocrInput));
+  if(loadingView.ocrInput.contract!=='DeepEncoder ONNX [1,3,1024,1024]')errors.push('ocr-input-contract-label:'+JSON.stringify(loadingView.ocrInput));
 }
 if(consoleErrors.length)errors.push('console:'+JSON.stringify(consoleErrors));
 if(pageErrors.length)errors.push('pageerror:'+JSON.stringify(pageErrors));
