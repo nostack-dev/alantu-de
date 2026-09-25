@@ -57,7 +57,23 @@ page.on('requestfailed',r=>failed.push({url:r.url(),error:r.failure()?.errorText
 
 await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});
 await page.locator('#pdfInput').setInputFiles(fixture);
-await page.waitForFunction(()=>!document.getElementById('downloadPdfBtn')?.disabled,null,{timeout:180000});
+try{
+  await page.waitForFunction(()=>document.getElementById('downloadPdfBtn')?.disabled===false,null,{timeout:45000});
+}catch(err){
+  const diagnostic=await page.evaluate(()=>({
+    status:document.getElementById('status')?.textContent||'',
+    progress:document.getElementById('progressBar')?.style.width||'',
+    engine:document.getElementById('mEngine')?.textContent||'',
+    pages:document.getElementById('mPages')?.textContent||'',
+    imageText:document.getElementById('mImageText')?.textContent||'',
+    busy:document.getElementById('busy')?.textContent||'',
+    busyClass:document.getElementById('busy')?.className||'',
+    buttonDisabled:document.getElementById('downloadPdfBtn')?.disabled,
+    moduleScript:document.querySelector('script[src*="alantu-unlimited-ocr"]')?.src||''
+  })).catch(()=>({}));
+  console.error('READY_TIMEOUT_DIAGNOSTIC',JSON.stringify({diagnostic,consoleErrors,pageErrors,failed},null,2));
+  throw err;
+}
 
 const side=await page.evaluate(()=>({
   pages:document.getElementById('mPages')?.textContent||'',
