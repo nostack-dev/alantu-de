@@ -29,7 +29,9 @@ assert.deepEqual(fd.vector,f.vector);
 const repeated=structuredClone(series);
 for(const s of symbols){
   const last=repeated[s].at(-1);
-  for(let n=0;n<20;n++)repeated[s].push({...last,recv_at:last.recv_at+10000+n*1000});
+  // Runtime contract collapses repeated transport messages for one market timestamp
+  // into one observation. Verify the model itself does not need synthetic filler.
+  repeated[s][repeated[s].length-1]={...last,recv_at:last.recv_at+29000};
 }
 const fr=extractV5Features(repeated,base+360000);
 assert.equal(fr.status,'ok');
