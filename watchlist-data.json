@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-25T11:24:39+02:00",
+  "updated_at": "2026-09-25T11:26:00+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,13 +9,13 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-25T09:24:33.774Z",
+        "at": "2026-09-25T09:25:52.211Z",
         "signal": "hold",
         "social_impulse": null,
-        "hype_bull": 7,
-        "hype_bear": 40,
-        "hype_mixed": 53,
-        "hype_net": -33,
+        "hype_bull": 9,
+        "hype_bear": 39,
+        "hype_mixed": 52,
+        "hype_net": -30,
         "confidence": null,
         "source_contract": "source-event-v2",
         "sentiment_role": "descriptive_only_not_model_signal"
@@ -7069,17 +7069,17 @@
       "signal": "hold",
       "social_impulse": null,
       "impulse": null,
-      "hype_bull": 7,
-      "hype_bear": 40,
-      "hype_net": -33,
+      "hype_bull": 9,
+      "hype_bear": 39,
+      "hype_net": -30,
       "confidence": null,
       "hype_state": "bearish",
-      "updated_at": "2026-09-25T09:24:33.774Z",
-      "why": "Deskriptive Quellenlage: 190 News · 2 Social / 36h. Kein Handelssignal aus Sentiment.",
+      "updated_at": "2026-09-25T09:25:52.211Z",
+      "why": "Deskriptive Quellenlage: 138 News · 2 Social / 36h. Kein Handelssignal aus Sentiment.",
       "evidence": {
         "source_contract": "source-event-v2",
         "sentiment_role": "descriptive_only_not_model_signal",
-        "news": 190,
+        "news": 138,
         "reddit_posts": 2,
         "x_posts": 0,
         "bluesky_posts": 0,
@@ -7089,13 +7089,13 @@
             "provider": "apewisdom.io",
             "mentions_24h": 53,
             "sentiment_pct": 68,
-            "checked_at": "2026-09-25T09:23:22.029Z"
+            "checked_at": "2026-09-25T09:25:28.274Z"
           }
         },
         "snippets": [
-          "Oracle Academy celebrates Bronze recognition at the BITE Awards 2026, Greece - Oracle Blogs",
-          "Oracle Academy and Oracle APEX collaborate on first APEX @ University workshop, reaching 800 students in India - Oracle Blogs",
-          "Oracle invokes ‘force majeure’ to shield itself from data center issues: Bloomberg - The American Bazaar"
+          "Oracle invokes ‘force majeure’ to shield itself from data center issues: Bloomberg - The American Bazaar",
+          "Oracle Rekindles Doubts About Funding for AI Infrastructure - marketscreener.com",
+          "Oracle Financial Services shares set for their worst week in 20 months; Here's what is concerning the street - CNBC TV18 - LinkedIn"
         ]
       },
       "voices": {
@@ -7104,9 +7104,9 @@
         "mixed": 10,
         "updated_at": "2026-09-25T11:00:25+02:00"
       },
-      "hype_mixed": 53,
+      "hype_mixed": 52,
       "sentiment_unit": "percent_unique_events_descriptive",
-      "price": 139.96
+      "price": 139.9
     }
   }
 }
