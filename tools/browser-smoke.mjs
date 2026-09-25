@@ -23,21 +23,22 @@ async function run(name,viewport){
 
   const hoverX=priceBox.x+priceBox.width*.62, hoverY=priceBox.y+priceBox.height*.48;
   let cdp=null;
-  if(viewport.width<=700){
-    cdp=await page.context().newCDPSession(page);
-    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:hoverX,y:hoverY}]});
-    await page.waitForTimeout(650);
-    for(const frac of [.66,.72,.78]){
-      await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:priceBox.x+priceBox.width*frac,y:hoverY}]});
-      await page.waitForTimeout(120);
-    }
-  }else{
+  // Passive hover must stay clean. Readout appears only while pressing/dragging.
+  if(viewport.width>700){
     await page.mouse.move(hoverX,hoverY);
-    await page.waitForTimeout(350);
+    await page.waitForTimeout(250);
+    const hoverOnly=await page.evaluate(()=>typeof priceScrubState!=='undefined'&&!!priceScrubState.active);
+    if(hoverOnly)throw new Error('price scrub activated on passive hover');
+    await page.mouse.down();
     await page.mouse.move(priceBox.x+priceBox.width*.76,hoverY);
     await page.waitForTimeout(250);
+  }else{
+    cdp=await page.context().newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:hoverX,y:hoverY}]});
+    await page.waitForTimeout(180);
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:priceBox.x+priceBox.width*.76,y:hoverY}]});
+    await page.waitForTimeout(180);
   }
-  await page.waitForTimeout(1000);
   const interactionState=await page.evaluate(()=>({
     priceTooltipActive:(typeof ivChart!=='undefined'&&ivChart&&ivChart.tooltip)?((ivChart.tooltip._active||[]).length):0,
     priceTooltipOpacity:(typeof ivChart!=='undefined'&&ivChart&&ivChart.tooltip)?Number(ivChart.tooltip.opacity||0):0,
@@ -69,8 +70,13 @@ async function run(name,viewport){
       await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:projectionTarget.clientX,y:projectionTarget.clientY}]});
       await page.waitForTimeout(220);
     }else{
+      await page.mouse.up().catch(()=>{});
       await page.mouse.move(projectionTarget.clientX,projectionTarget.clientY);
-      await page.waitForTimeout(250);
+      await page.waitForTimeout(120);
+      const hoverOnly=await page.evaluate(()=>typeof priceScrubState!=='undefined'&&!!priceScrubState.active);
+      if(hoverOnly)throw new Error('projection scrub activated on passive hover');
+      await page.mouse.down();
+      await page.waitForTimeout(180);
     }
     projectionInteraction=await page.evaluate(()=>({
       active:typeof priceScrubState!=='undefined'&&!!priceScrubState.active,
@@ -80,6 +86,7 @@ async function run(name,viewport){
   }
   await page.screenshot({path:`${out}/${name}-1d.png`,fullPage:true});
   if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]}).catch(()=>{});
+  else await page.mouse.up().catch(()=>{});
 
   const wgoCard=page.locator('#wgoCard');
   if(await wgoCard.count())await wgoCard.evaluate(el=>{el.open=true;});
@@ -206,10 +213,10 @@ async function run(name,viewport){
   if(badMarkers.length)errors.push('hidden:'+JSON.stringify(badMarkers));
   if(hiddenResearch.length)errors.push('research-visible-while-collapsed:'+JSON.stringify(hiddenResearch));
   if(state.width.overflow>4)errors.push('horizontal-overflow:'+state.width.overflow);
-  if(!Array.isArray(state.chartEvents)||!state.chartEvents.includes('mousemove')||!state.chartEvents.includes('touchmove'))errors.push('chart-events-missing:'+JSON.stringify(state.chartEvents));
-  if(!interactionState.scrubActive||!interactionState.scrubPoint||!Number.isFinite(interactionState.scrubPoint.y))errors.push('price-scrub-not-active:'+JSON.stringify(interactionState));
+  if(!Array.isArray(state.chartEvents)||state.chartEvents.includes('mousemove')||!state.chartEvents.includes('touchmove'))errors.push('chart-events-not-press-only:'+JSON.stringify(state.chartEvents));
+  if(!interactionState.scrubActive||!interactionState.scrubPoint||!Number.isFinite(interactionState.scrubPoint.y))errors.push('price-press-readout-not-active:'+JSON.stringify(interactionState));
   if(projectionTarget){
-    if(!projectionTarget.hintVisible)errors.push('projection-not-visually-labeled:'+JSON.stringify(projectionTarget));
+    if(projectionTarget.hintVisible)errors.push('projection-permanent-readout-visible:'+JSON.stringify(projectionTarget));
     if(!projectionTarget.style||!Array.isArray(projectionTarget.style.borderDash)||projectionTarget.style.borderDash.length<2||Number(projectionTarget.style.borderWidth)<2.4)errors.push('projection-style-too-subtle:'+JSON.stringify(projectionTarget));
     if(projectionTarget.available&&(!projectionInteraction||!projectionInteraction.active||projectionInteraction.kind!=='projection'))errors.push('projection-scrub-not-active:'+JSON.stringify({projectionTarget,projectionInteraction}));
   }
