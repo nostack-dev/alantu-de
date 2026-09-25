@@ -6,10 +6,14 @@ import {forecastRawLatest} from '../tools/raw-sip-wave-core.mjs';
 import {forecastYahooShadow,YAHOO_HORIZONS,YAHOO_LOCAL,YAHOO_GLOBAL,YAHOO_SHADOW_VERSION} from '../tools/yahoo-shadow-wave-core.mjs';
 import {HYPOTHESIS_VERSION,HYPOTHESIS_STRATEGIES,PRODUCTION_STRATEGY,HYPOTHESIS_MIN_MARGIN,DEFAULT_ROUNDTRIP_COST_BPS,signalSessionEligible,strategyDirections,actionableNewsContext,summarizeHypothesisState} from '../tools/yahoo-hypothesis-v4.mjs';
 import {V5_VERSION,V5_HORIZONS,V5_COST_BPS,V5_SAMPLE_GAP_MS,v5SessionEligible,extractV5Features,structuralV5Score,v5BarrierBps,fitV5Logistic,predictV5Logistic,evaluateV5Path,summarizeV5State} from '../tools/yahoo-monetary-v5.mjs';
-import {openMarketStore,persistObservation,persistPrediction,persistOutcome,storeStats,V6_CONTRACT_ID,V6_CONTRACT_TEXT} from './sqlite-store.mjs';
+import {openMarketStore,persistObservation,persistPrediction,persistOutcome,persistEvidence,persistExperiment,storeStats,V6_CONTRACT_ID,V6_CONTRACT_TEXT} from './sqlite-store.mjs';
 
 let marketDb=null;
-try{marketDb=openMarketStore();console.log('[sqlite] ready',storeStats(marketDb));}
+try{
+  marketDb=openMarketStore();
+  persistExperiment(marketDb,{approach_version:V5_VERSION,status:'collecting',config:{clock:'market_event_time',horizons:V5_HORIZONS,input_contract:'observed_market_events_only'}});
+  console.log('[sqlite] ready',storeStats(marketDb));
+}
 catch(e){console.error('[sqlite] init failed',String(e?.stack||e));process.exit(1);}
 
 const PORT=Number(process.env.PORT||8080);
@@ -384,6 +388,13 @@ async function refreshSources(){
     if(x.length)providers.push('X live');
     const degraded=providers.length<2;
     sourceState=deriveSourceState(news,social,providers,degraded?'degraded':'ok');
+    if(marketDb){
+      persistEvidence(marketDb,{kind:'source_state',approach_version:'source-state-v1',symbol:'ORCL',event_at:sourceState.checked_at,payload:sourceSummary()});
+      for(const item of (sourceState.items||[]).filter(x=>x.new)){
+        persistEvidence(marketDb,{evidence_key:'source:'+item.key,kind:'source_event',approach_version:'source-event-v1',symbol:'ORCL',
+          event_at_ms:Number(item.time),received_at_ms:Date.parse(item.discovered_at||''),payload:item});
+      }
+    }
     await flushSourceEvents();
     const eventChanged=sourceState.at!==sourceLastEventAt,logDue=Date.now()-sourceLastLogAt>=60000;
     if(eventChanged||logDue){
@@ -775,7 +786,8 @@ function maybeCreateV5Predictions(){
       entry_price:Number(entry.p),entry_market_ms:marketAt,entry_market_at:new Date(marketAt).toISOString(),entry_received_at:new Date(receivedAt).toISOString(),
       entry_delivery_lag_ms:Math.max(0,receivedAt-marketAt),barrier_bps:barrier,assumed_roundtrip_cost_bps:V5_COST_BPS,gate_sample:gateSample,
       structural_dir:structuralDir,structural_score:structuralScore,learned_dir:learned.dir,p_up:learned.p_up,confidence:learned.confidence,model_n:learned.model_n||model.n||0,
-      model_ready:model.ready===true,feature_vector:state.vector,feature_summary:{residual_bps:state.diagnostics.residual_bps,coupling:state.diagnostics.coupling,
+      model_ready:model.ready===true,clock:'market_event_time',input_contract:'observed_market_events_only',
+      feature_names:state.feature_names,feature_vector:state.vector,feature_summary:{residual_bps:state.diagnostics.residual_bps,coupling:state.diagnostics.coupling,
         min_coverage:state.diagnostics.min_coverage,median_delivery_lag_ms:state.diagnostics.median_delivery_lag_ms},
       evaluation_contract:'market_event_time_true_dt_no_synthetic_samples_v2'
     };
@@ -792,7 +804,7 @@ function evaluateV5(){
     if(r.status==='invalid'){const out={...p,status:'invalid',reason:r.reason||'invalid_path'};v5State.outcomes.push(out);if(marketDb)persistOutcome(marketDb,out);continue;}
     const out={...p,status:'evaluated',endpoint_price:r.endpoint_price,endpoint_at:r.endpoint_at,endpoint_market_at:r.endpoint_market_at,
       endpoint_return_bps:r.endpoint_return_bps,endpoint_received_at:r.endpoint_received_at||null,timing_error_ms:r.timing_error_ms,barrier_label:r.barrier_label,barrier_hit:r.barrier_hit,barrier_at:r.barrier_at,
-      mfe_bps:r.mfe_bps,mae_bps:r.mae_bps,structural_gross_bps:r.structural.gross_bps,structural_net_bps:r.structural.net_bps,
+      last_before_target_at:r.last_before_target_at||null,mfe_bps:r.mfe_bps,mae_bps:r.mae_bps,structural_gross_bps:r.structural.gross_bps,structural_net_bps:r.structural.net_bps,
       structural_profitable:r.structural.profitable,learned_gross_bps:r.learned.gross_bps,learned_net_bps:r.learned.net_bps,learned_profitable:r.learned.profitable};
     v5State.outcomes.push(out);if(marketDb)persistOutcome(marketDb,out);
   }
@@ -1106,7 +1118,7 @@ const server=http.createServer((req,res)=>{
   }
   if(u.pathname==='/v1/shadow-history')return json(res,200,shadowTrail());
   if(u.pathname==='/v1/hypothesis-v4')return json(res,200,hypothesisTrail());
-  if(u.pathname==='/v1/research-v5')return json(res,200,v5Trail());
+  if(u.pathname==='/v1/research-v6'||u.pathname==='/v1/research-v5')return json(res,200,{api_version:'v6',legacy_alias:u.pathname==='/v1/research-v5',...v5Trail()});
   if(u.pathname==='/v1/whats-going-on'){
     const range=String(u.searchParams.get('range')||'').trim();
     if(['1d','1w','1m','year','5y','all'].includes(range)){
@@ -1175,7 +1187,7 @@ setInterval(()=>{
   }));
   const v5=v5Summary();
   console.log(JSON.stringify({
-    type:'yahoo-monetary-v5',at:new Date().toISOString(),...v5Counts(),production:v5.production,
+    type:'yahoo-monetary-v6',at:new Date().toISOString(),...v5Counts(),production:v5.production,
     proof:Object.fromEntries(Object.entries(v5.proof).map(([h,x])=>[h,{model_n:x.model.n,model_ready:x.model.ready,learned:x.learned,structural:x.structural,comparison:x.learned_vs_structural,gate:x.gate}]))
   }));
 },60000).unref();
