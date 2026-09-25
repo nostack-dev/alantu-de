@@ -1,4 +1,4 @@
-name: PDF Convert Anchor SVG smoke
+name: Unlimited OCR searchable PDF smoke
 
 on:
   push:
@@ -15,7 +15,7 @@ permissions:
   statuses: write
 
 jobs:
-  svg-anchor-smoke:
+  unlimited-ocr-pdf-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -31,18 +31,18 @@ jobs:
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/${{ github.repository }}/statuses/$SHA \
-            -d '{"state":"pending","context":"pdf-convert-svg-smoke","description":"Checking live PDF SVG conversion"}'
+            -d '{"state":"pending","context":"unlimited-ocr-pdf-smoke","description":"Checking live Unlimited-OCR searchable PDF"}'
 
       - name: Guard Unlimited-OCR browser source
         shell: bash
         run: |
           set -euo pipefail
           grep -q 'alantu-unlimited-ocr.js' pdf-convert-anchor.html
-          grep -q '@wllama/wllama@3.5.1' alantu-unlimited-ocr.js
+          grep -q '@wllama/wllama@3.7.0' alantu-unlimited-ocr.js
           grep -q 'Unlimited-OCR-Q5_K_S.gguf' alantu-unlimited-ocr.js
           grep -q 'mmproj-Unlimited-OCR-F16.gguf' alantu-unlimited-ocr.js
-          grep -q 'data-baked-diff' alantu-unlimited-ocr.js
-          grep -q 'data-unlimited-ocr' alantu-unlimited-ocr.js
+          grep -q 'buildSearchablePdf' alantu-unlimited-ocr.js
+          grep -q '<|grounding|>OCR this image.' alantu-unlimited-ocr.js
           grep -q 'buildMergedSvg' alantu-unlimited-ocr.js
 
       - name: Wait for live SVG converter
@@ -53,9 +53,9 @@ jobs:
             if curl -fsSL --max-time 20 "https://www.alantu.de/pdf-convert-anchor.html?smoke=${{ github.sha }}" -o /tmp/pdf-convert-live.html \
               && curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?smoke=${{ github.sha }}" -o /tmp/unlimited-live.js \
               && grep -q 'alantu-unlimited-ocr.js' /tmp/pdf-convert-live.html \
-              && grep -q '@wllama/wllama@3.5.1' /tmp/unlimited-live.js \
+              && grep -q '@wllama/wllama@3.7.0' /tmp/unlimited-live.js \
               && grep -q 'Unlimited-OCR-Q5_K_S.gguf' /tmp/unlimited-live.js \
-              && grep -q 'data-unlimited-ocr' /tmp/unlimited-live.js; then
+              && grep -q 'buildSearchablePdf' /tmp/unlimited-live.js; then
               exit 0
             fi
             sleep 10
@@ -67,17 +67,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSIL --max-time 30 "https://cdn.jsdelivr.net/npm/@wllama/wllama@3.5.1/esm/index.js" >/dev/null
+          curl -fsSIL --max-time 30 "https://cdn.jsdelivr.net/npm/@wllama/wllama@3.7.0/esm/index.js" >/dev/null
           curl -fsSIL --max-time 30 "https://huggingface.co/sahilchachra/Unlimited-OCR-GGUF/resolve/main/Unlimited-OCR-Q5_K_S.gguf?download=true" >/dev/null
           curl -fsSIL --max-time 30 "https://huggingface.co/sahilchachra/Unlimited-OCR-GGUF/resolve/main/mmproj-Unlimited-OCR-F16.gguf?download=true" >/dev/null
 
       - name: Install Playwright
         shell: bash
         run: |
-          npm install --no-save playwright@1.55.0 pdf-lib@1.17.1
+          npm install --no-save playwright@1.55.0 pdf-lib@1.17.1 pdfjs-dist@2.16.105
           npx playwright install --with-deps chromium
 
-      - name: Run real PDF to SVG smoke
+      - name: Run searchable PDF browser smoke
         env:
           PDF_CONVERT_URL: https://www.alantu.de/pdf-convert-anchor.html
           PDF_SAMPLE: assets/sunside-living-expose.pdf
@@ -93,13 +93,13 @@ jobs:
         run: |
           if [ "$JOB_STATUS" = "success" ]; then
             state=success
-            description="Unlimited-OCR browser hybrid live smoke passed"
+            description="Unlimited-OCR searchable PDF live smoke passed"
           else
             state=failure
-            description="Unlimited-OCR browser hybrid smoke failed"
+            description="Unlimited-OCR searchable PDF smoke failed"
           fi
           curl -fsS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/${{ github.repository }}/statuses/$SHA \
-            -d "{\"state\":\"$state\",\"context\":\"pdf-convert-svg-smoke\",\"description\":\"$description\"}"
+            -d "{\"state\":\"$state\",\"context\":\"unlimited-ocr-pdf-smoke\",\"description\":\"$description\"}"
