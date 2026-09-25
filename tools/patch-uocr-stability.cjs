@@ -105,17 +105,80 @@ async function requireLocalOcrCapability(){
 `;
   if(!s.includes('function diagnoseLocalOcrBottleneck('))s=s.replace('// Tiny local NPZ reader',diag+'\n// Tiny local NPZ reader');
 
+  const cascade=`
+const FALLBACK_TESSERACT_URL="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+let tesseractLoadPromise=null;
+function loadScriptOnce(src,globalName){
+  if(window[globalName])return Promise.resolve(window[globalName]);
+  return new Promise((resolve,reject)=>{
+    const existing=[...document.scripts].find(s=>s.src===src);
+    if(existing){existing.addEventListener("load",()=>resolve(window[globalName]));existing.addEventListener("error",()=>reject(new Error(globalName+" konnte nicht geladen werden.")));return}
+    const el=document.createElement("script");el.src=src;el.async=true;
+    el.onload=()=>window[globalName]?resolve(window[globalName]):reject(new Error(globalName+" ist nach dem Laden nicht verfügbar."));
+    el.onerror=()=>reject(new Error(globalName+" Download fehlgeschlagen."));
+    document.head.appendChild(el);
+  });
+}
+async function loadSmallOcr(){
+  if(!tesseractLoadPromise)tesseractLoadPromise=withHeartbeat("Fallback-OCR wird geladen",()=>loadScriptOnce(FALLBACK_TESSERACT_URL,"Tesseract"),90000);
+  return tesseractLoadPromise;
+}
+function tesseractItems(data,pageW,pageH,canvasW,canvasH){
+  const items=[];
+  const add=(text,bbox,confidence=100)=>{
+    text=normalizeText(text);if(!text||!bbox)return;
+    if(Number.isFinite(confidence)&&confidence<30)return;
+    const b={x0:bbox.x0/canvasW*pageW,y0:bbox.y0/canvasH*pageH,x1:bbox.x1/canvasW*pageW,y1:bbox.y1/canvasH*pageH};
+    if(area(b)<1)return;
+    items.push({text,bbox:b,type:"fallback",kind:"image-text",confidence});
+  };
+  for(const w of data?.words||[])add(w.text,w.bbox,w.confidence);
+  if(!items.length)for(const l of data?.lines||[])add(l.text,l.bbox,l.confidence);
+  return items;
+}
+async function runSmallFallbackOcr(ocrCanvas,pageW,pageH,reason){
+  const T=await loadSmallOcr();
+  setStatus("3B-OCR nicht möglich · kleines Fallback-OCR läuft …","error");
+  busy.classList.add("show");
+  const worker=await withHeartbeat("Fallback-OCR Worker startet",()=>T.createWorker("deu+eng",1,{logger:m=>{
+    if(m?.status){
+      const pct=Number.isFinite(m.progress)?Math.round(m.progress*100):0;
+      busy.textContent=pct?`Fallback-OCR · ${m.status} · ${pct}%`:`Fallback-OCR · ${m.status}`;
+      setStatus(pct?`Fallback-OCR · ${m.status} · ${pct}%`:`Fallback-OCR · ${m.status}`);
+      if(pct)setProgress(pct);
+    }
+  }}),120000);
+  try{
+    if(worker.setParameters&&T.PSM)await worker.setParameters({tessedit_pageseg_mode:T.PSM.AUTO});
+    const result=await withHeartbeat("Fallback-OCR erkennt Text",()=>worker.recognize(ocrCanvas),180000);
+    const items=tesseractItems(result?.data,pageW,pageH,ocrCanvas.width,ocrCanvas.height);
+    window.__alantuUocrDebug=window.__alantuUocrDebug||{};
+    window.__alantuUocrDebug.fallback={engine:"tesseract.js",items:items.length,reason:String(reason||"")};
+    mEngine.textContent="Fallback-OCR · Tesseract.js";
+    return items;
+  }finally{
+    try{await worker.terminate()}catch{}
+  }
+}
+`;
+  if(!s.includes('function runSmallFallbackOcr('))s=s.replace('function hasRasterImages(opList){',cascade+'\nfunction hasRasterImages(opList){');
+
   const old='    rawOcr=await runUnlimited(ocrCanvas);\n    ocrCanvas.width=1;ocrCanvas.height=1;\n    if(token!==loadToken)throw new Error("cancelled");\n    ocr=filterNativeDuplicates(parseUnlimited(rawOcr,base.width,base.height),native);';
-  const neu='    try{\n      rawOcr=await runUnlimited(ocrCanvas);\n      if(token!==loadToken)throw new Error("cancelled");\n      ocr=filterNativeDuplicates(parseUnlimited(rawOcr,base.width,base.height),native);\n    }catch(err){\n      if(err?.message==="cancelled")throw err;\n      provisional.ocrError=shortError(err);\n      console.error(err);\n      setStatus("Bild-OCR fehlgeschlagen · PDF bleibt exportierbar.","error");\n    }finally{\n      ocrCanvas.width=1;ocrCanvas.height=1;\n    }';
+  const neu='    try{\n      rawOcr=await runUnlimited(ocrCanvas);\n      if(token!==loadToken)throw new Error("cancelled");\n      ocr=filterNativeDuplicates(parseUnlimited(rawOcr,base.width,base.height),native);\n    }catch(err){\n      if(err?.message==="cancelled")throw err;\n      const primaryError=shortError(err);\n      provisional.ocrPrimaryError=primaryError;\n      console.error(err);\n      try{\n        const fallback=await runSmallFallbackOcr(ocrCanvas,base.width,base.height,primaryError);\n        if(token!==loadToken)throw new Error("cancelled");\n        ocr=filterNativeDuplicates(fallback,native);\n        provisional.ocrFallback=true;\n        setStatus(ocr.length?"Fallback-OCR fertig · echter Textlayer erzeugt.":"Fallback-OCR lief, hat aber keinen Text erkannt.",ocr.length?"ok":"error");\n      }catch(fallbackErr){\n        if(fallbackErr?.message==="cancelled")throw fallbackErr;\n        provisional.ocrError=primaryError+" | Fallback: "+shortError(fallbackErr);\n        console.error(fallbackErr);\n        setStatus("Bild-OCR fehlgeschlagen · kein Textlayer für diese Bildseite.","error");\n      }\n    }finally{\n      ocrCanvas.width=1;ocrCanvas.height=1;\n    }';
   if(s.includes(old))s=s.replace(old,neu);
+  const oldNonBlocking='    try{\n      rawOcr=await runUnlimited(ocrCanvas);\n      if(token!==loadToken)throw new Error("cancelled");\n      ocr=filterNativeDuplicates(parseUnlimited(rawOcr,base.width,base.height),native);\n    }catch(err){\n      if(err?.message==="cancelled")throw err;\n      provisional.ocrError=shortError(err);\n      console.error(err);\n      setStatus("Bild-OCR fehlgeschlagen · PDF bleibt exportierbar.","error");\n    }finally{\n      ocrCanvas.width=1;ocrCanvas.height=1;\n    }';
+  if(s.includes(oldNonBlocking))s=s.replace(oldNonBlocking,neu);
   if(!s.includes('await requireLocalOcrCapability();'))s=s.replace('  const [session,extras]=await Promise.all([ensureVision(),ensureExtras()]);','  await requireLocalOcrCapability();\n  const [session,extras]=await Promise.all([ensureVision(),ensureExtras()]);');
-  s=s.replace('const pendingAi=pages.some(p=>p.processing);\n  const coverage=aiPages?Math.round(convertedImagePages/aiPages*100):null;','const pendingAi=pages.some(p=>p.processing);\n  const failedAi=pages.filter(p=>p.ocrError).length;\n  const coverage=aiPages?Math.round(convertedImagePages/aiPages*100):null;');
-  s=s.replace('else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 100 % erkannter OCR-Text → echt · ${imageText} Blöcke / ${imageChars} Zeichen`;','else if(failedAi)mImageTextPercent.textContent=`OCR fehlgeschlagen auf ${failedAi}/${aiPages} Bildseiten · PDF exportierbar`;\n  else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 100 % erkannter OCR-Text → echt · ${imageText} Blöcke / ${imageChars} Zeichen`;');
+  s=s.replace('const pendingAi=pages.some(p=>p.processing);\n  const coverage=aiPages?Math.round(convertedImagePages/aiPages*100):null;','const pendingAi=pages.some(p=>p.processing);\n  const fallbackAi=pages.filter(p=>p.ocrFallback&&p.ocr.length>0).length;\n  const failedAi=pages.filter(p=>p.ocrError&&!p.ocr.length).length;\n  const coverage=aiPages?Math.round(convertedImagePages/aiPages*100):null;');
+  s=s.replace('const pendingAi=pages.some(p=>p.processing);\n  const failedAi=pages.filter(p=>p.ocrError).length;\n  const coverage=aiPages?Math.round(convertedImagePages/aiPages*100):null;','const pendingAi=pages.some(p=>p.processing);\n  const fallbackAi=pages.filter(p=>p.ocrFallback&&p.ocr.length>0).length;\n  const failedAi=pages.filter(p=>p.ocrError&&!p.ocr.length).length;\n  const coverage=aiPages?Math.round(convertedImagePages/aiPages*100):null;');
+  s=s.replace('else if(failedAi)mImageTextPercent.textContent=`OCR fehlgeschlagen auf ${failedAi}/${aiPages} Bildseiten · PDF exportierbar`;\n  else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 100 % erkannter OCR-Text → echt · ${imageText} Blöcke / ${imageChars} Zeichen`;','else if(failedAi)mImageTextPercent.textContent=`OCR fehlgeschlagen auf ${failedAi}/${aiPages} Bildseiten · kein Bildtextlayer`;\n  else if(fallbackAi)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · Fallback-OCR auf ${fallbackAi}/${aiPages} · ${imageText} Blöcke / ${imageChars} Zeichen`;\n  else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 3B-OCR · ${imageText} Blöcke / ${imageChars} Zeichen`;');
+  s=s.replace('else if(failedAi)mImageTextPercent.textContent=`OCR fehlgeschlagen auf ${failedAi}/${aiPages} Bildseiten · PDF exportierbar`;\n  else if(failedAi)mImageTextPercent.textContent=`OCR fehlgeschlagen auf ${failedAi}/${aiPages} Bildseiten · PDF exportierbar`;\n  else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 100 % erkannter OCR-Text → echt · ${imageText} Blöcke / ${imageChars} Zeichen`;','else if(failedAi)mImageTextPercent.textContent=`OCR fehlgeschlagen auf ${failedAi}/${aiPages} Bildseiten · kein Bildtextlayer`;\n  else if(fallbackAi)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · Fallback-OCR auf ${fallbackAi}/${aiPages} · ${imageText} Blöcke / ${imageChars} Zeichen`;\n  else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 3B-OCR · ${imageText} Blöcke / ${imageChars} Zeichen`;');
   s=s.replace('if(!modelLoaded)mEngine.textContent=`${MODEL.name} · CPU/WASM`;','if(!modelLoaded)mEngine.textContent=MODEL.name;');
-  s=s.replace('setStatus(`${pages.length} Seiten fertig · visuell Original, zusätzlicher echter Textlayer.`,"ok");','const failed=pages.filter(p=>p.ocrError).length;\n    setStatus(failed?`${pages.length} Seiten fertig · ${failed} Bildseiten ohne OCR · PDF exportierbar.`:`${pages.length} Seiten fertig · visuell Original, zusätzlicher echter Textlayer.`,failed?"error":"ok");');
+  s=s.replace('setStatus(`${pages.length} Seiten fertig · visuell Original, zusätzlicher echter Textlayer.`,"ok");','const failed=pages.filter(p=>p.ocrError&&!p.ocr.length).length;\n    const fallback=pages.filter(p=>p.ocrFallback&&p.ocr.length).length;\n    setStatus(failed?`${pages.length} Seiten fertig · ${failed} Bildseiten ohne OCR.`:(fallback?`${pages.length} Seiten fertig · Fallback-OCR auf ${fallback} Bildseiten.`:`${pages.length} Seiten fertig · visuell Original, zusätzlicher echter Textlayer.`),failed?"error":"ok");');
+  s=s.replace('const failed=pages.filter(p=>p.ocrError).length;\n    setStatus(failed?`${pages.length} Seiten fertig · ${failed} Bildseiten ohne OCR · PDF exportierbar.`:`${pages.length} Seiten fertig · visuell Original, zusätzlicher echter Textlayer.`,failed?"error":"ok");','const failed=pages.filter(p=>p.ocrError&&!p.ocr.length).length;\n    const fallback=pages.filter(p=>p.ocrFallback&&p.ocr.length).length;\n    setStatus(failed?`${pages.length} Seiten fertig · ${failed} Bildseiten ohne OCR.`:(fallback?`${pages.length} Seiten fertig · Fallback-OCR auf ${fallback} Bildseiten.`:`${pages.length} Seiten fertig · visuell Original, zusätzlicher echter Textlayer.`),failed?"error":"ok");');
   return s;
 });
 for(const f of ['pdf-convert-anchor.html','.github/workflows/pdf-convert-anchor-smoke.yml','.github/workflows/exposee-pages-rebuild.yml']){
-  if(fs.existsSync(f))rw(f,s=>s.replaceAll('alantu-unlimited-ocr.js?v=browser-webgpu-3','alantu-unlimited-ocr.js?v=browser-webgpu-5').replaceAll('alantu-unlimited-ocr.js?v=browser-webgpu-4','alantu-unlimited-ocr.js?v=browser-webgpu-5'));
+  if(fs.existsSync(f))rw(f,s=>s.replaceAll('alantu-unlimited-ocr.js?v=browser-webgpu-3','alantu-unlimited-ocr.js?v=browser-webgpu-6').replaceAll('alantu-unlimited-ocr.js?v=browser-webgpu-4','alantu-unlimited-ocr.js?v=browser-webgpu-6').replaceAll('alantu-unlimited-ocr.js?v=browser-webgpu-5','alantu-unlimited-ocr.js?v=browser-webgpu-6'));
 }
-console.log('uocr stability/preflight patch applied');
+console.log('uocr cascade/preflight patch applied');
