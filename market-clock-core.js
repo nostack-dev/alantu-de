@@ -68,11 +68,20 @@
     }
     return guess;
   }
+  function closeMinute(y,m,d){
+    if(!isTradingDay(y,m,d))return null;
+    var thanksgiving=nthWeekday(y,11,4,4);
+    // NYSE regular early-close patterns. Full-day observed holidays win above.
+    if((m===11&&d===thanksgiving.day+1)||(m===12&&d===24)||(m===7&&d===3))return 13*60;
+    return 16*60;
+  }
   function sessions(y,m,d){
+    var close=closeMinute(y,m,d),ch=close==null?16:Math.floor(close/60),cm=close==null?0:close%60;
     return {
       pre:zonedMs(y,m,d,4,0,NY),
       open:zonedMs(y,m,d,9,30,NY),
-      close:zonedMs(y,m,d,16,0,NY)
+      close:zonedMs(y,m,d,ch,cm,NY),
+      earlyClose:close===13*60
     };
   }
   function nextTrading(y,m,d){
@@ -114,5 +123,5 @@
     var nxt=nextTrading(n.year,n.month,n.day),ns=sessions(nxt.year,nxt.month,nxt.day);
     return {phase:'closed',targetAt:ns.open,text:'US-Markt geschlossen · nächste Öffnung '+dayLabel(ns.open,now)+' '+berlinTime(ns.open)};
   }
-  return {state:state,isTradingDay:isTradingDay,isHoliday:isHoliday,sessions:sessions,parts:parts};
+  return {state:state,isTradingDay:isTradingDay,isHoliday:isHoliday,closeMinute:closeMinute,sessions:sessions,parts:parts};
 });
