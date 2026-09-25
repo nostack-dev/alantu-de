@@ -37,18 +37,23 @@ async function sampleSession(s,idx){
     const canvas=page.locator('#ivChart');await canvas.scrollIntoViewIfNeeded();const box=await canvas.boundingBox();
     if(!box)throw new Error(name+' ivChart missing');
 
+    let cdp=null;
     if(mobile){
-      const cdp=await page.context().newCDPSession(page);
+      cdp=await page.context().newCDPSession(page);
       const y=box.y+box.height*.5,x0=box.x+box.width*.55,x1=box.x+box.width*.75;
       await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:x0,y}]});
-      await page.waitForTimeout(260);
+      await page.waitForTimeout(140);
       await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x1,y}]});
-      await page.waitForTimeout(180);
-      await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+      await page.waitForTimeout(140);
     }else{
-      await page.mouse.move(box.x+box.width*.58,box.y+box.height*.5);
-      await page.waitForTimeout(180);
-      await page.mouse.move(box.x+box.width*.76,box.y+box.height*.5);
+      const y=box.y+box.height*.5,x0=box.x+box.width*.58,x1=box.x+box.width*.76;
+      await page.mouse.move(x0,y);
+      await page.waitForTimeout(120);
+      const hoverOnly=await page.evaluate(()=>typeof priceScrubState!=='undefined'&&!!priceScrubState.active);
+      if(hoverOnly)throw new Error(name+' passive hover activated scrub');
+      await page.mouse.down();
+      await page.mouse.move(x1,y);
+      await page.waitForTimeout(140);
     }
 
     const snap=await page.evaluate(()=>({
@@ -96,6 +101,8 @@ async function sampleSession(s,idx){
       }
     }));
     await page.screenshot({path:`${out}/${String(idx).padStart(2,'0')}-${name}-1d.png`,fullPage:true});
+    if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]}).catch(()=>{});
+    else await page.mouse.up().catch(()=>{});
 
     await page.evaluate(()=>{if(typeof setChartRange==='function')setChartRange('price','1m');});
     await page.waitForTimeout(450);
