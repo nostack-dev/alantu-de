@@ -8,11 +8,14 @@ pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@
 const WLLAMA_PATHS={default:"https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/src/wasm/wllama.wasm"};
 
 const MODEL={
-  name:"Unlimited-OCR 3B · Q5",
-  modelUrl:"https://huggingface.co/sahilchachra/Unlimited-OCR-GGUF/resolve/main/Unlimited-OCR-Q5_K_S.gguf?download=true",
-  mmprojUrl:"https://huggingface.co/sahilchachra/Unlimited-OCR-GGUF/resolve/main/mmproj-Unlimited-OCR-F16.gguf?download=true",
-  approxGiB:2.71,
-  context:8192
+  // Same Unlimited-OCR 3B model, browser-safe quantization. Q4_K_M is the
+  // recommended size/quality balance and stays below wllama's 2 GB/file limit.
+  // The matching Q8 projector cuts vision-weight memory substantially vs F16.
+  name:"Unlimited-OCR 3B · Q4_K_M",
+  modelUrl:"https://huggingface.co/sabafallah/Unlimited-OCR-GGUF/resolve/main/unlimited-ocr-Q4_K_M.gguf?download=true",
+  mmprojUrl:"https://huggingface.co/sabafallah/Unlimited-OCR-GGUF/resolve/main/mmproj-unlimited-ocr-q8_0.gguf?download=true",
+  approxGiB:2.25,
+  context:4096
 };
 const MAX_PAGES=60;
 const RENDER_LONG_EDGE=2200;
@@ -36,6 +39,7 @@ const busy=$("busy"),empty=$("empty"),emptyTitle=$("emptyTitle"),emptyText=$("em
 
 let pdfDoc=null,sourceName="exposee",pages=[],currentPage=0,loadToken=0;
 let wllama=null,modelPromise=null,modelLoaded=false,modelGpu=false;
+let runtimeImageMaxTokens=100;
 let compareMode="side";
 
 function setStatus(text,kind=""){
@@ -165,18 +169,22 @@ function filterNativeDuplicates(ocr,native){
   });
 }
 
-async function createRuntime(){
+async function createRuntime(imageMaxTokens=100){
   const inst=new Wllama(WLLAMA_PATHS,{parallelDownloads:3,suppressNativeLog:true});
   inst.setCompat("default");
   await inst.loadModelFromUrl({url:MODEL.modelUrl,mmprojUrl:MODEL.mmprojUrl},{
     useCache:true,
-    // Unlimited-OCR 3B currently overflows wllama/ggml's WebGPU dispatch on
-    // real browser adapters (DispatchWorkgroups > 65535). Do not enter the
-    // GPU backend at all: a WebGPU abort kills the WASM worker before JS can
-    // reliably recover. CPU/WASM is slower, but deterministic and error-free.
+    // Unlimited-OCR + wllama currently has two independent browser failure
+    // modes: WebGPU dispatch overflow and WASM CLIP graph OOM. Avoid WebGPU
+    // entirely and cap vision tokens so clip_encode stays inside browser RAM.
     n_gpu_layers:0,
+    mmproj_offload:false,
+    image_min_tokens:64,
+    image_max_tokens:imageMaxTokens,
     n_ctx:MODEL.context,
-    n_threads:Math.max(1,Math.min(8,Math.floor((navigator.hardwareConcurrency||4)/2))),
+    cache_type_k:"q4_0",
+    cache_type_v:"q4_0",
+    n_threads:Math.max(1,Math.min(4,Math.floor((navigator.hardwareConcurrency||4)/2))),
     n_parallel:1,
     flash_attn:false,
     warmup:false,
@@ -190,6 +198,9 @@ async function createRuntime(){
     }
   });
   if(!inst.supportInputModality("image"))throw new Error("Unlimited-OCR Vision-Projektor konnte nicht aktiviert werden.");
+  runtimeImageMaxTokens=imageMaxTokens;
+  window.__alantuUocrDebug=window.__alantuUocrDebug||{};
+  window.__alantuUocrDebug.runtime={imageMaxTokens,model:MODEL.name,backend:"CPU/WASM"};
   return inst;
 }
 async function ensureModel(){
@@ -200,10 +211,10 @@ async function ensureModel(){
     busy.classList.add("show");
     busy.textContent=`Unlimited-OCR 3B · ca. ${MODEL.approxGiB.toFixed(1)} GB einmalig`;
     setStatus("Unlimited-OCR 3B wird lokal gestartet · stabiler CPU/WASM-Modus …");
-    wllama=await createRuntime();
+    wllama=await createRuntime(100);
     modelLoaded=true;
     modelGpu=false;
-    mEngine.textContent="Unlimited-OCR 3B · CPU/WASM";
+    mEngine.textContent="Unlimited-OCR 3B · CPU/WASM · 100 vision tokens";
     return wllama;
   })().finally(()=>{modelPromise=null});
   return modelPromise;
@@ -227,7 +238,7 @@ async function runUnlimited(imageBuffer){
       {type:"text",text:"<|grounding|>OCR"},
       {type:"image",data:imageBuffer}
     ]}],
-    max_tokens:2600,
+    max_tokens:1400,
     temperature:0,
     top_p:1,
     repeat_penalty:1.0,
@@ -241,6 +252,21 @@ async function runUnlimited(imageBuffer){
     const message=String(err?.message||err||"");
     if(/Failed to format input|Failed to tokenize prompt/i.test(message)){
       throw new Error("Unlimited-OCR Prompt-Format fehlgeschlagen. Bitte Seite neu laden; der aktuelle Browser-Code verwendet bereits den korrigierten llama.cpp-Server-Prompt ohne Chat-Template.");
+    }
+
+    // A CLIP graph allocation failure crashes this Wllama worker. Start a new
+    // isolated worker with the same Unlimited-OCR 3B model but a stricter
+    // 64-token vision budget; model files come from browser cache.
+    if(runtimeImageMaxTokens>64&&/(ABORT|unreachable|wllama has crashed|memory access out of bounds|gallocr|clip_encode|backend_buffer)/i.test(message)){
+      try{await wllama?.exit()}catch{}
+      wllama=null;modelLoaded=false;
+      busy.textContent="Vision-Speichergrenze erkannt · starte Unlimited-OCR sicherer neu …";
+      setStatus("Vision-Speichergrenze erkannt · automatischer 64-Token-Retry …");
+      const retry=await createRuntime(64);
+      wllama=retry;modelLoaded=true;modelGpu=false;
+      mEngine.textContent="Unlimited-OCR 3B · CPU/WASM · 64 vision tokens";
+      const response=await retry.createChatCompletion(request);
+      return response?.choices?.[0]?.message?.content||"";
     }
     throw err;
   }
@@ -306,18 +332,19 @@ function updateMetrics(){
   const imageText=pages.reduce((n,p)=>n+p.ocr.length,0);
   const imageChars=pages.reduce((n,p)=>n+p.ocr.reduce((m,r)=>m+normalizeText(r.text).replace(/\s/g,"").length,0),0);
   const aiPages=pages.filter(p=>p.usedAi).length;
+  const convertedImagePages=pages.filter(p=>p.usedAi&&p.ocr.length>0).length;
   const pendingAi=pages.some(p=>p.processing);
+  const coverage=aiPages?Math.round(convertedImagePages/aiPages*100):null;
   mPages.textContent=pages.length?String(pages.length):"—";
   mNative.textContent=pages.length?String(native):"—";
   mImageText.textContent=pages.length?String(imageText):"—";
   if(!pages.length)mImageTextPercent.textContent="—";
   else if(pendingAi)mImageTextPercent.textContent="läuft …";
-  else if(imageText>0)mImageTextPercent.textContent=`100 % · ${imageText} Blöcke / ${imageChars} Zeichen`;
-  else if(aiPages>0)mImageTextPercent.textContent="0 % · nichts erkannt";
-  else mImageTextPercent.textContent="— · keine Bildtexte";
+  else if(aiPages)mImageTextPercent.textContent=`${coverage} % · ${convertedImagePages}/${aiPages} Bildseiten · ${imageText} Blöcke / ${imageChars} Zeichen`;
+  else mImageTextPercent.textContent="— · keine Rasterbilder";
   mBaked.textContent=pages.length?String(pages.length):"—";
   mVisual.textContent=pages.length?"100 % Originalbild":"—";
-  if(!modelLoaded)mEngine.textContent="Unlimited-OCR 3B · CPU/WASM";
+  if(!modelLoaded)mEngine.textContent=`${MODEL.name} · CPU/WASM`;
 }
 function makeBoxes(container,page){
   container.innerHTML="";
