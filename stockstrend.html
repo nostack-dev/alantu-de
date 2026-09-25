@@ -1575,10 +1575,14 @@ function fxAt(at){
   }
   if(best>=0){
     var bt=new Date(fxBars[best].at).getTime(),bv=Number(fxBars[best].close);
-    if(bv>0&&t-bt<=12*3600000)return bv;
+    // Yahoo daily FX bars are timestamped around 23:00 UTC while US daily
+    // equity bars are around 13:30 UTC. 12h rejected the valid prior FX fixing
+    // (~14.5h gap) and blanked every non-1T price range. Keep as-of semantics
+    // (never use a future bar here), but allow the prior daily fixing.
+    if(bv>0&&t-bt<=36*3600000)return bv;
   }
   var firstMs=new Date(fxBars[0].at).getTime(),first=Number(fxBars[0].close);
-  return first>0&&firstMs-t>=0&&firstMs-t<=12*3600000?first:null;
+  return first>0&&firstMs-t>=0&&firstMs-t<=36*3600000?first:null;
 }
 function usdToEur(v,at){
   var n=Number(v),fx=fxAt(at);

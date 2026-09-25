@@ -153,14 +153,23 @@ async function run(name,viewport){
       bodyText:(document.body?.innerText||'').slice(0,4000)
     };
   });
-  await page.locator('button[data-price-range="1m"]').click();
-  await page.waitForTimeout(900);
-  const monthState=await page.evaluate(()=>({
-    range:typeof priceRange==='undefined'?null:priceRange,
-    points:typeof ivChart==='undefined'||!ivChart?0:(ivChart.data?.datasets?.[0]?.data||[]).length,
-    overflow:document.documentElement.scrollWidth-window.innerWidth
-  }));
-  await page.screenshot({path:`${out}/${name}-1m.png`,fullPage:true});
+  const rangeStates={};
+  for(const range of ['1w','1m','year','5y','all']){
+    await page.locator(`button[data-price-range="${range}"]`).click();
+    await page.waitForTimeout(650);
+    rangeStates[range]=await page.evaluate(()=>({
+      range:typeof priceRange==='undefined'?null:priceRange,
+      points:typeof ivChart==='undefined'||!ivChart?0:(ivChart.data?.datasets?.[0]?.data||[]).length,
+      sourceRows:typeof valueSeries==='function'?valueSeries().priceRows.length:0,
+      xMin:ivChart?.scales?.x?.min??null,
+      xMax:ivChart?.scales?.x?.max??null,
+      yMin:ivChart?.scales?.y?.min??null,
+      yMax:ivChart?.scales?.y?.max??null,
+      overflow:document.documentElement.scrollWidth-window.innerWidth
+    }));
+    if(range==='1m')await page.screenshot({path:`${out}/${name}-1m.png`,fullPage:true});
+  }
+  const monthState=rangeStates['1m'];
   await page.locator('button[data-price-range="1d"]').click();
   await page.waitForTimeout(400);
 
@@ -225,8 +234,14 @@ async function run(name,viewport){
   if(storageSanitized.showIntrinsic!==false||storageSanitized.pressed!=='false'||storageSanitized.active!==false||storageSanitized.intrinsicHidden!==true)errors.push('intrinsic-storage-load-failed:'+JSON.stringify(storageSanitized));
   if(storageImmediate.showIntrinsic!==true||storageImmediate.stored!=='1'||storageImmediate.pressed!=='true'||storageImmediate.active!==true||storageImmediate.intrinsicHidden!==false)errors.push('intrinsic-toggle-needs-reload:'+JSON.stringify(storageImmediate));
   if(storageReloaded.showIntrinsic!==true||storageReloaded.stored!=='1'||storageReloaded.pressed!=='true'||storageReloaded.active!==true||storageReloaded.intrinsicHidden!==false)errors.push('intrinsic-toggle-persistence-failed:'+JSON.stringify(storageReloaded));
-  if(monthState.range!=='1m'||monthState.points<10)errors.push('month-range-invalid:'+JSON.stringify(monthState));
-  if(monthState.overflow>4)errors.push('month-horizontal-overflow:'+monthState.overflow);
+  const minRangePoints={ '1w':20, '1m':10, year:50, '5y':200, all:500 };
+  for(const [range,rs] of Object.entries(rangeStates)){
+    const finiteAxes=[rs.xMin,rs.xMax,rs.yMin,rs.yMax].every(Number.isFinite);
+    if(rs.range!==range||rs.points<(minRangePoints[range]||2)||rs.sourceRows<(minRangePoints[range]||2)||!finiteAxes||!(rs.xMax>rs.xMin)||!(rs.yMax>rs.yMin)){
+      errors.push('price-range-invalid-'+range+':'+JSON.stringify(rs));
+    }
+    if(rs.overflow>4)errors.push('price-range-horizontal-overflow-'+range+':'+rs.overflow);
+  }
   if(wgoState.disabled||/nicht erreichbar|Frontend-Abbruch/i.test(wgoState.answer+' '+wgoState.meta)||!wgoState.answer)errors.push('wgo-live-failed:'+JSON.stringify(wgoState));
   if(!wgoState.open)errors.push('wgo-not-openable:'+JSON.stringify(wgoState));
   if(wgoState.hasFiveMinute)errors.push('wgo-five-minute-still-present');
@@ -249,7 +264,7 @@ async function run(name,viewport){
   if(!state.forecastCollapsed)errors.push('forecast-not-collapsed-by-default');
   if(!/MODELLSTATUS: (KAUFSIGNAL|KEIN KAUFSIGNAL|VERKAUFSSIGNAL)/.test(state.modelDecisionText))errors.push('model-decision-missing');
 
-  console.log(JSON.stringify({name,url,state,interactionState,projectionTarget,projectionInteraction,monthState,wgoState,wgoMonthState,storageSanitized,storageImmediate,storageReloaded,consoleErrors,pageErrors,httpErrors:allowedHttp,failed:allowedFailed,ok:errors.length===0,errors},null,2));
+  console.log(JSON.stringify({name,url,state,interactionState,projectionTarget,projectionInteraction,rangeStates,monthState,wgoState,wgoMonthState,storageSanitized,storageImmediate,storageReloaded,consoleErrors,pageErrors,httpErrors:allowedHttp,failed:allowedFailed,ok:errors.length===0,errors},null,2));
   await browser.close();
   if(errors.length)throw new Error(name+' smoke failed: '+errors.join(' | '));
 }
