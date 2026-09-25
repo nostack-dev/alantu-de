@@ -7,12 +7,12 @@ import {forecastYahooShadow,YAHOO_HORIZONS,YAHOO_LOCAL,YAHOO_GLOBAL,YAHOO_SHADOW
 import {HYPOTHESIS_VERSION,HYPOTHESIS_STRATEGIES,PRODUCTION_STRATEGY,HYPOTHESIS_MIN_MARGIN,DEFAULT_ROUNDTRIP_COST_BPS,signalSessionEligible,strategyDirections,actionableNewsContext,summarizeHypothesisState} from '../tools/yahoo-hypothesis-v4.mjs';
 import {V5_VERSION,V5_HORIZONS,V5_COST_BPS,V5_SAMPLE_GAP_MS,v5SessionEligible,extractV5Features,structuralV5Score,v5BarrierBps,fitV5Logistic,predictV5Logistic,evaluateV5Path,summarizeV5State} from '../tools/yahoo-monetary-v5.mjs';
 import {YAHOO_EVENT_CONTRACT,zigZag64,finiteNonNegative,canonicalVolumeDelta,canonicalEventCheck,normalizeLegacyYahooEvent} from '../tools/yahoo-stream-contract.mjs';
-import {openMarketStore,persistObservation,persistTransportObservation,persistPrediction,persistOutcome,persistEvidence,persistExperiment,loadModelState,storeStats,V6_CONTRACT_ID,V6_CONTRACT_TEXT} from './sqlite-store.mjs';
+import {openMarketStore,persistObservation,persistTransportObservation,persistPrediction,persistOutcome,persistEvidence,persistExperiment,loadRecentMarketEvents,loadModelState,storeStats,V6_CONTRACT_ID,V6_CONTRACT_TEXT} from './sqlite-store.mjs';
 
 let marketDb=null;
 try{
   marketDb=openMarketStore();
-  persistExperiment(marketDb,{approach_version:V5_VERSION,status:'collecting',config:{clock:'market_event_time',horizons:V5_HORIZONS,input_contract:'observed_market_events_only'}});
+  persistExperiment(marketDb,{approach_version:V5_VERSION,status:'collecting',config:{clock:'market_event_time',horizons:V5_HORIZONS,input_contract:'observed_market_events_only',canonical_warmup_ms:300000,execution_basis:'yahoo_last_price_research_proxy'}});
   console.log('[sqlite] ready',storeStats(marketDb));
 }
 catch(e){console.error('[sqlite] init failed',String(e?.stack||e));process.exit(1);}
@@ -50,6 +50,7 @@ const SOURCE_REFRESH_MS=Math.max(8000,Number(process.env.SOURCE_REFRESH_MS||1200
 const SOURCE_MAX_LIVE_LAG_MS=90*1000;
 const SOURCE_MARKET_MATCH_MS=60*1000;
 const SOURCE_ARCHIVE_WINDOW_MS=36*3600000;
+const V6_RUNTIME_STARTED_AT=Date.now(),V6_CANONICAL_WARMUP_MS=5*60000;
 let wgoPreviousCloseCache={checked_at:0,orcl:null,eurusd:null,source:null};
 const WHATS_GOING_ON_PROMPT=`Du erklärst ORCL in höchstens 5 kurzen Sätzen. Beginne mit der Bewegung der letzten 5/10 Minuten. Wenn der aktuelle Zeitraum ruhig ist, aber in den letzten 3 Stunden ein deutlich stärkerer 5/10-Minuten-Impuls lag, nenne diesen mit Uhrzeit und Größe. Ordne danach den heutigen Tagesmove ein und nutze relevante Meldungen der letzten 18 Stunden. Vergleiche den Impuls mit QQQ/SPY, um breiten Marktstress von ORCL-spezifischer Bewegung zu unterscheiden. Priorisiere konkrete Unternehmensereignisse vor allgemeiner Stimmung. Unterscheide klar zwischen belegtem Ereignis, wahrscheinlich relevantem Katalysator und bloßer zeitlicher Korrelation. Keine Kauf-/Verkaufsempfehlung.`;
 let sourceRefreshBusy=false,sourceLastLogAt=0,sourceLastEventAt=null,sourcePrimed=false;
@@ -463,18 +464,26 @@ async function loadYahooEvents(){
         if(!yahooSeries[e.s]||!(Number(e.t)>0)||!(Number(e.p)>0))continue;
         if(WGO_SYMBOLS.has(e.s)&&now-Number(e.t)<=20*3600000)pushWgoContextEvent(e);
         if(now-Number(e.t)>3*3600000)continue;
-        yahooSeries[e.s].push(e);
+        yahooSeries[e.s].push({...e,_load_priority:1});
       }
     }catch{}
   }
-  for(const s of YAHOO_SYMBOLS){
+  // SQLite is the canonical crash-safe source. Structured columns override legacy JSONL
+  // fields and therefore also carry one-time data migrations such as corrected day volume.
+  if(marketDb){
+    for(const e of loadRecentMarketEvents(marketDb,now-3*3600000)){
+      if(yahooSeries[e.s])yahooSeries[e.s].push({...e,_load_priority:2});
+    }
+  }
+  for(const symbol of YAHOO_SYMBOLS){
     const byTime=new Map();
-    // Historical JSONL may contain duplicate transport frames. Keep the first canonical
-    // observation for each market timestamp, matching the live V6 contract.
-    for(const e of yahooSeries[s].sort((a,b)=>a.t-b.t))if(!byTime.has(Number(e.t)))byTime.set(Number(e.t),e);
-    yahooSeries[s]=[...byTime.values()].sort((a,b)=>a.t-b.t);
-    const last=yahooSeries[s].at(-1);
-    yahooDayVolume[s]=last&&Number.isFinite(Number(last.day_volume))?Number(last.day_volume):null;
+    for(const e of yahooSeries[symbol].sort((a,b)=>Number(a.t)-Number(b.t)||Number(a._load_priority||0)-Number(b._load_priority||0))){
+      const key=Number(e.t),prev=byTime.get(key);
+      if(!prev||Number(e._load_priority||0)>=Number(prev._load_priority||0))byTime.set(key,e);
+    }
+    yahooSeries[symbol]=[...byTime.values()].map(e=>{const x={...e};delete x._load_priority;return x;}).sort((a,b)=>a.t-b.t);
+    const last=yahooSeries[symbol].at(-1);
+    yahooDayVolume[symbol]=last&&Number.isFinite(Number(last.day_volume))?Number(last.day_volume):null;
   }
 }
 function readPbVarint(bytes,state){
@@ -780,7 +789,9 @@ function v5LatestPredictionAt(){
   const a=[...v5State.predictions,...v5State.outcomes].filter(x=>x.version===V5_VERSION).sort((x,y)=>Date.parse(y.at)-Date.parse(x.at));return a[0]?Date.parse(a[0].at):0;
 }
 function maybeCreateV5Predictions(){
-  const now=Date.now(),entry=latestYahooEvent();if(!entry||!(Number(entry.p)>0))return;
+  const now=Date.now();
+  if(now-V6_RUNTIME_STARTED_AT<V6_CANONICAL_WARMUP_MS)return;
+  const entry=latestYahooEvent();if(!entry||!(Number(entry.p)>0))return;
   const marketAt=Number(entry.t),receivedAt=Number(entry.recv_at),receiveAge=now-receivedAt,marketAge=now-marketAt;
   if(!Number.isFinite(marketAt)||!Number.isFinite(receivedAt)||receiveAge<0||receiveAge>12000||marketAge<0||marketAge>30000)return;
   // A stalled feed is not new evidence. Prediction identity and horizon are anchored to
