@@ -6,6 +6,11 @@ import {forecastRawLatest} from '../tools/raw-sip-wave-core.mjs';
 import {forecastYahooShadow,YAHOO_HORIZONS,YAHOO_LOCAL,YAHOO_GLOBAL,YAHOO_SHADOW_VERSION} from '../tools/yahoo-shadow-wave-core.mjs';
 import {HYPOTHESIS_VERSION,HYPOTHESIS_STRATEGIES,PRODUCTION_STRATEGY,HYPOTHESIS_MIN_MARGIN,DEFAULT_ROUNDTRIP_COST_BPS,signalSessionEligible,strategyDirections,actionableNewsContext,summarizeHypothesisState} from '../tools/yahoo-hypothesis-v4.mjs';
 import {V5_VERSION,V5_HORIZONS,V5_COST_BPS,V5_SAMPLE_GAP_MS,v5SessionEligible,extractV5Features,structuralV5Score,v5BarrierBps,fitV5Logistic,predictV5Logistic,evaluateV5Path,summarizeV5State} from '../tools/yahoo-monetary-v5.mjs';
+import {openMarketStore,persistObservation,persistPrediction,persistOutcome,storeStats,V6_CONTRACT_ID,V6_CONTRACT_TEXT} from './sqlite-store.mjs';
+
+let marketDb=null;
+try{marketDb=openMarketStore();console.log('[sqlite] ready',storeStats(marketDb));}
+catch(e){console.error('[sqlite] init failed',String(e?.stack||e));process.exit(1);}
 
 const PORT=Number(process.env.PORT||8080);
 const KEY=process.env.APCA_API_KEY_ID||'',SECRET=process.env.APCA_API_SECRET_KEY||'';
@@ -502,10 +507,11 @@ function pushYahooEvent(q){
     previous_close:previousClose};
   if(last&&Number(e.t)<Number(last.t))return;
   if(last&&Number(e.t)===Number(last.t)){
-    // Same market observation: refresh metadata in place, never create another sample.
     a[a.length-1]={...last,...e,dv:Math.max(Number(last.dv)||0,Number(e.dv)||0)};
+    if(marketDb)persistObservation(marketDb,a[a.length-1],a.length>1?a[a.length-2]:null);
     return;
   }
+  if(marketDb)persistObservation(marketDb,e,last||null);
   a.push(e);const cut=Date.now()-3*3600000;while(a.length&&a[0].t<cut)a.shift();
   pushWgoContextEvent(e);
   eventBuffer.push(e);yahooLastAt=Date.now();yahooState='streaming';
@@ -764,7 +770,7 @@ function maybeCreateV5Predictions(){
     const model=fitV5Logistic(v5State.outcomes,h),learned=predictV5Logistic(model,state.vector),barrier=v5BarrierBps(state,h);
     const lastGate=[...v5State.predictions,...v5State.outcomes].filter(x=>x.version===V5_VERSION&&Number(x.horizon_minutes)===h&&x.gate_sample===true).sort((a,b)=>Date.parse(b.at)-Date.parse(a.at))[0];
     const gateSample=!lastGate||marketAt-Date.parse(lastGate.at)>=h*60000;
-    v5State.predictions.push({
+    const prediction={
       id:'v6-'+h+'-'+marketAt,version:V5_VERSION,horizon_minutes:h,at:new Date(marketAt).toISOString(),target_at:new Date(marketAt+h*60000).toISOString(),
       entry_price:Number(entry.p),entry_market_ms:marketAt,entry_market_at:new Date(marketAt).toISOString(),entry_received_at:new Date(receivedAt).toISOString(),
       entry_delivery_lag_ms:Math.max(0,receivedAt-marketAt),barrier_bps:barrier,assumed_roundtrip_cost_bps:V5_COST_BPS,gate_sample:gateSample,
@@ -772,7 +778,9 @@ function maybeCreateV5Predictions(){
       model_ready:model.ready===true,feature_vector:state.vector,feature_summary:{residual_bps:state.diagnostics.residual_bps,coupling:state.diagnostics.coupling,
         min_coverage:state.diagnostics.min_coverage,median_delivery_lag_ms:state.diagnostics.median_delivery_lag_ms},
       evaluation_contract:'market_event_time_true_dt_no_synthetic_samples_v2'
-    });
+    };
+    v5State.predictions.push(prediction);
+    if(marketDb)persistPrediction(marketDb,prediction);
   }
   if(v5State.predictions.length>5000)v5State.predictions=v5State.predictions.slice(-5000);
 }
@@ -781,11 +789,12 @@ function evaluateV5(){
   for(const p of v5State.predictions){
     const r=evaluateV5Path(p,yahooSeries.ORCL||[],now);
     if(r.status==='pending'){keep.push(p);continue;}
-    if(r.status==='invalid'){v5State.outcomes.push({...p,status:'invalid',reason:r.reason||'invalid_path'});continue;}
-    v5State.outcomes.push({...p,status:'evaluated',endpoint_price:r.endpoint_price,endpoint_at:r.endpoint_at,endpoint_market_at:r.endpoint_market_at,
+    if(r.status==='invalid'){const out={...p,status:'invalid',reason:r.reason||'invalid_path'};v5State.outcomes.push(out);if(marketDb)persistOutcome(marketDb,out);continue;}
+    const out={...p,status:'evaluated',endpoint_price:r.endpoint_price,endpoint_at:r.endpoint_at,endpoint_market_at:r.endpoint_market_at,
       endpoint_return_bps:r.endpoint_return_bps,endpoint_received_at:r.endpoint_received_at||null,timing_error_ms:r.timing_error_ms,barrier_label:r.barrier_label,barrier_hit:r.barrier_hit,barrier_at:r.barrier_at,
       mfe_bps:r.mfe_bps,mae_bps:r.mae_bps,structural_gross_bps:r.structural.gross_bps,structural_net_bps:r.structural.net_bps,
-      structural_profitable:r.structural.profitable,learned_gross_bps:r.learned.gross_bps,learned_net_bps:r.learned.net_bps,learned_profitable:r.learned.profitable});
+      structural_profitable:r.structural.profitable,learned_gross_bps:r.learned.gross_bps,learned_net_bps:r.learned.net_bps,learned_profitable:r.learned.profitable};
+    v5State.outcomes.push(out);if(marketDb)persistOutcome(marketDb,out);
   }
   v5State.predictions=keep;if(v5State.outcomes.length>20000)v5State.outcomes=v5State.outcomes.slice(-20000);
 }
