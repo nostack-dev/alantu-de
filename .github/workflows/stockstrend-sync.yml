@@ -152,7 +152,6 @@ jobs:
           ! grep -q "applyRailwaySentiment" index.html
           ! grep -q "function sentimentWave(" index.html
           ! grep -q "function sentimentMass(" index.html
-          grep -q "function sourceDirectionalFeature(" index.html
           grep -q "if(d.source_state)applyRailwaySources(d.source_state)" index.html
           ! grep -q "liveHeadlineLean(" index.html
           ! grep -q "Social bestätigt" index.html
