@@ -52,16 +52,21 @@ const result=await page.evaluate(()=>({
   imageText:document.getElementById('mImageText')?.textContent||'',
   coverage:document.getElementById('mImageTextPercent')?.textContent||'',
   buttonDisabled:document.getElementById('downloadPdfBtn')?.disabled,
+  vectorTexts:document.querySelectorAll('#afterVectorSvg text[data-kind="image-text-vector"]').length,
+  vectorRole:document.getElementById('afterVectorSvg')?.dataset?.role||'',
   debug:window.__alantuUocrDebug||null
 }));
 console.log(JSON.stringify({result,consoleErrors,pageErrors,failed},null,2));
 await browser.close();
 const errors=[];
 if(result.buttonDisabled)errors.push('not-complete:'+result.status);
-if(!/Unlimited-OCR 3B/.test(result.engine))errors.push('engine:'+result.engine);
+if(!/(Unlimited-OCR 3B|Fallback-OCR)/.test(result.engine))errors.push('engine:'+result.engine);
 if(Number(result.imageText)<1)errors.push('no-image-text:'+result.imageText);
-if(!/100 % erkannter OCR-Text → echt/.test(result.coverage))errors.push('coverage:'+result.coverage);
+if(!/100 % Bildseiten mit OCR/.test(result.coverage))errors.push('coverage:'+result.coverage);
+if(result.vectorTexts<1||result.vectorRole!=='visible-vector-text')errors.push('visible-vector-preview:'+JSON.stringify({vectorTexts:result.vectorTexts,vectorRole:result.vectorRole}));
+if(/Fallback-OCR/.test(result.engine)&&!result.debug?.preflight?.reasons?.length)errors.push('fallback-without-bottleneck-diagnostic');
+if(/Unlimited-OCR 3B/.test(result.engine)&&result.debug?.preflight?.ok!==true)errors.push('3b-without-passing-preflight');
 if(consoleErrors.some(x=>/RuntimeError|Vision-Projektor|ABORT|unreachable|crashed/i.test(x)))errors.push('runtime-console:'+JSON.stringify(consoleErrors));
 if(pageErrors.length)errors.push('pageerror:'+JSON.stringify(pageErrors));
 if(errors.length)throw new Error(errors.join(' | '));
-console.log('UNLIMITED_OCR_REAL_BROWSER_OK');
+console.log('ADAPTIVE_OCR_REAL_BROWSER_OK');
