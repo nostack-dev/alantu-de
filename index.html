@@ -1700,7 +1700,7 @@ function appendLiveMinute(price,at,volumeDelta){
     return;
   }
   orclMinuteBars.push({at:iso,open:price,high:price,low:price,close:price,volume:vd});
-  var cut=Date.now()-6*864e5,firstKeep=0;
+  var cut=Date.now()-14*864e5,firstKeep=0;
   while(firstKeep<orclMinuteBars.length&&new Date(orclMinuteBars[firstKeep].at).getTime()<cut)firstKeep++;
   if(firstKeep>0)orclMinuteBars.splice(0,firstKeep);
 }
