@@ -2738,7 +2738,10 @@ function renderWaveForecasts(){
   renderHypothesisDecision();
   renderModelDecision();
   renderV5Research();
-  if(ivChart&&priceRange==='1d'){var ds=ivChart.data&&ivChart.data.datasets&&ivChart.data.datasets[0];if(ds)refreshTrajectoryDatasets(ds.data||[],berlinTradingWindowFor(Date.now()));}
+  if(ivChart&&priceRange==='1d'){
+    var ds=ivChart.data&&ivChart.data.datasets&&ivChart.data.datasets[0],pts=ds&&ds.data||[],lastPt=pts.length?pts[pts.length-1]:null;
+    if(ds)refreshTrajectoryDatasets(pts,lastPt&&isFinite(Number(lastPt.x))?berlinTradingWindowFor(Number(lastPt.x)):null);
+  }
 }
 function currentContext(){
   var t=(tickData&&tickData.tick)||{},v=t.vector||{},fr=t.freshness||{},orcl=((wlData&&wlData.stocks)||{}).ORCL||{};
