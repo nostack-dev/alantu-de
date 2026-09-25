@@ -139,6 +139,15 @@ jobs:
           grep -Fq "liveSourceState&&(liveSourceState.checked_at||liveSourceState.at)" index.html
           grep -Fq "X_BEARER_TOKEN missing" market-relay/server.mjs
           grep -Fq "mentions_24h" market-relay/server.mjs
+          grep -Fq "contract:'source-event-v2'" market-relay/server.mjs
+          grep -Fq "descriptive_only_not_model_signal" market-relay/server.mjs
+          grep -Fq "canonical_story_id" market-relay/server.mjs
+          grep -Fq "first_seen_at" market-relay/server.mjs
+          grep -Fq "ALANTU_SOURCE_STATE_URL" tools/refresh-runtime-data.mjs
+          grep -Fq "source contract is not source-event-v2" tools/refresh-runtime-data.mjs
+          ! grep -q "getApeWisdom" tools/refresh-runtime-data.mjs
+          ! grep -q "classifyHeadline" tools/refresh-runtime-data.mjs
+          ! grep -q "src.social.forEach(function(x){votes" index.html
           grep -q 'id="sentimentRelation"' index.html
           grep -q 'function hdrRelationSeries' index.html
           grep -q 'while(windowStart<i&&cur.t-daily\[windowStart\].t>yearMs)windowStart++' index.html
@@ -402,8 +411,12 @@ jobs:
             if (!Number.isFinite(shFirst) || !Number.isFinite(shLast) || shLast < shFirst) {
               throw new Error('orcl-sentiment-history timestamps invalid');
             }
-            if (sh.history.some(x => !Number.isFinite(Number(x.hype_bull)) || !Number.isFinite(Number(x.hype_bear)) || !Number.isFinite(Number(x.confidence)))) {
+            if (sh.history.some(x => x.hype_bull!=null && !Number.isFinite(Number(x.hype_bull)) || x.hype_bear!=null && !Number.isFinite(Number(x.hype_bear)))) {
               throw new Error('orcl-sentiment-history contains invalid sentiment values');
+            }
+            const v2rows=sh.history.filter(x=>x.source_contract==='source-event-v2');
+            if(v2rows.some(x=>x.signal!=='hold'||x.sentiment_role!=='descriptive_only_not_model_signal'||x.confidence!=null)) {
+              throw new Error('source-event-v2 sentiment must remain descriptive-only');
             }
             console.log('Historical sentiment points', sh.history.length, sh.coverage || {});
           } else {

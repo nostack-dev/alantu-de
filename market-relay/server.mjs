@@ -59,6 +59,7 @@ const SOCIAL_AGGREGATE_CACHE_MS=2*60*1000;
 const wgoRangeCache=new Map(),WGO_RANGE_CACHE_MS=10*60*1000;
 const sourceSeen=new Map();
 let sourceState={
+  contract:'source-event-v2',sentiment_role:'descriptive_only_not_model_signal',
   status:'warming',at:null,checked_at:null,event_mode:'new_since_last_poll',
   poll_interval_seconds:SOURCE_REFRESH_MS/1000,max_live_delay_seconds:SOURCE_MAX_LIVE_LAG_MS/1000,market_match_tolerance_seconds:SOURCE_MARKET_MATCH_MS/1000,
   score:null,bull:null,bear:null,mixed:null,net:null,news_count:0,social_count:0,live_count:0,new_count:0,delayed_count:0,archive_count:0,
@@ -115,7 +116,7 @@ async function redditSearch(q){
   const j=await r.json(),cut=Date.now()-SOURCE_ARCHIVE_WINDOW_MS;
   return (j?.data?.children||[]).map(x=>x?.data||{}).map(x=>({
     title:String(x.title||''),url:x.permalink?'https://www.reddit.com'+x.permalink:String(x.url||''),
-    site:'reddit.com',time:Number(x.created_utc)*1000
+    site:'reddit.com',time:Number(x.created_utc)*1000,engagement:{score:Number(x.score)||0,comments:Number(x.num_comments)||0}
   })).filter(x=>x.title&&Number.isFinite(x.time)&&x.time>=cut&&/\borcl\b|oracle/i.test(x.title));
 }
 async function redditRecent(){
@@ -129,12 +130,12 @@ async function xRecent(){
   const token=String(process.env.X_BEARER_TOKEN||'').trim();if(!token)return [];
   const u=new URL('https://api.x.com/2/tweets/search/recent');
   u.searchParams.set('query','(ORCL OR Oracle) (stock OR shares OR earnings OR cloud OR AI) -is:retweet lang:en');
-  u.searchParams.set('max_results','50');u.searchParams.set('tweet.fields','created_at');
+  u.searchParams.set('max_results','50');u.searchParams.set('tweet.fields','created_at,public_metrics');
   const r=await fetch(u,{headers:{authorization:'Bearer '+token},signal:AbortSignal.timeout(12000)});
   if(!r.ok)throw new Error('X HTTP '+r.status);
   const j=await r.json(),cut=Date.now()-SOURCE_ARCHIVE_WINDOW_MS;
   return (j.data||[]).map(x=>({
-    title:String(x.text||''),url:'https://x.com/i/web/status/'+x.id,site:'x.com',time:Date.parse(x.created_at||'')
+    title:String(x.text||''),url:'https://x.com/i/web/status/'+x.id,site:'x.com',time:Date.parse(x.created_at||''),engagement:x.public_metrics||null
   })).filter(x=>x.title&&Number.isFinite(x.time)&&x.time>=cut);
 }
 async function blueskySearch(q){
@@ -146,7 +147,7 @@ async function blueskySearch(q){
   return (j.posts||[]).map(x=>{
     const text=String(x?.record?.text||''),time=Date.parse(x?.record?.createdAt||''),uri=String(x?.uri||'');
     const rkey=uri.split('/').pop()||'',handle=String(x?.author?.handle||'');
-    return {title:text,url:handle&&rkey?'https://bsky.app/profile/'+handle+'/post/'+rkey:'',site:'bsky.app',time};
+    return {title:text,url:handle&&rkey?'https://bsky.app/profile/'+handle+'/post/'+rkey:'',site:'bsky.app',time,engagement:{likes:Number(x.likeCount)||0,reposts:Number(x.repostCount)||0,replies:Number(x.replyCount)||0}};
   }).filter(x=>x.title&&Number.isFinite(x.time)&&x.time>=cut&&/\borcl\b|oracle/i.test(x.title));
 }
 async function blueskyRecent(){
@@ -303,13 +304,25 @@ function alignedMarketAt(ms){
     after:n?{at:new Date(n.t).toISOString(),price:n.p,lag_ms:n.t-ms}:null
   };
 }
+function canonicalStoryId(x){
+  return normalizedText(x?.title||'').replace(/\b(reuters|yahoo finance|marketwatch|cnbc|bloomberg|seeking alpha)\b/g,'').replace(/\s+/g,' ').trim().slice(0,220);
+}
+function sourceQuality(channel,site){
+  if(channel==='reddit'||channel==='x'||channel==='bluesky')return 'direct_social';
+  if(channel==='news')return /reuters|sec\.gov/i.test(String(site||''))?'primary_or_wire':'news_aggregator';
+  return 'ugc_aggregator';
+}
 function sourceItem(x,type,now=Date.now(),liveKeys=new Set(),delayedKeys=new Set()){
   const channel=sourceChannel(x,type),lean=termScore(x.title),time=Number(x.time),age=Math.max(0,now-time),key=storyKey(x,type),seen=sourceSeen.get(key);
   return {
-    type,channel,title:String(x.title||'').slice(0,320),
+    version:'source-event-v2',type,channel,title:String(x.title||'').slice(0,320),
     summary:String(x.title||'').replace(/\s+/g,' ').trim().slice(0,260),
-    url:String(x.url||''),site:String(x.site||''),time,key,
+    url:String(x.url||''),site:String(x.site||''),provider:String(x.site||channel),time,key,
+    canonical_story_id:canonicalStoryId(x),entity_relevance:'orcl_query_match',
+    source_quality:sourceQuality(channel,x.site),engagement:x.engagement||null,
     live:liveKeys.has(key),new:liveKeys.has(key)||delayedKeys.has(key),delayed:delayedKeys.has(key),
+    novelty:(liveKeys.has(key)||delayedKeys.has(key))?'first_seen':'known',
+    first_seen_at:seen?.first_seen_at?new Date(seen.first_seen_at).toISOString():null,
     discovered_at:seen?.first_seen_at?new Date(seen.first_seen_at).toISOString():null,
     discovery_delay_ms:seen?Math.max(0,seen.first_seen_at-time):null,age_ms:age,
     market:alignedMarketAt(time),
@@ -354,22 +367,30 @@ function deriveSourceState(news,social,providers,status='ok'){
   const archiveItems=archiveRaw.map(x=>sourceItem(x,x._type,now,liveKeys,delayedKeys)).slice(0,240);
   for(const item of archiveItems.filter(x=>x.new)){
     sourceEventBuffer.push({
-      version:'source-event-v1',key:item.key,type:item.type,channel:item.channel,title:item.title,url:item.url,site:item.site,lean:item.lean,
-      published_at:new Date(Number(item.time)).toISOString(),first_seen_at:item.discovered_at,delivery_lag_ms:item.discovery_delay_ms,
+      version:'source-event-v2',key:item.key,canonical_story_id:item.canonical_story_id,type:item.type,channel:item.channel,title:item.title,url:item.url,site:item.site,provider:item.provider,lean:item.lean,
+      source_quality:item.source_quality,entity_relevance:item.entity_relevance,engagement:item.engagement,novelty:item.novelty,
+      published_at:new Date(Number(item.time)).toISOString(),first_seen_at:item.first_seen_at,delivery_lag_ms:item.discovery_delay_ms,
       market_at_published:item.market,market_at_first_seen:item.actionable_market
     });
   }
   const liveItems=archiveItems.filter(x=>x.live);
   const groups={};
   for(const x of liveItems){if(!groups[x.channel])groups[x.channel]=[];groups[x.channel].push(x);}
-  const weights={news:1.25,reddit:1,x:1,bluesky:1,social:1};
-  let wb=0,wr=0,wm=0,wt=0;
-  for(const [channel,items] of Object.entries(groups)){
-    const p=channelPulse(items,now);if(!p)continue;
-    const w=weights[channel]||1;wb+=p.bull*w;wr+=p.bear*w;wm+=p.mixed*w;wt+=w;
-  }
-  const bull=wt?Math.round(wb/wt):null,bear=wt?Math.round(wr/wt):null;
-  const mixed=wt?Math.max(0,100-bull-bear):null,net=wt?bull-bear:null;
+  const livePulse=channelPulse(liveItems,now);
+  const bull=livePulse?Math.round(livePulse.bull):null,bear=livePulse?Math.round(livePulse.bear):null;
+  const mixed=livePulse?Math.max(0,100-bull-bear):null,net=livePulse?bull-bear:null;
+  const archiveCounts=archiveItems.reduce((m,x)=>(m[x.lean]=(m[x.lean]||0)+1,m),{bull:0,bear:0,mixed:0});
+  const archiveTotal=archiveCounts.bull+archiveCounts.bear+archiveCounts.mixed;
+  const archiveBull=archiveTotal?Math.round(100*archiveCounts.bull/archiveTotal):null;
+  const archiveBear=archiveTotal?Math.round(100*archiveCounts.bear/archiveTotal):null;
+  const archiveMixed=archiveTotal?Math.max(0,100-archiveBull-archiveBear):null;
+  const archiveNet=archiveTotal?archiveBull-archiveBear:null;
+  const archiveSentiment={
+    role:'descriptive_only_not_model_signal',method:'equal_weight_unique_events_keyword_lean',
+    bull:archiveBull,bear:archiveBear,mixed:archiveMixed,net:archiveNet,
+    score:archiveNet==null?null:Math.max(0,Math.min(100,Math.round(50+archiveNet/2))),
+    unique_events:archiveTotal
+  };
   const liveCount=liveItems.length,activeChannels=Object.keys(groups).length;
   const coverage=liveCount>=8&&activeChannels>=3?'high':liveCount>=3&&activeChannels>=2?'medium':liveCount>=1?'low':'quiet';
   const source_counts=liveItems.reduce((m,x)=>(m[x.channel]=(m[x.channel]||0)+1,m),{news:0,reddit:0,x:0,bluesky:0,social:0});
@@ -383,7 +404,10 @@ function deriveSourceState(news,social,providers,status='ok'){
     at:newestLive?new Date(newestLive.time).toISOString():null,
     checked_at:new Date(now).toISOString(),event_mode:'new_since_last_poll',
     poll_interval_seconds:SOURCE_REFRESH_MS/1000,max_live_delay_seconds:SOURCE_MAX_LIVE_LAG_MS/1000,market_match_tolerance_seconds:SOURCE_MARKET_MATCH_MS/1000,
+    contract:'source-event-v2',sentiment_role:'descriptive_only_not_model_signal',
     score:net==null?null:Math.max(0,Math.min(100,Math.round(50+net/2))),bull,bear,mixed,net,
+    live_pulse:{role:'time_aligned_event_feature',bull,bear,mixed,net,score:net==null?null:Math.max(0,Math.min(100,Math.round(50+net/2))),unique_events:liveCount},
+    archive_sentiment:archiveSentiment,
     news_count:liveItems.filter(x=>x.type==='news').length,social_count:liveItems.filter(x=>x.type==='social').length,
     live_count:liveCount,new_count:newCount,delayed_count:delayedKeys.size,archive_count:archiveItems.length,
     archive_news_count:newsArchive.length,archive_social_count:socialArchive.length,
@@ -434,7 +458,7 @@ async function refreshSources(){
     if(marketDb){
       persistEvidence(marketDb,{kind:'source_state',approach_version:'source-state-v1',symbol:'ORCL',event_at:sourceState.checked_at,payload:sourceSummary()});
       for(const item of (sourceState.items||[]).filter(x=>x.new)){
-        persistEvidence(marketDb,{evidence_key:'source:'+item.key,kind:'source_event',approach_version:'source-event-v1',symbol:'ORCL',
+        persistEvidence(marketDb,{evidence_key:'source:'+item.key,kind:'source_event',approach_version:'source-event-v2',symbol:'ORCL',
           event_at_ms:Number(item.time),received_at_ms:Date.parse(item.discovered_at||''),payload:item});
       }
     }
