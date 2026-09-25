@@ -99,12 +99,17 @@ function windowStats(rows,nowMs,windowSec){
   };
 }
 function groupStats(series,symbols,nowMs,windowSec){
-  const rows=symbols.map(s=>windowStats(series[s]||[],nowMs,windowSec)).filter(Boolean);
+  const rows=symbols.map(symbol=>({symbol,stats:windowStats(series[symbol]||[],nowMs,windowSec)})).filter(x=>x.stats);
   if(!rows.length)return null;
+  const firsts=rows.map(x=>x.stats.first_at_ms),ends=rows.map(x=>x.stats.end_at_ms),alignTol=windowSec<=15?2000:5000;
+  const firstSpread=Math.max(...firsts)-Math.min(...firsts),endSpread=Math.max(...ends)-Math.min(...ends);
+  if(firstSpread>alignTol||endSpread>alignTol)return null;
+  const a=rows.map(x=>x.stats);
   return {
-    members:rows.length,return_bps:median(rows.map(x=>x.return_bps)),velocity_bps_min:median(rows.map(x=>x.velocity_bps_min)),
-    flow_ratio:median(rows.map(x=>x.flow_ratio)),event_rate_hz:mean(rows.map(x=>x.event_rate_hz)),
-    persistence:median(rows.map(x=>x.persistence)),realized_bps:median(rows.map(x=>x.realized_bps)),coverage:median(rows.map(x=>x.coverage))
+    members:a.length,member_symbols:rows.map(x=>x.symbol),first_spread_ms:firstSpread,end_spread_ms:endSpread,
+    return_bps:median(a.map(x=>x.return_bps)),velocity_bps_min:median(a.map(x=>x.velocity_bps_min)),
+    flow_ratio:median(a.map(x=>x.flow_ratio)),event_rate_hz:mean(a.map(x=>x.event_rate_hz)),
+    persistence:median(a.map(x=>x.persistence)),realized_bps:median(a.map(x=>x.realized_bps)),coverage:median(a.map(x=>x.coverage))
   };
 }
 function peerBlend(local,global){
@@ -120,7 +125,8 @@ export function extractV5Features(series,nowMs=Date.now()){
     global[w]=groupStats(series,V5_GLOBAL,nowMs,w);
   }
   if(!self[5]||!self[15]||!self[60]||!self[300]||!local[5]||!local[15]||!local[60]||!local[300]||!global[5]||!global[15]||!global[60]||!global[300]||
-    local[5].members<2||local[15].members<2||local[60].members<2||local[300].members<2||global[5].members<1||global[15].members<1||global[60].members<1||global[300].members<1){
+    local[5].members<3||local[15].members<3||local[60].members<3||local[300].members<3||
+    global[5].members<2||global[15].members<2||global[60].members<2||global[300].members<2){
     return {status:'blocked',reason:'insufficient_true_dt_coverage',windows_seconds:V5_WINDOWS_SEC,self,local,global};
   }
   const blend=w=>peerBlend(local[w],global[w]);
@@ -130,7 +136,11 @@ export function extractV5Features(series,nowMs=Date.now()){
   const r5=residual(5),r15=residual(15),r60=residual(60),r300=residual(300),c5=coupling(5),c15=coupling(15),c60=coupling(60),c300=coupling(300);
   const rateRatio=Math.log((self[60].event_rate_hz+.01)/((local[60]?.event_rate_hz||0)+.01));
   const latency=median([self[15]?.median_delivery_lag_ms,self[60]?.median_delivery_lag_ms,self[300]?.median_delivery_lag_ms].filter(Number.isFinite));
-  const minCoverage=Math.min(self[5].coverage,self[15].coverage,self[60].coverage,self[300].coverage,local[5].coverage||0,local[60].coverage||0,global[5].coverage||0,global[60].coverage||0);
+  const minCoverage=Math.min(
+    self[5].coverage,self[15].coverage,self[60].coverage,self[300].coverage,
+    local[5].coverage||0,local[15].coverage||0,local[60].coverage||0,local[300].coverage||0,
+    global[5].coverage||0,global[15].coverage||0,global[60].coverage||0,global[300].coverage||0
+  );
   const f={
     self5:squash(self[5]?.return_bps,4),self15:squash(self[15].return_bps,8),self60:squash(self[60].return_bps,18),self300:squash(self[300].return_bps,45),
     local5:squash(local[5]?.return_bps,4),local15:squash(local[15]?.return_bps,7),local60:squash(local[60]?.return_bps,16),local300:squash(local[300]?.return_bps,40),
@@ -150,7 +160,12 @@ export function extractV5Features(series,nowMs=Date.now()){
     status:'ok',version:V5_VERSION,asof:new Date(eventTime((series.ORCL||[]).at(-1))).toISOString(),computed_at:new Date(nowMs).toISOString(),clock:'market_event_time',
     windows_seconds:V5_WINDOWS_SEC,feature_names:V5_FEATURE_NAMES,features:f,vector,
     diagnostics:{self,local,global,residual_bps:{'15':r15,'60':r60,'300':r300},coupling:{'15':c15,'60':c60,'300':c300},
-      peer_blend_bps:{'5':blend(5),'15':blend(15),'60':blend(60),'300':blend(300)},min_coverage:minCoverage,median_delivery_lag_ms:latency,event_rate_ratio_diagnostic:rateRatio}
+      peer_blend_bps:{'5':blend(5),'15':blend(15),'60':blend(60),'300':blend(300)},
+      peer_members:{local:{'5':local[5].member_symbols,'15':local[15].member_symbols,'60':local[60].member_symbols,'300':local[300].member_symbols},
+        global:{'5':global[5].member_symbols,'15':global[15].member_symbols,'60':global[60].member_symbols,'300':global[300].member_symbols}},
+      peer_alignment_ms:{local:{'5':local[5].end_spread_ms,'15':local[15].end_spread_ms,'60':local[60].end_spread_ms,'300':local[300].end_spread_ms},
+        global:{'5':global[5].end_spread_ms,'15':global[15].end_spread_ms,'60':global[60].end_spread_ms,'300':global[300].end_spread_ms}},
+      min_coverage:minCoverage,median_delivery_lag_ms:latency,event_rate_ratio_diagnostic:rateRatio}
   };
 }
 export function structuralV5Score(features,h){
@@ -255,6 +270,9 @@ export function summarizeV5State(state){
   }
   const valid=[5,15,1,30].filter(h=>proof[String(h)].gate.status==='validated');
   return {version:V5_VERSION,contract:'market_event_time_true_dt_no_synthetic_samples_v3',clock:'market_event_time',objective:'first_profit_or_loss_barrier_then_horizon_close',
-    assumed_roundtrip_cost_bps:V5_COST_BPS,windows_seconds:V5_WINDOWS_SEC,feature_names:V5_FEATURE_NAMES,proof,
-    production:{enabled:valid.length>0,validated_horizons:valid,selected_horizon:valid[0]||null},started_at:state?.started_at||null,updated_at:state?.updated_at||null};
+    assumed_roundtrip_cost_bps:V5_COST_BPS,execution_basis:'yahoo_last_price_research_proxy',execution_validated:false,
+    windows_seconds:V5_WINDOWS_SEC,feature_names:V5_FEATURE_NAMES,proof,
+    research:{validated_horizons:valid,selected_horizon:valid[0]||null},
+    production:{enabled:false,validated_horizons:[],selected_horizon:null,reason:'execution_prices_and_realized_costs_not_validated'},
+    started_at:state?.started_at||null,updated_at:state?.updated_at||null};
 }
