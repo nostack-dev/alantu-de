@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: alantu-browser-smoke-main
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   live-browser-smoke:
