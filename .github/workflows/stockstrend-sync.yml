@@ -353,7 +353,8 @@ jobs:
             console.log('Runtime snapshot is stale but valid last-known-good; UI must show its timestamp. ageMs='+ageMs);
           }
           if (watch.updated_at !== status.updated_at) throw new Error('watchlist/runtime timestamp mismatch');
-          if (trend?.tick?.freshness?.freshest_absolute !== status.updated_at) throw new Error('trend/runtime freshness mismatch');
+          const sourceChecked = status?.sources?.source_state?.checked_at;
+          if (!sourceChecked || trend?.tick?.freshness?.freshest_absolute !== sourceChecked) throw new Error('trend/source-state freshness mismatch');
           if (!Number.isFinite(Number(watch?.stocks?.ORCL?.price)) || Number(watch.stocks.ORCL.price)<=0) {
             throw new Error('ORCL runtime price invalid');
           }

@@ -159,6 +159,7 @@ coverage_score = clamp(
   45, 80
 )</div>
 <p class="small">Wichtig: Live-Browserpfad und Fallbackpfad sind absichtlich getrennt. Der Fallback ist ein robuster Snapshot, nicht die Quelle des manuellen Sync-Zeitstempels.</p>
+        <p><strong>Live-Quellenvertrag:</strong> News und Social laufen als einzelne Ereignisse über <code>source-event-v2</code>. Maßgebliche Zeit für ein nutzbares Ereignis ist <code>first_seen_at</code>; <code>published_at</code> bleibt Herkunftszeit. Die 36h-Stimmung ist nur eine deskriptive Zusammenfassung eindeutiger Ereignisse und erzeugt kein Kauf-/Verkaufssignal. ApeWisdom bleibt ein getrenntes 24h-Aggregat und wird nicht mit Einzelereignissen zu einem Handelssignal vermischt.</p>
 </section>
 
 <section id="wave">
