@@ -159,6 +159,27 @@
       height:2px;background:rgba(13,13,11,.09);margin-top:10px;overflow:hidden;border-radius:999px;
     }
     .progress span{display:block;width:0;height:100%;background:var(--gold);transition:width .15s linear}
+    .export-row{display:flex;gap:9px;align-items:center;margin-top:14px}
+    .export-btn,.download-ready{
+      min-height:44px;
+      border-radius:999px;
+      border:1px solid var(--ink);
+      padding:0 17px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      background:var(--ink);
+      color:var(--paper);
+      font-size:12px;
+      font-weight:650;
+      text-decoration:none;
+      transition:opacity .16s ease,transform .16s ease,background .16s ease;
+    }
+    .export-btn:hover,.download-ready:hover{transform:translateY(-1px)}
+    .export-btn:disabled{opacity:.35;cursor:default;transform:none}
+    .download-ready{display:none;background:transparent;color:var(--ink)}
+    .download-ready.show{display:inline-flex}
     .meta{
       margin-top:24px;border-top:1px solid var(--line);
     }
@@ -464,6 +485,10 @@
 
       <div class="status" id="status"><span class="dot"></span><span>Bereit</span></div>
       <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+      <div class="export-row">
+        <button class="export-btn" id="exportPdfBtn" type="button" disabled>Konvertiertes PDF herunterladen</button>
+        <a class="download-ready" id="downloadReady" download>PDF öffnen</a>
+      </div>
 
       <div class="meta" id="meta">
         <div class="meta-row"><span>Datei</span><strong id="metaFile">—</strong></div>
@@ -556,6 +581,7 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
+    import { PDFDocument } from "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm";
     import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand308";
     import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view404";
 
@@ -602,6 +628,8 @@
     const pageCount=document.getElementById("pageCount");
     const fullscreenBtn=document.getElementById("fullscreenBtn");
     const fitViewBtn=document.getElementById("fitViewBtn");
+    const exportPdfBtn=document.getElementById("exportPdfBtn");
+    const downloadReady=document.getElementById("downloadReady");
     const prefersReduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:"high-performance"});
@@ -762,6 +790,8 @@
     let adaptiveTimer=0;
     let adaptiveBusy=false;
     let adaptivePending=false;
+    let currentSourceName="";
+    let lastDownloadUrl="";
 
     function setStatus(text,type=""){
       statusEl.className="status"+(type?" "+type:"");
@@ -780,6 +810,14 @@
     }
 
     function clearBook(){
+      exportPdfBtn.disabled=true;
+      currentSourceName="";
+      if(lastDownloadUrl){
+        URL.revokeObjectURL(lastDownloadUrl);
+        lastDownloadUrl="";
+      }
+      downloadReady.classList.remove("show");
+      downloadReady.removeAttribute("href");
       if(retainedPdf){
         try{retainedPdf.destroy()}catch{}
         retainedPdf=null;
@@ -1421,6 +1459,107 @@
       adaptiveTimer=setTimeout(upgradeVisiblePages,180);
     }
 
+    function canvasToJpegBytes(canvas,quality=.97){
+      return new Promise((resolve,reject)=>{
+        canvas.toBlob(async blob=>{
+          if(!blob){
+            reject(new Error("PDF-Seite konnte nicht für den Export codiert werden."));
+            return;
+          }
+          try{
+            resolve(new Uint8Array(await blob.arrayBuffer()));
+          }catch(err){
+            reject(err);
+          }
+        },"image/jpeg",quality);
+      });
+    }
+
+    function exportFileName(){
+      const raw=(currentSourceName||"exposee").replace(/\.pdf$/i,"").trim()||"exposee";
+      const safe=raw.replace(/[\\/:*?"<>|]+/g,"-").replace(/\s+/g," ").trim();
+      return safe+"-alantu-anchor.pdf";
+    }
+
+    async function downloadConvertedPdf(){
+      if(!retainedPdf||!totalPages||exportPdfBtn.disabled)return;
+
+      clearTimeout(adaptiveTimer);
+      exportPdfBtn.disabled=true;
+      downloadReady.classList.remove("show");
+      loadingMask.classList.add("show");
+      loadingTitle.textContent="Konvertiertes PDF wird erzeugt";
+      setStatus("PDF-Export läuft …");
+      setProgress(2);
+
+      try{
+        while(adaptiveBusy){
+          await new Promise(resolve=>setTimeout(resolve,30));
+        }
+
+        const token=loadToken;
+        const out=await PDFDocument.create();
+        const exportEdge=Math.min(
+          renderer.capabilities.maxTextureSize||3072,
+          IS_IOS_WEBKIT?1800:(window.matchMedia("(max-width:700px)").matches?2200:3072)
+        );
+
+        for(let i=1;i<=totalPages;i++){
+          if(token!==loadToken)throw new Error("cancelled");
+          loadingText.textContent="Seite "+i+" von "+totalPages+" wird ins PDF geschrieben …";
+          setProgress(4+(i-1)/totalPages*90);
+
+          const rendered=await renderPdfPage(retainedPdf,i,token,exportEdge);
+          const jpg=await canvasToJpegBytes(rendered.canvas,.97);
+          const embedded=await out.embedJpg(jpg);
+          const page=out.addPage([rendered.width,rendered.height]);
+          page.drawImage(embedded,{
+            x:0,
+            y:0,
+            width:rendered.width,
+            height:rendered.height
+          });
+          try{rendered.canvas.width=1;rendered.canvas.height=1}catch{}
+
+          if(IS_IOS_WEBKIT&&i%2===0)await new Promise(requestAnimationFrame);
+        }
+
+        out.setTitle(currentCoverTitle||"ALANTU Exposé");
+        out.setProducer("ALANTU Anchor PDF Converter");
+        out.setCreator("ALANTU");
+        const bytes=await out.save({useObjectStreams:true});
+        const blob=new Blob([bytes],{type:"application/pdf"});
+        if(lastDownloadUrl)URL.revokeObjectURL(lastDownloadUrl);
+        lastDownloadUrl=URL.createObjectURL(blob);
+
+        const name=exportFileName();
+        downloadReady.href=lastDownloadUrl;
+        downloadReady.download=name;
+        downloadReady.textContent="PDF erneut herunterladen";
+        downloadReady.classList.add("show");
+
+        const a=document.createElement("a");
+        a.href=lastDownloadUrl;
+        a.download=name;
+        a.rel="noopener";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        setProgress(100);
+        setStatus("Konvertiertes PDF ist fertig.","ok");
+        setTimeout(()=>setProgress(0),900);
+      }catch(err){
+        if(err?.message!=="cancelled"){
+          console.error(err);
+          setStatus(err?.message||"PDF-Export fehlgeschlagen.","error");
+        }
+      }finally{
+        loadingMask.classList.remove("show");
+        if(retainedPdf&&totalPages)exportPdfBtn.disabled=false;
+      }
+    }
+
     async function loadPdf(file){
       if(!file)return;
       if(file.type!=="application/pdf" && !file.name.toLowerCase().endsWith(".pdf")){
@@ -1438,6 +1577,7 @@
       setProgress(3);
       metaFile.textContent=file.name;
       metaPages.textContent="…";
+      currentSourceName=file.name;
       currentCoverTitle=sanitizeAlantuCoverTitle(file.name);
       refreshBranding();
 
@@ -1477,8 +1617,9 @@
         pdf=null;
 
         buildBook(rendered);
+        exportPdfBtn.disabled=false;
         setProgress(100);
-        setStatus(rendered.length+" Seiten bereit.","ok");
+        setStatus(rendered.length+" Seiten bereit · Download verfügbar.","ok");
         setTimeout(()=>{if(token===loadToken)setProgress(0)},800);
       }catch(err){
         if(err?.message==="cancelled")return;
@@ -1497,6 +1638,7 @@
     }
 
     input.addEventListener("change",()=>loadPdf(input.files?.[0]));
+    exportPdfBtn.addEventListener("click",downloadConvertedPdf);
     brandInput.addEventListener("input",refreshBranding);
     subtitleInput.addEventListener("input",refreshBranding);
 
