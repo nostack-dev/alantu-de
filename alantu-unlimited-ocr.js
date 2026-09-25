@@ -35,7 +35,7 @@ const downloadPdfBtn=$("downloadPdfBtn"),downloadSvgBtn=$("downloadSvgBtn"),clea
 const prevBtn=$("prevBtn"),nextBtn=$("nextBtn"),pageCounter=$("pageCounter");
 const sideBtn=$("sideBtn"),overlayBtn=$("overlayBtn"),overlayTools=$("overlayTools"),overlayOpacity=$("overlayOpacity"),overlayValue=$("overlayValue"),showBoxes=$("showBoxes");
 const compare=$("compare"),beforeImg=$("beforeImg"),afterImg=$("afterImg"),beforeOverlay=$("beforeOverlay"),afterOverlay=$("afterOverlay");
-const sideBefore=$("sideBefore"),sideAfter=$("sideAfter"),sideGrid=$("sideGrid"),overlayWrap=$("overlayWrap"),overlayStage=$("overlayStage"),overlayBefore=$("overlayBefore"),overlayAfter=$("overlayAfter"),overlayBoxes=$("overlayBoxes");
+const sideBefore=$("sideBefore"),sideAfter=$("sideAfter"),sideGrid=$("sideGrid"),overlayWrap=$("overlayWrap"),overlayStage=$("overlayStage"),overlayBefore=$("overlayBefore"),overlayAfter=$("overlayAfter"),overlayBoxes=$("overlayBoxes"),afterVectorSvg=$("afterVectorSvg"),overlayVectorSvg=$("overlayVectorSvg");
 const busy=$("busy"),empty=$("empty"),emptyTitle=$("emptyTitle"),emptyText=$("emptyText");
 
 let pdfDoc=null,sourceName="exposee",pages=[],currentPage=0,loadToken=0;
@@ -125,11 +125,6 @@ function vectorTextSvg(page){
     return `<text data-kind="image-text-vector" x="${x.toFixed(3)}" y="${y.toFixed(3)}" font-family="Arial,Helvetica,sans-serif" font-size="${fs.toFixed(3)}" fill="${fill}" textLength="${w.toFixed(3)}" lengthAdjust="spacingAndGlyphs">${escapeXml(r.text)}</text>`;
   }).join("");
 }
-function pageVectorSvg(page){
-  const bg=bytesToDataUrl(page.vectorPngBytes||page.pngBytes);
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${page.width}" height="${page.height}" viewBox="0 0 ${page.width} ${page.height}" preserveAspectRatio="none"><image data-baked-diff="1" x="0" y="0" width="${page.width}" height="${page.height}" href="${bg}"/><g data-role="visible-vector-text">${vectorTextSvg(page)}</g></svg>`;
-}
-function svgBlobUrl(svg){return URL.createObjectURL(new Blob([svg],{type:"image/svg+xml;charset=utf-8"}))}
 
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
@@ -668,11 +663,9 @@ async function convertPage(pageNo,token,onPreview=()=>{}){
     const vectorized=await makeVectorizedRaster(canvas,ocr,base.width,base.height);
     provisional.vectorPngBytes=vectorized.bytes;
     provisional.vectorRasterUrl=vectorized.url;
-    provisional.vectorPreviewUrl=svgBlobUrl(pageVectorSvg(provisional));
   }else{
     provisional.vectorPngBytes=pngBytes;
     provisional.vectorRasterUrl=previewUrl;
-    provisional.vectorPreviewUrl=previewUrl;
   }
   provisional.processing=false;
   canvas.width=1;canvas.height=1;
@@ -716,6 +709,24 @@ function makeBoxes(container,page){
     const label=document.createElement("span");label.textContent=r.text;box.appendChild(label);container.appendChild(box);
   }
 }
+function renderVectorSvgLayer(svg,page){
+  if(!svg)return;
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+  if(!page)return;
+  svg.setAttribute("viewBox",`0 0 ${page.width} ${page.height}`);
+  svg.setAttribute("preserveAspectRatio","none");
+  svg.dataset.role="visible-vector-text";
+  for(const r of page.ocr){
+    const b=r.bbox,h=Math.max(2,b.y1-b.y0),fs=Math.max(2,h*.82),w=Math.max(1,b.x1-b.x0);
+    const text=document.createElementNS("http://www.w3.org/2000/svg","text");
+    text.setAttribute("data-kind","image-text-vector");
+    text.setAttribute("x",b.x0.toFixed(3));text.setAttribute("y",(b.y0+fs*.9).toFixed(3));
+    text.setAttribute("font-family","Arial,Helvetica,sans-serif");text.setAttribute("font-size",fs.toFixed(3));
+    text.setAttribute("fill",r.vectorStyle?.fill||"#111111");
+    text.setAttribute("textLength",w.toFixed(3));text.setAttribute("lengthAdjust","spacingAndGlyphs");
+    text.textContent=r.text;svg.appendChild(text);
+  }
+}
 function renderCompare(){
   const p=pages[currentPage];
   if(!p){
@@ -727,7 +738,8 @@ function renderCompare(){
   sideGrid.hidden=compareMode!=="side";
   overlayWrap.hidden=compareMode!=="overlay";
   overlayStage.hidden=compareMode!=="overlay";
-  beforeImg.src=p.previewUrl;afterImg.src=p.vectorPreviewUrl||p.previewUrl;overlayBefore.src=p.previewUrl;overlayAfter.src=p.vectorPreviewUrl||p.previewUrl;
+  beforeImg.src=p.previewUrl;afterImg.src=p.vectorRasterUrl||p.previewUrl;overlayBefore.src=p.previewUrl;overlayAfter.src=p.vectorRasterUrl||p.previewUrl;
+  renderVectorSvgLayer(afterVectorSvg,p);renderVectorSvgLayer(overlayVectorSvg,p);
   makeBoxes(afterOverlay,p);makeBoxes(overlayBoxes,p);
   pageCounter.textContent=`${currentPage+1} / ${pages.length}`;
   prevBtn.disabled=currentPage<=0;nextBtn.disabled=currentPage>=pages.length-1;
@@ -804,9 +816,9 @@ function downloadSvg(){
 }
 
 async function clearDocument(){
-  loadToken++;for(const p of pages){for(const u of [p.previewUrl,p.vectorPreviewUrl,p.vectorRasterUrl])try{if(u&&u!==p.previewUrl)URL.revokeObjectURL(u)}catch{};try{URL.revokeObjectURL(p.previewUrl)}catch{}}
+  loadToken++;for(const p of pages){try{if(p.vectorRasterUrl&&p.vectorRasterUrl!==p.previewUrl)URL.revokeObjectURL(p.vectorRasterUrl)}catch{};try{URL.revokeObjectURL(p.previewUrl)}catch{}}
   pages=[];currentPage=0;beforeImg.removeAttribute("src");afterImg.removeAttribute("src");overlayBefore.removeAttribute("src");overlayAfter.removeAttribute("src");
-  afterOverlay.innerHTML="";overlayBoxes.innerHTML="";downloadPdfBtn.disabled=true;downloadSvgBtn.disabled=true;prevBtn.disabled=true;nextBtn.disabled=true;
+  afterOverlay.innerHTML="";overlayBoxes.innerHTML="";if(afterVectorSvg)afterVectorSvg.innerHTML="";if(overlayVectorSvg)overlayVectorSvg.innerHTML="";downloadPdfBtn.disabled=true;downloadSvgBtn.disabled=true;prevBtn.disabled=true;nextBtn.disabled=true;
   sideGrid.hidden=true;overlayWrap.hidden=true;overlayStage.hidden=true;
   emptyTitle.textContent="PDF laden.";
   emptyText.textContent="Danach siehst du Original und Ergebnis direkt nebeneinander oder pixelgenau übereinander.";
