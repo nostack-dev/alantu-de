@@ -16,7 +16,9 @@ const MODEL={
 };
 const MAX_PAGES=60;
 const RENDER_LONG_EDGE=2200;
-const MOCK_OCR=new URLSearchParams(location.search).get("mockOcr")==="1";
+const QUERY=new URLSearchParams(location.search);
+const MOCK_OCR=QUERY.get("mockOcr")==="1";
+const MOCK_OCR_DELAY=Math.max(0,Number(QUERY.get("mockOcrDelay"))||0);
 
 const $=id=>document.getElementById(id);
 const pdfInput=$("pdfInput"),dropzone=$("dropzone"),statusEl=$("status"),progressBar=$("progressBar"),fileBadge=$("fileBadge");
@@ -25,8 +27,8 @@ const downloadPdfBtn=$("downloadPdfBtn"),downloadSvgBtn=$("downloadSvgBtn"),clea
 const prevBtn=$("prevBtn"),nextBtn=$("nextBtn"),pageCounter=$("pageCounter");
 const sideBtn=$("sideBtn"),overlayBtn=$("overlayBtn"),overlayTools=$("overlayTools"),overlayOpacity=$("overlayOpacity"),overlayValue=$("overlayValue"),showBoxes=$("showBoxes");
 const compare=$("compare"),beforeImg=$("beforeImg"),afterImg=$("afterImg"),beforeOverlay=$("beforeOverlay"),afterOverlay=$("afterOverlay");
-const sideBefore=$("sideBefore"),sideAfter=$("sideAfter"),overlayStage=$("overlayStage"),overlayBefore=$("overlayBefore"),overlayAfter=$("overlayAfter"),overlayBoxes=$("overlayBoxes");
-const busy=$("busy"),empty=$("empty");
+const sideBefore=$("sideBefore"),sideAfter=$("sideAfter"),sideGrid=$("sideGrid"),overlayWrap=$("overlayWrap"),overlayStage=$("overlayStage"),overlayBefore=$("overlayBefore"),overlayAfter=$("overlayAfter"),overlayBoxes=$("overlayBoxes");
+const busy=$("busy"),empty=$("empty"),emptyTitle=$("emptyTitle"),emptyText=$("emptyText");
 
 let pdfDoc=null,sourceName="exposee",pages=[],currentPage=0,loadToken=0;
 let wllama=null,modelPromise=null,modelLoaded=false,modelGpu=false;
@@ -189,6 +191,7 @@ async function ensureModel(){
 }
 async function runUnlimited(imageBuffer){
   if(MOCK_OCR){
+    if(MOCK_OCR_DELAY)await new Promise(r=>setTimeout(r,MOCK_OCR_DELAY));
     return "<|ref|>ALANTU EXPOSE<|/ref|><|det|>[[80,80,920,180]]<|/det|>\n<|ref|>Wohnung mit Seeblick in Konstanz<|/ref|><|det|>[[80,220,920,330]]<|/det|>";
   }
   const ai=await ensureModel();
@@ -207,7 +210,7 @@ async function runUnlimited(imageBuffer){
   return response?.choices?.[0]?.message?.content||"";
 }
 
-async function convertPage(pageNo,token){
+async function convertPage(pageNo,token,onPreview=()=>{}){
   const page=await pdfDoc.getPage(pageNo);
   const base=page.getViewport({scale:1});
   const scale=Math.max(1.6,Math.min(3.6,RENDER_LONG_EDGE/Math.max(base.width,base.height)));
@@ -232,8 +235,17 @@ async function convertPage(pageNo,token){
     x0:r.bbox.x0/scale,y0:r.bbox.y0/scale,x1:r.bbox.x1/scale,y1:r.bbox.y1/scale
   },fontSize:r.fontSize/scale}));
 
+  const provisional={
+    pageNo,width:base.width,height:base.height,pngBytes,previewUrl,native,ocr:[],rawOcr:"",
+    usedAi:hasRasterImages(opList),bakedCount:1,processing:hasRasterImages(opList)
+  };
+
+  // Show the baked original immediately. Unlimited-OCR can take time to
+  // download on first use, but the comparison UI must never look broken.
+  onPreview(provisional);
+
   let ocr=[],rawOcr="";
-  if(hasRasterImages(opList)){
+  if(provisional.usedAi){
     const inputBlob=await canvasToBlob(canvas,"image/jpeg",.94);
     rawOcr=await runUnlimited(await blobToArrayBuffer(inputBlob));
     if(token!==loadToken)throw new Error("cancelled");
@@ -241,10 +253,10 @@ async function convertPage(pageNo,token){
   }
   canvas.width=1;canvas.height=1;
 
-  return {
-    pageNo,width:base.width,height:base.height,pngBytes,previewUrl,native,ocr,rawOcr,
-    usedAi:hasRasterImages(opList),bakedCount:1
-  };
+  provisional.ocr=ocr;
+  provisional.rawOcr=rawOcr;
+  provisional.processing=false;
+  return provisional;
 }
 
 function allText(page){return [...page.native,...page.ocr]}
@@ -271,8 +283,15 @@ function makeBoxes(container,page){
 }
 function renderCompare(){
   const p=pages[currentPage];
-  if(!p){empty.style.display="grid";return}
+  if(!p){
+    empty.style.display="grid";
+    sideGrid.hidden=true;overlayWrap.hidden=true;overlayStage.hidden=true;
+    return;
+  }
   empty.style.display="none";
+  sideGrid.hidden=compareMode!=="side";
+  overlayWrap.hidden=compareMode!=="overlay";
+  overlayStage.hidden=compareMode!=="overlay";
   beforeImg.src=p.previewUrl;afterImg.src=p.previewUrl;overlayBefore.src=p.previewUrl;overlayAfter.src=p.previewUrl;
   makeBoxes(afterOverlay,p);makeBoxes(overlayBoxes,p);
   pageCounter.textContent=`${currentPage+1} / ${pages.length}`;
@@ -283,7 +302,7 @@ function renderCompare(){
 function setCompareMode(mode){
   compareMode=mode;
   sideBtn.classList.toggle("active",mode==="side");overlayBtn.classList.toggle("active",mode==="overlay");
-  sideBefore.hidden=mode!=="side";sideAfter.hidden=mode!=="side";overlayStage.hidden=mode!=="overlay";overlayTools.hidden=mode!=="overlay";
+  sideBefore.hidden=mode!=="side";sideAfter.hidden=mode!=="side";overlayTools.hidden=mode!=="overlay";
   renderCompare();
 }
 
@@ -357,6 +376,9 @@ async function clearDocument(){
   loadToken++;for(const p of pages)try{URL.revokeObjectURL(p.previewUrl)}catch{}
   pages=[];currentPage=0;beforeImg.removeAttribute("src");afterImg.removeAttribute("src");overlayBefore.removeAttribute("src");overlayAfter.removeAttribute("src");
   afterOverlay.innerHTML="";overlayBoxes.innerHTML="";downloadPdfBtn.disabled=true;downloadSvgBtn.disabled=true;prevBtn.disabled=true;nextBtn.disabled=true;
+  sideGrid.hidden=true;overlayWrap.hidden=true;overlayStage.hidden=true;
+  emptyTitle.textContent="PDF laden.";
+  emptyText.textContent="Danach siehst du Original und Ergebnis direkt nebeneinander oder pixelgenau übereinander.";
   updateMetrics();setProgress(0);empty.style.display="grid";
   try{await pdfDoc?.destroy()}catch{}pdfDoc=null;
 }
@@ -364,6 +386,9 @@ async function loadPdf(file){
   if(!file)return;
   if(file.type!=="application/pdf"&&!file.name.toLowerCase().endsWith(".pdf")){setStatus("Bitte eine PDF-Datei auswählen.","error");return}
   await clearDocument();const token=++loadToken;sourceName=file.name;fileBadge.textContent=file.name;busy.classList.add("show");setStatus("PDF wird gelesen …");setProgress(2);
+  emptyTitle.textContent="Original wird vorbereitet …";
+  emptyText.textContent="Sobald die erste Seite gerendert ist, erscheint sie sofort. Unlimited-OCR kann parallel noch laden.";
+  empty.style.display="grid";
   try{
     const bytes=new Uint8Array(await file.arrayBuffer());if(token!==loadToken)return;
     pdfDoc=await pdfjsLib.getDocument({data:bytes,fontExtraProperties:true}).promise;
@@ -373,7 +398,16 @@ async function loadPdf(file){
       busy.textContent=`Seite ${i} / ${pdfDoc.numPages}`;
       setStatus(`Seite ${i} von ${pdfDoc.numPages}: Original backen + Bildtext erkennen …`);
       setProgress(4+(i-1)/pdfDoc.numPages*91);
-      const p=await convertPage(i,token);pages.push(p);updateMetrics();if(i===1){currentPage=0;renderCompare()}await new Promise(requestAnimationFrame);
+      let provisionalAdded=false;
+      const p=await convertPage(i,token,preview=>{
+        if(token!==loadToken)return;
+        pages.push(preview);provisionalAdded=true;updateMetrics();
+        if(i===1){currentPage=0;renderCompare()}
+      });
+      if(!provisionalAdded)pages.push(p);
+      updateMetrics();
+      if(i===1){currentPage=0;renderCompare()}
+      await new Promise(requestAnimationFrame);
     }
     setProgress(100);busy.classList.remove("show");
     setStatus(`${pages.length} Seiten fertig · visuell Original, zusätzlicher echter Textlayer.`,"ok");
