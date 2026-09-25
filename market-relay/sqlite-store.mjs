@@ -1,28 +1,285 @@
-import fs from 'node:fs';import path from 'node:path';import Database from 'better-sqlite3';
-export const V6_CONTRACT_ID='alantu-v6-market-event-time-v1';
-export const V6_CONTRACT_TEXT='One market sample = one distinct observed (symbol, market_at_ms). market_at_ms is the sole model clock; received_at_ms/computed_at_ms are system metadata only. Duplicate timestamps do not increase sample count. Gaps remain gaps: no forward-fill, interpolation, synthetic zero-return, or poll-derived samples. delta_t_ms is the difference between consecutive actual market timestamps. Predictions use only observed events at or before entry market time; predicted points never become market inputs. Outcomes use only later observed events; if no acceptable real endpoint exists near target time the outcome is invalid. Every prediction stores its feature vector, feature summary, horizon, barrier, cost assumption, model version and evaluation contract for reproducibility.';
-export function openMarketStore(file=process.env.ALANTU_SQLITE_PATH||'/data/alantu-market.sqlite'){
- fs.mkdirSync(path.dirname(file),{recursive:true});const db=new Database(file);db.pragma('journal_mode = WAL');db.pragma('synchronous = NORMAL');db.pragma('foreign_keys = ON');db.pragma('busy_timeout = 5000');
- db.exec(`
- CREATE TABLE IF NOT EXISTS contracts(contract_version TEXT PRIMARY KEY,contract_text TEXT NOT NULL,created_at_ms INTEGER NOT NULL);
- CREATE TABLE IF NOT EXISTS market_events(id INTEGER PRIMARY KEY,symbol TEXT NOT NULL,market_at_ms INTEGER NOT NULL,received_at_ms INTEGER,price REAL NOT NULL,day_volume REAL,delta_volume REAL,source TEXT NOT NULL DEFAULT 'yahoo',contract_version TEXT NOT NULL,raw_json TEXT,inserted_at_ms INTEGER NOT NULL,UNIQUE(symbol,market_at_ms));
- CREATE INDEX IF NOT EXISTS market_events_symbol_time ON market_events(symbol,market_at_ms);
- CREATE TABLE IF NOT EXISTS predictions(id TEXT PRIMARY KEY,model_version TEXT NOT NULL,horizon_minutes INTEGER NOT NULL,entry_market_at_ms INTEGER NOT NULL,entry_received_at_ms INTEGER,target_market_at_ms INTEGER NOT NULL,entry_price REAL NOT NULL,structural_dir INTEGER,structural_score REAL,learned_dir INTEGER,p_up REAL,confidence REAL,model_n INTEGER,barrier_bps REAL,assumed_roundtrip_cost_bps REAL,gate_sample INTEGER NOT NULL DEFAULT 0,feature_vector_json TEXT NOT NULL,feature_summary_json TEXT,evaluation_contract TEXT NOT NULL,contract_version TEXT NOT NULL,contract_text TEXT NOT NULL,contract_json TEXT NOT NULL,computed_at_ms INTEGER NOT NULL,UNIQUE(model_version,horizon_minutes,entry_market_at_ms));
- CREATE INDEX IF NOT EXISTS predictions_entry_time ON predictions(entry_market_at_ms);
- CREATE TABLE IF NOT EXISTS outcomes(prediction_id TEXT PRIMARY KEY REFERENCES predictions(id),status TEXT NOT NULL,reason TEXT,evaluated_at_ms INTEGER NOT NULL,endpoint_market_at_ms INTEGER,endpoint_received_at_ms INTEGER,endpoint_price REAL,endpoint_return_bps REAL,timing_error_ms INTEGER,barrier_label INTEGER,barrier_at_ms INTEGER,mfe_bps REAL,mae_bps REAL,net_return_bps REAL,correct INTEGER,raw_json TEXT NOT NULL);
- `);
- db.prepare('INSERT OR IGNORE INTO contracts VALUES(?,?,?)').run(V6_CONTRACT_ID,V6_CONTRACT_TEXT,Date.now());
- const event=db.prepare(`INSERT INTO market_events(symbol,market_at_ms,received_at_ms,price,day_volume,delta_volume,source,contract_version,raw_json,inserted_at_ms) VALUES(@symbol,@market_at_ms,@received_at_ms,@price,@day_volume,@delta_volume,@source,@contract_version,@raw_json,@inserted_at_ms) ON CONFLICT(symbol,market_at_ms) DO UPDATE SET received_at_ms=MAX(COALESCE(market_events.received_at_ms,0),COALESCE(excluded.received_at_ms,0)),day_volume=MAX(COALESCE(market_events.day_volume,0),COALESCE(excluded.day_volume,0)),delta_volume=MAX(COALESCE(market_events.delta_volume,0),COALESCE(excluded.delta_volume,0)),raw_json=excluded.raw_json`);
- const pred=db.prepare(`INSERT OR IGNORE INTO predictions(id,model_version,horizon_minutes,entry_market_at_ms,entry_received_at_ms,target_market_at_ms,entry_price,structural_dir,structural_score,learned_dir,p_up,confidence,model_n,barrier_bps,assumed_roundtrip_cost_bps,gate_sample,feature_vector_json,feature_summary_json,evaluation_contract,contract_version,contract_text,contract_json,computed_at_ms) VALUES(@id,@model_version,@horizon_minutes,@entry_market_at_ms,@entry_received_at_ms,@target_market_at_ms,@entry_price,@structural_dir,@structural_score,@learned_dir,@p_up,@confidence,@model_n,@barrier_bps,@assumed_roundtrip_cost_bps,@gate_sample,@feature_vector_json,@feature_summary_json,@evaluation_contract,@contract_version,@contract_text,@contract_json,@computed_at_ms)`);
- const outcome=db.prepare(`INSERT OR REPLACE INTO outcomes VALUES(@prediction_id,@status,@reason,@evaluated_at_ms,@endpoint_market_at_ms,@endpoint_received_at_ms,@endpoint_price,@endpoint_return_bps,@timing_error_ms,@barrier_label,@barrier_at_ms,@mfe_bps,@mae_bps,@net_return_bps,@correct,@raw_json)`);
- return {db,file,
- recordEvent(e){if(!(Number(e?.t)>0)||!(Number(e?.p)>0)||!e?.s)return;event.run({symbol:e.s,market_at_ms:+e.t,received_at_ms:Number.isFinite(+e.recv_at)?+e.recv_at:null,price:+e.p,day_volume:Number.isFinite(+e.day_volume)?+e.day_volume:null,delta_volume:Number.isFinite(+e.dv)?+e.dv:null,source:e.source||'yahoo',contract_version:V6_CONTRACT_ID,raw_json:JSON.stringify(e),inserted_at_ms:Date.now()});},
- recordPrediction(p){const em=+(p.entry_market_ms||Date.parse(p.entry_market_at)),tm=Date.parse(p.target_at),er=Date.parse(p.entry_received_at),cj={contract_version:V6_CONTRACT_ID,model_version:p.version,horizon_minutes:p.horizon_minutes,clock:'market_event_time',entry_market_at_ms:em,target_market_at_ms:tm,feature_vector:p.feature_vector,feature_summary:p.feature_summary,barrier_bps:p.barrier_bps,assumed_roundtrip_cost_bps:p.assumed_roundtrip_cost_bps,evaluation_contract:p.evaluation_contract};pred.run({id:p.id,model_version:p.version,horizon_minutes:p.horizon_minutes,entry_market_at_ms:em,entry_received_at_ms:Number.isFinite(er)?er:null,target_market_at_ms:tm,entry_price:p.entry_price,structural_dir:p.structural_dir??null,structural_score:p.structural_score??null,learned_dir:p.learned_dir??null,p_up:p.p_up??null,confidence:p.confidence??null,model_n:p.model_n??null,barrier_bps:p.barrier_bps??null,assumed_roundtrip_cost_bps:p.assumed_roundtrip_cost_bps??null,gate_sample:p.gate_sample?1:0,feature_vector_json:JSON.stringify(p.feature_vector||[]),feature_summary_json:JSON.stringify(p.feature_summary||{}),evaluation_contract:p.evaluation_contract,contract_version:V6_CONTRACT_ID,contract_text:V6_CONTRACT_TEXT,contract_json:JSON.stringify(cj),computed_at_ms:Date.now()});},
- recordOutcome(o){const pm=Date.parse(o.endpoint_market_at||o.endpoint_at),pr=Date.parse(o.endpoint_received_at),ba=Date.parse(o.barrier_at);outcome.run({prediction_id:o.id,status:o.status,reason:o.reason||null,evaluated_at_ms:Date.now(),endpoint_market_at_ms:Number.isFinite(pm)?pm:null,endpoint_received_at_ms:Number.isFinite(pr)?pr:null,endpoint_price:o.endpoint_price??null,endpoint_return_bps:o.endpoint_return_bps??null,timing_error_ms:o.timing_error_ms??null,barrier_label:o.barrier_label??null,barrier_at_ms:Number.isFinite(ba)?ba:null,mfe_bps:o.mfe_bps??null,mae_bps:o.mae_bps??null,net_return_bps:o.net_return_bps??null,correct:o.correct==null?null:(o.correct?1:0),raw_json:JSON.stringify(o)});},
- stats(){return {file,contract_version:V6_CONTRACT_ID,events:db.prepare('SELECT COUNT(*) n FROM market_events').get().n,predictions:db.prepare('SELECT COUNT(*) n FROM predictions').get().n,outcomes:db.prepare('SELECT COUNT(*) n FROM outcomes').get().n};}};
-}
+import fs from 'node:fs';
+import path from 'node:path';
+import Database from 'better-sqlite3';
 
+export const V6_CONTRACT_ID='alantu-v6-market-event-time-v2';
+export const V6_CONTRACT_TEXT=[
+  'One market sample = one distinct observed (symbol, market_at_ms).',
+  'market_at_ms is the sole model clock; received_at_ms and computed_at_ms are transport/system metadata only.',
+  'Duplicate timestamps never increase sample count. Older out-of-order observations are rejected.',
+  'Gaps remain gaps: no forward-fill, interpolation, synthetic zero-return, or poll-derived samples.',
+  'For each accepted event, prev_market_at_ms is the immediately preceding accepted market event for that symbol, delta_t_ms = market_at_ms - prev_market_at_ms, and return_bps = ln(price/prev_price)*10000.',
+  'Predictions use only observed events at or before entry_market_at_ms. Predicted points never become market inputs.',
+  'Each prediction stores model version, model clock, feature names, feature vector, feature summary, horizon, barrier, cost assumption and evaluation contract.',
+  'Outcomes use only later observed market events. If no acceptable real endpoint exists near target time, the outcome is invalid rather than invented.',
+  'Evidence from auxiliary approaches is stored separately and may not silently enter V6 features.',
+  'The contract_json column is the machine-readable immutable recipe for reproducing each prediction.'
+].join(' ');
+
+function addColumn(db,table,def){
+  const name=def.trim().split(/\s+/)[0];
+  const cols=new Set(db.prepare(`PRAGMA table_info(${table})`).all().map(x=>x.name));
+  if(!cols.has(name))db.exec(`ALTER TABLE ${table} ADD COLUMN ${def}`);
+}
+function num(v){const n=Number(v);return Number.isFinite(n)?n:null;}
+function bool(v){return v==null?null:(v?1:0);}
+function ms(v){const n=typeof v==='number'?v:Date.parse(v||'');return Number.isFinite(n)?n:null;}
+
+export function openMarketStore(file=process.env.ALANTU_SQLITE_PATH||'/data/alantu-market.sqlite'){
+  fs.mkdirSync(path.dirname(file),{recursive:true});
+  const db=new Database(file);
+  db.pragma('journal_mode = WAL');
+  db.pragma('synchronous = NORMAL');
+  db.pragma('foreign_keys = ON');
+  db.pragma('busy_timeout = 5000');
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS contracts(
+      contract_version TEXT PRIMARY KEY,
+      contract_text TEXT NOT NULL,
+      created_at_ms INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS market_events(
+      id INTEGER PRIMARY KEY,
+      symbol TEXT NOT NULL,
+      market_at_ms INTEGER NOT NULL,
+      received_at_ms INTEGER,
+      price REAL NOT NULL,
+      day_volume REAL,
+      delta_volume REAL,
+      source TEXT NOT NULL DEFAULT 'yahoo',
+      contract_version TEXT NOT NULL,
+      raw_json TEXT,
+      inserted_at_ms INTEGER NOT NULL,
+      UNIQUE(symbol,market_at_ms)
+    );
+    CREATE INDEX IF NOT EXISTS market_events_symbol_time ON market_events(symbol,market_at_ms);
+
+    CREATE TABLE IF NOT EXISTS predictions(
+      id TEXT PRIMARY KEY,
+      model_version TEXT NOT NULL,
+      horizon_minutes INTEGER NOT NULL,
+      entry_market_at_ms INTEGER NOT NULL,
+      entry_received_at_ms INTEGER,
+      target_market_at_ms INTEGER NOT NULL,
+      entry_price REAL NOT NULL,
+      structural_dir INTEGER,
+      structural_score REAL,
+      learned_dir INTEGER,
+      p_up REAL,
+      confidence REAL,
+      model_n INTEGER,
+      barrier_bps REAL,
+      assumed_roundtrip_cost_bps REAL,
+      gate_sample INTEGER NOT NULL DEFAULT 0,
+      feature_vector_json TEXT NOT NULL,
+      feature_summary_json TEXT,
+      evaluation_contract TEXT NOT NULL,
+      contract_version TEXT NOT NULL,
+      contract_text TEXT NOT NULL,
+      contract_json TEXT NOT NULL,
+      computed_at_ms INTEGER NOT NULL,
+      UNIQUE(model_version,horizon_minutes,entry_market_at_ms)
+    );
+    CREATE INDEX IF NOT EXISTS predictions_entry_time ON predictions(entry_market_at_ms);
+
+    CREATE TABLE IF NOT EXISTS outcomes(
+      prediction_id TEXT PRIMARY KEY REFERENCES predictions(id),
+      status TEXT NOT NULL,
+      reason TEXT,
+      evaluated_at_ms INTEGER NOT NULL,
+      endpoint_market_at_ms INTEGER,
+      endpoint_received_at_ms INTEGER,
+      endpoint_price REAL,
+      endpoint_return_bps REAL,
+      timing_error_ms INTEGER,
+      barrier_label INTEGER,
+      barrier_at_ms INTEGER,
+      mfe_bps REAL,
+      mae_bps REAL,
+      net_return_bps REAL,
+      correct INTEGER,
+      raw_json TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS evidence_events(
+      evidence_key TEXT PRIMARY KEY,
+      kind TEXT NOT NULL,
+      approach_version TEXT NOT NULL,
+      symbol TEXT,
+      event_at_ms INTEGER NOT NULL,
+      received_at_ms INTEGER,
+      contract_version TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      inserted_at_ms INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS evidence_events_kind_time ON evidence_events(kind,event_at_ms);
+
+    CREATE TABLE IF NOT EXISTS experiment_runs(
+      approach_version TEXT PRIMARY KEY,
+      status TEXT NOT NULL,
+      contract_version TEXT NOT NULL,
+      config_json TEXT NOT NULL,
+      started_at_ms INTEGER NOT NULL,
+      updated_at_ms INTEGER NOT NULL
+    );
+  `);
+
+  addColumn(db,'market_events','prev_market_at_ms INTEGER');
+  addColumn(db,'market_events','delta_t_ms INTEGER');
+  addColumn(db,'market_events','return_bps REAL');
+  addColumn(db,'predictions','feature_names_json TEXT');
+  addColumn(db,'predictions',"clock TEXT");
+  addColumn(db,'predictions',"input_contract TEXT");
+  addColumn(db,'outcomes','barrier_hit INTEGER');
+  addColumn(db,'outcomes','last_before_target_at_ms INTEGER');
+  addColumn(db,'outcomes','structural_gross_bps REAL');
+  addColumn(db,'outcomes','structural_net_bps REAL');
+  addColumn(db,'outcomes','structural_profitable INTEGER');
+  addColumn(db,'outcomes','learned_gross_bps REAL');
+  addColumn(db,'outcomes','learned_net_bps REAL');
+  addColumn(db,'outcomes','learned_profitable INTEGER');
+
+  db.prepare('INSERT OR IGNORE INTO contracts(contract_version,contract_text,created_at_ms) VALUES(?,?,?)')
+    .run(V6_CONTRACT_ID,V6_CONTRACT_TEXT,Date.now());
+
+  const exactEvent=db.prepare('SELECT id,market_at_ms,price FROM market_events WHERE symbol=? AND market_at_ms=?');
+  const previousEvent=db.prepare('SELECT market_at_ms,price FROM market_events WHERE symbol=? AND market_at_ms<? ORDER BY market_at_ms DESC LIMIT 1');
+  const latestEvent=db.prepare('SELECT market_at_ms FROM market_events WHERE symbol=? ORDER BY market_at_ms DESC LIMIT 1');
+  const insertEvent=db.prepare(`
+    INSERT INTO market_events(symbol,market_at_ms,received_at_ms,price,day_volume,delta_volume,source,contract_version,raw_json,inserted_at_ms,prev_market_at_ms,delta_t_ms,return_bps)
+    VALUES(@symbol,@market_at_ms,@received_at_ms,@price,@day_volume,@delta_volume,@source,@contract_version,@raw_json,@inserted_at_ms,@prev_market_at_ms,@delta_t_ms,@return_bps)
+  `);
+  const updateEvent=db.prepare(`
+    UPDATE market_events SET
+      received_at_ms=MAX(COALESCE(received_at_ms,0),COALESCE(@received_at_ms,0)),
+      day_volume=CASE WHEN @day_volume IS NULL THEN day_volume ELSE MAX(COALESCE(day_volume,0),@day_volume) END,
+      delta_volume=CASE WHEN @delta_volume IS NULL THEN delta_volume ELSE MAX(COALESCE(delta_volume,0),@delta_volume) END,
+      raw_json=@raw_json
+    WHERE symbol=@symbol AND market_at_ms=@market_at_ms
+  `);
+
+  const pred=db.prepare(`
+    INSERT OR IGNORE INTO predictions(
+      id,model_version,horizon_minutes,entry_market_at_ms,entry_received_at_ms,target_market_at_ms,entry_price,
+      structural_dir,structural_score,learned_dir,p_up,confidence,model_n,barrier_bps,assumed_roundtrip_cost_bps,gate_sample,
+      feature_vector_json,feature_summary_json,evaluation_contract,contract_version,contract_text,contract_json,computed_at_ms,
+      feature_names_json,clock,input_contract
+    ) VALUES(
+      @id,@model_version,@horizon_minutes,@entry_market_at_ms,@entry_received_at_ms,@target_market_at_ms,@entry_price,
+      @structural_dir,@structural_score,@learned_dir,@p_up,@confidence,@model_n,@barrier_bps,@assumed_roundtrip_cost_bps,@gate_sample,
+      @feature_vector_json,@feature_summary_json,@evaluation_contract,@contract_version,@contract_text,@contract_json,@computed_at_ms,
+      @feature_names_json,@clock,@input_contract
+    )
+  `);
+
+  const outcome=db.prepare(`
+    INSERT INTO outcomes(
+      prediction_id,status,reason,evaluated_at_ms,endpoint_market_at_ms,endpoint_received_at_ms,endpoint_price,endpoint_return_bps,
+      timing_error_ms,barrier_label,barrier_at_ms,mfe_bps,mae_bps,net_return_bps,correct,raw_json,barrier_hit,last_before_target_at_ms,
+      structural_gross_bps,structural_net_bps,structural_profitable,learned_gross_bps,learned_net_bps,learned_profitable
+    ) VALUES(
+      @prediction_id,@status,@reason,@evaluated_at_ms,@endpoint_market_at_ms,@endpoint_received_at_ms,@endpoint_price,@endpoint_return_bps,
+      @timing_error_ms,@barrier_label,@barrier_at_ms,@mfe_bps,@mae_bps,@net_return_bps,@correct,@raw_json,@barrier_hit,@last_before_target_at_ms,
+      @structural_gross_bps,@structural_net_bps,@structural_profitable,@learned_gross_bps,@learned_net_bps,@learned_profitable
+    )
+    ON CONFLICT(prediction_id) DO UPDATE SET
+      status=excluded.status,reason=excluded.reason,evaluated_at_ms=excluded.evaluated_at_ms,
+      endpoint_market_at_ms=excluded.endpoint_market_at_ms,endpoint_received_at_ms=excluded.endpoint_received_at_ms,
+      endpoint_price=excluded.endpoint_price,endpoint_return_bps=excluded.endpoint_return_bps,timing_error_ms=excluded.timing_error_ms,
+      barrier_label=excluded.barrier_label,barrier_at_ms=excluded.barrier_at_ms,mfe_bps=excluded.mfe_bps,mae_bps=excluded.mae_bps,
+      net_return_bps=excluded.net_return_bps,correct=excluded.correct,raw_json=excluded.raw_json,barrier_hit=excluded.barrier_hit,
+      last_before_target_at_ms=excluded.last_before_target_at_ms,structural_gross_bps=excluded.structural_gross_bps,
+      structural_net_bps=excluded.structural_net_bps,structural_profitable=excluded.structural_profitable,
+      learned_gross_bps=excluded.learned_gross_bps,learned_net_bps=excluded.learned_net_bps,learned_profitable=excluded.learned_profitable
+  `);
+
+  const evidence=db.prepare(`
+    INSERT OR IGNORE INTO evidence_events(evidence_key,kind,approach_version,symbol,event_at_ms,received_at_ms,contract_version,payload_json,inserted_at_ms)
+    VALUES(@evidence_key,@kind,@approach_version,@symbol,@event_at_ms,@received_at_ms,@contract_version,@payload_json,@inserted_at_ms)
+  `);
+  const experiment=db.prepare(`
+    INSERT INTO experiment_runs(approach_version,status,contract_version,config_json,started_at_ms,updated_at_ms)
+    VALUES(@approach_version,@status,@contract_version,@config_json,@started_at_ms,@updated_at_ms)
+    ON CONFLICT(approach_version) DO UPDATE SET status=excluded.status,contract_version=excluded.contract_version,config_json=excluded.config_json,updated_at_ms=excluded.updated_at_ms
+  `);
+
+  const api={db,file,
+    recordEvent(e){
+      const symbol=String(e?.s||'').toUpperCase(),marketAt=num(e?.t),price=num(e?.p);
+      if(!symbol||!(marketAt>0)||!(price>0))return {stored:false,reason:'invalid_event'};
+      const receivedAt=num(e?.recv_at),dayVolume=num(e?.day_volume),deltaVolume=num(e?.dv);
+      const exact=exactEvent.get(symbol,marketAt);
+      if(exact){
+        updateEvent.run({symbol,market_at_ms:marketAt,received_at_ms:receivedAt,day_volume:dayVolume,delta_volume:deltaVolume,raw_json:JSON.stringify(e)});
+        return {stored:false,reason:'duplicate_timestamp'};
+      }
+      const latest=latestEvent.get(symbol);
+      if(latest&&marketAt<Number(latest.market_at_ms))return {stored:false,reason:'out_of_order'};
+      const prev=previousEvent.get(symbol,marketAt);
+      const prevAt=prev?Number(prev.market_at_ms):null,prevPrice=prev?Number(prev.price):null;
+      const dt=prevAt==null?null:marketAt-prevAt;
+      const ret=prevPrice>0?Math.log(price/prevPrice)*10000:null;
+      insertEvent.run({symbol,market_at_ms:marketAt,received_at_ms:receivedAt,price,day_volume:dayVolume,delta_volume:deltaVolume,
+        source:e.source||e.provider||'yahoo',contract_version:V6_CONTRACT_ID,raw_json:JSON.stringify(e),inserted_at_ms:Date.now(),
+        prev_market_at_ms:prevAt,delta_t_ms:dt,return_bps:ret});
+      return {stored:true,prev_market_at_ms:prevAt,delta_t_ms:dt,return_bps:ret};
+    },
+    recordPrediction(p){
+      const em=num(p.entry_market_ms)||ms(p.entry_market_at)||ms(p.at),tm=ms(p.target_at),er=ms(p.entry_received_at);
+      if(!(em>0)||!(tm>0)||!(Number(p.entry_price)>0))throw new Error('invalid_prediction_contract');
+      const featureNames=Array.isArray(p.feature_names)?p.feature_names:[];
+      const cj={contract_version:V6_CONTRACT_ID,contract_text:V6_CONTRACT_TEXT,model_version:p.version,horizon_minutes:p.horizon_minutes,
+        clock:p.clock||'market_event_time',input_contract:p.input_contract||'observed_market_events_only',
+        entry_market_at_ms:em,target_market_at_ms:tm,feature_names:featureNames,feature_vector:p.feature_vector||[],
+        feature_summary:p.feature_summary||{},barrier_bps:p.barrier_bps,assumed_roundtrip_cost_bps:p.assumed_roundtrip_cost_bps,
+        evaluation_contract:p.evaluation_contract};
+      pred.run({id:p.id,model_version:p.version,horizon_minutes:p.horizon_minutes,entry_market_at_ms:em,entry_received_at_ms:er,
+        target_market_at_ms:tm,entry_price:p.entry_price,structural_dir:p.structural_dir??null,structural_score:p.structural_score??null,
+        learned_dir:p.learned_dir??null,p_up:p.p_up??null,confidence:p.confidence??null,model_n:p.model_n??null,barrier_bps:p.barrier_bps??null,
+        assumed_roundtrip_cost_bps:p.assumed_roundtrip_cost_bps??null,gate_sample:p.gate_sample?1:0,
+        feature_vector_json:JSON.stringify(p.feature_vector||[]),feature_summary_json:JSON.stringify(p.feature_summary||{}),
+        evaluation_contract:p.evaluation_contract,contract_version:V6_CONTRACT_ID,contract_text:V6_CONTRACT_TEXT,
+        contract_json:JSON.stringify(cj),computed_at_ms:Date.now(),feature_names_json:JSON.stringify(featureNames),
+        clock:p.clock||'market_event_time',input_contract:p.input_contract||'observed_market_events_only'});
+      return {stored:true};
+    },
+    recordOutcome(o){
+      const pm=ms(o.endpoint_market_at||o.endpoint_at),pr=ms(o.endpoint_received_at),ba=ms(o.barrier_at),lb=ms(o.last_before_target_at);
+      outcome.run({prediction_id:o.id,status:o.status,reason:o.reason||null,evaluated_at_ms:Date.now(),endpoint_market_at_ms:pm,
+        endpoint_received_at_ms:pr,endpoint_price:o.endpoint_price??null,endpoint_return_bps:o.endpoint_return_bps??null,
+        timing_error_ms:o.timing_error_ms??null,barrier_label:o.barrier_label??null,barrier_at_ms:ba,mfe_bps:o.mfe_bps??null,
+        mae_bps:o.mae_bps??null,net_return_bps:o.learned_net_bps??o.net_return_bps??null,
+        correct:o.learned_profitable==null?(o.correct==null?null:bool(o.correct)):bool(o.learned_profitable),
+        raw_json:JSON.stringify(o),barrier_hit:bool(o.barrier_hit),last_before_target_at_ms:lb,
+        structural_gross_bps:o.structural_gross_bps??null,structural_net_bps:o.structural_net_bps??null,
+        structural_profitable:bool(o.structural_profitable),learned_gross_bps:o.learned_gross_bps??null,
+        learned_net_bps:o.learned_net_bps??null,learned_profitable:bool(o.learned_profitable)});
+      return {stored:true};
+    },
+    recordEvidence(e){
+      const eventAt=num(e?.event_at_ms)||ms(e?.event_at)||Date.now();
+      const approach=String(e?.approach_version||'unknown'),kind=String(e?.kind||'evidence'),symbol=e?.symbol?String(e.symbol).toUpperCase():null;
+      const key=String(e?.evidence_key||[kind,approach,symbol||'',eventAt].join(':'));
+      evidence.run({evidence_key:key,kind,approach_version:approach,symbol,event_at_ms:eventAt,received_at_ms:num(e?.received_at_ms),
+        contract_version:V6_CONTRACT_ID,payload_json:JSON.stringify(e?.payload??e),inserted_at_ms:Date.now()});
+    },
+    recordExperiment(x){
+      const now=Date.now(),started=num(x?.started_at_ms)||now;
+      experiment.run({approach_version:String(x.approach_version),status:String(x.status||'collecting'),contract_version:V6_CONTRACT_ID,
+        config_json:JSON.stringify(x.config||{}),started_at_ms:started,updated_at_ms:now});
+    },
+    stats(){
+      const q=t=>db.prepare(`SELECT COUNT(*) n FROM ${t}`).get().n;
+      return {file,contract_version:V6_CONTRACT_ID,events:q('market_events'),predictions:q('predictions'),outcomes:q('outcomes'),
+        evidence:q('evidence_events'),experiments:q('experiment_runs')};
+    }
+  };
+  return api;
+}
 export function persistObservation(store,e){return store.recordEvent(e);}
 export function persistPrediction(store,p){return store.recordPrediction(p);}
 export function persistOutcome(store,o){return store.recordOutcome(o);}
+export function persistEvidence(store,e){return store.recordEvidence(e);}
+export function persistExperiment(store,e){return store.recordExperiment(e);}
 export function storeStats(store){return store.stats();}
