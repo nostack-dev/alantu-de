@@ -679,7 +679,13 @@
   .source-row{padding:14px 0 13px;border-bottom:1px solid var(--tr-border)}
   .source-row:last-child{border-bottom:0}
   .source-row-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
-  .source-channel{font-size:11px;font-weight:800;color:var(--tr-ink)}
+  .source-channel{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:800;color:var(--tr-ink)}
+  .source-badge{display:inline-flex;align-items:center;justify-content:center;min-width:38px;padding:3px 6px;border-radius:999px;background:#eef0f2;color:#34383d;font-size:9px;font-weight:900;letter-spacing:.045em}
+  .source-badge.x{background:#111;color:#fff}
+  .source-badge.reddit{background:#fff1ec;color:#b63813}
+  .source-badge.news{background:#edf4ff;color:#285ea8}
+  .source-badge.bluesky{background:#eaf5ff;color:#1672b8}
+  .source-badge.social{background:#f1f2f4;color:#555d66}
   .source-time{font-size:11px;font-weight:760;color:var(--tr-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
   .source-summary{font-size:14px;line-height:1.35;color:var(--tr-ink);font-weight:620}
   .source-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;font-size:11px;color:var(--tr-muted)}
@@ -790,7 +796,7 @@
       <div class="meta" style="display:none" id="orclLinks"></div>
     </div>
     <div class="card sentiment-hero-card">
-      <div class="label">Oracle Stimmung <span class="live-state" id="sentimentHeroState">Lädt …</span></div>
+      <div class="label">Oracle Stimmung <span class="live-state" id="sentimentHeroState">—</span></div>
       <div class="market-clock" id="sentimentHeroMeta">Aktuelle Stimmung · 0–100</div>
       <div class="hero-price sentiment-hero-score" id="sentimentHeroScore"><span id="sentimentHeroNumber">—</span><span class="sentiment-denom"> / 100</span></div>
       <div class="hero-change flat" id="sentimentHeroLabel"></div>
@@ -815,7 +821,7 @@
     <button type="button" class="core-insight sentiment-insight" id="sentimentOpen" aria-expanded="false" aria-controls="sentimentPanel">
       <div class="core-kicker">Stimmung</div>
       <div class="core-value sentiment-value"><span id="sentimentCompactNumber">—</span><span class="core-denom">/100</span></div>
-      <div class="core-meta" id="sentimentCompactLabel">Live-Quellen werden geladen</div>
+      <div class="core-meta" id="sentimentCompactLabel">—</div>
     </button>
   </div>
 
@@ -850,7 +856,7 @@
       <div class="source-panel-title">Stimmung · Live-Quellen</div>
       <button type="button" class="source-panel-close" id="sentimentClose" aria-label="Stimmungsquellen schließen">×</button>
     </div>
-    <div class="source-panel-status" id="sentimentPanelStatus">Railway-Livequellen werden geladen …</div>
+    <div class="source-panel-status" id="sentimentPanelStatus">Noch keine Live-Verbindung.</div>
     <div class="source-counts" id="sentimentSourceCounts"></div>
     <div class="source-list" id="sentimentSourceList"></div>
   </section>
@@ -2351,12 +2357,22 @@ function relayBaseUrl(){
 }
 function railwaySourcesUsable(){
   var x=liveSourceState||{},checked=Date.parse(x.checked_at||'');
-  return x.status!=='stale'&&x.status!=='warming'&&isFinite(checked)&&Date.now()-checked<=2*60*1000;
+  return x.status!=='stale'&&x.status!=='warming'&&x.status!=='unavailable'&&isFinite(checked)&&Date.now()-checked<=2*60*1000;
 }
 function berlinStamp(ms){
   try{return new Intl.DateTimeFormat('de-DE',{timeZone:'Europe/Berlin',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date(Number(ms)));}catch(e){return '—';}
 }
-function channelLabel(x){return x==='reddit'?'Reddit':x==='x'?'X / Twitter':x==='bluesky'?'Bluesky':x==='news'?'News':'Social';}
+function sourceKind(v){
+  v=v||{};
+  var ch=String(v.channel||v.source||v.provider||'').toLowerCase(),site=String(v.site||'').toLowerCase(),url=String(v.url||'').toLowerCase();
+  if(ch==='x'||ch==='twitter'||site==='x.com'||site==='twitter.com'||/https?:\/\/(?:www\.)?(?:x|twitter)\.com\//.test(url))return 'x';
+  if(ch==='reddit'||site.indexOf('reddit')>=0||/reddit\.com\//.test(url))return 'reddit';
+  if(ch==='bluesky'||site.indexOf('bluesky')>=0||site.indexOf('bsky')>=0||/bsky\.app\//.test(url))return 'bluesky';
+  if(ch==='news'||ch==='rss'||/news|reuters|bloomberg|cnbc|wsj|ft\.com|marketwatch|finance\.yahoo/.test(site+' '+url))return 'news';
+  return 'social';
+}
+function channelLabel(x){return x==='reddit'?'Reddit':x==='x'?'X':x==='bluesky'?'Bluesky':x==='news'?'News':'Social';}
+function sourceBadge(v){var k=sourceKind(v);return '<span class="source-badge '+k+'">'+esc(channelLabel(k).toUpperCase())+'</span>';}
 function marketPriceAtTimestamp(ms){
   ms=Number(ms);if(!isFinite(ms))return null;
   for(var i=livePriceTicks.length-1;i>=0;i--){var t=Number(livePriceTicks[i].at);if(t<=ms&&ms-t<=60000)return Number(livePriceTicks[i].price)||null;}
@@ -2394,14 +2410,15 @@ function renderSentimentSources(){
   var x=liveSourceState||{},status=document.getElementById('sentimentPanelStatus'),counts=document.getElementById('sentimentSourceCounts'),list=document.getElementById('sentimentSourceList');
   if(!status||!counts||!list)return;
   var c=x.source_counts||{},a=x.archive_source_counts||{},checked=x.checked_at?berlinStamp(Date.parse(x.checked_at)):'—';
-  var state=x.status==='ok'?'neue Events':x.status==='quiet'?'keine neuen Events':x.status==='degraded'?'teilweise verfügbar':x.status==='stale'?'veraltet':'lädt';
-  status.textContent='Railway · '+state+' · geprüft '+checked+' · Live nur beim ersten Auftauchen · max. '+Number(x.max_live_delay_seconds||90)+' s Verzögerung';
+  var state=x.status==='ok'?'neue Events':x.status==='quiet'?'keine neuen Events':x.status==='degraded'?'teilweise verfügbar':x.status==='stale'?'veraltet':x.status==='unavailable'?'nicht erreichbar':'noch ohne Live-Status';
+  status.textContent=(x.checked_at?'Railway · '+state+' · geprüft '+checked:'Railway · '+state)+(x.last_error?' · letzter Abruf fehlgeschlagen':'')+' · Live nur beim ersten Auftauchen · max. '+Number(x.max_live_delay_seconds||90)+' s Verzögerung';
   counts.innerHTML='<span>News <b>'+Number(c.news||0)+'</b> / '+Number(a.news||0)+'</span><span>Reddit <b>'+Number(c.reddit||0)+'</b> / '+Number(a.reddit||0)+'</span><span>Bluesky <b>'+Number(c.bluesky||0)+'</b> / '+Number(a.bluesky||0)+'</span><span>X <b>'+Number(c.x||0)+'</b> / '+Number(a.x||0)+'</span><span>weitere Social <b>'+Number(c.social||0)+'</b> / '+Number(a.social||0)+'</span>';
   var items=Array.isArray(x.items)?x.items.slice().sort(function(v,w){return Number(w.time||0)-Number(v.time||0);}):[];
   list.innerHTML=items.length?items.map(function(v){
     var href=String(v.url||''),summary=String(v.summary||v.title||''),scope=v.live?'NEU · live gekoppelt':v.delayed?'neu, aber zu spät für Live':'Archiv';
     var market=v.market&&v.market.before?(' · Markt '+Number(v.market.before.price).toLocaleString('de-DE',{maximumFractionDigits:2})+' @ '+berlinStamp(Date.parse(v.market.before.at))):'';
-    return '<article class="source-row"><div class="source-row-top"><span class="source-channel">'+esc(channelLabel(v.channel))+' · '+scope+'</span><time class="source-time">'+esc(berlinStamp(v.time))+'</time></div><div class="source-summary">'+esc(summary)+'</div><div class="source-foot"><span>'+esc((v.site||'Quelle')+market)+'</span>'+(href?'<a href="'+esc(href)+'" target="_blank" rel="noopener">Original öffnen ↗</a>':'')+'</div></article>';
+    var kind=sourceKind(v),site=String(v.site||channelLabel(kind));
+    return '<article class="source-row" data-source-kind="'+esc(kind)+'"><div class="source-row-top"><span class="source-channel">'+sourceBadge(v)+'<span>'+esc(site)+' · '+scope+'</span></span><time class="source-time">'+esc(berlinStamp(v.time))+'</time></div><div class="source-summary">'+esc(summary)+'</div><div class="source-foot"><span>'+esc(channelLabel(kind)+market)+'</span>'+(href?'<a href="'+esc(href)+'" target="_blank" rel="noopener">Original öffnen ↗</a>':'')+'</div></article>';
   }).join(''):'<div class="source-row"><div class="source-summary">Noch keine aktuellen Einzelquellen geliefert.</div></div>';
 }
 function forecastClock(v){
@@ -2561,7 +2578,12 @@ async function pollMicroSources(base){
     var r=await fetch(base+'/v1/source-state?_='+Date.now(),{cache:'no-store',headers:{Accept:'application/json'}});
     if(!r.ok)throw new Error('source_http_'+r.status);
     var s=await r.json();if(s)applyRailwaySentiment(s);
-  }catch(e){}finally{microSourcePollBusy=false;}
+  }catch(e){
+    var nowIso=new Date().toISOString();
+    if(liveSourceState&&liveSourceState.checked_at)liveSourceState=Object.assign({},liveSourceState,{status:'stale',last_error:String(e&&e.message||e)});
+    else liveSourceState={status:'unavailable',checked_at:nowIso,items:[],source_counts:{},archive_source_counts:{},last_error:String(e&&e.message||e)};
+    try{renderSentimentSources();renderOverview();}catch(_){}
+  }finally{microSourcePollBusy=false;}
 }
 async function pollMicroShadow(base){
   if(microShadowPollBusy||document.hidden)return;
@@ -2844,11 +2866,15 @@ function renderOverview(){
     shl.className='hero-change '+moodCls;shl.textContent=mood;
     var scn=document.getElementById('sentimentCompactNumber'),scl=document.getElementById('sentimentCompactLabel');
     if(scn){scn.className=moodCls;scn.textContent=sentimentScore!=null?String(sentimentScore):'—';}
-    if(scl)scl.textContent=mood||'wird geladen';
+    var ls=liveSourceState||{},lsAt=Date.parse(ls.checked_at||''),lsFresh=isFinite(lsAt)&&Date.now()-lsAt<=2*60*1000;
+    var sourceState=ls.status==='ok'?'Live':ls.status==='quiet'?'Live · ruhig':ls.status==='degraded'?'Teilweise':ls.status==='stale'?'Veraltet':ls.status==='unavailable'?'Offline':'';
+    if(scl)scl.textContent=mood?(mood+(sourceState?' · '+sourceState:'')):(sourceState||'Keine Daten');
     shm.textContent=sentimentHeroMetaText(t);
     var sat=fr.freshest_absolute||updated;
-    shst.className='live-state'+(sat?' live':'');
-    shst.textContent=sat?'Aktuell':'Lädt …';
+    var fallbackFresh=sat&&isFinite(Date.parse(sat))&&Date.now()-Date.parse(sat)<=20*60*1000;
+    var heroState=sourceState||(sentimentScore!=null?(fallbackFresh?'Snapshot':'Snapshot · alt'):'Keine Daten');
+    shst.className='live-state'+((lsFresh&&(ls.status==='ok'||ls.status==='quiet'))?' live':'');
+    shst.textContent=heroState;
   }
   document.getElementById('orclWhy').textContent=lat.why||orcl.why||'';
   var L=lat.links||orcl.links||{};
