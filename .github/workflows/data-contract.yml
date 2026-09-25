@@ -1,0 +1,32 @@
+name: Market data contract
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/yahoo-monetary-v5.mjs'
+      - 'market-relay/server.mjs'
+      - 'tools/test-data-contract.mjs'
+      - '.github/workflows/data-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  data-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: First-principles data invariants
+        run: node tools/test-data-contract.mjs
+      - name: Static anti-leakage guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "clock:'market_event_time'" tools/yahoo-monetary-v5.mjs
+          grep -Fq "evaluation_contract:'market_event_time_true_dt_no_synthetic_samples_v2'" market-relay/server.mjs
+          grep -Fq "if(last&&Number(e.t)<Number(last.t))return;" market-relay/server.mjs
+          grep -Fq "if(last&&Number(e.t)===Number(last.t))" market-relay/server.mjs
+          grep -Fq "entry_market_ms:marketAt" market-relay/server.mjs
+          grep -Fq "if(already)return;" market-relay/server.mjs
