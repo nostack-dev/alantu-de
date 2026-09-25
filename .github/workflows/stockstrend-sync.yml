@@ -136,6 +136,7 @@ jobs:
           grep -q "E:oracle T:ugc" tools/refresh-fresh-sources.mjs
           ! grep -q 'minSocial=50' index.html
           grep -Fq "archive_count||0)+' Quellen / 36h" index.html
+          grep -Fq "liveSourceState&&(liveSourceState.checked_at||liveSourceState.at)" index.html
           grep -Fq "X_BEARER_TOKEN missing" market-relay/server.mjs
           grep -Fq "mentions_24h" market-relay/server.mjs
           grep -q 'id="sentimentRelation"' index.html
@@ -269,6 +270,7 @@ jobs:
           grep -Fq 'var rangeRenderSeq={price:0,forecast:0,sentiment:0,magnitude:0,opinions:0};' index.html
           grep -Fq 'compactCoverage(v.priceRows' index.html
           grep -Fq 'function stablePriceYBounds' index.html
+          ! grep -q 'stableDayYBounds(' index.html
           ! grep -q 'function livePricePace' index.html
           ! grep -q 'function marketFlowVector' index.html
           ! grep -q 'void p.offsetWidth' index.html

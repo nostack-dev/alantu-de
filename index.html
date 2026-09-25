@@ -2295,7 +2295,7 @@ function refreshTrajectoryDatasets(pts,session,update){
   if(mx&&ivChart.options&&ivChart.options.scales&&ivChart.options.scales.x)ivChart.options.scales.x.max=Math.max(Number(ivChart.options.scales.x.max)||0,mx);
   if(update!==false)ivChart.update('none');
 }
-function stableDayYBounds(pricePts,fairPts){
+function stablePriceYBounds(pricePts,fairPts){
   if(priceRange!=='1d')return null;
   var vals=(pricePts||[]).map(function(p){return Number(p.y);}).filter(isFinite);
   if(showIntrinsic)vals=vals.concat((fairPts||[]).map(function(p){return Number(p.y);}).filter(isFinite));
@@ -2324,7 +2324,7 @@ function updateLivePriceChart1d(){
     if(flowDs){flowDs.data=flowPoint(pts,flow);flowDs.pointStyle=flowPointStyle(flow);flowDs.pointRotation=flow.kind==='impulse'?0:(flow.dir<0?180:0);flowDs.pointBorderColor='#000000';}
   }
   refreshTrajectoryDatasets(pts,session,false);
-  var yb=stableDayYBounds(pts,fair&&fair.data?fair.data:[]);if(yb){ivChart.options.scales.y.min=yb.min;ivChart.options.scales.y.max=yb.max;}
+  var yb=stablePriceYBounds(pts,fair&&fair.data?fair.data:[]);if(yb){ivChart.options.scales.y.min=yb.min;ivChart.options.scales.y.max=yb.max;}
   if(!priceChartScrubbing())ivChart.update('none');
   return true;
 }
@@ -2415,7 +2415,7 @@ function applyRailwaySentiment(x){
   tickData.tick.live_sources={providers:(x.providers||[]).slice(),news_count:Number(x.news_count)||0,social_count:Number(x.social_count)||0,social_breakdown:x.source_counts||{},archive_breakdown:x.archive_source_counts||{},live_count:Number(x.live_count)||0,new_count:Number(x.new_count)||0,delayed_count:Number(x.delayed_count)||0,archive_count:Number(x.archive_count)||0,archive_news_count:Number(x.archive_news_count)||0,archive_social_count:Number(x.archive_social_count)||0,social_aggregates:x.social_aggregates||{},source_health:x.source_health||{},at:eventAt,checked_at:checked,event_mode:x.event_mode,max_live_delay_seconds:Number(x.max_live_delay_seconds)||90,market_anchor:x.market_anchor||null,window:'Archiv ≤36 Std. · neue Events separat markiert'};
   try{renderOverview();renderSentimentChart();}catch(e){}
   var meta=document.getElementById('sentimentCompactLabel');
-  if(meta)meta.textContent=(Number(x.live_count)||0)+' neu live · '+(Number(x.delayed_count)||0)+' verspätet · Poll '+Number(x.poll_interval_seconds||12)+' s · '+footerClock(checked);
+  if(meta)meta.textContent=Number(x.archive_count||0)+' Quellen/36h · '+Number(x.archive_news_count||0)+' News · '+Number(x.archive_social_count||0)+' Social · geprüft '+footerClock(checked);
   renderSentimentSources();renderSyncFooter(false);
 }
 function renderSentimentSources(){
@@ -3226,9 +3226,9 @@ function footerClock(iso){
 function renderSyncFooter(error){
   if(typeof error==='boolean')syncLastError=error;
   var foot=document.getElementById('syncFooter'),el=document.getElementById('syncStatus'),btn=document.getElementById('syncNow');if(!foot||!el)return;
-  var sat=liveSourceState&&liveSourceState.at,sm=sat?Date.parse(sat):NaN,sage=isFinite(sm)?Date.now()-sm:Infinity,sourceFresh=sage<=3*60*1000&&liveSourceState&&liveSourceState.status!=='stale';
+  var sat=liveSourceState&&(liveSourceState.checked_at||liveSourceState.at),sm=sat?Date.parse(sat):NaN,sage=isFinite(sm)?Date.now()-sm:Infinity,sourceFresh=sage<=3*60*1000&&liveSourceState&&liveSourceState.status!=='stale';
   foot.classList.toggle('stale',!sourceFresh);foot.classList.toggle('error',false);
-  el.textContent=(livePriceFresh(20000)?'Kurs Echtzeit':'Kurs letzter Stand')+' · '+(sat?('Stimmung '+(sourceFresh?'live ':'verzögert ')+footerClock(sat)):'Stimmung lädt');
+  el.textContent=(livePriceFresh(20000)?'Kurs Echtzeit':'Kurs letzter Stand')+' · '+(sat?('Quellen '+(sourceFresh?'geprüft ':'verzögert ')+footerClock(sat)):'Quellen laden');
   if(btn){btn.disabled=true;btn.hidden=true;btn.textContent='';}
 }
 async function fetchJson(url,optional){

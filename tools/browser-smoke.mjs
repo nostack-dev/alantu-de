@@ -293,6 +293,8 @@ async function run(name,viewport){
     if(redditArchive>0&&sourceStateUi.redditRows<1)errors.push('reddit-archive-not-visible:'+JSON.stringify(sourceStateUi));
     if(sourceStateUi.live.source_health?.x?.status==='disabled'&&!/X\s*nicht verbunden/i.test(sourceStateUi.counts))errors.push('x-disabled-not-explicit:'+JSON.stringify(sourceStateUi));
   }
+  const obsoleteStableRef=await page.evaluate(()=>document.documentElement.innerHTML.includes('stableDayYBounds('));
+  if(obsoleteStableRef)errors.push('stable-day-y-bounds-reference');
   if(!state.bodyText.includes('Prognosen vs. Realität'))errors.push('forecast-label-missing');
   if(!state.modelDecisionText.includes('MODELLSTATUS:'))errors.push('model-status-text-missing');
   if(!state.forecastCollapsed)errors.push('forecast-not-collapsed-by-default');
