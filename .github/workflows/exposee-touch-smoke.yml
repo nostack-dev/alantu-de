@@ -1,0 +1,51 @@
+name: Exposee touch page-turn smoke
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "index-brand.html"
+      - "pdf-to-exposee.html"
+      - "alantu-book-core.js"
+      - "tools/exposee-touch-smoke.mjs"
+      - ".github/workflows/exposee-touch-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-touch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for touch fix live
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            if curl -fsSL --max-time 20 "https://www.alantu.de/index-brand.html?touch=${{ github.sha }}" -o /tmp/index.html \
+              && curl -fsSL --max-time 20 "https://www.alantu.de/pdf-to-exposee.html?touch=${{ github.sha }}" -o /tmp/pdf.html \
+              && curl -fsSL --max-time 20 "https://www.alantu.de/alantu-book-core.js?touch=${{ github.sha }}" -o /tmp/core.js \
+              && grep -q 'touch-action:none;' /tmp/index.html \
+              && grep -q 'touch-action:none;' /tmp/pdf.html \
+              && grep -q 'pointerdown",pointerDown,{passive:false}' /tmp/core.js \
+              && grep -q 'lostpointercapture' /tmp/core.js; then
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Test vertical-first swipe ownership and page turn
+        env:
+          EXPOSEE_TOUCH_URLS: https://www.alantu.de/index-brand.html,https://www.alantu.de/pdf-to-exposee.html
+          PDF_SAMPLE: assets/sunside-living-expose.pdf
+        run: node tools/exposee-touch-smoke.mjs
