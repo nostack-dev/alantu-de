@@ -5,6 +5,7 @@ on:
     branches: ["main"]
     paths:
       - "pdf-convert-anchor.html"
+      - "alantu-unlimited-ocr.js"
       - "tools/pdf-convert-anchor-smoke.mjs"
       - ".github/workflows/pdf-convert-anchor-smoke.yml"
   workflow_dispatch:
@@ -32,16 +33,17 @@ jobs:
             https://api.github.com/repos/${{ github.repository }}/statuses/$SHA \
             -d '{"state":"pending","context":"pdf-convert-svg-smoke","description":"Checking live PDF SVG conversion"}'
 
-      - name: Guard 100 percent SVG text source
+      - name: Guard Unlimited-OCR browser source
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'SVGGraphics' pdf-convert-anchor.html
-          grep -q 'tesseract.js@5.1.1' pdf-convert-anchor.html
-          grep -q 'data-baked-diff' pdf-convert-anchor.html
-          grep -q 'data-ocr-word' pdf-convert-anchor.html
-          grep -q 'buildMergedSvg' pdf-convert-anchor.html
-          grep -q 'fontExtraProperties:true' pdf-convert-anchor.html
+          grep -q 'alantu-unlimited-ocr.js' pdf-convert-anchor.html
+          grep -q '@wllama/wllama@3.5.1' alantu-unlimited-ocr.js
+          grep -q 'Unlimited-OCR-Q5_K_S.gguf' alantu-unlimited-ocr.js
+          grep -q 'mmproj-Unlimited-OCR-F16.gguf' alantu-unlimited-ocr.js
+          grep -q 'data-baked-diff' alantu-unlimited-ocr.js
+          grep -q 'data-unlimited-ocr' alantu-unlimited-ocr.js
+          grep -q 'buildMergedSvg' alantu-unlimited-ocr.js
 
       - name: Wait for live SVG converter
         shell: bash
@@ -49,17 +51,25 @@ jobs:
           set -euo pipefail
           for i in $(seq 1 30); do
             if curl -fsSL --max-time 20 "https://www.alantu.de/pdf-convert-anchor.html?smoke=${{ github.sha }}" -o /tmp/pdf-convert-live.html \
-              && grep -q 'SVGGraphics' /tmp/pdf-convert-live.html \
-              && grep -q 'tesseract.js@5.1.1' /tmp/pdf-convert-live.html \
-              && grep -q 'data-baked-diff' /tmp/pdf-convert-live.html \
-              && grep -q 'buildMergedSvg' /tmp/pdf-convert-live.html \
-              && grep -q 'fontExtraProperties:true' /tmp/pdf-convert-live.html; then
+              && curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?smoke=${{ github.sha }}" -o /tmp/unlimited-live.js \
+              && grep -q 'alantu-unlimited-ocr.js' /tmp/pdf-convert-live.html \
+              && grep -q '@wllama/wllama@3.5.1' /tmp/unlimited-live.js \
+              && grep -q 'Unlimited-OCR-Q5_K_S.gguf' /tmp/unlimited-live.js \
+              && grep -q 'data-unlimited-ocr' /tmp/unlimited-live.js; then
               exit 0
             fi
             sleep 10
           done
           echo "Live SVG converter did not reach current main" >&2
           exit 1
+
+      - name: Check Unlimited-OCR model and runtime endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSIL --max-time 30 "https://cdn.jsdelivr.net/npm/@wllama/wllama@3.5.1/esm/index.js" >/dev/null
+          curl -fsSIL --max-time 30 "https://huggingface.co/sahilchachra/Unlimited-OCR-GGUF/resolve/main/Unlimited-OCR-Q5_K_S.gguf?download=true" >/dev/null
+          curl -fsSIL --max-time 30 "https://huggingface.co/sahilchachra/Unlimited-OCR-GGUF/resolve/main/mmproj-Unlimited-OCR-F16.gguf?download=true" >/dev/null
 
       - name: Install Playwright
         shell: bash
@@ -83,10 +93,10 @@ jobs:
         run: |
           if [ "$JOB_STATUS" = "success" ]; then
             state=success
-            description="Hybrid SVG native plus OCR live and tested"
+            description="Unlimited-OCR browser hybrid live smoke passed"
           else
             state=failure
-            description="Hybrid SVG conversion smoke failed"
+            description="Unlimited-OCR browser hybrid smoke failed"
           fi
           curl -fsS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
