@@ -1,23 +1,23 @@
-import { Wllama } from "https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/esm/index.js";
+import { createGemmaEngine } from "https://esm.sh/gh/NakliTechie/gemma4-webgpu@0ca5e3a129200ac84b3c3098311a88949ea4ca0e/src/index.ts?target=es2022";
+import { loadReferenceTensors } from "https://esm.sh/gh/NakliTechie/gemma4-webgpu@0ca5e3a129200ac84b3c3098311a88949ea4ca0e/src/diagnostics/npz.ts?target=es2022";
 import { PDFDocument, StandardFonts, rgb } from "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm";
 
 const pdfjsLib=window.pdfjsLib;
 if(!pdfjsLib)throw new Error("PDF.js fehlt.");
 pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js";
 
-const WLLAMA_PATHS={default:"https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/src/wasm/wllama.wasm"};
-
 const MODEL={
-  // Exact GGUF source referenced by llama.cpp's merged Unlimited-OCR support.
-  // wllama resolves the Q4_K_M LM + Q8_0 mmproj itself so the projector is
-  // identified as the multimodal "clip" GGUF instead of being guessed by URL.
-  name:"Unlimited-OCR 3B · Q4_K_M + Q8 mmproj",
-  repo:"sabafallah/Unlimited-OCR-GGUF",
-  quant:"Q4_K_M",
-  mmprojQuant:"Q8_0",
-  approxGiB:2.41,
-  context:4096
+  name:"Unlimited-OCR 3B · browser-native WebGPU",
+  decoderUrl:"https://huggingface.co/sahilchachra/Unlimited-OCR-GGUF/resolve/main/Unlimited-OCR-Q4_K_M.gguf",
+  visionUrl:"https://huggingface.co/naklitechie/Unlimited-OCR-DeepEncoder-ONNX/resolve/main/deepencoder_fp32.onnx",
+  extrasUrl:"https://huggingface.co/naklitechie/Unlimited-OCR-DeepEncoder-ONNX/resolve/main/deepencoder_extras.npz",
+  approxGiB:3.55,
+  context:2048
 };
+const ORT_URL="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/ort.webgpu.min.mjs";
+const ENGINE_REF="NakliTechie/gemma4-webgpu@0ca5e3a";
+const BOS=0,EOS=1,HIDDEN=1280,GRID=16;
+const PROMPT_IDS=[34030,76466,16]; // exact "document parsing." ids from the reference browser implementation
 const MAX_PAGES=60;
 const RENDER_LONG_EDGE=2200;
 // Unlimited-OCR's DeepEncoder base path is a 1024×1024 vision input.
@@ -39,8 +39,7 @@ const sideBefore=$("sideBefore"),sideAfter=$("sideAfter"),sideGrid=$("sideGrid")
 const busy=$("busy"),empty=$("empty"),emptyTitle=$("emptyTitle"),emptyText=$("emptyText");
 
 let pdfDoc=null,sourceName="exposee",pages=[],currentPage=0,loadToken=0;
-let wllama=null,modelPromise=null,modelLoaded=false,modelGpu=false;
-let runtimeImageMaxTokens=100;
+let decoderEngine=null,decoderPromise=null,visionSession=null,visionPromise=null,visionExtras=null,extrasPromise=null,modelLoaded=false;
 let compareMode="side";
 
 function setStatus(text,kind=""){
@@ -72,26 +71,49 @@ function canvasToBlob(canvas,type="image/png",quality=.98){
 async function blobToArrayBuffer(blob){return blob.arrayBuffer()}
 
 function makeOcrCanvas(source){
-  const longEdge=Math.max(source.width,source.height);
-  const scale=Math.min(1,OCR_LONG_EDGE/Math.max(1,longEdge));
+  // Browser reference DeepEncoder contract: EXACT [1,3,1024,1024].
+  // We stretch only the inference copy; the baked original remains untouched.
+  // Grounding coordinates (0..999) are mapped back to the original PDF page,
+  // so visual placement is still in original coordinates.
   const out=document.createElement("canvas");
-  out.width=Math.max(1,Math.round(source.width*scale));
-  out.height=Math.max(1,Math.round(source.height*scale));
+  out.width=OCR_LONG_EDGE;out.height=OCR_LONG_EDGE;
   const ctx=out.getContext("2d",{alpha:false});
   ctx.fillStyle="#fff";ctx.fillRect(0,0,out.width,out.height);
-  ctx.imageSmoothingEnabled=true;
-  ctx.imageSmoothingQuality="high";
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
   ctx.drawImage(source,0,0,out.width,out.height);
   window.__alantuUocrDebug=window.__alantuUocrDebug||{};
   window.__alantuUocrDebug.lastOcrInput={
-    width:out.width,
-    height:out.height,
-    longEdge:Math.max(out.width,out.height),
-    sourceWidth:source.width,
-    sourceHeight:source.height
+    width:out.width,height:out.height,longEdge:OCR_LONG_EDGE,
+    sourceWidth:source.width,sourceHeight:source.height,
+    contract:"DeepEncoder ONNX [1,3,1024,1024]"
   };
   return out;
 }
+
+function preprocessOcrCanvas(canvas){
+  const ctx=canvas.getContext("2d",{alpha:false});
+  const {data}=ctx.getImageData(0,0,1024,1024);
+  const plane=1024*1024,out=new Float32Array(3*plane);
+  for(let i=0;i<plane;i++){
+    out[i]=(data[i*4]/255-.5)/.5;
+    out[plane+i]=(data[i*4+1]/255-.5)/.5;
+    out[2*plane+i]=(data[i*4+2]/255-.5)/.5;
+  }
+  return out;
+}
+
+function spliceVision(patches,newline,seperator){
+  if(patches.length!==256*HIDDEN)throw new Error("Unlimited-OCR DeepEncoder lieferte unerwartete Vision-Embeddings.");
+  const rows=GRID*(GRID+1)+1,out=new Float32Array(rows*HIDDEN);
+  let o=0;
+  for(let r=0;r<GRID;r++){
+    out.set(patches.subarray(r*GRID*HIDDEN,(r+1)*GRID*HIDDEN),o);o+=GRID*HIDDEN;
+    out.set(newline,o);o+=HIDDEN;
+  }
+  out.set(seperator,o);
+  return out;
+}
+
 
 function hasRasterImages(opList){
   const O=pdfjsLib.OPS;
@@ -170,129 +192,109 @@ function filterNativeDuplicates(ocr,native){
   });
 }
 
-async function createRuntime(imageMaxTokens=128){
-  const inst=new Wllama(WLLAMA_PATHS,{parallelDownloads:3,suppressNativeLog:true});
-  inst.setCompat("default");
-
-  // Follow the two relevant upstream contracts literally:
-  // 1) wllama v3 multimodal: loadModelFromHF(repo, quant, mmprojQuant)
-  // 2) llama.cpp Unlimited-OCR: deepseek-ocr chat template, no Jinja,
-  //    prompt "document parsing.", temp 0, flash-attn off, no warmup.
-  await inst.loadModelFromHF({
-    repo:MODEL.repo,
-    quant:MODEL.quant,
-    mmprojQuant:MODEL.mmprojQuant
-  },{
-    useCache:true,
-    n_gpu_layers:0,
-    mmproj_offload:false,
-    n_ctx:MODEL.context,
-    n_threads:Math.max(1,Math.min(4,Math.floor((navigator.hardwareConcurrency||4)/2))),
-    n_parallel:1,
-    flash_attn:false,
-    warmup:false,
-    chat_template:"deepseek-ocr",
-    jinja:false,
-    image_min_tokens:64,
-    image_max_tokens:imageMaxTokens,
-    cache_type_k:"q4_0",
-    cache_type_v:"q4_0",
-    progressCallback:({loaded,total})=>{
-      if(total>0){
-        const pct=Math.round(loaded/total*100);
-        busy.textContent=`Unlimited-OCR 3B wird geladen · ${pct}%`;
-        setStatus(`Unlimited-OCR 3B wird einmalig lokal geladen · ${pct}%`);
-        setProgress(pct);
-      }
-    }
-  });
-
-  if(!inst.supportInputModality("image")){
-    const meta=(()=>{try{return inst.getModelMetadata()}catch{return null}})();
-    try{await inst.exit()}catch{}
-    throw new Error("Unlimited-OCR mmproj wurde geladen, aber wllama meldet keinen Bildkanal. Runtime/Modell-Metadaten sind inkompatibel."+ (meta?.meta?.["general.architecture"]?` Architektur: ${meta.meta["general.architecture"]}.`:""));
-  }
-
-  runtimeImageMaxTokens=imageMaxTokens;
-  window.__alantuUocrDebug=window.__alantuUocrDebug||{};
-  window.__alantuUocrDebug.runtime={
-    imageMaxTokens,
-    model:MODEL.name,
-    repo:MODEL.repo,
-    quant:MODEL.quant,
-    mmprojQuant:MODEL.mmprojQuant,
-    backend:"CPU/WASM",
-    imageSupported:true
-  };
-  return inst;
-}
-async function ensureModel(){
+async function ensureVision(){
   if(MOCK_OCR)return null;
-  if(modelLoaded&&wllama)return wllama;
-  if(modelPromise)return modelPromise;
-  modelPromise=(async()=>{
+  if(visionSession)return visionSession;
+  if(visionPromise)return visionPromise;
+  visionPromise=(async()=>{
+    if(!navigator.gpu)throw new Error("Unlimited-OCR 3B benötigt für die lokale Browser-Inferenz WebGPU. Bitte aktuelles Chrome/Edge mit WebGPU verwenden.");
     busy.classList.add("show");
-    busy.textContent=`Unlimited-OCR 3B · ca. ${MODEL.approxGiB.toFixed(1)} GB einmalig`;
-    setStatus("Unlimited-OCR 3B wird lokal gestartet · stabiler CPU/WASM-Modus …");
-    wllama=await createRuntime(128);
-    modelLoaded=true;
-    modelGpu=false;
-    mEngine.textContent="Unlimited-OCR 3B · CPU/WASM · Q4_K_M/Q8 · 128 vision tokens";
-    return wllama;
-  })().finally(()=>{modelPromise=null});
-  return modelPromise;
+    busy.textContent="Unlimited-OCR DeepEncoder wird geladen · 1,6 GB …";
+    setStatus("Vision-Modell wird lokal geladen …");
+    const ort=await import(ORT_URL);
+    ort.env.wasm.wasmPaths="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/";
+    visionSession=await ort.InferenceSession.create(MODEL.visionUrl,{
+      executionProviders:["webgpu"],
+      graphOptimizationLevel:"all"
+    });
+    window.__alantuUocrOrt=ort;
+    return visionSession;
+  })().finally(()=>{visionPromise=null});
+  return visionPromise;
 }
 
-async function runUnlimited(imageBuffer){
+async function ensureExtras(){
+  if(visionExtras)return visionExtras;
+  if(extrasPromise)return extrasPromise;
+  extrasPromise=(async()=>{
+    const {tensors}=await loadReferenceTensors(MODEL.extrasUrl);
+    const newline=tensors.image_newline,seperator=tensors.view_seperator;
+    if(!(newline instanceof Float32Array)||newline.length!==HIDDEN)throw new Error("Unlimited-OCR image_newline Sidecar ist ungültig.");
+    if(!(seperator instanceof Float32Array)||seperator.length!==HIDDEN)throw new Error("Unlimited-OCR view_seperator Sidecar ist ungültig.");
+    visionExtras={newline,seperator};return visionExtras;
+  })().finally(()=>{extrasPromise=null});
+  return extrasPromise;
+}
+
+async function ensureDecoder(){
+  if(MOCK_OCR)return null;
+  if(decoderEngine)return decoderEngine;
+  if(decoderPromise)return decoderPromise;
+  decoderPromise=(async()=>{
+    if(!navigator.gpu)throw new Error("Unlimited-OCR 3B benötigt WebGPU.");
+    busy.classList.add("show");
+    setStatus("Unlimited-OCR Decoder wird lokal geladen …");
+    decoderEngine=await createGemmaEngine({
+      model:MODEL.decoderUrl,
+      weightQuant:"q4k",
+      contextLength:MODEL.context,
+      onProgress:p=>{
+        const pct=p.total?Math.round(p.loaded/p.total*100):0;
+        busy.textContent=p.total?`Unlimited-OCR Decoder · ${pct}%`:(p.status||"Unlimited-OCR Decoder …");
+        if(p.total){setStatus(`Unlimited-OCR Decoder wird geladen · ${pct}%`);setProgress(pct)}
+      }
+    });
+    modelLoaded=true;
+    mEngine.textContent="Unlimited-OCR 3B · WebGPU native";
+    return decoderEngine;
+  })().finally(()=>{decoderPromise=null});
+  return decoderPromise;
+}
+
+async function runUnlimited(ocrCanvas){
   if(MOCK_OCR){
     if(MOCK_OCR_DELAY)await new Promise(r=>setTimeout(r,MOCK_OCR_DELAY));
-    return "<|ref|>ALANTU EXPOSE<|/ref|><|det|>[[80,80,920,180]]<|/det|>\n<|ref|>Wohnung mit Seeblick in Konstanz<|/ref|><|det|>[[80,220,920,330]]<|/det|>";
+    return "<|det|>text [[80,80,920,180]]<|/det|>ALANTU EXPOSE\n<|det|>text [[80,220,920,330]]<|/det|>Wohnung mit Seeblick in Konstanz";
   }
-  const ai=await ensureModel();
-  busy.textContent="Unlimited-OCR 3B erkennt Bildtext …";
 
-  // Match llama.cpp's DeepSeek-OCR server contract exactly:
-  // - no explicit chat-template override
-  // - one short OCR prompt
-  // - text item before the image item
-  // The grounded prompt gives us detection boxes required for placement.
-  const request={
-    messages:[{role:"user",content:[
-      {type:"image",data:imageBuffer},
-      {type:"text",text:"document parsing."}
-    ]}],
-    max_tokens:3000,
-    temperature:0,
-    top_p:1,
-    repeat_penalty:1.0,
-    stream:false
+  const [session,extras]=await Promise.all([ensureVision(),ensureExtras()]);
+  busy.textContent="Unlimited-OCR 3B · Vision-Encoding …";
+  const ort=window.__alantuUocrOrt;
+  const pixels=preprocessOcrCanvas(ocrCanvas);
+  const tVision=performance.now();
+  const result=await session.run({pixel_values:new ort.Tensor("float32",pixels,[1,3,1024,1024])});
+  const patches=result.vision_embeds?.data;
+  if(!(patches instanceof Float32Array))throw new Error("Unlimited-OCR DeepEncoder lieferte keine vision_embeds.");
+  const visionSeq=spliceVision(patches,extras.newline,extras.seperator);
+  const visionMs=Math.round(performance.now()-tVision);
+
+  const eng=await ensureDecoder();
+  busy.textContent="Unlimited-OCR 3B · Text wird dekodiert …";
+  eng.resetKVForCapture();
+  await eng.prefillForCapture([BOS],0);
+  await eng.prefillEmbedsForCapture(visionSeq,1);
+  const textStart=1+visionSeq.length/HIDDEN;
+  await eng.prefillForCapture(PROMPT_IDS.slice(0,-1),textStart);
+
+  let tok=PROMPT_IDS[PROMPT_IDS.length-1],pos=textStart+PROMPT_IDS.length-1;
+  const ids=[],maxTokens=1200,t0=performance.now();
+  for(let i=0;i<maxTokens;i++){
+    const logits=await eng.captureHidden(tok,pos,{kind:"logits"});
+    let best=0;
+    for(let j=1;j<logits.length;j++)if(logits[j]>logits[best])best=j;
+    if(best===EOS)break;
+    ids.push(best);tok=best;pos++;
+    if(i===127&&typeof eng.beginRingDecode==="function")eng.beginRingDecode(pos);
+    if(i%16===0)busy.textContent=`Unlimited-OCR 3B · ${i} Tokens …`;
+  }
+  const text=eng.decodeTokens(ids);
+  window.__alantuUocrDebug=window.__alantuUocrDebug||{};
+  window.__alantuUocrDebug.runtime={
+    engine:ENGINE_REF,backend:"WebGPU native",visionMs,
+    decodedTokens:ids.length,decodeMs:Math.round(performance.now()-t0),
+    model:MODEL.name
   };
-
-  try{
-    const response=await ai.createChatCompletion(request);
-    return response?.choices?.[0]?.message?.content||"";
-  }catch(err){
-    const message=String(err?.message||err||"");
-    if(/Failed to format input|Failed to tokenize prompt/i.test(message)){
-      throw new Error("Unlimited-OCR Prompt-Format fehlgeschlagen. Bitte Seite neu laden; der aktuelle Browser-Code verwendet bereits den korrigierten llama.cpp-Server-Prompt ohne Chat-Template.");
-    }
-
-    // A CLIP graph allocation failure crashes this Wllama worker. Start a new
-    // isolated worker with the same Unlimited-OCR 3B model but a stricter
-    // 64-token vision budget; model files come from browser cache.
-    if(runtimeImageMaxTokens>64&&/(ABORT|unreachable|wllama has crashed|memory access out of bounds|gallocr|clip_encode|backend_buffer)/i.test(message)){
-      try{await wllama?.exit()}catch{}
-      wllama=null;modelLoaded=false;
-      busy.textContent="Vision-Speichergrenze erkannt · starte Unlimited-OCR sicherer neu …";
-      setStatus("Vision-Speichergrenze erkannt · automatischer 64-Token-Retry …");
-      const retry=await createRuntime(64);
-      wllama=retry;modelLoaded=true;modelGpu=false;
-      mEngine.textContent="Unlimited-OCR 3B · CPU/WASM · Q4_K_M/Q8 · 64 vision tokens";
-      const response=await retry.createChatCompletion(request);
-      return response?.choices?.[0]?.message?.content||"";
-    }
-    throw err;
-  }
+  return text;
 }
 
 async function convertPage(pageNo,token,onPreview=()=>{}){
@@ -335,8 +337,7 @@ async function convertPage(pageNo,token,onPreview=()=>{}){
     // official 1024px base vision resolution. This matches the model's documented base input and bounds browser memory
     // without reducing the final PDF/preview resolution.
     const ocrCanvas=makeOcrCanvas(canvas);
-    const inputBlob=await canvasToBlob(ocrCanvas,"image/jpeg",.94);
-    rawOcr=await runUnlimited(await blobToArrayBuffer(inputBlob));
+    rawOcr=await runUnlimited(ocrCanvas);
     ocrCanvas.width=1;ocrCanvas.height=1;
     if(token!==loadToken)throw new Error("cancelled");
     ocr=filterNativeDuplicates(parseUnlimited(rawOcr,base.width,base.height),native);
@@ -521,10 +522,13 @@ async function loadPdf(file){
 async function clearModelCache(){
   clearModelBtn.disabled=true;
   try{
-    if(wllama){await wllama.exit();wllama=null}modelLoaded=false;modelPromise=null;
+    try{decoderEngine?.dispose?.()}catch{}
+    try{await visionSession?.release?.()}catch{}
+    decoderEngine=null;decoderPromise=null;visionSession=null;visionPromise=null;visionExtras=null;extrasPromise=null;modelLoaded=false;
     for(const key of await caches.keys())await caches.delete(key);
-    mEngine.textContent="Unlimited-OCR 3B · Cache leer";setStatus("Lokaler Unlimited-OCR-Cache gelöscht.","ok");
-  }catch(err){setStatus("Cache konnte nicht vollständig gelöscht werden.","error")}
+    mEngine.textContent="Unlimited-OCR 3B · Runtime neu";
+    setStatus("Lokale Unlimited-OCR Runtime wurde zurückgesetzt.","ok");
+  }catch(err){setStatus("Runtime konnte nicht vollständig zurückgesetzt werden.","error")}
   finally{clearModelBtn.disabled=false}
 }
 
@@ -538,4 +542,4 @@ sideBtn.addEventListener("click",()=>setCompareMode("side"));overlayBtn.addEvent
 overlayOpacity.addEventListener("input",renderCompare);showBoxes.addEventListener("change",renderCompare);
 downloadPdfBtn.addEventListener("click",downloadPdf);downloadSvgBtn.addEventListener("click",downloadSvg);clearModelBtn.addEventListener("click",clearModelCache);
 
-mEngine.textContent="Unlimited-OCR 3B · lokal";updateMetrics();setCompareMode("side");
+mEngine.textContent="Unlimited-OCR 3B · WebGPU native";updateMetrics();setCompareMode("side");
