@@ -9,6 +9,7 @@ COPY market-relay/package.json ./market-relay/package.json
 RUN cd market-relay && npm install --omit=dev
 
 COPY market-relay/server.mjs ./market-relay/server.mjs
+COPY market-relay/sqlite-store.mjs ./market-relay/sqlite-store.mjs
 COPY market-runtime/supervisor.mjs ./market-runtime/supervisor.mjs
 COPY market-runtime/trainer-loop.mjs ./market-runtime/trainer-loop.mjs
 COPY tools/microstructure-core.mjs ./tools/microstructure-core.mjs
