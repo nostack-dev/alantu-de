@@ -78,6 +78,7 @@ const loadingView=await page.evaluate(()=>({
     naturalWidth:document.getElementById('afterImg')?.naturalWidth||0,
     naturalHeight:document.getElementById('afterImg')?.naturalHeight||0
   },
+  ocrInput:window.__alantuUocrDebug?.lastOcrInput||null,
   status:document.getElementById('status')?.textContent||''
 }));
 try{
@@ -135,6 +136,11 @@ if(loadingView.emptyDisplay!=='none')errors.push('loading-empty-still-visible:'+
 if(loadingView.sideHidden)errors.push('loading-side-grid-hidden');
 if(loadingView.before.naturalWidth<1||loadingView.after.naturalWidth<1)errors.push('loading-image-broken:'+JSON.stringify(loadingView));
 if(!loadingView.before.src||loadingView.before.src!==loadingView.after.src)errors.push('loading-before-after-source-mismatch');
+if(!loadingView.ocrInput)errors.push('ocr-input-debug-missing');
+else{
+  if(loadingView.ocrInput.longEdge>1024)errors.push('ocr-input-too-large:'+JSON.stringify(loadingView.ocrInput));
+  if(loadingView.ocrInput.sourceWidth<=loadingView.ocrInput.width&&loadingView.ocrInput.sourceHeight<=loadingView.ocrInput.height)errors.push('ocr-input-not-downscaled:'+JSON.stringify(loadingView.ocrInput));
+}
 if(consoleErrors.length)errors.push('console:'+JSON.stringify(consoleErrors));
 if(pageErrors.length)errors.push('pageerror:'+JSON.stringify(pageErrors));
 if(failed.length)errors.push('requestfailed:'+JSON.stringify(failed));
