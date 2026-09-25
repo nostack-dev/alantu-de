@@ -4,88 +4,107 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0d0d0b">
-  <title>ALANTU — PDF → SVG</title>
+  <title>ALANTU — Unlimited-OCR 3B PDF</title>
   <style>
     :root{
       --ink:#0d0d0b;--paper:#f4f0e8;--muted:#756f66;--line:rgba(13,13,11,.14);
-      --gold:#b89a63;--ok:#4f6b50;--danger:#9c3f32;--panel:rgba(255,255,255,.48);
+      --gold:#b89a63;--ok:#4f6b50;--danger:#9c3f32;--panel:rgba(255,255,255,.52);
     }
     *{box-sizing:border-box}
     html,body{margin:0;min-width:320px;background:var(--paper);color:var(--ink)}
     body{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
     button,input{font:inherit}
     button{cursor:pointer}
-    .shell{width:min(1500px,calc(100% - 36px));margin:0 auto}
-    .topbar{height:68px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
-    .brand{display:flex;align-items:center;gap:12px;font-size:13px;font-weight:700;letter-spacing:.30em}
+    .shell{width:min(1580px,calc(100% - 32px));margin:0 auto}
+    .topbar{height:66px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+    .brand{display:flex;align-items:center;gap:12px;font-size:13px;font-weight:750;letter-spacing:.28em}
     .mark{width:22px;height:22px;position:relative;display:inline-block}
     .mark:before,.mark:after{content:"";position:absolute;left:2px;right:2px;height:1.5px;background:var(--ink);transform-origin:left center}
     .mark:before{top:16px;transform:rotate(-58deg)}.mark:after{top:4px;transform:rotate(58deg)}
     .mark i{position:absolute;left:7px;right:7px;top:12px;height:1.5px;background:var(--gold)}
     .topnote{font-size:11px;color:var(--muted)}
-    .layout{display:grid;grid-template-columns:350px minmax(0,1fr);gap:24px;padding:24px 0 32px;min-height:calc(100vh - 68px)}
-    .panel{border:1px solid var(--line);border-radius:22px;background:var(--panel);padding:22px;align-self:start}
-    .eyebrow{font-size:10px;font-weight:750;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
-    h1{font:400 42px/1 Georgia,"Times New Roman",serif;letter-spacing:-.045em;margin:10px 0 12px}
-    .intro{font-size:13px;line-height:1.55;color:#5c554c;margin:0 0 18px}
-    .dropzone{position:relative;display:grid;place-items:center;text-align:center;min-height:146px;padding:20px;border:1px dashed rgba(13,13,11,.28);border-radius:16px;background:rgba(255,255,255,.32);transition:.15s ease}
+    .layout{display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;padding:20px 0 30px}
+    .panel{border:1px solid var(--line);border-radius:22px;background:var(--panel);padding:20px;align-self:start;position:sticky;top:12px}
+    .eyebrow{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+    h1{font:400 40px/1 Georgia,"Times New Roman",serif;letter-spacing:-.045em;margin:10px 0 11px}
+    .intro{font-size:13px;line-height:1.5;color:#5d564d;margin:0 0 17px}
+    .dropzone{position:relative;display:grid;place-items:center;text-align:center;min-height:138px;padding:20px;border:1px dashed rgba(13,13,11,.28);border-radius:16px;background:rgba(255,255,255,.34);transition:.16s}
     .dropzone.drag{border-color:var(--gold);background:rgba(184,154,99,.08)}
     .dropzone input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
-    .dropzone strong{font-size:14px}.dropzone span{display:block;margin-top:6px;font-size:11px;color:var(--muted);line-height:1.45}
-    .status{margin-top:12px;min-height:20px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+    .dropzone strong{font-size:14px}.dropzone span{display:block;margin-top:6px;font-size:11px;color:var(--muted);line-height:1.42}
+    .status{margin-top:12px;min-height:20px;display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--muted);line-height:1.4}
     .status.ok{color:var(--ok)}.status.error{color:var(--danger)}
-    .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:0 0 auto}
+    .dot{width:7px;height:7px;margin-top:5px;border-radius:50%;background:currentColor;flex:0 0 auto}
     .progress{height:4px;border-radius:999px;background:rgba(13,13,11,.10);overflow:hidden;margin-top:10px}
-    .progress span{display:block;height:100%;width:0;background:var(--gold);transition:width .18s ease}
-    .section{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
-    .section-title{font-size:10px;font-weight:750;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+    .progress span{display:block;height:100%;width:0;background:var(--gold);transition:width .16s ease}
+    .section{margin-top:18px;padding-top:17px;border-top:1px solid var(--line)}
+    .section-title{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
     .metrics{display:grid;border-top:1px solid var(--line)}
-    .metric{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);font-size:11px}
+    .metric{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:11px}
     .metric span{color:var(--muted)}.metric strong{text-align:right;font-weight:650;font-variant-numeric:tabular-nums}
-    .action{width:100%;min-height:44px;border:1px solid var(--line);background:rgba(255,255,255,.55);color:var(--ink);border-radius:999px;padding:0 16px;font-size:12px;margin-top:8px}
+    .action{width:100%;min-height:43px;border:1px solid var(--line);background:rgba(255,255,255,.58);color:var(--ink);border-radius:999px;padding:0 15px;font-size:12px;margin-top:8px}
     .action.primary{background:var(--ink);color:var(--paper);border-color:var(--ink);font-weight:700}
     .action:disabled{opacity:.35;cursor:default}
-    .note{font-size:11px;color:#777066;line-height:1.5;margin:12px 0 0}
-    .viewer{min-width:0;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px}
-    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:40px}
-    .toolbar-left,.toolbar-right{display:flex;align-items:center;gap:8px;min-width:0}
-    .badge{font-size:11px;border:1px solid var(--line);background:rgba(255,255,255,.55);padding:8px 10px;border-radius:999px;color:#5d564d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50vw}
-    .icon-btn{min-width:38px;height:34px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.58);color:var(--ink)}
-    .counter{min-width:64px;text-align:center;font-size:11px;font-weight:650;font-variant-numeric:tabular-nums}
-    .viewport{position:relative;min-height:660px;height:calc(100vh - 142px);overflow:auto;overscroll-behavior:contain;border:1px solid rgba(13,13,11,.10);border-radius:24px;background:linear-gradient(145deg,#ddd3c5,#b8ad9f);box-shadow:inset 0 0 0 1px rgba(255,255,255,.24)}
-    .preview-wrap{min-width:100%;min-height:100%;padding:56px;display:grid;place-items:start center}
-    .preview-page{background:#fff;box-shadow:0 18px 52px rgba(28,22,16,.20);transform-origin:top center}
-    .preview-page svg{display:block;max-width:none}
-    .empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:40px;color:#5d564d;pointer-events:none}
-    .empty strong{display:block;font:400 30px/1.05 Georgia,"Times New Roman",serif;color:var(--ink)}
-    .empty span{display:block;margin-top:8px;font-size:12px;line-height:1.5}
-    .busy{position:sticky;left:14px;top:14px;z-index:50;width:max-content;max-width:calc(100% - 28px);padding:8px 10px;border-radius:999px;background:rgba(244,240,232,.92);border:1px solid var(--line);font-size:11px;display:none}
+    .note{font-size:10.5px;color:#777066;line-height:1.48;margin:11px 0 0}
+    .viewer{min-width:0}
+    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;margin-bottom:10px}
+    .toolbar-left,.toolbar-right{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
+    .badge{font-size:11px;border:1px solid var(--line);background:rgba(255,255,255,.58);padding:8px 10px;border-radius:999px;color:#5d564d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:38vw}
+    .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:rgba(255,255,255,.5)}
+    .seg button{border:0;background:transparent;padding:8px 12px;font-size:11px;color:var(--muted)}
+    .seg button.active{background:var(--ink);color:var(--paper)}
+    .icon-btn{min-width:36px;height:34px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.6);color:var(--ink)}
+    .counter{min-width:68px;text-align:center;font-size:11px;font-weight:650;font-variant-numeric:tabular-nums}
+    .compare-shell{position:relative;min-height:710px;border:1px solid rgba(13,13,11,.10);border-radius:24px;background:linear-gradient(145deg,#ddd4c7,#bdb1a2);overflow:auto;padding:24px}
+    .busy{position:sticky;left:14px;top:14px;z-index:80;width:max-content;max-width:calc(100% - 28px);padding:8px 10px;border-radius:999px;background:rgba(244,240,232,.96);border:1px solid var(--line);font-size:11px;display:none}
     .busy.show{display:block}
-    @media(max-width:900px){
-      .shell{width:min(100% - 20px,1500px)}.layout{grid-template-columns:1fr;min-height:0}
-      .viewport{height:70vh;min-height:500px}.panel{order:2}.viewer{order:1}.preview-wrap{padding:30px}
+    .side-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+    .pane{min-width:0}
+    .pane-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#5f584f}
+    .paper{position:relative;background:#fff;box-shadow:0 18px 50px rgba(34,27,19,.22);overflow:hidden;line-height:0}
+    .paper img{display:block;width:100%;height:auto}
+    .overlay-boxes{position:absolute;inset:0;pointer-events:none;line-height:normal}
+    .ocr-box{position:absolute;border:1.5px solid #b07816;background:rgba(255,196,66,.11);box-shadow:0 0 0 1px rgba(255,255,255,.5) inset}
+    .ocr-box span{position:absolute;left:-1px;top:-20px;max-width:280px;background:rgba(13,13,11,.88);color:#fff;font-size:9px;line-height:1.2;padding:3px 5px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .overlay-wrap{display:grid;place-items:start center}
+    .overlay-stage{position:relative;width:min(100%,980px);background:#fff;box-shadow:0 18px 50px rgba(34,27,19,.22);line-height:0}
+    .overlay-stage img{display:block;width:100%;height:auto}
+    .overlay-stage .after-layer{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+    .overlay-stage .overlay-boxes{z-index:5}
+    .overlay-tools{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted)}
+    .overlay-tools input[type=range]{width:110px;accent-color:var(--ink)}
+    .check{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);user-select:none}
+    .check input{accent-color:var(--ink)}
+    .empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:40px;color:#5d564d;pointer-events:none}
+    .empty strong{display:block;font:400 31px/1.05 Georgia,"Times New Roman",serif;color:var(--ink)}
+    .empty span{display:block;margin-top:8px;font-size:12px;line-height:1.5}
+    @media(max-width:980px){
+      .shell{width:min(100% - 18px,1580px)}.layout{grid-template-columns:1fr}.panel{position:static;order:2}.viewer{order:1}
+      .compare-shell{min-height:560px}.side-grid{grid-template-columns:1fr}
+      .badge{max-width:55vw}
     }
-    @media(max-width:560px){
-      .topnote{display:none}.layout{padding-top:12px}.panel{padding:16px}h1{font-size:36px}
-      .viewport{height:66vh;min-height:420px;border-radius:18px}.preview-wrap{padding:20px}.badge{max-width:54vw}
+    @media(max-width:600px){
+      .topnote{display:none}.layout{padding-top:10px}.panel{padding:16px}h1{font-size:35px}
+      .compare-shell{padding:12px;border-radius:18px;min-height:480px}.toolbar{align-items:flex-start;flex-direction:column}.badge{max-width:82vw}
+      .overlay-tools{width:100%}.overlay-tools input[type=range]{flex:1}
     }
   </style>
 </head>
 <body>
   <header class="shell topbar">
     <div class="brand"><span class="mark" aria-hidden="true"><i></i></span><span>ALANTU</span></div>
-    <div class="topnote">PDF → Unlimited-OCR 3B → Hybrid-SVG</div>
+    <div class="topnote">Unlimited-OCR 3B · lokal im Browser · kein Upload</div>
   </header>
 
   <main class="shell layout">
     <aside class="panel">
-      <div class="eyebrow">PDF Konverter · Local AI</div>
-      <h1>PDF rein. SVG raus.</h1>
-      <p class="intro">Vorhandener PDF-Text wird direkt zu SVG. Text in Scans, Screenshots und Bildern erkennt Unlimited-OCR 3B lokal im Browser. Nicht erkannter Inhalt bleibt als Original-Diff erhalten. Keine manuellen Anker.</p>
+      <div class="eyebrow">PDF → Searchable PDF</div>
+      <h1>Gleich aussehen. Mehr echter Text.</h1>
+      <p class="intro">Das Original wird pro Seite gebacken. Vorhandener PDF-Text bleibt als echter Text erhalten. Text in Bildern erkennt ausschließlich Unlimited-OCR 3B und wird als zusätzlicher echter Textlayer an derselben Position eingebettet.</p>
 
       <label class="dropzone" id="dropzone">
         <input id="pdfInput" type="file" accept="application/pdf,.pdf" aria-label="PDF auswählen">
-        <div><strong>PDF auswählen oder hier ablegen</strong><span>Konvertierung läuft lokal im Browser · bis 60 Seiten</span></div>
+        <div><strong>PDF auswählen oder hier ablegen</strong><span>Beim ersten Bildtext lädt Unlimited-OCR 3B einmalig lokal in den Browser-Cache.</span></div>
       </label>
 
       <div class="status" id="status"><span class="dot"></span><span>Bereit</span></div>
@@ -95,15 +114,16 @@
         <div class="section-title">Ergebnis</div>
         <div class="metrics">
           <div class="metric"><span>Seiten</span><strong id="mPages">—</strong></div>
-          <div class="metric"><span>SVG-Text</span><strong id="mVectorText">—</strong></div>
-          <div class="metric"><span>Fallback gebacken</span><strong id="mBaked">—</strong></div>
-          <div class="metric"><span>Dokument</span><strong id="mComplete">—</strong></div>
-          <div class="metric"><span>AI Engine</span><strong id="mEngine">—</strong></div>
+          <div class="metric"><span>PDF-Text</span><strong id="mNative">—</strong></div>
+          <div class="metric"><span>Bildtext erkannt</span><strong id="mImageText">—</strong></div>
+          <div class="metric"><span>Geb. Originalseiten</span><strong id="mBaked">—</strong></div>
+          <div class="metric"><span>Visuell</span><strong id="mVisual">—</strong></div>
+          <div class="metric"><span>Engine</span><strong id="mEngine">Unlimited-OCR 3B</strong></div>
         </div>
-        <button class="action primary" id="downloadMergedBtn" type="button" disabled>SVG-Dokument herunterladen</button>
-        <button class="action" id="downloadPageBtn" type="button" disabled>Aktuelle Seite als SVG</button>
+        <button class="action primary" id="downloadPdfBtn" type="button" disabled>Finales PDF herunterladen</button>
+        <button class="action" id="downloadSvgBtn" type="button" disabled>Zusätzlich als SVG</button>
         <button class="action" id="clearModelBtn" type="button">Lokalen AI-Cache löschen</button>
-        <p class="note">Unlimited-OCR 3B läuft direkt im Browser. Beim ersten Bildtext werden einmalig rund 2,7 GB Modell + Vision-Projektor geladen und lokal gecacht. Danach bleibt alles lokal. Erkannter Text wird SVG; der nicht erkannte Rest bleibt als gebackener Original-Diff vollständig erhalten.</p>
+        <p class="note">Das fertige PDF behält das gebackene Originalbild vollständig bei und ergänzt einen unsichtbaren echten Textlayer. Dadurch bleibt die Optik stabil, während Suche, Auswahl und Copy/Paste deutlich mehr Text erhalten können. Nicht erkannte Bildbereiche bleiben unverändert im Originalbild.</p>
       </div>
     </aside>
 
@@ -111,26 +131,52 @@
       <div class="toolbar">
         <div class="toolbar-left">
           <span class="badge" id="fileBadge">Noch keine PDF geladen</span>
+          <div class="seg" aria-label="Vergleichsansicht">
+            <button id="sideBtn" type="button" class="active">Nebeneinander</button>
+            <button id="overlayBtn" type="button">Überlagern</button>
+          </div>
+          <label class="check"><input id="showBoxes" type="checkbox" checked> erkannte Bildtexte markieren</label>
         </div>
         <div class="toolbar-right">
+          <div class="overlay-tools" id="overlayTools" hidden>
+            <span>Nachher</span>
+            <input id="overlayOpacity" type="range" min="0" max="100" value="50" aria-label="Deckkraft Ergebnis">
+            <strong id="overlayValue">50%</strong>
+          </div>
           <button class="icon-btn" id="prevBtn" type="button" aria-label="Vorherige Seite">←</button>
           <span class="counter" id="pageCounter">— / —</span>
           <button class="icon-btn" id="nextBtn" type="button" aria-label="Nächste Seite">→</button>
-          <button class="icon-btn" id="zoomOutBtn" type="button" aria-label="Verkleinern">−</button>
-          <span class="counter" id="zoomLabel">Fit</span>
-          <button class="icon-btn" id="zoomInBtn" type="button" aria-label="Vergrößern">+</button>
         </div>
       </div>
 
-      <div class="viewport" id="viewport">
+      <div class="compare-shell" id="compare">
         <div class="busy" id="busy">Konvertiere …</div>
-        <div class="preview-wrap" id="previewWrap">
-          <div class="preview-page" id="previewPage"></div>
+
+        <div class="side-grid">
+          <div class="pane" id="sideBefore">
+            <div class="pane-head"><span>Vorher</span><span>Original</span></div>
+            <div class="paper"><img id="beforeImg" alt="Originalseite"></div>
+          </div>
+          <div class="pane" id="sideAfter">
+            <div class="pane-head"><span>Nachher</span><span>Searchable</span></div>
+            <div class="paper"><img id="afterImg" alt="Ergebnisseite"><div class="overlay-boxes" id="afterOverlay"></div></div>
+          </div>
         </div>
-        <div class="empty" id="empty"><div><strong>PDF laden.</strong><span>PDF-Text wird direkt übernommen; Bildtext erkennt Unlimited-OCR 3B lokal und wird mit dem Original-Diff zu einem SVG gemerged.</span></div></div>
+
+        <div class="overlay-wrap">
+          <div class="overlay-stage" id="overlayStage" hidden>
+            <img id="overlayBefore" alt="Original im Overlay">
+            <img id="overlayAfter" class="after-layer" alt="Ergebnis im Overlay">
+            <div class="overlay-boxes" id="overlayBoxes"></div>
+          </div>
+        </div>
+
+        <div class="empty" id="empty"><div><strong>PDF laden.</strong><span>Danach siehst du Original und Ergebnis direkt nebeneinander oder pixelgenau übereinander.</span></div></div>
       </div>
     </section>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>\n  <script type="module" src="./alantu-unlimited-ocr.js"></script>\n</body>
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
+  <script type="module" src="./alantu-unlimited-ocr.js"></script>
+</body>
 </html>
