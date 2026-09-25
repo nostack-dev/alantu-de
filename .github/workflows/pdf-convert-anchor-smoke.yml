@@ -25,7 +25,7 @@ jobs:
       - name: Guard source
         run: |
           set -euo pipefail
-          grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-8' pdf-convert-anchor.html
+          grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-9' pdf-convert-anchor.html
           grep -q 'from "./vendor/unlimited-ocr-browser-engine.js"' alantu-unlimited-ocr.js
           grep -q 'function fetchWithRetry' alantu-unlimited-ocr.js
           grep -q 'withHeartbeat' alantu-unlimited-ocr.js
@@ -37,6 +37,8 @@ jobs:
           grep -q 'data-role="visible-vector-text"' alantu-unlimited-ocr.js
           grep -q 'data-baked-diff="1"' alantu-unlimited-ocr.js
           grep -q 'buildVectorPdf' alantu-unlimited-ocr.js
+          grep -q 'renderVectorSvgLayer' alantu-unlimited-ocr.js
+          grep -q 'afterVectorSvg' pdf-convert-anchor.html
           grep -q 'NakliTechie/gemma4-webgpu@0ca5e3a' alantu-unlimited-ocr.js
           grep -q 'Unlimited-OCR-DeepEncoder-ONNX' alantu-unlimited-ocr.js
           grep -q 'beginRingDecode(pos+1)' alantu-unlimited-ocr.js
@@ -61,7 +63,7 @@ jobs:
             if curl -fsSL --max-time 20 "https://www.alantu.de/pdf-convert-anchor.html?smoke=${{ github.sha }}" -o /tmp/page.html \
               && curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?smoke=${{ github.sha }}" -o /tmp/uocr.js \
               && curl -fsSL --max-time 20 "https://www.alantu.de/vendor/unlimited-ocr-browser-engine.js?smoke=${{ github.sha }}" -o /tmp/engine.js \
-              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-8' /tmp/page.html \
+              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-9' /tmp/page.html \
               && grep -q 'function fetchWithRetry' /tmp/uocr.js \
               && grep -q 'withHeartbeat' /tmp/uocr.js \
               && grep -q 'diagnoseLocalOcrBottleneck' /tmp/uocr.js \
@@ -72,6 +74,8 @@ jobs:
               && grep -q 'data-role="visible-vector-text"' /tmp/uocr.js \
               && grep -q 'data-baked-diff="1"' /tmp/uocr.js \
               && grep -q 'buildVectorPdf' /tmp/uocr.js \
+              && grep -q 'renderVectorSvgLayer' /tmp/uocr.js \
+              && grep -q 'afterVectorSvg' /tmp/page.html \
               && grep -q 'createGemmaEngine' /tmp/engine.js \
               && ! grep -q '@wllama/wllama' /tmp/uocr.js; then
               exit 0
