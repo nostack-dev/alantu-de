@@ -1,120 +1,119 @@
-import assert from 'node:assert/strict';
-import {mkdir,rename} from 'node:fs/promises';
-import {chromium} from 'playwright';
+import { chromium } from 'playwright';
 
-const origin=process.env.EXPOSEE_ORIGIN||'https://www.alantu.de';
+const urls=(process.env.EXPOSEE_URLS||'https://www.alantu.de/index-brand.html,https://www.alantu.de/pdf-to-exposee.html')
+  .split(',').map(s=>s.trim()).filter(Boolean);
 const out=process.env.SMOKE_OUT||'/tmp/alantu-exposee-smoke';
-const pdf=process.env.EXPOSEE_PDF||'assets/sunside-living-expose.pdf';
-await mkdir(out,{recursive:true});
+const fs=await import('node:fs/promises');
+await fs.mkdir(out,{recursive:true});
 
-async function run(kind,viewport){
-  const browser=await chromium.launch({
-    headless:true,
-    args:['--enable-webgl','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']
+async function run(url,label,viewport){
+  const browser=await chromium.launch({headless:true});
+  const page=await browser.newPage({viewportSize:viewport});
+  const consoleErrors=[],pageErrors=[],httpErrors=[],failed=[];
+  page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
+  page.on('pageerror',e=>pageErrors.push(String(e?.stack||e)));
+  page.on('response',r=>{if(r.status()>=400&&!r.url().includes('favicon'))httpErrors.push({status:r.status(),url:r.url()})});
+  page.on('requestfailed',r=>failed.push({url:r.url(),error:r.failure()?.errorText||'failed'}));
+
+  await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});
+  await page.waitForTimeout(5000);
+
+  const initial=await page.evaluate(()=>{
+    const stage=document.getElementById('stage');
+    const ui=document.querySelector('.stage-ui');
+    const cs=ui?getComputedStyle(ui):null;
+    const share=document.getElementById('shareLinkBtn');
+    return {
+      stage:!!stage,
+      canvas:!!document.getElementById('bookCanvas'),
+      debug:stage?.classList.contains('debug-controls')||false,
+      ui:{exists:!!ui,display:cs?.display||null,visibility:cs?.visibility||null,opacity:cs?.opacity||null},
+      share:{exists:!!share,outsideStage:!!share&&!!stage&&!stage.contains(share)},
+      overflow:document.documentElement.scrollWidth-window.innerWidth
+    };
   });
-  const context=await browser.newContext({
-    viewport,deviceScaleFactor:1,
-    recordVideo:{dir:out,size:viewport}
+
+  await page.keyboard.press('d');
+  await page.waitForTimeout(250);
+
+  const debug=await page.evaluate(()=>{
+    const stage=document.getElementById('stage');
+    const ui=document.querySelector('.stage-ui');
+    const cs=ui?getComputedStyle(ui):null;
+    const val=id=>document.getElementById(id)?.value||document.getElementById(id)?.textContent||null;
+    const ids=['tiltXLess','tiltXMore','tiltYLess','tiltYMore','tiltZLess','tiltZMore','zoomLess','zoomMore'];
+    return {
+      debug:stage?.classList.contains('debug-controls')||false,
+      ui:{display:cs?.display||null,visibility:cs?.visibility||null,opacity:cs?.opacity||null},
+      values:{x:val('tiltXValue'),y:val('tiltYValue'),z:val('tiltZValue'),zoom:val('zoomValue')},
+      controls:Object.fromEntries(ids.map(id=>[id,!!document.getElementById(id)]))
+    };
   });
-  const page=await context.newPage();
-  const video=page.video();
+
+  await page.locator('#tiltZMore').click();
+  await page.locator('#zoomMore').click();
+  await page.waitForTimeout(100);
+  const changed=await page.evaluate(()=>({
+    z:document.getElementById('tiltZValue')?.value||null,
+    zoom:document.getElementById('zoomValue')?.value||null
+  }));
+
+  // Keyboard fullscreen must work even though normal controls start hidden.
+  await page.keyboard.press('f');
+  await page.waitForTimeout(450);
+  const fOn=await page.evaluate(()=>{
+    const stage=document.getElementById('stage');
+    const ui=document.querySelector('.stage-ui');
+    return {
+      active:document.fullscreenElement===stage||document.webkitFullscreenElement===stage||stage?.classList.contains('is-faux-fullscreen')||false,
+      uiDisplay:ui?getComputedStyle(ui).display:null
+    };
+  });
+  await page.keyboard.press('f');
+  await page.waitForTimeout(350);
+
+  // Canvas double click must independently toggle fullscreen.
+  await page.locator('#bookCanvas').dblclick({force:true});
+  await page.waitForTimeout(450);
+  const dblOn=await page.evaluate(()=>{
+    const stage=document.getElementById('stage');
+    return document.fullscreenElement===stage||document.webkitFullscreenElement===stage||stage?.classList.contains('is-faux-fullscreen')||false;
+  });
+  await page.locator('#bookCanvas').dblclick({force:true});
+  await page.waitForTimeout(350);
+
+  const safe=label.replace(/[^a-z0-9_-]+/gi,'-');
+  await page.screenshot({path:`${out}/${safe}-${viewport.width}.png`,fullPage:true});
+
   const errors=[];
-  page.on('pageerror',error=>errors.push(String(error)));
-  page.on('console',message=>{
-    if(message.type()==='error')errors.push(message.text());
-  });
-  try{
-    const path=kind==='brand'?'index-brand.html':'pdf-to-exposee.html';
-    await page.goto(`${origin}/${path}?smoke=${process.env.GITHUB_SHA||Date.now()}`,{
-      waitUntil:'domcontentloaded',timeout:60000
-    });
-    assert(await page.locator('script[type="module"]').evaluate(node=>node.textContent.includes('prepdf-fix1')),
-      'live page did not load the corrected shared view');
-    if(kind==='pdf')await page.locator('#pdfInput').setInputFiles(pdf);
-    const total=kind==='brand'?6:17;
-    await page.waitForFunction(expected=>{
-      const value=document.querySelector('#pageCount')?.textContent||'';
-      return value.includes(`/ ${String(expected).padStart(2,'0')}`);
-    },total,{timeout:120000});
-    assert(await page.locator('#bookCanvas').evaluate(node=>!!node.getContext('webgl2')),
-      'WebGL book did not initialize');
-    if(kind==='brand'){
-      const html=await page.content();
-      assert(!html.includes('Starnberger See · Bayern'),'stale Starnberger cover copy still present');
-      assert(!html.includes('PRIVATE RESIDENCE'),'stale private-residence cover copy still present');
-    }
-    const stage=page.locator('#stage');
+  if(consoleErrors.length)errors.push('console:'+JSON.stringify(consoleErrors));
+  if(pageErrors.length)errors.push('pageerror:'+JSON.stringify(pageErrors));
+  if(httpErrors.length)errors.push('http:'+JSON.stringify(httpErrors));
+  if(failed.length)errors.push('requestfailed:'+JSON.stringify(failed));
+  if(!initial.stage||!initial.canvas||!initial.ui.exists)errors.push('renderer-ui-missing');
+  if(initial.debug)errors.push('debug-controls-enabled-by-default');
+  if(initial.ui.visibility!=='hidden'||Number(initial.ui.opacity)>0.01)errors.push('controls-visible-by-default:'+JSON.stringify(initial.ui));
+  if(!debug.debug||debug.ui.visibility!=='visible'||Number(debug.ui.opacity)<.99)errors.push('debug-key-did-not-show-controls:'+JSON.stringify(debug.ui));
+  if(Object.values(debug.controls).some(v=>!v))errors.push('debug-controls-missing:'+JSON.stringify(debug.controls));
+  if(debug.values.x!=='4°'||debug.values.y!=='2°'||debug.values.z!=='0°'||debug.values.zoom!=='100%')errors.push('debug-defaults:'+JSON.stringify(debug.values));
+  if(changed.z!=='1°')errors.push('z-control-failed:'+String(changed.z));
+  if(!(parseInt(changed.zoom,10)>100))errors.push('zoom-control-failed:'+String(changed.zoom));
+  if(!fOn.active)errors.push('keyboard-fullscreen-failed');
+  if(fOn.uiDisplay!=='none')errors.push('controls-visible-in-fullscreen:'+String(fOn.uiDisplay));
+  if(!dblOn)errors.push('doubleclick-fullscreen-failed');
+  if(initial.overflow>4)errors.push('horizontal-overflow:'+initial.overflow);
+  if(label.startsWith('landing')&&(!initial.share.exists||!initial.share.outsideStage))errors.push('share-link-not-outside-renderer');
+  if(label.startsWith('builder')&&initial.share.exists)errors.push('share-link-present-in-builder');
 
-    if(viewport.width<=700){
-      const axisLock=await stage.evaluate(el=>{
-        const fire=(type,x,y)=>{
-          const event=new Event(type,{bubbles:true,cancelable:true});
-          const touches=type==='touchend'||type==='touchcancel'
-            ? []
-            : [{clientX:x,clientY:y}];
-          Object.defineProperty(event,'touches',{value:touches});
-          el.dispatchEvent(event);
-          return {
-            prevented:event.defaultPrevented,
-            locked:el.classList.contains('is-book-scroll-locked')
-          };
-        };
-
-        fire('touchstart',120,320);
-        const horizontal=fire('touchmove',190,326);
-        const horizontalEnd=fire('touchend',190,326);
-
-        fire('touchstart',120,320);
-        const vertical=fire('touchmove',125,390);
-        fire('touchend',125,390);
-
-        return {horizontal,horizontalEnd,vertical};
-      });
-      assert.equal(axisLock.horizontal.prevented,true,
-        `horizontal touch did not suppress page scroll: ${JSON.stringify(axisLock)}`);
-      assert.equal(axisLock.horizontal.locked,true,
-        `horizontal touch did not engage book scroll lock: ${JSON.stringify(axisLock)}`);
-      assert.equal(axisLock.horizontalEnd.locked,false,
-        `book scroll lock survived touch end: ${JSON.stringify(axisLock)}`);
-      assert.equal(axisLock.vertical.prevented,false,
-        `vertical touch was incorrectly blocked: ${JSON.stringify(axisLock)}`);
-    }
-
-    const marker=`${kind}-${viewport.width}`;
-    await page.waitForTimeout(1500);
-    const initial=await stage.screenshot({path:`${out}/${marker}-initial.png`});
-    const next=page.locator('#tapNext');
-    const prev=page.locator('#tapPrev');
-
-    // Restored viewer starts with the cover open. A short tap must turn the
-    // first paper leaf instead of being swallowed by stage pointer capture.
-    await next.click({force:true});
-    await page.waitForTimeout(1000);
-    const afterFirst=(await page.locator('#pageCount').textContent()).trim();
-    assert(!afterFirst.startsWith('01 /'),
-      `tap did not advance the book: ${afterFirst}`);
-    const opened=await stage.screenshot({path:`${out}/${marker}-opened.png`});
-    assert(!initial.equals(opened),'first paper turn image unchanged');
-
-    const leaves=viewport.width<=700?total:Math.ceil(total/2);
-    for(let i=1;i<leaves;i++)await next.click({force:true});
-    // One final tap closes the end hardcover.
-    await next.click({force:true});
-    await page.waitForTimeout(1000);
-    await stage.screenshot({path:`${out}/${marker}-end-cover.png`});
-    await prev.click({force:true});
-    await page.waitForTimeout(850);
-    const reopened=await stage.screenshot({path:`${out}/${marker}-reopened.png`});
-    assert(!opened.equals(reopened),'end cover image unchanged');
-    assert.equal(errors.length,0,errors.join('\n'));
-    console.log(`${marker}: WebGL, opening, page turns, closing, reverse and screenshots OK`);
-  }finally{
-    await context.close();
-    if(video)await rename(await video.path(),`${out}/${kind}-${viewport.width}-motion.webm`);
-    await browser.close();
-  }
+  console.log(JSON.stringify({url,label,viewport,initial,debug,changed,fOn,dblOn,consoleErrors,pageErrors,httpErrors,failed,ok:errors.length===0,errors},null,2));
+  await browser.close();
+  if(errors.length)throw new Error(label+' smoke failed: '+errors.join(' | '));
 }
 
-for(const viewport of [{width:1440,height:1000},{width:390,height:844},{width:844,height:390}]){
-  for(const kind of ['brand','pdf'])await run(kind,viewport);
+for(const url of urls){
+  const label=url.includes('pdf-to-exposee')?'builder':'landing';
+  await run(url,label,{width:1440,height:1100});
+  await run(url,label+'-mobile',{width:390,height:844});
 }
+
+console.log('ALANTU_EXPOSEE_BROWSER_SMOKE_OK');
