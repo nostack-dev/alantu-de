@@ -242,10 +242,14 @@ function wilson(k,n){if(!n)return [null,null];const z=1.96,p=k/n,den=1+z*z/n,c=(
 function tradeStats(rows,prefix,gateOnly=false){
   const dirKey=prefix+'_dir',netKey=prefix+'_net_bps',a=(rows||[]).filter(x=>x?.status==='evaluated'&&(!gateOnly||x.gate_sample===true)&&
     (Number(x[dirKey])===1||Number(x[dirKey])===-1)&&Number.isFinite(Number(x[netKey]))).sort((x,y)=>Date.parse(x.at)-Date.parse(y.at));
-  const nets=a.map(x=>Number(x[netKey])),wins=nets.filter(x=>x>0),loss=nets.filter(x=>x<=0),n=a.length,days=new Set(a.map(x=>nyDayKeyV5(Date.parse(x.at))).filter(Boolean)).size;
+  const nets=a.map(x=>Number(x[netKey])),wins=nets.filter(x=>x>0),loss=nets.filter(x=>x<=0),n=a.length;
+  const byDay=new Map();
+  for(const r of a){const day=nyDayKeyV5(Date.parse(r.at));if(!day)continue;const z=byDay.get(day)||[];z.push(Number(r[netKey]));byDay.set(day,z);}
+  const dayMeans=[...byDay.values()].map(z=>mean(z)).filter(Number.isFinite),days=dayMeans.length,positiveDays=dayMeans.filter(x=>x>0).length;
   const pf=loss.length?wins.reduce((s,v)=>s+v,0)/Math.abs(loss.reduce((s,v)=>s+v,0)):(wins.length?Infinity:null),mid=Math.floor(n/2);
   const basic=(z)=>{const ns=z.map(x=>Number(x[netKey])),ws=ns.filter(x=>x>0),ls=ns.filter(x=>x<=0);return {n:z.length,mean_net_bps:mean(ns),median_net_bps:median(ns),profit_factor:ls.length?ws.reduce((s,v)=>s+v,0)/Math.abs(ls.reduce((s,v)=>s+v,0)):(ws.length?Infinity:null)};};
   return {n,days,profitable_rate:n?wins.length/n:null,profitable95:wilson(wins.length,n),mean_net_bps:mean(nets),median_net_bps:median(nets),profit_factor:pf,
+    daily:{n:days,positive_rate:days?positiveDays/days:null,mean_net_bps:mean(dayMeans),median_net_bps:median(dayMeans)},
     total_net_bps:nets.reduce((s,v)=>s+v,0),max_drawdown_bps:maxDrawdown(nets),barrier_hit_rate:n?a.filter(x=>x.barrier_hit).length/n:null,
     halves:[basic(a.slice(0,mid)),basic(a.slice(mid))]};
 }
@@ -258,6 +262,8 @@ export function summarizeV5State(state){
     if(!model.ready)reasons.push('training_labels_lt_'+V5_MIN_TRAIN_LABELS);
     if(learned.n<180)reasons.push('gate_trades_lt_180');
     if(learned.days<10)reasons.push('trading_days_lt_10');
+    if(!(learned.daily?.positive_rate>.50))reasons.push('positive_day_rate_not_above_50pct');
+    if(!(learned.daily?.median_net_bps>0))reasons.push('median_daily_net_not_positive');
     if(!(learned.profitable_rate>=.52))reasons.push('profitable_rate_lt_52pct');
     if(!learned.profitable95||!(learned.profitable95[0]>.50))reasons.push('profit_rate_ci_not_above_50');
     if(!(learned.mean_net_bps>=1.0))reasons.push('mean_net_lt_1bp');
