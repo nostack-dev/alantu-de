@@ -39,7 +39,7 @@ const outcomes=[];
 for(let d=0;d<12;d++)for(let i=0;i<16;i++){
   const at=new Date(Date.UTC(2026,8,1+d,14,i,0)).toISOString(),vec=new Array(V5_FEATURE_NAMES.length).fill(0);vec[0]=i%2?.8:-.8;
   const dir=i%2?1:-1;
-  outcomes.push({version:V5_VERSION,horizon_minutes:5,status:'evaluated',at,gate_sample:true,barrier_label:dir,barrier_hit:true,feature_vector:vec,
+  outcomes.push({version:V5_VERSION,horizon_minutes:5,status:'evaluated',at,gate_sample:true,path_label:dir,barrier_label:dir,barrier_hit:true,feature_vector:vec,
     learned_dir:dir,structural_dir:-dir,learned_net_bps:3,structural_net_bps:-7});
 }
 const summary=summarizeV5State({outcomes,started_at:'2026-09-01T00:00:00Z'});
