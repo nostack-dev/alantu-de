@@ -43,6 +43,11 @@ export function openMarketStore(file=process.env.ALANTU_SQLITE_PATH||'/data/alan
       contract_text TEXT NOT NULL,
       created_at_ms INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS store_migrations(
+      migration_id TEXT PRIMARY KEY,
+      applied_at_ms INTEGER NOT NULL,
+      note TEXT
+    );
     CREATE TABLE IF NOT EXISTS market_events(
       id INTEGER PRIMARY KEY,
       symbol TEXT NOT NULL,
@@ -166,6 +171,25 @@ export function openMarketStore(file=process.env.ALANTU_SQLITE_PATH||'/data/alan
 
   db.prepare('INSERT OR IGNORE INTO contracts(contract_version,contract_text,created_at_ms) VALUES(?,?,?)')
     .run(V6_CONTRACT_ID,V6_CONTRACT_TEXT,Date.now());
+
+  const legacyVolumeMigration='2026-09-yahoo-sint64-volume-v1';
+  if(!db.prepare('SELECT 1 FROM store_migrations WHERE migration_id=?').get(legacyVolumeMigration)){
+    const migrateLegacyVolume=db.transaction(()=>{
+      // Legacy rows were decoded with unsigned varint for Yahoo's sint64 dayVolume.
+      // Positive cumulative volume is exactly 2x. Historical per-event delta is not
+      // trustworthy because old restart/same-timestamp logic was ambiguous, so null it.
+      db.prepare(`
+        UPDATE market_events
+        SET day_volume=CASE WHEN day_volume IS NULL THEN NULL ELSE day_volume/2.0 END,
+            delta_volume=NULL
+        WHERE source='yahoo_streamer'
+          AND (raw_json IS NULL OR raw_json NOT LIKE '%"event_contract"%')
+      `).run();
+      db.prepare('INSERT INTO store_migrations(migration_id,applied_at_ms,note) VALUES(?,?,?)')
+        .run(legacyVolumeMigration,Date.now(),'Correct legacy Yahoo sint64 cumulative volume; invalidate ambiguous historical delta_volume');
+    });
+    migrateLegacyVolume();
+  }
 
   const exactEvent=db.prepare('SELECT id,market_at_ms,price FROM market_events WHERE symbol=? AND market_at_ms=?');
   const previousEvent=db.prepare('SELECT market_at_ms,price FROM market_events WHERE symbol=? AND market_at_ms<? ORDER BY market_at_ms DESC LIMIT 1');
@@ -301,6 +325,19 @@ export function openMarketStore(file=process.env.ALANTU_SQLITE_PATH||'/data/alan
       experiment.run({approach_version:String(x.approach_version),status:String(x.status||'collecting'),contract_version:V6_CONTRACT_ID,
         config_json:JSON.stringify(x.config||{}),started_at_ms:started,updated_at_ms:now});
     },
+    loadRecentMarketEvents(sinceMs){
+      return db.prepare(`
+        SELECT symbol,market_at_ms,received_at_ms,price,day_volume,delta_volume,source,raw_json
+        FROM market_events WHERE market_at_ms>=? ORDER BY market_at_ms,id
+      `).all(Number(sinceMs)||0).map(r=>{
+        let raw={};try{raw=JSON.parse(r.raw_json||'{}');}catch{}
+        return {...raw,s:r.symbol,t:Number(r.market_at_ms),p:Number(r.price),
+          recv_at:r.received_at_ms==null?null:Number(r.received_at_ms),
+          day_volume:r.day_volume==null?null:Number(r.day_volume),
+          dv:r.delta_volume==null?0:Number(r.delta_volume),
+          source:r.source,provider:raw.provider||r.source,event_contract:raw.event_contract||'sqlite-canonical'};
+      });
+    },
     loadModelState(modelVersion){
       const pending=db.prepare(`SELECT p.* FROM predictions p LEFT JOIN outcomes o ON o.prediction_id=p.id WHERE p.model_version=? AND o.prediction_id IS NULL ORDER BY p.entry_market_at_ms`).all(modelVersion)
         .map(r=>({id:r.id,version:r.model_version,horizon_minutes:r.horizon_minutes,at:new Date(r.entry_market_at_ms).toISOString(),target_at:new Date(r.target_market_at_ms).toISOString(),
@@ -326,5 +363,6 @@ export function persistPrediction(store,p){return store.recordPrediction(p);}
 export function persistOutcome(store,o){return store.recordOutcome(o);}
 export function persistEvidence(store,e){return store.recordEvidence(e);}
 export function persistExperiment(store,e){return store.recordExperiment(e);}
+export function loadRecentMarketEvents(store,sinceMs){return store.loadRecentMarketEvents(sinceMs);}
 export function loadModelState(store,version){return store.loadModelState(version);}
 export function storeStats(store){return store.stats();}
