@@ -228,7 +228,7 @@ function parseUnlimited(raw,pageW,pageH){
     const matches=[...raw.matchAll(/<\|det\|>([\s\S]*?)<\|\/det\|>/g)];
     for(let i=0;i<matches.length;i++){
       const end=(matches[i].index||0)+matches[i][0].length;
-      const next=i+1?(matches[i+1].index||raw.length):raw.length;
+      const next=(i+1<matches.length)?(matches[i+1].index||raw.length):raw.length;
       const tail=raw.slice(end,next).split(/\n{2,}/)[0];
       add(tail,matches[i][1],"det");
     }
