@@ -449,7 +449,11 @@ async function loadYahooEvents(){
       }
     }catch{}
   }
-  for(const s of YAHOO_SYMBOLS)yahooSeries[s].sort((a,b)=>a.t-b.t);
+  for(const s of YAHOO_SYMBOLS){
+    const byTime=new Map();
+    for(const e of yahooSeries[s].sort((a,b)=>a.t-b.t))byTime.set(Number(e.t),e);
+    yahooSeries[s]=[...byTime.values()].sort((a,b)=>a.t-b.t);
+  }
 }
 function readPbVarint(bytes,state){
   let out=0n,shift=0n;
@@ -496,7 +500,12 @@ function pushYahooEvent(q){
     change_pct:Number.isFinite(directPct)?directPct:(Number.isFinite(derivedPct)?derivedPct:null),
     change:Number.isFinite(Number(q.change))?Number(q.change):(previousClose>0?p-previousClose:null),
     previous_close:previousClose};
-  if(last&&last.t===e.t&&last.p===e.p&&last.day_volume===e.day_volume)return;
+  if(last&&Number(e.t)<Number(last.t))return;
+  if(last&&Number(e.t)===Number(last.t)){
+    // Same market observation: refresh metadata in place, never create another sample.
+    a[a.length-1]={...last,...e,dv:Math.max(Number(last.dv)||0,Number(e.dv)||0)};
+    return;
+  }
   a.push(e);const cut=Date.now()-3*3600000;while(a.length&&a[0].t<cut)a.shift();
   pushWgoContextEvent(e);
   eventBuffer.push(e);yahooLastAt=Date.now();yahooState='streaming';
@@ -741,24 +750,28 @@ function v5LatestPredictionAt(){
   const a=[...v5State.predictions,...v5State.outcomes].filter(x=>x.version===V5_VERSION).sort((x,y)=>Date.parse(y.at)-Date.parse(x.at));return a[0]?Date.parse(a[0].at):0;
 }
 function maybeCreateV5Predictions(){
-  const now=Date.now(),last=v5LatestPredictionAt();if(last&&now-last<V5_SAMPLE_GAP_MS)return;
-  const entry=latestYahooEvent();if(!entry||!(Number(entry.p)>0))return;
-  const receiveAge=now-Number(entry.recv_at||0),marketAge=now-Number(entry.t||0);if(receiveAge<0||receiveAge>12000||marketAge<0||marketAge>30000)return;
-  const state=extractV5Features(yahooSeries,now);if(state.status!=='ok')return;
+  const now=Date.now(),entry=latestYahooEvent();if(!entry||!(Number(entry.p)>0))return;
+  const marketAt=Number(entry.t),receivedAt=Number(entry.recv_at),receiveAge=now-receivedAt,marketAge=now-marketAt;
+  if(!Number.isFinite(marketAt)||!Number.isFinite(receivedAt)||receiveAge<0||receiveAge>12000||marketAge<0||marketAge>30000)return;
+  // A stalled feed is not new evidence. Prediction identity and horizon are anchored to
+  // the exchange event timestamp, never to polling/receiver wall-clock time.
+  const already=[...v5State.predictions,...v5State.outcomes].some(x=>x.version===V5_VERSION&&Number(x.entry_market_ms)===marketAt);
+  if(already)return;
+  const state=extractV5Features(yahooSeries,marketAt);if(state.status!=='ok')return;
   for(const h of V5_HORIZONS){
-    if(!v5SessionEligible(now,h))continue;
+    if(!v5SessionEligible(marketAt,h))continue;
     const structuralScore=structuralV5Score(state.features,h),structuralDir=Math.abs(structuralScore)>=.14?Math.sign(structuralScore):0;
     const model=fitV5Logistic(v5State.outcomes,h),learned=predictV5Logistic(model,state.vector),barrier=v5BarrierBps(state,h);
     const lastGate=[...v5State.predictions,...v5State.outcomes].filter(x=>x.version===V5_VERSION&&Number(x.horizon_minutes)===h&&x.gate_sample===true).sort((a,b)=>Date.parse(b.at)-Date.parse(a.at))[0];
-    const gateSample=!lastGate||now-Date.parse(lastGate.at)>=h*60000;
+    const gateSample=!lastGate||marketAt-Date.parse(lastGate.at)>=h*60000;
     v5State.predictions.push({
-      id:'v5-'+h+'-'+now,version:V5_VERSION,horizon_minutes:h,at:new Date(now).toISOString(),target_at:new Date(now+h*60000).toISOString(),
-      entry_price:Number(entry.p),entry_market_at:new Date(Number(entry.t)).toISOString(),entry_received_at:new Date(Number(entry.recv_at)).toISOString(),
-      entry_delivery_lag_ms:Math.max(0,Number(entry.recv_at)-Number(entry.t)),barrier_bps:barrier,assumed_roundtrip_cost_bps:V5_COST_BPS,gate_sample:gateSample,
+      id:'v6-'+h+'-'+marketAt,version:V5_VERSION,horizon_minutes:h,at:new Date(marketAt).toISOString(),target_at:new Date(marketAt+h*60000).toISOString(),
+      entry_price:Number(entry.p),entry_market_ms:marketAt,entry_market_at:new Date(marketAt).toISOString(),entry_received_at:new Date(receivedAt).toISOString(),
+      entry_delivery_lag_ms:Math.max(0,receivedAt-marketAt),barrier_bps:barrier,assumed_roundtrip_cost_bps:V5_COST_BPS,gate_sample:gateSample,
       structural_dir:structuralDir,structural_score:structuralScore,learned_dir:learned.dir,p_up:learned.p_up,confidence:learned.confidence,model_n:learned.model_n||model.n||0,
       model_ready:model.ready===true,feature_vector:state.vector,feature_summary:{residual_bps:state.diagnostics.residual_bps,coupling:state.diagnostics.coupling,
         min_coverage:state.diagnostics.min_coverage,median_delivery_lag_ms:state.diagnostics.median_delivery_lag_ms},
-      evaluation_contract:'receiver_time_true_dt_first_barrier_then_horizon_close'
+      evaluation_contract:'market_event_time_true_dt_no_synthetic_samples_v2'
     });
   }
   if(v5State.predictions.length>5000)v5State.predictions=v5State.predictions.slice(-5000);
@@ -770,7 +783,7 @@ function evaluateV5(){
     if(r.status==='pending'){keep.push(p);continue;}
     if(r.status==='invalid'){v5State.outcomes.push({...p,status:'invalid',reason:r.reason||'invalid_path'});continue;}
     v5State.outcomes.push({...p,status:'evaluated',endpoint_price:r.endpoint_price,endpoint_at:r.endpoint_at,endpoint_market_at:r.endpoint_market_at,
-      endpoint_return_bps:r.endpoint_return_bps,timing_error_ms:r.timing_error_ms,barrier_label:r.barrier_label,barrier_hit:r.barrier_hit,barrier_at:r.barrier_at,
+      endpoint_return_bps:r.endpoint_return_bps,endpoint_received_at:r.endpoint_received_at||null,timing_error_ms:r.timing_error_ms,barrier_label:r.barrier_label,barrier_hit:r.barrier_hit,barrier_at:r.barrier_at,
       mfe_bps:r.mfe_bps,mae_bps:r.mae_bps,structural_gross_bps:r.structural.gross_bps,structural_net_bps:r.structural.net_bps,
       structural_profitable:r.structural.profitable,learned_gross_bps:r.learned.gross_bps,learned_net_bps:r.learned.net_bps,learned_profitable:r.learned.profitable});
   }
