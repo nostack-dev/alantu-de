@@ -7,6 +7,8 @@ on:
       - "index-brand.html"
       - "pdf-to-exposee.html"
       - "pdf-to-exposee-anchor.html"
+      - "pdf-convert-anchor.html"
+      - "alantu-unlimited-ocr.js"
       - "alantu-book-core.js"
       - "alantu-book-view.js"
       - ".github/workflows/exposee-pages-rebuild.yml"
@@ -42,7 +44,10 @@ jobs:
             curl -fsSL --max-time 20 "https://www.alantu.de/index-brand.html?deploy=${{ github.sha }}" -o /tmp/index-brand-live.html || ok=0
             curl -fsSL --max-time 20 "https://www.alantu.de/pdf-to-exposee.html?deploy=${{ github.sha }}" -o /tmp/pdf-live.html || ok=0
             curl -fsSL --max-time 20 "https://www.alantu.de/alantu-book-core.js?deploy=${{ github.sha }}" -o /tmp/core-live.js || ok=0
-            if [ "$ok" = "1" ]               && grep -q 'touch-action:none;' /tmp/index-brand-live.html               && grep -q 'touch-action:none;' /tmp/pdf-live.html               && grep -q 'pointerdown",pointerDown,{passive:false}' /tmp/core-live.js               && grep -q 'lostpointercapture' /tmp/core-live.js; then
+            curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?deploy=${{ github.sha }}" -o /tmp/unlimited-live.js || ok=0
+            if [ "$ok" = "1" ]               && grep -q 'touch-action:none;' /tmp/index-brand-live.html               && grep -q 'touch-action:none;' /tmp/pdf-live.html               && grep -q 'pointerdown",pointerDown,{passive:false}' /tmp/core-live.js               && grep -q 'lostpointercapture' /tmp/core-live.js \
+              && grep -q 'text:"<|grounding|>OCR"' /tmp/unlimited-live.js \
+              && ! grep -q 'chat_template:"deepseek-ocr"' /tmp/unlimited-live.js; then
               echo "Current Exposee touch fix is live."
               exit 0
             fi
