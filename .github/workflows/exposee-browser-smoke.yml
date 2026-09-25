@@ -6,6 +6,7 @@ on:
     paths:
       - "index-brand.html"
       - "pdf-to-exposee.html"
+      - "pdf-to-exposee-anchor.html"
       - "alantu-book-view.js"
       - "tools/exposee-browser-smoke.mjs"
       - ".github/workflows/exposee-browser-smoke.yml"
@@ -39,7 +40,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in index-brand.html pdf-to-exposee.html; do
+          for f in index-brand.html pdf-to-exposee.html pdf-to-exposee-anchor.html; do
             grep -q 'tiltXDegrees=4' "$f"
             grep -q 'tiltYDegrees=2' "$f"
             grep -q 'tiltZDegrees=0' "$f"
@@ -81,6 +82,7 @@ jobs:
           }
           check_url "https://www.alantu.de/index-brand.html" /tmp/index-brand-live.html
           check_url "https://www.alantu.de/pdf-to-exposee.html" /tmp/pdf-to-exposee-live.html
+          check_url "https://www.alantu.de/pdf-to-exposee-anchor.html" /tmp/pdf-to-exposee-anchor-live.html
 
       - name: Install Playwright
         shell: bash
@@ -90,7 +92,7 @@ jobs:
 
       - name: Desktop and mobile Exposee console/render smoke
         env:
-          EXPOSEE_URLS: https://www.alantu.de/index-brand.html,https://www.alantu.de/pdf-to-exposee.html
+          EXPOSEE_URLS: https://www.alantu.de/index-brand.html,https://www.alantu.de/pdf-to-exposee.html,https://www.alantu.de/pdf-to-exposee-anchor.html
           SMOKE_OUT: /tmp/alantu-exposee-smoke
         run: node tools/exposee-browser-smoke.mjs
 
