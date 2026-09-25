@@ -152,26 +152,26 @@
       <div class="compare-shell" id="compare">
         <div class="busy" id="busy">Konvertiere …</div>
 
-        <div class="side-grid">
+        <div class="side-grid" id="sideGrid" hidden>
           <div class="pane" id="sideBefore">
             <div class="pane-head"><span>Vorher</span><span>Original</span></div>
-            <div class="paper"><img id="beforeImg" alt="Originalseite"></div>
+            <div class="paper"><img id="beforeImg" alt=""></div>
           </div>
           <div class="pane" id="sideAfter">
             <div class="pane-head"><span>Nachher</span><span>Searchable</span></div>
-            <div class="paper"><img id="afterImg" alt="Ergebnisseite"><div class="overlay-boxes" id="afterOverlay"></div></div>
+            <div class="paper"><img id="afterImg" alt=""><div class="overlay-boxes" id="afterOverlay"></div></div>
           </div>
         </div>
 
-        <div class="overlay-wrap">
+        <div class="overlay-wrap" id="overlayWrap" hidden>
           <div class="overlay-stage" id="overlayStage" hidden>
-            <img id="overlayBefore" alt="Original im Overlay">
-            <img id="overlayAfter" class="after-layer" alt="Ergebnis im Overlay">
+            <img id="overlayBefore" alt="">
+            <img id="overlayAfter" class="after-layer" alt="">
             <div class="overlay-boxes" id="overlayBoxes"></div>
           </div>
         </div>
 
-        <div class="empty" id="empty"><div><strong>PDF laden.</strong><span>Danach siehst du Original und Ergebnis direkt nebeneinander oder pixelgenau übereinander.</span></div></div>
+        <div class="empty" id="empty"><div><strong id="emptyTitle">PDF laden.</strong><span id="emptyText">Danach siehst du Original und Ergebnis direkt nebeneinander oder pixelgenau übereinander.</span></div></div>
       </div>
     </section>
   </main>
