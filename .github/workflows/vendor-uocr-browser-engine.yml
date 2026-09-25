@@ -1,0 +1,60 @@
+name: Vendor Unlimited OCR browser engine
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/vendor-uocr-browser-engine.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-vendor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build pinned browser-native Unlimited-OCR decoder
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/NakliTechie/gemma4-webgpu.git /tmp/gemma4-webgpu
+          cd /tmp/gemma4-webgpu
+          git checkout 0ca5e3a129200ac84b3c3098311a88949ea4ca0e
+          npm ci
+          npx vite build --config vite.lib.config.ts
+          test -s dist-lib/browserlab-engine.js
+
+      - name: Vendor deterministic bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p vendor
+          cp /tmp/gemma4-webgpu/dist-lib/browserlab-engine.js vendor/unlimited-ocr-browser-engine.js
+          cp /tmp/gemma4-webgpu/LICENSE vendor/unlimited-ocr-browser-engine.LICENSE
+          {
+            echo "Source: https://github.com/NakliTechie/gemma4-webgpu"
+            echo "Commit: 0ca5e3a129200ac84b3c3098311a88949ea4ca0e"
+            echo "Build: npx vite build --config vite.lib.config.ts"
+            echo "Purpose: browser-native Unlimited-OCR 3B decoder"
+          } > vendor/unlimited-ocr-browser-engine.SOURCE.txt
+          grep -q 'createGemmaEngine' vendor/unlimited-ocr-browser-engine.js
+
+      - name: Commit vendored bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- vendor/; then
+            echo "Vendor bundle already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add vendor/unlimited-ocr-browser-engine.js vendor/unlimited-ocr-browser-engine.LICENSE vendor/unlimited-ocr-browser-engine.SOURCE.txt
+          git commit -m "Vendor pinned Unlimited OCR browser engine"
+          git push origin HEAD:main
