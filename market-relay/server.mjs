@@ -6,6 +6,7 @@ import {forecastRawLatest} from '../tools/raw-sip-wave-core.mjs';
 import {forecastYahooShadow,YAHOO_HORIZONS,YAHOO_LOCAL,YAHOO_GLOBAL,YAHOO_SHADOW_VERSION} from '../tools/yahoo-shadow-wave-core.mjs';
 import {HYPOTHESIS_VERSION,HYPOTHESIS_STRATEGIES,PRODUCTION_STRATEGY,HYPOTHESIS_MIN_MARGIN,DEFAULT_ROUNDTRIP_COST_BPS,signalSessionEligible,strategyDirections,actionableNewsContext,summarizeHypothesisState} from '../tools/yahoo-hypothesis-v4.mjs';
 import {V5_VERSION,V5_HORIZONS,V5_COST_BPS,V5_SAMPLE_GAP_MS,v5SessionEligible,extractV5Features,structuralV5Score,v5BarrierBps,fitV5Logistic,predictV5Logistic,evaluateV5Path,summarizeV5State} from '../tools/yahoo-monetary-v5.mjs';
+import {YAHOO_EVENT_CONTRACT,zigZag64,finiteNonNegative,canonicalVolumeDelta,canonicalEventCheck,normalizeLegacyYahooEvent} from '../tools/yahoo-stream-contract.mjs';
 import {openMarketStore,persistObservation,persistTransportObservation,persistPrediction,persistOutcome,persistEvidence,persistExperiment,loadModelState,storeStats,V6_CONTRACT_ID,V6_CONTRACT_TEXT} from './sqlite-store.mjs';
 
 let marketDb=null;
@@ -458,6 +459,7 @@ async function loadYahooEvents(){
       const txt=await fs.readFile(YAHOO_DIR+'/'+d+'.jsonl','utf8');
       for(const line of txt.split('\n')){
         if(!line)continue;let e;try{e=JSON.parse(line);}catch{continue;}
+        e=normalizeLegacyYahooEvent(e);
         if(!yahooSeries[e.s]||!(Number(e.t)>0)||!(Number(e.p)>0))continue;
         if(WGO_SYMBOLS.has(e.s)&&now-Number(e.t)<=20*3600000)pushWgoContextEvent(e);
         if(now-Number(e.t)>3*3600000)continue;
@@ -491,8 +493,8 @@ function decodeYahoo(raw){
     const tag=readPbVarint(bytes,state),field=Number(tag>>3n),wire=Number(tag&7n);
     if(wire===0){
       const v=readPbVarint(bytes,state);
-      if(field===3){const sv=(v>>1n)^(-(v&1n)),n=Number(sv);out.time=n<1e12?n*1000:n;}
-      else if(field===9){const sv=(v>>1n)^(-(v&1n));out.dayVolume=Number(sv);}
+      if(field===3){const n=zigZag64(v);out.time=n<1e12?n*1000:n;}
+      else if(field===9)out.dayVolume=zigZag64(v);
     }else if(wire===1){if(state.i+8>bytes.length)break;state.i+=8;}
     else if(wire===2){
       const len=Number(readPbVarint(bytes,state));if(state.i+len>bytes.length)break;
@@ -507,38 +509,24 @@ function decodeYahoo(raw){
   return out.id&&Number.isFinite(out.price)?out:null;
 }
 function pushYahooEvent(q){
-  const s=String(q.id||'').toUpperCase();if(!yahooSeries[s])return;
-  const recvAt=Date.now(),t=Number(q.time),p=Number(q.price);
-  const raw={s,t:Number.isFinite(t)?t:null,p:Number.isFinite(p)?p:null,day_volume:Number.isFinite(Number(q.dayVolume))?Number(q.dayVolume):null,
-    exchange:q.exchange||null,recv_at:recvAt,provider:'yahoo_streamer'};
-  if(!(t>0)||!(p>0)){
-    if(marketDb)persistTransportObservation(marketDb,raw,{accepted:false,reason:!(t>0)?'missing_market_timestamp':'invalid_price'});
-    return;
-  }
-  const a=yahooSeries[s],last=a.at(-1),ctx=(wgoSeries[s]&&wgoSeries[s].length?wgoSeries[s].at(-1):null);
-  const dayV=Number(q.dayVolume),prevRaw=yahooDayVolume[s],prevV=prevRaw==null?NaN:Number(prevRaw);
-  const dv=Number.isFinite(dayV)&&Number.isFinite(prevV)&&dayV>=prevV?dayV-prevV:0;
+  const symbol=String(q.id||'').toUpperCase();if(!yahooSeries[symbol])return;
+  const recvAt=Date.now(),t=Number(q.time),p=Number(q.price),dayV=finiteNonNegative(q.dayVolume);
+  const a=yahooSeries[symbol],last=a.at(-1),ctx=(wgoSeries[symbol]&&wgoSeries[symbol].length?wgoSeries[symbol].at(-1):null);
+  const prevRaw=yahooDayVolume[symbol],prevV=prevRaw==null?null:finiteNonNegative(prevRaw),dv=canonicalVolumeDelta(prevV,dayV);
   const directPrev=Number(q.previousClose),stickyPrev=Number(last&&last.previous_close)||Number(ctx&&ctx.previous_close);
   const previousClose=Number.isFinite(directPrev)&&directPrev>0?directPrev:(Number.isFinite(stickyPrev)&&stickyPrev>0?stickyPrev:null);
-  const directPct=Number(q.changePercent),derivedPct=previousClose>0?(p/previousClose-1)*100:null;
-  const e={s,t,p,dv,day_volume:Number.isFinite(dayV)?dayV:null,exchange:q.exchange||null,recv_at:recvAt,provider:'yahoo_streamer',
-    change_pct:Number.isFinite(directPct)?directPct:(Number.isFinite(derivedPct)?derivedPct:null),
-    change:Number.isFinite(Number(q.change))?Number(q.change):(previousClose>0?p-previousClose:null),
-    previous_close:previousClose};
+  const directPct=Number(q.changePercent),derivedPct=previousClose>0&&p>0?(p/previousClose-1)*100:null;
+  const e={s:symbol,t:Number.isFinite(t)?t:null,p:Number.isFinite(p)?p:null,dv,day_volume:dayV,exchange:q.exchange||null,recv_at:recvAt,provider:'yahoo_streamer',
+    event_contract:YAHOO_EVENT_CONTRACT,change_pct:Number.isFinite(directPct)?directPct:(Number.isFinite(derivedPct)?derivedPct:null),
+    change:Number.isFinite(Number(q.change))?Number(q.change):(previousClose>0&&p>0?p-previousClose:null),previous_close:previousClose};
 
-  // Preserve every delivered frame, but only the first observation for a distinct source
-  // timestamp becomes a causal model sample. We cannot truthfully order multiple Yahoo
-  // price states that share the same second-resolution market timestamp.
-  if(last&&t<Number(last.t)){
-    if(marketDb)persistTransportObservation(marketDb,e,{accepted:false,reason:'out_of_order'});
-    yahooLastAt=recvAt;yahooState='streaming';return;
-  }
-  if(last&&t===Number(last.t)){
-    if(marketDb)persistTransportObservation(marketDb,e,{accepted:false,reason:'duplicate_market_timestamp'});
+  const check=canonicalEventCheck(last,e,recvAt);
+  if(!check.accept){
+    if(marketDb)persistTransportObservation(marketDb,e,{accepted:false,reason:check.reason});
     yahooLastAt=recvAt;yahooState='streaming';return;
   }
 
-  if(Number.isFinite(dayV))yahooDayVolume[s]=dayV;
+  if(dayV!=null)yahooDayVolume[symbol]=dayV;
   if(marketDb){
     persistTransportObservation(marketDb,e,{accepted:true});
     persistObservation(marketDb,e);
