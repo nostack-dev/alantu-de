@@ -150,8 +150,10 @@ async function createRuntime(gpu){
     n_parallel:1,
     flash_attn:false,
     warmup:false,
-    chat_template:"deepseek-ocr",
-    jinja:true,
+    // Important: wllama v3 uses llama.cpp's server chat path. DeepSeek/Unlimited
+    // OCR image placeholder injection is handled by the server itself. For this
+    // path an explicit "deepseek-ocr" chat template causes the exact runtime
+    // failure "Failed to format input: Failed to tokenize prompt".
     progressCallback:({loaded,total})=>{
       if(total>0){
         const pct=Math.round(loaded/total*100);
@@ -196,18 +198,34 @@ async function runUnlimited(imageBuffer){
   }
   const ai=await ensureModel();
   busy.textContent="Unlimited-OCR 3B erkennt Bildtext …";
-  const response=await ai.createChatCompletion({
+
+  // Match llama.cpp's DeepSeek-OCR server contract exactly:
+  // - no explicit chat-template override
+  // - one short OCR prompt
+  // - text item before the image item
+  // The grounded prompt gives us detection boxes required for placement.
+  const request={
     messages:[{role:"user",content:[
-      {type:"image",data:imageBuffer},
-      {type:"text",text:"<|grounding|>OCR this image."}
+      {type:"text",text:"<|grounding|>OCR"},
+      {type:"image",data:imageBuffer}
     ]}],
     max_tokens:2600,
     temperature:0,
     top_p:1,
     repeat_penalty:1.0,
     stream:false
-  });
-  return response?.choices?.[0]?.message?.content||"";
+  };
+
+  try{
+    const response=await ai.createChatCompletion(request);
+    return response?.choices?.[0]?.message?.content||"";
+  }catch(err){
+    const message=String(err?.message||err||"");
+    if(/Failed to format input|Failed to tokenize prompt/i.test(message)){
+      throw new Error("Unlimited-OCR Prompt-Format fehlgeschlagen. Bitte Seite neu laden; der aktuelle Browser-Code verwendet bereits den korrigierten llama.cpp-Server-Prompt ohne Chat-Template.");
+    }
+    throw err;
+  }
 }
 
 async function convertPage(pageNo,token,onPreview=()=>{}){
