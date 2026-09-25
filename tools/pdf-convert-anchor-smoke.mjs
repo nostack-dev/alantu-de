@@ -39,13 +39,14 @@ async function makeFixture(browser){
 async function extractPdfText(path){
   const bytes=new Uint8Array(await fs.readFile(path));
   const doc=await pdfjsLib.getDocument({data:bytes,disableWorker:true}).promise;
-  const pages=[];
+  const pages=[],items=[];
   for(let i=1;i<=doc.numPages;i++){
     const p=await doc.getPage(i),tc=await p.getTextContent();
     pages.push(tc.items.map(x=>x.str).join(' '));
+    items.push(tc.items.map(x=>({str:x.str,x:x.transform?.[4]||0,y:x.transform?.[5]||0,width:x.width||0,height:x.height||0})));
   }
   await doc.destroy();
-  return pages;
+  return {pages,items};
 }
 
 const browser=await chromium.launch({headless:true});
@@ -146,7 +147,8 @@ const downloadPromise=page.waitForEvent('download',{timeout:60000});
 await page.locator('#downloadPdfBtn').click();
 const dl=await downloadPromise;
 const pdfPath=await dl.path();
-const textPages=await extractPdfText(pdfPath);
+const extracted=await extractPdfText(pdfPath);
+const textPages=extracted.pages;
 const stat=await fs.stat(pdfPath);
 
 const errors=[];
@@ -188,10 +190,18 @@ if(!/data-baked-diff="1"/.test(svgText))errors.push('svg-raster-diff-missing');
 if(!/data-role="visible-vector-text"/.test(svgText)||!/<text[^>]+data-kind="image-text-vector"/.test(svgText))errors.push('svg-visible-vector-text-missing');
 const allText=textPages.join(' | ');
 if(!/ALANTU EXPOSE/.test(allText))errors.push('ocr-vector-text-missing:'+allText);
+const firstVectorItem=extracted.items?.[0]?.find(x=>/ALANTU EXPOSE/.test(x.str));
+if(!firstVectorItem)errors.push('ocr-vector-position-item-missing');
+else{
+  // Mock bbox [[80,80,920,180]] is mapped from 0..999 into a 600x800 page.
+  // x should begin at ~48pt; baseline should stay inside that same OCR box.
+  if(Math.abs(firstVectorItem.x-48.05)>6)errors.push('ocr-vector-x-drift:'+JSON.stringify(firstVectorItem));
+  if(firstVectorItem.y<645||firstVectorItem.y>690)errors.push('ocr-vector-y-drift:'+JSON.stringify(firstVectorItem));
+}
 if(side.vectorTexts<1||side.vectorRole!=='visible-vector-text')errors.push('vector-preview-missing-visible-svg:'+JSON.stringify(side));
 if(overlay.vectorTexts<1||overlay.vectorRole!=='visible-vector-text')errors.push('overlay-preview-missing-visible-svg:'+JSON.stringify(overlay));
 
-console.log(JSON.stringify({url,loadingView,side,overlay,download:{name:dl.suggestedFilename(),bytes:stat.size,textPages},svg:{name:svgDl.suggestedFilename(),bytes:svgText.length},ok:errors.length===0,errors},null,2));
+console.log(JSON.stringify({url,loadingView,side,overlay,download:{name:dl.suggestedFilename(),bytes:stat.size,textPages,firstVectorItem:extracted.items?.[0]?.find(x=>/ALANTU EXPOSE/.test(x.str))||null},svg:{name:svgDl.suggestedFilename(),bytes:svgText.length},ok:errors.length===0,errors},null,2));
 if(errors.length){
   await browser.close();
   throw new Error('Unlimited OCR searchable PDF smoke failed: '+errors.join(' | '));
