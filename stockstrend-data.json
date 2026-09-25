@@ -1,15 +1,15 @@
 {
-  "updated_at": "2026-09-25T11:22:44+02:00",
+  "updated_at": "2026-09-25T11:24:39+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-25T11:22:44+02:00",
-    "scraped_at": "2026-09-25T11:22:44+02:00",
+    "tick_id": "2026-09-25T11:24:39+02:00",
+    "scraped_at": "2026-09-25T11:24:39+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "CanonicalEventStream": {
         "status": "quiet",
         "provider": "Railway source-event-v2",
-        "checked_at": "2026-09-25T09:22:33.723Z",
+        "checked_at": "2026-09-25T09:24:33.774Z",
         "latest_published_at": "2026-09-25T08:48:45.000Z",
         "items": 192,
         "window": "36h"
@@ -18,9 +18,9 @@
         "status": "ok",
         "items": 1,
         "prices": {
-          "ORCL": 140
+          "ORCL": 139.96
         },
-        "price_at": "2026-09-25T09:22:03.000Z",
+        "price_at": "2026-09-25T09:24:27.000Z",
         "note": "Yahoo chart 5d/1m price feed"
       }
     },
@@ -35,11 +35,11 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-25T09:22:33.723Z",
+      "freshest_absolute": "2026-09-25T09:24:33.774Z",
       "latest_published_at": "2026-09-25T08:48:45.000Z",
       "primary_signal": "Railway source-event-v2",
       "quality": "single source of truth · descriptive sentiment only",
-      "scrape_berlin": "2026-09-25T09:22:33.723Z",
+      "scrape_berlin": "2026-09-25T09:24:33.774Z",
       "sample_window": "individual events ≤36h; first_seen_at is actionable clock",
       "freshest_item_age": "",
       "oldest_usable_signal": ""
@@ -488,7 +488,7 @@
               "provider": "apewisdom.io",
               "mentions_24h": 53,
               "sentiment_pct": 68,
-              "checked_at": "2026-09-25T09:21:09.780Z"
+              "checked_at": "2026-09-25T09:23:22.029Z"
             }
           },
           "snippets": [
@@ -497,7 +497,7 @@
             "Oracle invokes ‘force majeure’ to shield itself from data center issues: Bloomberg - The American Bazaar"
           ]
         },
-        "price": 140
+        "price": 139.96
       }
     ],
     "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
@@ -506,11 +506,11 @@
   "signals_disclaimer": "",
   "early_signal_note": "SoftBank-Anleihen weiter offen; Markt ruhig.",
   "freshness": {
-    "freshest_absolute": "2026-09-25T09:22:33.723Z",
+    "freshest_absolute": "2026-09-25T09:24:33.774Z",
     "latest_published_at": "2026-09-25T08:48:45.000Z",
     "primary_signal": "Railway source-event-v2",
     "quality": "single source of truth · descriptive sentiment only",
-    "scrape_berlin": "2026-09-25T09:22:33.723Z",
+    "scrape_berlin": "2026-09-25T09:24:33.774Z",
     "sample_window": "individual events ≤36h; first_seen_at is actionable clock",
     "freshest_item_age": "",
     "oldest_usable_signal": ""

@@ -1,10 +1,10 @@
 {
-  "updated_at": "2026-09-25T11:22:44+02:00",
+  "updated_at": "2026-09-25T11:24:39+02:00",
   "sources": {
     "source_state": {
       "ok": true,
       "contract": "source-event-v2",
-      "checked_at": "2026-09-25T09:22:33.723Z",
+      "checked_at": "2026-09-25T09:24:33.774Z",
       "archive_count": 192,
       "archive_source_counts": {
         "news": 190,
@@ -18,14 +18,14 @@
           "provider": "apewisdom.io",
           "mentions_24h": 53,
           "sentiment_pct": 68,
-          "checked_at": "2026-09-25T09:21:09.780Z"
+          "checked_at": "2026-09-25T09:23:22.029Z"
         }
       }
     },
     "yahoo": {
       "ok": true,
-      "price": 140,
-      "price_at": "2026-09-25T09:22:03.000Z"
+      "price": 139.96,
+      "price_at": "2026-09-25T09:24:27.000Z"
     }
   },
   "derived": {

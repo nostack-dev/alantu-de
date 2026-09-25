@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-25T11:22:44+02:00",
+  "updated_at": "2026-09-25T11:24:39+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,7 +9,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-25T09:22:33.723Z",
+        "at": "2026-09-25T09:24:33.774Z",
         "signal": "hold",
         "social_impulse": null,
         "hype_bull": 7,
@@ -7074,7 +7074,7 @@
       "hype_net": -33,
       "confidence": null,
       "hype_state": "bearish",
-      "updated_at": "2026-09-25T09:22:33.723Z",
+      "updated_at": "2026-09-25T09:24:33.774Z",
       "why": "Deskriptive Quellenlage: 190 News · 2 Social / 36h. Kein Handelssignal aus Sentiment.",
       "evidence": {
         "source_contract": "source-event-v2",
@@ -7089,7 +7089,7 @@
             "provider": "apewisdom.io",
             "mentions_24h": 53,
             "sentiment_pct": 68,
-            "checked_at": "2026-09-25T09:21:09.780Z"
+            "checked_at": "2026-09-25T09:23:22.029Z"
           }
         },
         "snippets": [
@@ -7106,7 +7106,7 @@
       },
       "hype_mixed": 53,
       "sentiment_unit": "percent_unique_events_descriptive",
-      "price": 140
+      "price": 139.96
     }
   }
 }
