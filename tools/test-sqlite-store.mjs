@@ -10,7 +10,7 @@ persistObservation(db,{s:'ORCL',t,p:100,day_volume:1000,dv:10,recv_at:t+900});
 persistObservation(db,{s:'ORCL',t:t+1000,p:100.1,day_volume:1015,dv:15,recv_at:t+1200},{s:'ORCL',t,p:100});
 assert.equal(db.db.prepare('select count(*) n from market_events').get().n,2);
 const row=db.db.prepare('select * from market_events where market_at_ms=?').get(t+1000);assert.equal(row.market_at_ms,t+1000);
-const p={id:'v6-1-'+t,version:'yahoo-monetary-dt-v6',horizon_minutes:1,at:new Date(t).toISOString(),target_at:new Date(t+60000).toISOString(),entry_market_ms:t,entry_received_at:new Date(t+200).toISOString(),entry_price:100,structural_dir:1,structural_score:.2,learned_dir:1,p_up:.6,confidence:.2,barrier_bps:5,model_n:10,model_ready:true,gate_sample:true,feature_vector:[1,2],feature_summary:{x:1}};
+const p={id:'v6-legacy-test-'+t,version:'yahoo-monetary-dt-v6',horizon_minutes:1,at:new Date(t).toISOString(),target_at:new Date(t+60000).toISOString(),entry_market_ms:t,entry_received_at:new Date(t+200).toISOString(),entry_price:100,structural_dir:1,structural_score:.2,learned_dir:1,p_up:.6,confidence:.2,barrier_bps:5,model_n:10,model_ready:true,gate_sample:true,feature_vector:[1,2],feature_summary:{x:1}};
 persistPrediction(db,p);persistPrediction(db,p);
 assert.equal(db.db.prepare('select count(*) n from predictions').get().n,1);
 persistOutcome(db,{...p,status:'invalid',reason:'target_price_unavailable'});
