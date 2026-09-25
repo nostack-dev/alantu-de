@@ -125,13 +125,10 @@ const side=await page.evaluate(()=>({
   boxes:document.querySelectorAll('#afterOverlay .ocr-box').length,
   sideBeforeHidden:document.getElementById('sideBefore')?.hidden,
   sideAfterHidden:document.getElementById('sideAfter')?.hidden,
-  overlayHidden:document.getElementById('overlayStage')?.hidden
+  overlayHidden:document.getElementById('overlayStage')?.hidden,
+  vectorTexts:document.querySelectorAll('#afterVectorSvg text[data-kind="image-text-vector"]').length,
+  vectorRole:document.getElementById('afterVectorSvg')?.dataset?.role||''
 }));
-const afterVectorSvg=await page.evaluate(async()=>{
-  const src=document.getElementById('afterImg')?.src||'';
-  if(!src)return '';
-  try{return await (await fetch(src)).text()}catch{return ''}
-});
 
 await page.locator('#overlayBtn').click();
 const overlay=await page.evaluate(()=>({
@@ -140,6 +137,8 @@ const overlay=await page.evaluate(()=>({
   afterSrc:document.getElementById('overlayAfter')?.src||'',
   opacity:getComputedStyle(document.getElementById('overlayAfter')).opacity,
   boxes:document.querySelectorAll('#overlayBoxes .ocr-box').length,
+  vectorTexts:document.querySelectorAll('#overlayVectorSvg text[data-kind="image-text-vector"]').length,
+  vectorRole:document.getElementById('overlayVectorSvg')?.dataset?.role||'',
   toolsHidden:document.getElementById('overlayTools')?.hidden
 }));
 
@@ -189,9 +188,8 @@ if(!/data-baked-diff="1"/.test(svgText))errors.push('svg-raster-diff-missing');
 if(!/data-role="visible-vector-text"/.test(svgText)||!/<text[^>]+data-kind="image-text-vector"/.test(svgText))errors.push('svg-visible-vector-text-missing');
 const allText=textPages.join(' | ');
 if(!/ALANTU EXPOSE/.test(allText))errors.push('ocr-vector-text-missing:'+allText);
-if(!/data-baked-diff="1"/.test(afterVectorSvg))errors.push('vector-preview-missing-raster-diff');
-if(!/data-role="visible-vector-text"/.test(afterVectorSvg))errors.push('vector-preview-missing-visible-text-group');
-if(!/data-kind="image-text-vector"/.test(afterVectorSvg))errors.push('vector-preview-missing-visible-text');
+if(side.vectorTexts<1||side.vectorRole!=='visible-vector-text')errors.push('vector-preview-missing-visible-svg:'+JSON.stringify(side));
+if(overlay.vectorTexts<1||overlay.vectorRole!=='visible-vector-text')errors.push('overlay-preview-missing-visible-svg:'+JSON.stringify(overlay));
 
 console.log(JSON.stringify({url,loadingView,side,overlay,download:{name:dl.suggestedFilename(),bytes:stat.size,textPages},svg:{name:svgDl.suggestedFilename(),bytes:svgText.length},ok:errors.length===0,errors},null,2));
 if(errors.length){
