@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-25T10:53:09+02:00",
+  "updated_at": "2026-09-25T10:58:01+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,12 +9,12 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-25T10:53:09+02:00",
+        "at": "2026-09-25T10:58:01+02:00",
         "signal": "hold",
-        "social_impulse": 2,
-        "hype_bull": 44,
-        "hype_bear": 33,
-        "hype_net": 11,
+        "social_impulse": 3,
+        "hype_bull": 45,
+        "hype_bear": 31,
+        "hype_net": 14,
         "confidence": 80
       },
       "history": [
@@ -6706,6 +6706,20 @@
           "voice_bear": 7,
           "voice_mixed": 10,
           "price": 139.88
+        },
+        {
+          "at": "2026-09-25T10:58:01+02:00",
+          "hype_bull": 45,
+          "hype_bear": 31,
+          "hype_net": 14,
+          "social_impulse": 3,
+          "signal": "hold",
+          "confidence": 80,
+          "hype_mixed": 24,
+          "voice_bull": 1,
+          "voice_bear": 3,
+          "voice_mixed": 8,
+          "price": 139.98
         }
       ],
       "voices_archive": [
@@ -7021,35 +7035,35 @@
         }
       ],
       "signal": "hold",
-      "social_impulse": 2,
-      "impulse": 2,
-      "hype_bull": 44,
-      "hype_bear": 33,
-      "hype_net": 11,
+      "social_impulse": 3,
+      "impulse": 3,
+      "hype_bull": 45,
+      "hype_bear": 31,
+      "hype_net": 14,
       "confidence": 80,
       "hype_state": "mixed",
-      "updated_at": "2026-09-25T10:53:09+02:00",
-      "why": "Reddit 68% positiv bei 53 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $139.88.",
+      "updated_at": "2026-09-25T10:58:01+02:00",
+      "why": "Reddit 68% positiv bei 53 Erwähnungen/24h · 10 aktuelle Schlagzeilen · ORCL zuletzt $139.98.",
       "evidence": {
         "x_posts": 0,
         "reddit_posts": 53,
-        "news": 20,
+        "news": 10,
         "snippets": [
           "ApeWisdom: 53 Mentions/24h, Sentiment 68%",
-          "Oracle Corporation (ORCL) Stock Price, News, Quote & History",
-          "Oracle’s stock is falling as investors fear a data-center setback",
-          "Oracle Cites ‘Force Majeure’ to Shield Itself on Controversial Data Center"
+          "ORCL Stock Slides To Early August Levels – $165B New Mexico Project In Focus After Company Reportedly Cites ‘Force Majeure’",
+          "Stock Market Today, Sept. 24: Oracle Stock Dips As it Issues Force Majeure Notice on Project Jupiter Data Center",
+          "Why Oracle (ORCL) Stock Is Down Today"
         ]
       },
       "voices": {
-        "bull": 5,
-        "bear": 7,
-        "mixed": 10,
-        "updated_at": "2026-09-25T10:53:09+02:00"
+        "bull": 1,
+        "bear": 3,
+        "mixed": 8,
+        "updated_at": "2026-09-25T10:58:01+02:00"
       },
-      "hype_mixed": 23,
+      "hype_mixed": 24,
       "sentiment_unit": "percent_all_classified",
-      "price": 139.88
+      "price": 139.98
     }
   }
 }
