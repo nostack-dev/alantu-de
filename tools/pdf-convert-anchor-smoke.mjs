@@ -139,7 +139,7 @@ if(loadingView.before.naturalWidth<1||loadingView.after.naturalWidth<1)errors.pu
 if(!loadingView.before.src||loadingView.before.src!==loadingView.after.src)errors.push('loading-before-after-source-mismatch');
 if(!loadingView.ocrInput)errors.push('ocr-input-debug-missing');
 else{
-  if(loadingView.ocrInput.longEdge>1024)errors.push('ocr-input-too-large:'+JSON.stringify(loadingView.ocrInput));
+  if(loadingView.ocrInput.longEdge>768)errors.push('ocr-input-too-large:'+JSON.stringify(loadingView.ocrInput));
   if(loadingView.ocrInput.sourceWidth<=loadingView.ocrInput.width&&loadingView.ocrInput.sourceHeight<=loadingView.ocrInput.height)errors.push('ocr-input-not-downscaled:'+JSON.stringify(loadingView.ocrInput));
 }
 if(consoleErrors.length)errors.push('console:'+JSON.stringify(consoleErrors));
@@ -148,7 +148,7 @@ if(failed.length)errors.push('requestfailed:'+JSON.stringify(failed));
 if(side.pages!=='2')errors.push('pages:'+side.pages);
 if(Number(side.native)<2)errors.push('native-text-count:'+side.native);
 if(Number(side.imageText)<1)errors.push('image-text-count:'+side.imageText);
-if(!/^100 % · /.test(side.imageTextPercent))errors.push('image-text-percent:'+side.imageTextPercent);
+if(!/^100 % Bildseiten mit OCR · 100 % erkannter OCR-Text → echt · /.test(side.imageTextPercent))errors.push('image-text-percent:'+side.imageTextPercent);
 if(side.baked!=='2')errors.push('baked-pages:'+side.baked);
 if(side.visual!=='100 % Originalbild')errors.push('visual:'+side.visual);
 if(!/Unlimited-OCR 3B/.test(side.engine))errors.push('engine:'+side.engine);
