@@ -757,7 +757,7 @@ function renderCompare(){
   pageCounter.textContent=`${currentPage+1} / ${pages.length}`;
   prevBtn.disabled=currentPage<=0;nextBtn.disabled=currentPage>=pages.length-1;
   const opacity=Number(overlayOpacity.value)/100;
-  overlayAfter.style.opacity=String(opacity);overlayValue.textContent=Math.round(opacity*100)+"%";
+  overlayAfter.style.opacity=String(opacity);if(overlayVectorSvg)overlayVectorSvg.style.opacity=String(opacity);overlayValue.textContent=Math.round(opacity*100)+"%";
 }
 function setCompareMode(mode){
   compareMode=mode;
