@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 process.env.ALANTU_SQLITE_PATH='/tmp/alantu-test.sqlite';
-try{fs.unlinkSync(process.env.ALANTU_SQLITE_PATH)}catch{}
+for(const x of [process.env.ALANTU_SQLITE_PATH,process.env.ALANTU_SQLITE_PATH+'-wal',process.env.ALANTU_SQLITE_PATH+'-shm'])try{fs.unlinkSync(x)}catch{}
 const {openMarketStore,persistObservation,persistPrediction,persistOutcome,storeStats,V6_CONTRACT_ID}=await import('../market-relay/sqlite-store.mjs');
 const db=openMarketStore();
 const t=Date.parse('2026-09-25T14:00:00Z');
