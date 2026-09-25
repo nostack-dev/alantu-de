@@ -27,7 +27,8 @@ jobs:
               && grep -Fq 'function projectionZonePlugin()' /tmp/alantu-live.html \
               && grep -Fq 'function nearestPointByX' /tmp/alantu-live.html \
               && grep -Fq 'function syncIntrinsicToggle()' /tmp/alantu-live.html \
-              && grep -Fq "tooltip:{enabled:false}" /tmp/alantu-live.html; then
+              && grep -Fq "tooltip:{enabled:false}" /tmp/alantu-live.html \
+              && grep -Fq "baseLast&&isFinite(Number(baseLast.x))?berlinTradingWindowFor(Number(baseLast.x)):null" /tmp/alantu-live.html; then
               exit 0
             fi
             sleep 10
