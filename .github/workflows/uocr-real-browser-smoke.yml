@@ -1,4 +1,4 @@
-name: Unlimited OCR real browser smoke
+name: Adaptive OCR real browser smoke
 
 on:
   push:
@@ -31,6 +31,9 @@ jobs:
               && grep -q 'Unlimited-OCR-DeepEncoder-ONNX' /tmp/uocr.js \
               && grep -q 'PROMPT_IDS=\[34030,76466,16\]' /tmp/uocr.js \
               && grep -q 'beginRingDecode(pos+1)' /tmp/uocr.js \
+              && grep -q 'runSmallFallbackOcr' /tmp/uocr.js \
+              && grep -q 'buildVectorPdf' /tmp/uocr.js \
+              && grep -q 'renderVectorSvgLayer' /tmp/uocr.js \
               && grep -q 'createGemmaEngine' /tmp/engine.js \
               && ! grep -q '@wllama/wllama' /tmp/uocr.js; then
               exit 0
@@ -42,7 +45,7 @@ jobs:
         run: |
           npm install --no-save playwright@1.55.0 pdf-lib@1.17.1
           npx playwright install --with-deps chromium
-      - name: Run real Unlimited-OCR 3B inference in browser
+      - name: Run real adaptive OCR and vectorization in browser
         env:
           PDF_CONVERT_URL: https://www.alantu.de/pdf-convert-anchor.html
         run: node tools/uocr-real-browser-smoke.mjs
