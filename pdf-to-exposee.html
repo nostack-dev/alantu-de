@@ -190,7 +190,10 @@
         radial-gradient(circle at 68% 20%,rgba(255,255,255,.9),transparent 31%),
         linear-gradient(145deg,#ddd3c5,#b8ad9f);
       isolation:isolate;
-      touch-action:pan-y;
+      touch-action:none;
+      overscroll-behavior:contain;
+      -webkit-user-select:none;
+      user-select:none;
     }
     .stage:after{
       content:"";
