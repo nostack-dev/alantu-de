@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-25T05:58:52+02:00",
+  "updated_at": "2026-09-25T06:00:09+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,12 +9,12 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-25T05:58:52+02:00",
+        "at": "2026-09-25T06:00:09+02:00",
         "signal": "hold",
-        "social_impulse": 1,
-        "hype_bull": 39,
+        "social_impulse": 0,
+        "hype_bull": 37,
         "hype_bear": 36,
-        "hype_net": 3,
+        "hype_net": 1,
         "confidence": 80
       },
       "history": [
@@ -5908,6 +5908,20 @@
           "voice_bear": 8,
           "voice_mixed": 11,
           "price": 139.79
+        },
+        {
+          "at": "2026-09-25T06:00:09+02:00",
+          "hype_bull": 37,
+          "hype_bear": 36,
+          "hype_net": 1,
+          "social_impulse": 0,
+          "signal": "hold",
+          "confidence": 80,
+          "hype_mixed": 27,
+          "voice_bull": 2,
+          "voice_bear": 8,
+          "voice_mixed": 12,
+          "price": 139.79
         }
       ],
       "voices_archive": [
@@ -6223,14 +6237,14 @@
         }
       ],
       "signal": "hold",
-      "social_impulse": 1,
-      "impulse": 1,
-      "hype_bull": 39,
+      "social_impulse": 0,
+      "impulse": 0,
+      "hype_bull": 37,
       "hype_bear": 36,
-      "hype_net": 3,
+      "hype_net": 1,
       "confidence": 80,
       "hype_state": "mixed",
-      "updated_at": "2026-09-25T05:58:52+02:00",
+      "updated_at": "2026-09-25T06:00:09+02:00",
       "why": "Reddit 68% positiv bei 53 Erwähnungen/24h · 20 aktuelle Schlagzeilen · ORCL zuletzt $139.79.",
       "evidence": {
         "x_posts": 0,
@@ -6244,12 +6258,12 @@
         ]
       },
       "voices": {
-        "bull": 3,
+        "bull": 2,
         "bear": 8,
-        "mixed": 11,
-        "updated_at": "2026-09-25T05:58:52+02:00"
+        "mixed": 12,
+        "updated_at": "2026-09-25T06:00:09+02:00"
       },
-      "hype_mixed": 25,
+      "hype_mixed": 27,
       "sentiment_unit": "percent_all_classified",
       "price": 139.79
     }
