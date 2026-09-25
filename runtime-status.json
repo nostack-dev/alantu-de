@@ -1,10 +1,10 @@
 {
-  "updated_at": "2026-09-25T02:04:34+02:00",
+  "updated_at": "2026-09-25T05:57:24+02:00",
   "sources": {
     "reddit": {
       "ok": true,
-      "mentions": 48,
-      "sentiment": 67,
+      "mentions": 53,
+      "sentiment": 68,
       "provider": "apewisdom.io"
     },
     "news": {
@@ -20,10 +20,10 @@
   },
   "derived": {
     "signal": "hold",
-    "hype_bull": 34,
-    "hype_bear": 44,
-    "hype_mixed": 22,
-    "hype_net": -10,
+    "hype_bull": 39,
+    "hype_bear": 36,
+    "hype_mixed": 25,
+    "hype_net": 3,
     "confidence": 80
   }
 }
