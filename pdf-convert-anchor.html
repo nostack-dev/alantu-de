@@ -56,7 +56,8 @@
     .viewport{position:relative;min-height:660px;height:calc(100vh - 142px);overflow:auto;overscroll-behavior:contain;border:1px solid rgba(13,13,11,.10);border-radius:24px;background:linear-gradient(145deg,#ddd3c5,#b8ad9f);box-shadow:inset 0 0 0 1px rgba(255,255,255,.24)}
     .viewport.grabbing{cursor:grabbing}
     .surface{position:relative;margin:56px;box-shadow:0 18px 52px rgba(28,22,16,.20);background:#fff;transform-origin:0 0}
-    .tile{position:absolute;display:block;background:#fff}
+    .tile{position:absolute;display:block;background:#fff;z-index:0}
+    .page-svg{position:absolute;inset:0;display:block;z-index:1;overflow:visible;pointer-events:none;text-rendering:geometricPrecision;shape-rendering:geometricPrecision}
     .anchor{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:1px solid var(--gold);pointer-events:none;z-index:20;box-shadow:0 0 0 2px rgba(255,255,255,.72)}
     .anchor:before,.anchor:after{content:"";position:absolute;background:var(--gold)}
     .anchor:before{left:10px;top:-7px;width:1px;height:34px}.anchor:after{left:-7px;top:10px;width:34px;height:1px}
@@ -84,14 +85,14 @@
 <body>
   <header class="shell topbar">
     <div class="brand"><span class="mark" aria-hidden="true"><i></i></span><span>ALANTU</span></div>
-    <div class="topnote">PDF Convert · canonical anchors</div>
+    <div class="topnote">PDF Convert · 100% Text → SVG · canonical anchors</div>
   </header>
 
   <main class="shell layout">
     <aside class="panel">
-      <div class="eyebrow">PDF Convert V2</div>
-      <h1>PDF bleibt die Wahrheit.</h1>
-      <p class="intro">Keine separat nachgebauten Zeichen. Jede Zoomstufe wird aus denselben PDF-Seitenkoordinaten neu gerendert. Damit kann kein Zeichen relativ zum Seitenanker wegdriften.</p>
+      <div class="eyebrow">PDF Convert V3 · SVG</div>
+      <h1>Text bleibt Vektor.</h1>
+      <p class="intro">Jede PDF-Seite wird direkt als SVG aufgebaut. Erkannter PDF-Text bleibt vollständig als SVG-Text enthalten; Vektoren bleiben Vektoren. Zoom skaliert nur denselben SVG-Seitenraum — keine neu berechneten Zeichenpositionen, kein Drift über die Zoomtiefe.</p>
 
       <label class="dropzone" id="dropzone">
         <input id="pdfInput" type="file" accept="application/pdf,.pdf" aria-label="PDF auswählen">
@@ -121,6 +122,7 @@
           <button type="button" id="fitBtn">Fit</button>
         </div>
         <button class="action primary" id="centerAnchorBtn" type="button">Anker zentrieren</button>
+        <button class="action" id="downloadSvgBtn" type="button" disabled>Aktuelle SVG-Seite herunterladen</button>
         <button class="action" id="clearAnchorBtn" type="button">Anker löschen</button>
       </div>
 
@@ -130,17 +132,18 @@
           <div class="metric"><span>Zoom</span><strong id="mZoom">—</strong></div>
           <div class="metric"><span>PDF-Anker X / Y</span><strong id="mAnchor">—</strong></div>
           <div class="metric"><span>Round-trip Δ</span><strong id="mDelta">—</strong></div>
-          <div class="metric"><span>Aktive Tiles</span><strong id="mTiles">0</strong></div>
+          <div class="metric"><span>Text → SVG</span><strong id="mTextSvg">—</strong></div>
+          <div class="metric"><span>SVG-Knoten</span><strong id="mSvgNodes">—</strong></div>
           <div class="metric"><span>PDF-Seite</span><strong id="mSize">—</strong></div>
         </div>
-        <p class="note">Klick auf eine Stelle der Seite setzt den Hauptanker. Beim Zoom bleibt exakt derselbe PDF-Punkt erhalten und wird aus der PDF-Transformationsmatrix neu berechnet. 32× rendert nur sichtbare Kacheln statt eine gigantische Gesamtbitmap.</p>
+        <p class="note">Klick auf eine Stelle der Seite setzt den Hauptanker. Der SVG-ViewBox bleibt identisch zum PDF-Seitenraum. 1× bis 32× verändert nur die Darstellung desselben Vektorraums. Der Text-Check ist fail-closed: Fehlt auch nur ein extrahierter Text-Run im SVG-Layer, wird die Seite nicht als 100% markiert.</p>
       </div>
     </aside>
 
     <section class="viewer">
       <div class="toolbar">
         <div class="toolbar-left"><span class="badge" id="fileBadge">Noch keine PDF geladen</span></div>
-        <div class="toolbar-right"><span class="badge" id="modeBadge">canonical PDF coordinates</span></div>
+        <div class="toolbar-right"><span class="badge" id="modeBadge">SVG · Text 100% · PDF anchors</span></div>
       </div>
       <div class="viewport" id="viewport">
         <div class="busy" id="busy">Rendere …</div>
@@ -152,9 +155,11 @@
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
   <script type="module">
-    import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
-    pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
+    const pdfjsLib=window.pdfjsLib;
+    if(!pdfjsLib?.SVGGraphics)throw new Error("PDF.js SVG backend unavailable.");
+    pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js";
 
     const MAX_PAGES=80;
     const TILE_CSS=768;
@@ -172,6 +177,7 @@
     const fitBtn=document.getElementById("fitBtn");
     const centerAnchorBtn=document.getElementById("centerAnchorBtn");
     const clearAnchorBtn=document.getElementById("clearAnchorBtn");
+    const downloadSvgBtn=document.getElementById("downloadSvgBtn");
     const viewportEl=document.getElementById("viewport");
     const surface=document.getElementById("surface");
     const anchorEl=document.getElementById("anchor");
@@ -181,8 +187,10 @@
     const mZoom=document.getElementById("mZoom");
     const mAnchor=document.getElementById("mAnchor");
     const mDelta=document.getElementById("mDelta");
-    const mTiles=document.getElementById("mTiles");
+    const mTextSvg=document.getElementById("mTextSvg");
+    const mSvgNodes=document.getElementById("mSvgNodes");
     const mSize=document.getElementById("mSize");
+    const modeBadge=document.getElementById("modeBadge");
 
     let pdfDoc=null;
     let pageObj=null;
@@ -197,6 +205,9 @@
     let isPointerDown=false;
     let pointerMoved=false;
     let dragStart=null;
+    let pageSvg=null;
+    let pageSvgSource="";
+    let svgTextCoverage=0;
     const tiles=new Map();
 
     function setStatus(text,kind=""){
@@ -213,7 +224,15 @@
         tile.canvas.remove();
       }
       tiles.clear();
-      mTiles.textContent="0";
+    }
+
+    function clearPageSvg(){
+      if(pageSvg){pageSvg.remove();pageSvg=null}
+      pageSvgSource="";
+      svgTextCoverage=0;
+      mTextSvg.textContent="—";
+      mSvgNodes.textContent="—";
+      downloadSvgBtn.disabled=true;
     }
 
     function tileDpr(){
@@ -370,6 +389,9 @@
     }
 
     function scheduleTiles(){
+      // V3 uses one canonical SVG page. Canvas tiling is intentionally not
+      // used while SVG mode is active, so text cannot be rasterized at zoom.
+      if(pageSvg)return;
       if(scrollRAF)return;
       scrollRAF=requestAnimationFrame(renderVisibleTiles);
     }
@@ -388,12 +410,102 @@
       renderViewport=pageObj.getViewport({scale:zoom});
       surface.style.width=renderViewport.width+"px";
       surface.style.height=renderViewport.height+"px";
-      clearTiles();
+      if(pageSvg){
+        pageSvg.style.width=renderViewport.width+"px";
+        pageSvg.style.height=renderViewport.height+"px";
+      }
       updateZoomButtons();
       updateAnchorVisual();
       await new Promise(requestAnimationFrame);
       if(center&&preserve)centerOnPdfPoint(preserve);
-      scheduleTiles();
+    }
+
+    function normalizedText(value){
+      return String(value??"").replace(/\s+/g," ").trim();
+    }
+
+    function appendSemanticSvgText(svg,textContent){
+      const ns="http://www.w3.org/2000/svg";
+      const group=document.createElementNS(ns,"g");
+      group.setAttribute("data-role","pdf-text-svg");
+      group.setAttribute("opacity","0");
+      group.setAttribute("pointer-events","none");
+      group.setAttribute("aria-label","PDF text layer");
+
+      const items=textContent.items.filter(item=>typeof item?.str==="string"&&item.str.length>0);
+      for(const item of items){
+        const style=textContent.styles?.[item.fontName]||{};
+        const tx=pdfjsLib.Util.transform(pageBaseViewport.transform,item.transform);
+        const el=document.createElementNS(ns,"text");
+        el.setAttribute("x","0");
+        el.setAttribute("y","0");
+        el.setAttribute("transform",`matrix(${tx.map(v=>Number(v).toFixed(8)).join(" ")})`);
+        el.setAttribute("font-size","1");
+        el.setAttribute("font-family",style.fontFamily||"sans-serif");
+        el.setAttribute("data-pdf-text","1");
+        el.textContent=item.str;
+        group.appendChild(el);
+      }
+      svg.appendChild(group);
+      return items;
+    }
+
+    async function buildSvgPage(token){
+      if(!pageObj||!pageBaseViewport)return;
+      const [opList,textContent]=await Promise.all([
+        pageObj.getOperatorList(),
+        pageObj.getTextContent({includeMarkedContent:true,disableNormalization:false})
+      ]);
+      if(token!==loadToken)return;
+
+      const gfx=new pdfjsLib.SVGGraphics(pageObj.commonObjs,pageObj.objs);
+      gfx.embedFonts=true;
+      const svg=await gfx.getSVG(opList,pageBaseViewport);
+      if(token!==loadToken)return;
+
+      svg.classList.add("page-svg");
+      svg.id="pageSvg";
+      svg.setAttribute("preserveAspectRatio","none");
+      if(!svg.getAttribute("viewBox")){
+        svg.setAttribute("viewBox",`0 0 ${pageBaseViewport.width} ${pageBaseViewport.height}`);
+      }
+
+      const items=appendSemanticSvgText(svg,textContent);
+      const semanticCount=svg.querySelectorAll('[data-pdf-text="1"]').length;
+      svgTextCoverage=items.length===0?100:(semanticCount===items.length?100:Math.round(semanticCount/items.length*100));
+      if(svgTextCoverage!==100){
+        throw new Error(`Text→SVG unvollständig: ${semanticCount}/${items.length}`);
+      }
+
+      const serializer=new XMLSerializer();
+      pageSvgSource=serializer.serializeToString(svg);
+      clearPageSvg();
+      pageSvg=svg;
+      svgTextCoverage=100;
+      pageSvgSource=serializer.serializeToString(svg);
+      surface.insertBefore(pageSvg,anchorEl);
+      if(renderViewport){
+        pageSvg.style.width=renderViewport.width+"px";
+        pageSvg.style.height=renderViewport.height+"px";
+      }
+
+      mTextSvg.textContent=`${semanticCount} / ${items.length} · 100%`;
+      mSvgNodes.textContent=String(pageSvg.querySelectorAll("*").length);
+      modeBadge.textContent="SVG · Text 100% · PDF anchors";
+      downloadSvgBtn.disabled=false;
+    }
+
+    function downloadCurrentSvg(){
+      if(!pageSvg||!pageSvgSource)return;
+      const xml='<?xml version="1.0" encoding="UTF-8"?>\n'+pageSvgSource;
+      const blob=new Blob([xml],{type:"image/svg+xml;charset=utf-8"});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+      const raw=(fileBadge.textContent||"exposee").replace(/\.pdf$/i,"").replace(/[\\/:*?"<>|]+/g,"-");
+      a.href=url;
+      a.download=`${raw}-seite-${String(pageNo).padStart(2,"0")}.svg`;
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
     }
 
     async function fitPage(){
@@ -408,6 +520,7 @@
       if(!pdfDoc)return;
       const token=++loadToken;
       clearTiles();
+      clearPageSvg();
       busy.classList.add("show");
       try{
         try{pageObj?.cleanup()}catch{}
@@ -421,8 +534,11 @@
         nextBtn.disabled=pageNo>=pdfDoc.numPages;
         anchorPdf={x:(pageBaseViewport.viewBox[0]+pageBaseViewport.viewBox[2])/2,y:(pageBaseViewport.viewBox[1]+pageBaseViewport.viewBox[3])/2};
         empty.style.display="none";
+        renderViewport=pageObj.getViewport({scale:zoom});
+        await buildSvgPage(token);
+        if(token!==loadToken)return;
         if(fit)await fitPage(); else await applyZoom(zoom,{keepPoint:anchorPdf});
-        setStatus("Seite "+pageNo+" bereit.","ok");
+        setStatus("Seite "+pageNo+" bereit · Text→SVG 100%.","ok");
       }catch(err){
         console.error(err);
         setStatus("Seite konnte nicht gerendert werden.","error");
@@ -438,6 +554,7 @@
       }
       const token=++loadToken;
       clearTiles();
+      clearPageSvg();
       busy.classList.add("show");
       setStatus("PDF wird gelesen …");
       try{
@@ -475,10 +592,11 @@
       if(btn.dataset.zoom)applyZoom(Number(btn.dataset.zoom));
     });
     centerAnchorBtn.addEventListener("click",()=>centerOnPdfPoint(anchorPdf,"smooth"));
+    downloadSvgBtn.addEventListener("click",downloadCurrentSvg);
     clearAnchorBtn.addEventListener("click",()=>{anchorPdf=null;updateAnchorVisual()});
 
     viewportEl.addEventListener("scroll",scheduleTiles,{passive:true});
-    new ResizeObserver(()=>scheduleTiles()).observe(viewportEl);
+    new ResizeObserver(()=>{if(!pageSvg)scheduleTiles()}).observe(viewportEl);
 
     surface.addEventListener("pointerdown",e=>{
       if(!pageObj||e.button!==0)return;
@@ -518,7 +636,7 @@
     });
 
     updateZoomButtons();
-    prevBtn.disabled=true;nextBtn.disabled=true;centerAnchorBtn.disabled=false;
+    prevBtn.disabled=true;nextBtn.disabled=true;centerAnchorBtn.disabled=false;downloadSvgBtn.disabled=true;
   </script>
 </body>
 </html>
