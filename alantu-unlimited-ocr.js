@@ -283,8 +283,11 @@ async function runUnlimited(ocrCanvas){
     let best=0;
     for(let j=1;j<logits.length;j++)if(logits[j]>logits[best])best=j;
     if(best===EOS)break;
+    // The last prompt token is part of the permanent reference prefix.
+    // Engage Unlimited-OCR's 128-token R-SWA ring immediately afterwards,
+    // exactly where generation begins.
+    if(i===0&&typeof eng.beginRingDecode==="function")eng.beginRingDecode(pos+1);
     ids.push(best);tok=best;pos++;
-    if(i===127&&typeof eng.beginRingDecode==="function")eng.beginRingDecode(pos);
     if(i%16===0)busy.textContent=`Unlimited-OCR 3B · ${i} Tokens …`;
   }
   const text=eng.decodeTokens(ids);
