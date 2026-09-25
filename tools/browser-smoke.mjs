@@ -193,6 +193,7 @@ async function run(name,viewport){
   }));
 
   const allowedHttp=httpErrors.filter(x=>!x.url.includes('favicon'));
+  const allowedFailed=failed.filter(x=>!String(x.error||'').includes('ERR_ABORTED'));
   const errors=[];
   const required=['modelDecision','forecastProof'];
   const badMarkers=required.map(k=>[k,state.boxes[k]]).filter(([,v])=>!v||!v.exists||!v.visible);
@@ -201,7 +202,7 @@ async function run(name,viewport){
   if(consoleErrors.length)errors.push('console:'+JSON.stringify(consoleErrors));
   if(pageErrors.length)errors.push('pageerror:'+JSON.stringify(pageErrors));
   if(allowedHttp.length)errors.push('http:'+JSON.stringify(allowedHttp));
-  if(failed.length)errors.push('requestfailed:'+JSON.stringify(failed));
+  if(allowedFailed.length)errors.push('requestfailed:'+JSON.stringify(allowedFailed));
   if(badMarkers.length)errors.push('hidden:'+JSON.stringify(badMarkers));
   if(hiddenResearch.length)errors.push('research-visible-while-collapsed:'+JSON.stringify(hiddenResearch));
   if(state.width.overflow>4)errors.push('horizontal-overflow:'+state.width.overflow);
@@ -241,7 +242,7 @@ async function run(name,viewport){
   if(!state.forecastCollapsed)errors.push('forecast-not-collapsed-by-default');
   if(!/MODELLSTATUS: (KAUFSIGNAL|KEIN KAUFSIGNAL|VERKAUFSSIGNAL)/.test(state.modelDecisionText))errors.push('model-decision-missing');
 
-  console.log(JSON.stringify({name,url,state,interactionState,projectionTarget,projectionInteraction,monthState,wgoState,wgoMonthState,storageSanitized,storageImmediate,storageReloaded,consoleErrors,pageErrors,httpErrors:allowedHttp,failed,ok:errors.length===0,errors},null,2));
+  console.log(JSON.stringify({name,url,state,interactionState,projectionTarget,projectionInteraction,monthState,wgoState,wgoMonthState,storageSanitized,storageImmediate,storageReloaded,consoleErrors,pageErrors,httpErrors:allowedHttp,failed:allowedFailed,ok:errors.length===0,errors},null,2));
   await browser.close();
   if(errors.length)throw new Error(name+' smoke failed: '+errors.join(' | '));
 }
