@@ -311,8 +311,15 @@ async function run(name,viewport){
     if(redditArchive>0&&sourceStateUi.redditRows<1)errors.push('reddit-archive-not-visible:'+JSON.stringify(sourceStateUi));
     if(sourceStateUi.live.source_health?.x?.status==='disabled'&&!/X\s*nicht verbunden/i.test(sourceStateUi.counts))errors.push('x-disabled-not-explicit:'+JSON.stringify(sourceStateUi));
   }
-  const sourceDirectionContract=await page.evaluate(()=>({legacySentimentWave:typeof sentimentWave==='function',legacyApply:typeof applyRailwaySentiment==='function',rawFeature:typeof sourceDirectionalFeature==='function'}));
-  if(sourceDirectionContract.legacySentimentWave||sourceDirectionContract.legacyApply||!sourceDirectionContract.rawFeature)errors.push('frontend-source-direction-contract:'+JSON.stringify(sourceDirectionContract));
+  const sourceDirectionContract=await page.evaluate(()=>({
+    legacySentimentWave:typeof sentimentWave==='function',
+    legacyApply:typeof applyRailwaySentiment==='function',
+    wave:typeof getMarketWaveVector==='function'?getMarketWaveVector():null
+  }));
+  const sourceContractFeature=sourceDirectionContract.wave&&sourceDirectionContract.wave.sourceFeature||{};
+  if(sourceDirectionContract.legacySentimentWave||sourceDirectionContract.legacyApply||sourceContractFeature.model_eligible!==false||sourceContractFeature.direction!==null||sourceContractFeature.status!=='unvalidated_not_used'){
+    errors.push('frontend-source-direction-contract:'+JSON.stringify(sourceDirectionContract));
+  }
   const obsoleteStableRef=await page.evaluate(()=>document.documentElement.innerHTML.includes('stableDayYBounds('));
   if(obsoleteStableRef)errors.push('stable-day-y-bounds-reference');
   if(!state.bodyText.includes('Prognosen vs. Realität'))errors.push('forecast-label-missing');
