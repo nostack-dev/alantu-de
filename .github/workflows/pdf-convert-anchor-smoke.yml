@@ -1,0 +1,90 @@
+name: PDF Convert Anchor SVG smoke
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "pdf-convert-anchor.html"
+      - "tools/pdf-convert-anchor-smoke.mjs"
+      - ".github/workflows/pdf-convert-anchor-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  svg-anchor-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mark SVG smoke pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/$SHA \
+            -d '{"state":"pending","context":"pdf-convert-svg-smoke","description":"Checking live PDF SVG conversion"}'
+
+      - name: Guard 100 percent SVG text source
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'SVGGraphics' pdf-convert-anchor.html
+          grep -q 'data-pdf-text' pdf-convert-anchor.html
+          grep -q 'Text→SVG 100%' pdf-convert-anchor.html
+          grep -q 'downloadCurrentSvg' pdf-convert-anchor.html
+
+      - name: Wait for live SVG converter
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            if curl -fsSL --max-time 20 "https://www.alantu.de/pdf-convert-anchor.html?smoke=${{ github.sha }}" -o /tmp/pdf-convert-live.html \
+              && grep -q 'SVGGraphics' /tmp/pdf-convert-live.html \
+              && grep -q 'Text→SVG 100%' /tmp/pdf-convert-live.html; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Live SVG converter did not reach current main" >&2
+          exit 1
+
+      - name: Install Playwright
+        shell: bash
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run real PDF to SVG smoke
+        env:
+          PDF_CONVERT_URL: https://www.alantu.de/pdf-convert-anchor.html
+          PDF_SAMPLE: assets/sunside-living-expose.pdf
+        run: node tools/pdf-convert-anchor-smoke.mjs
+
+      - name: Publish SVG smoke result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          if [ "$JOB_STATUS" = "success" ]; then
+            state=success
+            description="PDF SVG text 100% live and tested"
+          else
+            state=failure
+            description="PDF SVG conversion smoke failed"
+          fi
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/$SHA \
+            -d "{\"state\":\"$state\",\"context\":\"pdf-convert-svg-smoke\",\"description\":\"$description\"}"
