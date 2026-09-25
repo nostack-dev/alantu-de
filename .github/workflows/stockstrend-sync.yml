@@ -220,6 +220,9 @@ jobs:
           grep -q "fetchJson('microstructure-live-config.json',true)" index.html
           grep -q "cfg.transport!=='poll'" index.html
           grep -q '"transport": "poll"' microstructure-live-config.json
+          ! grep -q 'awaiting_railway_sse' microstructure-current.json
+          grep -q 'static_bootstrap_replaced_by_railway_poll' microstructure-current.json
+          grep -q 'awaiting_live_poll' microstructure-current.json
           grep -q 'alantu-market-production.up.railway.app' microstructure-live-config.json
           grep -q 'streamer.finance.yahoo.com' index.html
           grep -q "fetchJson('microstructure-edge-status.json',true)" index.html

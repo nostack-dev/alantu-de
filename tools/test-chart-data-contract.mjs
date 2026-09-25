@@ -13,5 +13,9 @@ let fi=-1,covered=0,maxAge=0;for(const row of daily.rows){while(fi+1<fx.rows.len
 assert.equal(covered,daily.rows.length,'ORCL daily missing as-of FX within 7 days');
 const html=fs.readFileSync('index.html','utf8'),alias=fs.readFileSync('stockstrend.html','utf8');assert.equal(alias,html,'index/stockstrend drift');
 for(const m of ['var HISTORICAL_FX_MAX_AGE_MS=7*864e5;','if(bv>0&&t-bt<=HISTORICAL_FX_MAX_AGE_MS)return bv;',"session.source==='us_orcl_fx'",'var cut=t-14*864e5,firstKeep=0;','var rangeRenderSeq={price:0,forecast:0,sentiment:0,magnitude:0,opinions:0};','compactCoverage(v.priceRows','function stablePriceYBounds'])assert.ok(html.includes(m),'missing invariant '+m);
-const live=read('microstructure-live-config.json'),boot=read('microstructure-current.json');assert.equal(live.transport,'poll');assert.ok(!(boot.quality?.reasons||[]).some(x=>String(x).includes('sse')));assert.notEqual(boot.wave_forecast?.reason,'awaiting_railway_sse');
+const live=read('microstructure-live-config.json');assert.equal(live.transport,'poll');
+const refreshSource=fs.readFileSync('tools/refresh-runtime-data.mjs','utf8');
+assert.ok(!refreshSource.includes('awaiting_railway_sse'),'refresh script contains retired SSE state');
+assert.ok(refreshSource.includes('static_bootstrap_replaced_by_railway_poll'));
+assert.ok(refreshSource.includes('awaiting_live_poll'));
 console.log('CHART_DATA_CONTRACT_OK',JSON.stringify({minuteBars:minute.rows.length,germanMinuteBars:german.rows.length,dailyBars:daily.rows.length,fxBars:fx.rows.length,fxCoverage:covered,maxObservedFxAgeHours:Number((maxAge/36e5).toFixed(1))}));
