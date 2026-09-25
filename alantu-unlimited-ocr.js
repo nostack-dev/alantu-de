@@ -102,6 +102,66 @@ async function fetchWithRetry(url,opts={},label="Datei"){
   throw new Error(label+": "+shortError(last));
 }
 
+
+const LOCAL_OCR_NEEDS={cacheGiB:5.5,physicalRamGiB:8,texture:1024,storageBufferMiB:256};
+let localOcrPreflightPromise=null;
+function gib(v){return Math.round(v/1024/1024/1024*10)/10}
+function mib(v){return Math.round(v/1024/1024)}
+function isIOSLike(){const ua=navigator.userAgent||"";return /iP(hone|ad|od)/.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)}
+function isMobileLike(){return isIOSLike()||/Android|Mobile/i.test(navigator.userAgent||"")}
+async function diagnoseLocalOcrBottleneck(){
+  const reasons=[],facts=[];
+  const ua=navigator.userAgent||"";
+  facts.push("Browser: "+ua.slice(0,140));
+  facts.push("Lokaler 3B-OCR-Load braucht grob Decoder 3.5GB + Vision 1.6GB + Tensoren/Canvas/Cache, also Desktop-Klasse.");
+  if(isIOSLike())reasons.push("Bottleneck: iOS/WebKit-Tab-Speicher/Cache. iPhone/iPad-Browser können diesen lokalen 3B-OCR-Stack nicht stabil halten; Modell-Download/ONNX/WebGPU endet typischerweise in Load failed oder Tab-Kill.");
+  if(!navigator.gpu)reasons.push("Bottleneck: WebGPU fehlt in diesem Browser. Der Vision-Encoder/Decoder kann lokal nicht gestartet werden.");
+  if(navigator.deviceMemory){
+    facts.push("Gemeldeter RAM-Bucket: "+navigator.deviceMemory+"GB");
+    if(navigator.deviceMemory<LOCAL_OCR_NEEDS.physicalRamGiB)reasons.push("Bottleneck: gemeldeter RAM-Bucket "+navigator.deviceMemory+"GB < benötigte Desktop-Reserve ca. "+LOCAL_OCR_NEEDS.physicalRamGiB+"GB.");
+  }else if(isMobileLike()){
+    facts.push("RAM-Bucket wird vom mobilen Browser nicht offengelegt; genau das verhindert zuverlässige lokale 3B-Planung.");
+  }
+  try{
+    if(navigator.storage?.estimate){
+      const st=await navigator.storage.estimate();
+      const free=Math.max(0,(st.quota||0)-(st.usage||0));
+      facts.push("Browser-Storage frei: "+gib(free)+"GB von "+gib(st.quota||0)+"GB Quote");
+      if(st.quota&&free<LOCAL_OCR_NEEDS.cacheGiB*1024**3)reasons.push("Bottleneck: Browser-Cache frei "+gib(free)+"GB < benötigte Modell-/Runtime-Reserve ca. "+LOCAL_OCR_NEEDS.cacheGiB+"GB.");
+    }
+  }catch(e){facts.push("Storage-Estimate nicht verfügbar: "+shortError(e))}
+  if(navigator.gpu){
+    try{
+      const adapter=await navigator.gpu.requestAdapter();
+      if(!adapter)reasons.push("Bottleneck: WebGPU-Adapter konnte nicht reserviert werden.");
+      else{
+        const l=adapter.limits||{};
+        facts.push("WebGPU limits: texture2D="+(l.maxTextureDimension2D||"?")+", storageBuffer="+(l.maxStorageBufferBindingSize?mib(l.maxStorageBufferBindingSize)+"MB":"?")+", buffer="+(l.maxBufferSize?mib(l.maxBufferSize)+"MB":"?"));
+        if(l.maxTextureDimension2D&&l.maxTextureDimension2D<LOCAL_OCR_NEEDS.texture)reasons.push("Bottleneck: maxTextureDimension2D "+l.maxTextureDimension2D+" < "+LOCAL_OCR_NEEDS.texture+".");
+        if(l.maxStorageBufferBindingSize&&l.maxStorageBufferBindingSize<LOCAL_OCR_NEEDS.storageBufferMiB*1024*1024)reasons.push("Bottleneck: maxStorageBufferBindingSize "+mib(l.maxStorageBufferBindingSize)+"MB < "+LOCAL_OCR_NEEDS.storageBufferMiB+"MB.");
+      }
+    }catch(e){reasons.push("Bottleneck: WebGPU-Probe fehlgeschlagen: "+shortError(e))}
+  }
+  const ok=!reasons.length;
+  const report={ok,reasons,facts,checkedAt:new Date().toISOString()};
+  window.__alantuOcrDiagnostics=report;
+  window.__alantuUocrDebug=window.__alantuUocrDebug||{};
+  window.__alantuUocrDebug.preflight=report;
+  return report;
+}
+async function requireLocalOcrCapability(){
+  if(MOCK_OCR)return;
+  if(!localOcrPreflightPromise)localOcrPreflightPromise=diagnoseLocalOcrBottleneck();
+  const d=await localOcrPreflightPromise;
+  if(!d.ok){
+    const msg="Lokale 3B-OCR nicht gestartet. "+d.reasons.join(" ")+" Fakten: "+d.facts.join(" | ");
+    mEngine.textContent="Lokale 3B-OCR nicht möglich";
+    setStatus(msg,"error");
+    throw new Error(msg);
+  }
+  mEngine.textContent="Unlimited-OCR 3B · lokaler Preflight ok";
+}
+
 // Tiny local NPZ reader for Unlimited-OCR's image_newline / view_seperator
 // sidecar. This removes the last runtime dependency on esm.sh.
 function parseNpyPayload(payload,key){
@@ -349,6 +409,7 @@ async function runUnlimited(ocrCanvas){
     return "<|det|>text [[80,80,920,180]]<|/det|>ALANTU EXPOSE\n<|det|>text [[80,220,920,330]]<|/det|>Wohnung mit Seeblick in Konstanz";
   }
 
+  await requireLocalOcrCapability();
   const [session,extras]=await Promise.all([ensureVision(),ensureExtras()]);
   busy.textContent="Unlimited-OCR 3B · Vision-Encoding …";
   const ort=window.__alantuUocrOrt;
@@ -468,6 +529,7 @@ function updateMetrics(){
   mImageText.textContent=pages.length?String(imageText):"—";
   if(!pages.length)mImageTextPercent.textContent="—";
   else if(pendingAi)mImageTextPercent.textContent="läuft …";
+  else if(failedAi)mImageTextPercent.textContent=`OCR fehlgeschlagen auf ${failedAi}/${aiPages} Bildseiten · PDF exportierbar`;
   else if(failedAi)mImageTextPercent.textContent=`OCR fehlgeschlagen auf ${failedAi}/${aiPages} Bildseiten · PDF exportierbar`;
   else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 100 % erkannter OCR-Text → echt · ${imageText} Blöcke / ${imageChars} Zeichen`;
   else mImageTextPercent.textContent="— · keine Rasterbilder";
