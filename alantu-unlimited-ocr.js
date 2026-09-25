@@ -26,7 +26,7 @@ const MOCK_OCR_DELAY=Math.max(0,Number(QUERY.get("mockOcrDelay"))||0);
 
 const $=id=>document.getElementById(id);
 const pdfInput=$("pdfInput"),dropzone=$("dropzone"),statusEl=$("status"),progressBar=$("progressBar"),fileBadge=$("fileBadge");
-const mPages=$("mPages"),mNative=$("mNative"),mImageText=$("mImageText"),mBaked=$("mBaked"),mEngine=$("mEngine"),mVisual=$("mVisual");
+const mPages=$("mPages"),mNative=$("mNative"),mImageText=$("mImageText"),mImageTextPercent=$("mImageTextPercent"),mBaked=$("mBaked"),mEngine=$("mEngine"),mVisual=$("mVisual");
 const downloadPdfBtn=$("downloadPdfBtn"),downloadSvgBtn=$("downloadSvgBtn"),clearModelBtn=$("clearModelBtn");
 const prevBtn=$("prevBtn"),nextBtn=$("nextBtn"),pageCounter=$("pageCounter");
 const sideBtn=$("sideBtn"),overlayBtn=$("overlayBtn"),overlayTools=$("overlayTools"),overlayOpacity=$("overlayOpacity"),overlayValue=$("overlayValue"),showBoxes=$("showBoxes");
@@ -165,21 +165,21 @@ function filterNativeDuplicates(ocr,native){
   });
 }
 
-async function createRuntime(gpu){
+async function createRuntime(){
   const inst=new Wllama(WLLAMA_PATHS,{parallelDownloads:3,suppressNativeLog:true});
   inst.setCompat("default");
   await inst.loadModelFromUrl({url:MODEL.modelUrl,mmprojUrl:MODEL.mmprojUrl},{
     useCache:true,
+    // Unlimited-OCR 3B currently overflows wllama/ggml's WebGPU dispatch on
+    // real browser adapters (DispatchWorkgroups > 65535). Do not enter the
+    // GPU backend at all: a WebGPU abort kills the WASM worker before JS can
+    // reliably recover. CPU/WASM is slower, but deterministic and error-free.
+    n_gpu_layers:0,
     n_ctx:MODEL.context,
-    n_gpu_layers:gpu?99999:0,
     n_threads:Math.max(1,Math.min(8,Math.floor((navigator.hardwareConcurrency||4)/2))),
     n_parallel:1,
     flash_attn:false,
     warmup:false,
-    // Important: wllama v3 uses llama.cpp's server chat path. DeepSeek/Unlimited
-    // OCR image placeholder injection is handled by the server itself. For this
-    // path an explicit "deepseek-ocr" chat template causes the exact runtime
-    // failure "Failed to format input: Failed to tokenize prompt".
     progressCallback:({loaded,total})=>{
       if(total>0){
         const pct=Math.round(loaded/total*100);
@@ -199,36 +199,16 @@ async function ensureModel(){
   modelPromise=(async()=>{
     busy.classList.add("show");
     busy.textContent=`Unlimited-OCR 3B · ca. ${MODEL.approxGiB.toFixed(1)} GB einmalig`;
-    const gpu=!!navigator.gpu;
-    try{
-      wllama=await createRuntime(gpu);
-      modelGpu=gpu;
-    }catch(err){
-      if(!gpu)throw err;
-      try{await wllama?.exit()}catch{}
-      wllama=null;
-      setStatus("WebGPU konnte nicht gestartet werden · Unlimited-OCR läuft auf CPU/WASM weiter …");
-      wllama=await createRuntime(false);
-      modelGpu=false;
-    }
+    setStatus("Unlimited-OCR 3B wird lokal gestartet · stabiler CPU/WASM-Modus …");
+    wllama=await createRuntime();
     modelLoaded=true;
-    mEngine.textContent=`Unlimited-OCR 3B · ${modelGpu?"WebGPU":"CPU/WASM"}`;
+    modelGpu=false;
+    mEngine.textContent="Unlimited-OCR 3B · CPU/WASM";
     return wllama;
   })().finally(()=>{modelPromise=null});
   return modelPromise;
 }
 
-async function restartOnCpu(){
-  try{await wllama?.exit()}catch{}
-  wllama=null;modelLoaded=false;modelGpu=false;
-  busy.classList.add("show");
-  busy.textContent="WebGPU-Grenze erkannt · starte Unlimited-OCR auf CPU/WASM neu …";
-  setStatus("WebGPU-Grenze erkannt · sicherer CPU/WASM-Fallback wird gestartet …");
-  wllama=await createRuntime(false);
-  modelLoaded=true;
-  mEngine.textContent="Unlimited-OCR 3B · CPU/WASM Fallback";
-  return wllama;
-}
 async function runUnlimited(imageBuffer){
   if(MOCK_OCR){
     if(MOCK_OCR_DELAY)await new Promise(r=>setTimeout(r,MOCK_OCR_DELAY));
@@ -261,12 +241,6 @@ async function runUnlimited(imageBuffer){
     const message=String(err?.message||err||"");
     if(/Failed to format input|Failed to tokenize prompt/i.test(message)){
       throw new Error("Unlimited-OCR Prompt-Format fehlgeschlagen. Bitte Seite neu laden; der aktuelle Browser-Code verwendet bereits den korrigierten llama.cpp-Server-Prompt ohne Chat-Template.");
-    }
-    if(modelGpu&&/(ABORT|unreachable|workgroup|WebGPU|GPU|CommandBuffer)/i.test(message)){
-      const cpu=await restartOnCpu();
-      busy.textContent="Unlimited-OCR 3B erkennt Bildtext · CPU/WASM Fallback …";
-      const response=await cpu.createChatCompletion(request);
-      return response?.choices?.[0]?.message?.content||"";
     }
     throw err;
   }
@@ -328,13 +302,22 @@ async function convertPage(pageNo,token,onPreview=()=>{}){
 
 function allText(page){return [...page.native,...page.ocr]}
 function updateMetrics(){
-  const native=pages.reduce((n,p)=>n+p.native.length,0),imageText=pages.reduce((n,p)=>n+p.ocr.length,0);
+  const native=pages.reduce((n,p)=>n+p.native.length,0);
+  const imageText=pages.reduce((n,p)=>n+p.ocr.length,0);
+  const imageChars=pages.reduce((n,p)=>n+p.ocr.reduce((m,r)=>m+normalizeText(r.text).replace(/\s/g,"").length,0),0);
+  const aiPages=pages.filter(p=>p.usedAi).length;
+  const pendingAi=pages.some(p=>p.processing);
   mPages.textContent=pages.length?String(pages.length):"—";
   mNative.textContent=pages.length?String(native):"—";
   mImageText.textContent=pages.length?String(imageText):"—";
+  if(!pages.length)mImageTextPercent.textContent="—";
+  else if(pendingAi)mImageTextPercent.textContent="läuft …";
+  else if(imageText>0)mImageTextPercent.textContent=`100 % · ${imageText} Blöcke / ${imageChars} Zeichen`;
+  else if(aiPages>0)mImageTextPercent.textContent="0 % · nichts erkannt";
+  else mImageTextPercent.textContent="— · keine Bildtexte";
   mBaked.textContent=pages.length?String(pages.length):"—";
   mVisual.textContent=pages.length?"100 % Originalbild":"—";
-  if(!modelLoaded)mEngine.textContent="Unlimited-OCR 3B · lokal";
+  if(!modelLoaded)mEngine.textContent="Unlimited-OCR 3B · CPU/WASM";
 }
 function makeBoxes(container,page){
   container.innerHTML="";
