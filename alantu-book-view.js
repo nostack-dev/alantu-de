@@ -26,20 +26,6 @@ export function createAlantuBookViewControls({
   let focusTravelX=0;
   const spreadCameraPosition=camera.position.clone();
   const singleCameraZ=Math.max(6,Number(camera.position.z)||10.8);
-  const spreadBounds=new THREE.Box3();
-  const spreadCenter=new THREE.Vector3();
-
-  function centerSpreadGeometry(){
-    // Centre the real transformed book, not an assumed PAGE_W offset.
-    // This keeps open and fully closed hardcover states centred on every
-    // viewport, including mobile landscape and fullscreen.
-    root.position.x=0;
-    root.updateMatrixWorld(true);
-    spreadBounds.setFromObject(root);
-    if(spreadBounds.isEmpty())return;
-    spreadBounds.getCenter(spreadCenter);
-    if(Number.isFinite(spreadCenter.x))root.position.x=-spreadCenter.x;
-  }
 
   function isFullscreen(){
     return document.fullscreenElement===stage||
@@ -116,8 +102,10 @@ export function createAlantuBookViewControls({
       camera.position.x=pan;
       camera.lookAt(pan,0,0);
     }else{
-      root.position.set(0,.015,0);
-      centerSpreadGeometry();
+      // Landscape/desktop: keep the physical two-page spread geometrically
+      // centred in the viewport at all times. PAGE_W/2 is the exact centre
+      // between the left and right sheet around the shared spine.
+      root.position.set(pageW*scale*.5,.015,0);
       camera.position.copy(spreadCameraPosition);
       camera.lookAt(0,0,0);
     }
@@ -170,11 +158,12 @@ export function createAlantuBookViewControls({
       camera.lookAt(pan,0,0);
     }else{
       singleFocus=singleFocusTarget=0;
-      // Follow the actual transformed hardcover/page envelope while it
-      // opens and closes. The geometry itself animates smoothly, so its
-      // bounding-box centre produces the matching smooth camera framing.
+      // Never pan the desktop/landscape spread. Only portrait single-page
+      // mode is allowed to move the reading camera between right and left.
       spreadFocus=spreadFocusTarget=.5;
-      centerSpreadGeometry();
+      const pageW=Math.max(.1,Number(getPageWidth())||3.52);
+      const scale=fitScale*zoom;
+      root.position.x=pageW*scale*.5;
     }
   }
 
