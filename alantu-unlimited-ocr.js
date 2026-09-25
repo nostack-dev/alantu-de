@@ -1,10 +1,11 @@
 import { Wllama } from "https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/esm/index.js";
-import WasmFromCDN from "https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/esm/wasm-from-cdn.js";
 import { PDFDocument, StandardFonts, rgb } from "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm";
 
 const pdfjsLib=window.pdfjsLib;
 if(!pdfjsLib)throw new Error("PDF.js fehlt.");
 pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js";
+
+const WLLAMA_PATHS={default:"https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/src/wasm/wllama.wasm"};
 
 const MODEL={
   name:"Unlimited-OCR 3B · Q5",
@@ -137,7 +138,7 @@ function filterNativeDuplicates(ocr,native){
 }
 
 async function createRuntime(gpu){
-  const inst=new Wllama(WasmFromCDN,{parallelDownloads:3,suppressNativeLog:true});
+  const inst=new Wllama(WLLAMA_PATHS,{parallelDownloads:3,suppressNativeLog:true});
   inst.setCompat("default");
   await inst.loadModelFromUrl({url:MODEL.modelUrl,mmprojUrl:MODEL.mmprojUrl},{
     useCache:true,
