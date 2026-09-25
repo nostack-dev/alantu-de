@@ -562,7 +562,7 @@
         pdfDoc=null;pageObj=null;pageBaseViewport=null;renderViewport=null;
         const bytes=new Uint8Array(await file.arrayBuffer());
         if(token!==loadToken)return;
-        pdfDoc=await pdfjsLib.getDocument({data:bytes}).promise;
+        pdfDoc=await pdfjsLib.getDocument({data:bytes,fontExtraProperties:true}).promise;
         if(token!==loadToken)return;
         if(pdfDoc.numPages<1)throw new Error("PDF enthält keine Seiten.");
         if(pdfDoc.numPages>MAX_PAGES)throw new Error("Maximal "+MAX_PAGES+" Seiten.");
