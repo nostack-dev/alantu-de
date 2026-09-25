@@ -29,7 +29,7 @@ const ev=evaluateV5Path(pred,path,now+62000);assert.equal(ev.status,'evaluated')
 const training=[];
 for(let i=0;i<160;i++){
   const x=new Array(V5_FEATURE_NAMES.length).fill(0);x[0]=i%2?0.8:-0.8;
-  training.push({version:V5_VERSION,horizon_minutes:5,status:'evaluated',barrier_label:i%2?1:-1,feature_vector:x});
+  training.push({version:V5_VERSION,horizon_minutes:5,status:'evaluated',gate_sample:true,path_label:i%2?1:-1,barrier_label:i%2?1:-1,feature_vector:x});
 }
 const m=fitV5Logistic(training,5);assert.equal(m.ready,true);
 const up=new Array(V5_FEATURE_NAMES.length).fill(0);up[0]=.9;
