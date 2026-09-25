@@ -21,7 +21,12 @@ async function makeFixture(browser){
   const path='/tmp/uocr-real.pdf';await fs.writeFile(path,await pdf.save());return path;
 }
 
-const browser=await chromium.launch({headless:true,args:['--js-flags=--max-old-space-size=6144']});
+const browser=await chromium.launch({headless:true,args:[
+  '--js-flags=--max-old-space-size=6144',
+  '--enable-unsafe-webgpu',
+  '--enable-features=Vulkan',
+  '--use-angle=swiftshader'
+]});
 const fixture=await makeFixture(browser);
 const page=await browser.newPage({viewport:{width:1400,height:1000}});
 const consoleErrors=[],pageErrors=[],failed=[];
@@ -29,6 +34,12 @@ page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
 page.on('pageerror',e=>pageErrors.push(String(e?.stack||e)));
 page.on('requestfailed',r=>failed.push({url:r.url(),error:r.failure()?.errorText||'failed'}));
 await page.goto(url+'?realUocrSmoke=1',{waitUntil:'domcontentloaded',timeout:60000});
+const gpu=await page.evaluate(async()=>({
+  hasNavigatorGpu:!!navigator.gpu,
+  adapter:!!(navigator.gpu&&await navigator.gpu.requestAdapter())
+}));
+console.log('WEBGPU_CAPABILITY',JSON.stringify(gpu));
+if(!gpu.hasNavigatorGpu||!gpu.adapter)throw new Error('CI Chromium has no usable WebGPU adapter');
 await page.locator('#pdfInput').setInputFiles(fixture);
 await page.waitForFunction(()=>{
   const status=document.getElementById('status')?.textContent||'';
