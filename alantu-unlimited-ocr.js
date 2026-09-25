@@ -91,12 +91,12 @@ function inpaintTextRect(ctx,rect){
   const W=ctx.canvas.width,H=ctx.canvas.height;
   const x0=Math.max(1,Math.floor(rect.x0)-1),y0=Math.max(1,Math.floor(rect.y0)-1),x1=Math.min(W-2,Math.ceil(rect.x1)+1),y1=Math.min(H-2,Math.ceil(rect.y1)+1);
   const w=x1-x0+1,h=y1-y0+1;if(w<2||h<2)return;
-  const src=ctx.getImageData(0,0,W,H),out=ctx.createImageData(w,h),sd=src.data,od=out.data;
-  const pix=(x,y,c)=>sd[(Math.max(0,Math.min(H-1,y))*W+Math.max(0,Math.min(W-1,x)))*4+c];
+  const patch=ctx.getImageData(x0-1,y0-1,w+2,h+2),pd=patch.data,pw=w+2,out=ctx.createImageData(w,h),od=out.data;
+  const pix=(x,y,c)=>pd[((y+1)*pw+(x+1))*4+c];
   for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){
-    const gx=x0+xx,gy=y0+yy,tx=w<=1?0:xx/(w-1),ty=h<=1?0:yy/(h-1),oi=(yy*w+xx)*4;
+    const tx=w<=1?0:xx/(w-1),ty=h<=1?0:yy/(h-1),oi=(yy*w+xx)*4;
     for(let c=0;c<3;c++){
-      const top=pix(gx,y0-1,c),bottom=pix(gx,y1+1,c),left=pix(x0-1,gy,c),right=pix(x1+1,gy,c);
+      const top=pix(xx,-1,c),bottom=pix(xx,h,c),left=pix(-1,yy,c),right=pix(w,yy,c);
       const vertical=top*(1-ty)+bottom*ty,horizontal=left*(1-tx)+right*tx;
       od[oi+c]=clampByte((vertical+horizontal)/2);
     }
@@ -651,7 +651,7 @@ async function convertPage(pageNo,token,onPreview=()=>{}){
         if(token!==loadToken)throw new Error("cancelled");
         ocr=filterNativeDuplicates(fallback,native);
         provisional.ocrFallback=true;
-        setStatus(ocr.length?"Fallback-OCR fertig · echter Textlayer erzeugt.":"Fallback-OCR lief, hat aber keinen Text erkannt.",ocr.length?"ok":"error");
+        setStatus(ocr.length?"Fallback-OCR fertig · Bildtext wird als sichtbarer Vektortext gesetzt.":"Fallback-OCR lief, hat aber keinen Text erkannt.",ocr.length?"ok":"error");
       }catch(fallbackErr){
         if(fallbackErr?.message==="cancelled")throw fallbackErr;
         provisional.ocrError=primaryError+" | Fallback: "+shortError(fallbackErr);
@@ -700,7 +700,7 @@ function updateMetrics(){
   else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 3B-OCR · ${imageText} Blöcke / ${imageChars} Zeichen`;
   else mImageTextPercent.textContent="— · keine Rasterbilder";
   mBaked.textContent=pages.length?String(pages.length):"—";
-  mVisual.textContent=pages.length?"100 % Originalbild":"—";
+  mVisual.textContent=pages.length?(imageText?"Raster-Diff + Vektortext":"Original / kein OCR-Text"):"—";
   if(fallbackAi)mEngine.textContent=modelLoaded?"3B + Fallback-OCR":"Fallback-OCR · Tesseract.js";
   else if(!modelLoaded)mEngine.textContent=MODEL.name;
 }
