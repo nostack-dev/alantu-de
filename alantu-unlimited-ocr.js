@@ -69,6 +69,68 @@ function canvasToBlob(canvas,type="image/png",quality=.98){
   return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error("Seite konnte nicht gebacken werden.")),type,quality));
 }
 async function blobToArrayBuffer(blob){return blob.arrayBuffer()}
+function clampByte(v){return Math.max(0,Math.min(255,Math.round(v)))}
+function rgbHex(r,g,b){return "#"+[r,g,b].map(v=>clampByte(v).toString(16).padStart(2,"0")).join("")}
+function colorDistance(a,b){const dr=a[0]-b[0],dg=a[1]-b[1],db=a[2]-b[2];return Math.sqrt(dr*dr+dg*dg+db*db)}
+function sampleTextStyle(ctx,rect){
+  const x0=Math.max(0,Math.floor(rect.x0)),y0=Math.max(0,Math.floor(rect.y0)),x1=Math.min(ctx.canvas.width,Math.ceil(rect.x1)),y1=Math.min(ctx.canvas.height,Math.ceil(rect.y1));
+  const w=Math.max(1,x1-x0),h=Math.max(1,y1-y0),img=ctx.getImageData(x0,y0,w,h),d=img.data;
+  const border=[];
+  for(let x=0;x<w;x++){for(const y of [0,h-1]){const i=(y*w+x)*4;border.push([d[i],d[i+1],d[i+2]])}}
+  for(let y=1;y<h-1;y++){for(const x of [0,w-1]){const i=(y*w+x)*4;border.push([d[i],d[i+1],d[i+2]])}}
+  const bg=[0,1,2].map(c=>border.length?border.reduce((n,p)=>n+p[c],0)/border.length:255);
+  const candidates=[];
+  const step=Math.max(1,Math.floor(Math.min(w,h)/40));
+  for(let y=0;y<h;y+=step)for(let x=0;x<w;x+=step){const i=(y*w+x)*4,p=[d[i],d[i+1],d[i+2]],dist=colorDistance(p,bg);if(dist>55)candidates.push({p,dist})}
+  candidates.sort((a,b)=>b.dist-a.dist);
+  const top=candidates.slice(0,Math.max(1,Math.min(120,Math.ceil(candidates.length*.18))));
+  const fg=[0,1,2].map(c=>top.length?top.reduce((n,q)=>n+q.p[c],0)/top.length:(bg[0]+bg[1]+bg[2])/3>128?20:235);
+  return {fill:rgbHex(...fg),rgb:fg.map(v=>clampByte(v)/255),background:bg};
+}
+function inpaintTextRect(ctx,rect){
+  const W=ctx.canvas.width,H=ctx.canvas.height;
+  const x0=Math.max(1,Math.floor(rect.x0)-1),y0=Math.max(1,Math.floor(rect.y0)-1),x1=Math.min(W-2,Math.ceil(rect.x1)+1),y1=Math.min(H-2,Math.ceil(rect.y1)+1);
+  const w=x1-x0+1,h=y1-y0+1;if(w<2||h<2)return;
+  const src=ctx.getImageData(0,0,W,H),out=ctx.createImageData(w,h),sd=src.data,od=out.data;
+  const pix=(x,y,c)=>sd[(Math.max(0,Math.min(H-1,y))*W+Math.max(0,Math.min(W-1,x)))*4+c];
+  for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){
+    const gx=x0+xx,gy=y0+yy,tx=w<=1?0:xx/(w-1),ty=h<=1?0:yy/(h-1),oi=(yy*w+xx)*4;
+    for(let c=0;c<3;c++){
+      const top=pix(gx,y0-1,c),bottom=pix(gx,y1+1,c),left=pix(x0-1,gy,c),right=pix(x1+1,gy,c);
+      const vertical=top*(1-ty)+bottom*ty,horizontal=left*(1-tx)+right*tx;
+      od[oi+c]=clampByte((vertical+horizontal)/2);
+    }
+    od[oi+3]=255;
+  }
+  ctx.putImageData(out,x0,y0);
+}
+async function makeVectorizedRaster(sourceCanvas,ocr,pageW,pageH){
+  const c=document.createElement("canvas");c.width=sourceCanvas.width;c.height=sourceCanvas.height;
+  const ctx=c.getContext("2d",{alpha:false});ctx.drawImage(sourceCanvas,0,0);
+  const sx=c.width/pageW,sy=c.height/pageH;
+  for(const r of ocr){
+    const px={x0:r.bbox.x0*sx,y0:r.bbox.y0*sy,x1:r.bbox.x1*sx,y1:r.bbox.y1*sy};
+    r.vectorStyle=sampleTextStyle(ctx,px);
+    inpaintTextRect(ctx,px);
+  }
+  const blob=await canvasToBlob(c,"image/png");
+  const bytes=new Uint8Array(await blobToArrayBuffer(blob));
+  const url=URL.createObjectURL(blob);
+  c.width=1;c.height=1;
+  return {bytes,url};
+}
+function vectorTextSvg(page){
+  return page.ocr.map(r=>{
+    const b=r.bbox,h=Math.max(2,b.y1-b.y0),fs=Math.max(2,h*.82),x=b.x0,y=b.y0+fs*.9,w=Math.max(1,b.x1-b.x0),fill=r.vectorStyle?.fill||"#111111";
+    return `<text data-kind="image-text-vector" x="${x.toFixed(3)}" y="${y.toFixed(3)}" font-family="Arial,Helvetica,sans-serif" font-size="${fs.toFixed(3)}" fill="${fill}" textLength="${w.toFixed(3)}" lengthAdjust="spacingAndGlyphs">${escapeXml(r.text)}</text>`;
+  }).join("");
+}
+function pageVectorSvg(page){
+  const bg=bytesToDataUrl(page.vectorPngBytes||page.pngBytes);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${page.width}" height="${page.height}" viewBox="0 0 ${page.width} ${page.height}" preserveAspectRatio="none"><image data-baked-diff="1" x="0" y="0" width="${page.width}" height="${page.height}" href="${bg}"/><g data-role="visible-vector-text">${vectorTextSvg(page)}</g></svg>`;
+}
+function svgBlobUrl(svg){return URL.createObjectURL(new Blob([svg],{type:"image/svg+xml;charset=utf-8"}))}
+
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 function shortError(err){
@@ -600,11 +662,20 @@ async function convertPage(pageNo,token,onPreview=()=>{}){
       ocrCanvas.width=1;ocrCanvas.height=1;
     }
   }
-  canvas.width=1;canvas.height=1;
-
   provisional.ocr=ocr;
   provisional.rawOcr=rawOcr;
+  if(ocr.length){
+    const vectorized=await makeVectorizedRaster(canvas,ocr,base.width,base.height);
+    provisional.vectorPngBytes=vectorized.bytes;
+    provisional.vectorRasterUrl=vectorized.url;
+    provisional.vectorPreviewUrl=svgBlobUrl(pageVectorSvg(provisional));
+  }else{
+    provisional.vectorPngBytes=pngBytes;
+    provisional.vectorRasterUrl=previewUrl;
+    provisional.vectorPreviewUrl=previewUrl;
+  }
   provisional.processing=false;
+  canvas.width=1;canvas.height=1;
   return provisional;
 }
 
@@ -656,7 +727,7 @@ function renderCompare(){
   sideGrid.hidden=compareMode!=="side";
   overlayWrap.hidden=compareMode!=="overlay";
   overlayStage.hidden=compareMode!=="overlay";
-  beforeImg.src=p.previewUrl;afterImg.src=p.previewUrl;overlayBefore.src=p.previewUrl;overlayAfter.src=p.previewUrl;
+  beforeImg.src=p.previewUrl;afterImg.src=p.vectorPreviewUrl||p.previewUrl;overlayBefore.src=p.previewUrl;overlayAfter.src=p.vectorPreviewUrl||p.previewUrl;
   makeBoxes(afterOverlay,p);makeBoxes(overlayBoxes,p);
   pageCounter.textContent=`${currentPage+1} / ${pages.length}`;
   prevBtn.disabled=currentPage<=0;nextBtn.disabled=currentPage>=pages.length-1;
@@ -670,13 +741,6 @@ function setCompareMode(mode){
   renderCompare();
 }
 
-function xmlTextLayer(page,opacity="0"){
-  const items=allText(page).map(r=>{
-    const b=r.bbox,fs=Math.max(2,Math.min(b.y1-b.y0,18)),x=b.x0,y=b.y0+fs*.9,w=Math.max(1,b.x1-b.x0);
-    return `<text data-kind="${r.kind}" x="${x.toFixed(3)}" y="${y.toFixed(3)}" font-family="Arial,Helvetica,sans-serif" font-size="${fs.toFixed(3)}" fill="#000" fill-opacity="${opacity}" textLength="${w.toFixed(3)}" lengthAdjust="spacingAndGlyphs">${escapeXml(r.text)}</text>`;
-  }).join("");
-  return `<g data-role="searchable-text">${items}</g>`;
-}
 function bytesToDataUrl(bytes){
   let bin="";const chunk=0x8000;for(let i=0;i<bytes.length;i+=chunk)bin+=String.fromCharCode(...bytes.subarray(i,i+chunk));
   return "data:image/png;base64,"+btoa(bin);
@@ -687,10 +751,11 @@ function buildMergedSvg(){
   let y=0,body="";
   for(const p of pages){
     const x=(maxW-p.width)/2;
-    body+=`<svg x="${x}" y="${y}" width="${p.width}" height="${p.height}" viewBox="0 0 ${p.width} ${p.height}" preserveAspectRatio="none" data-page="${p.pageNo}"><image data-baked-original="1" x="0" y="0" width="${p.width}" height="${p.height}" href="${bytesToDataUrl(p.pngBytes)}"/>${xmlTextLayer(p,"0")}</svg>`;
+    const bg=bytesToDataUrl(p.vectorPngBytes||p.pngBytes);
+    body+=`<svg x="${x}" y="${y}" width="${p.width}" height="${p.height}" viewBox="0 0 ${p.width} ${p.height}" preserveAspectRatio="none" data-page="${p.pageNo}"><image data-baked-diff="1" x="0" y="0" width="${p.width}" height="${p.height}" href="${bg}"/><g data-role="visible-vector-text">${vectorTextSvg(p)}</g></svg>`;
     y+=p.height+gap;
   }
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${maxW}" height="${totalH}" viewBox="0 0 ${maxW} ${totalH}" data-alantu-merged="1" data-ocr-engine="Unlimited-OCR-3B-Q4_K_M">${body}</svg>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${maxW}" height="${totalH}" viewBox="0 0 ${maxW} ${totalH}" data-alantu-merged="1" data-output="hybrid-vector-pdf">${body}</svg>`;
 }
 function downloadBlob(blob,name){
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;a.rel="noopener";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
@@ -701,43 +766,45 @@ function safePdfText(font,text){
   let out="";for(const ch of text){try{font.encodeText(ch);out+=ch}catch{out+=" "}}
   return normalizeText(out);
 }
-async function buildSearchablePdf(){
+async function buildVectorPdf(){
   if(!pages.length)return null;
-  busy.classList.add("show");busy.textContent="Finales PDF wird gebaut …";setStatus("Finales PDF wird gebaut …");
+  busy.classList.add("show");busy.textContent="Hybrid-Vector-PDF wird gebaut …";setStatus("Hybrid-Vector-PDF wird gebaut …");
   const out=await PDFDocument.create(),font=await out.embedFont(StandardFonts.Helvetica);
   for(let i=0;i<pages.length;i++){
     const p=pages[i];busy.textContent=`PDF-Seite ${i+1} / ${pages.length}`;setProgress((i/pages.length)*100);
-    const img=await out.embedPng(p.pngBytes),page=out.addPage([p.width,p.height]);
+    const img=await out.embedPng(p.vectorPngBytes||p.pngBytes),page=out.addPage([p.width,p.height]);
     page.drawImage(img,{x:0,y:0,width:p.width,height:p.height});
-    for(const r of allText(p)){
+    for(const r of p.ocr){
       const b=r.bbox,text=safePdfText(font,r.text);if(!text)continue;
-      const h=Math.max(2,b.y1-b.y0),size=Math.max(2,Math.min(h*.82,24));
-      const x=Math.max(0,b.x0),y=Math.max(0,p.height-b.y1);
-      // Invisible PDF text: visual output remains the baked original, but text is searchable/selectable.
-      page.drawText(text,{x,y,size,font,color:rgb(0,0,0),opacity:0,lineHeight:size});
+      const boxW=Math.max(2,b.x1-b.x0),boxH=Math.max(2,b.y1-b.y0);
+      const widthAt1=Math.max(.01,font.widthOfTextAtSize(text,1));
+      const size=Math.max(2,Math.min(boxH*.82,boxW/widthAt1));
+      const x=Math.max(0,b.x0),y=Math.max(0,p.height-b.y1+(boxH-size)*.45);
+      const col=r.vectorStyle?.rgb||[.07,.07,.07];
+      page.drawText(text,{x,y,size,font,color:rgb(col[0],col[1],col[2]),lineHeight:size});
     }
     if(i%2===1)await new Promise(requestAnimationFrame);
   }
   out.setTitle(sanitizeName(sourceName));
-  out.setSubject("ALANTU searchable PDF · Unlimited-OCR 3B");
-  out.setProducer("ALANTU Unlimited-OCR 3B");
+  out.setSubject("ALANTU hybrid vector PDF · image text converted to visible PDF text");
+  out.setProducer("ALANTU OCR → vector text");
   const bytes=await out.save({useObjectStreams:false});
-  setProgress(100);setStatus("Finales PDF fertig · Originalbild + echter Textlayer.","ok");busy.classList.remove("show");setTimeout(()=>setProgress(0),900);
+  setProgress(100);setStatus("Hybrid-Vector-PDF fertig · erkannter Bildtext ist sichtbarer PDF-Text.","ok");busy.classList.remove("show");setTimeout(()=>setProgress(0),900);
   return new Blob([bytes],{type:"application/pdf"});
 }
 async function downloadPdf(){
   downloadPdfBtn.disabled=true;
-  try{const blob=await buildSearchablePdf();if(blob)downloadBlob(blob,sanitizeName(sourceName)+"-searchable.pdf")}
+  try{const blob=await buildVectorPdf();if(blob)downloadBlob(blob,sanitizeName(sourceName)+"-vectorized.pdf")}
   catch(err){console.error(err);setStatus("PDF-Export fehlgeschlagen: "+err.message,"error");busy.classList.remove("show")}
   finally{downloadPdfBtn.disabled=false}
 }
 function downloadSvg(){
-  try{const svg=buildMergedSvg();downloadBlob(new Blob([svg],{type:"image/svg+xml;charset=utf-8"}),sanitizeName(sourceName)+"-searchable.svg")}
+  try{const svg=buildMergedSvg();downloadBlob(new Blob([svg],{type:"image/svg+xml;charset=utf-8"}),sanitizeName(sourceName)+"-vectorized.svg")}
   catch(err){console.error(err);setStatus("SVG-Export fehlgeschlagen: "+err.message,"error")}
 }
 
 async function clearDocument(){
-  loadToken++;for(const p of pages)try{URL.revokeObjectURL(p.previewUrl)}catch{}
+  loadToken++;for(const p of pages){for(const u of [p.previewUrl,p.vectorPreviewUrl,p.vectorRasterUrl])try{if(u&&u!==p.previewUrl)URL.revokeObjectURL(u)}catch{};try{URL.revokeObjectURL(p.previewUrl)}catch{}}
   pages=[];currentPage=0;beforeImg.removeAttribute("src");afterImg.removeAttribute("src");overlayBefore.removeAttribute("src");overlayAfter.removeAttribute("src");
   afterOverlay.innerHTML="";overlayBoxes.innerHTML="";downloadPdfBtn.disabled=true;downloadSvgBtn.disabled=true;prevBtn.disabled=true;nextBtn.disabled=true;
   sideGrid.hidden=true;overlayWrap.hidden=true;overlayStage.hidden=true;
