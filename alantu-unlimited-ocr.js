@@ -16,6 +16,10 @@ const MODEL={
 };
 const MAX_PAGES=60;
 const RENDER_LONG_EDGE=2200;
+// Unlimited-OCR's DeepEncoder base path is a 1024×1024 vision input.
+// Feeding the full 2200px preview into wllama WebGPU made ggml dispatch
+// >65,535 workgroups and hard-aborted the WASM runtime on real browsers.
+const OCR_LONG_EDGE=1024;
 const QUERY=new URLSearchParams(location.search);
 const MOCK_OCR=QUERY.get("mockOcr")==="1";
 const MOCK_OCR_DELAY=Math.max(0,Number(QUERY.get("mockOcrDelay"))||0);
@@ -61,6 +65,28 @@ function canvasToBlob(canvas,type="image/png",quality=.98){
   return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error("Seite konnte nicht gebacken werden.")),type,quality));
 }
 async function blobToArrayBuffer(blob){return blob.arrayBuffer()}
+
+function makeOcrCanvas(source){
+  const longEdge=Math.max(source.width,source.height);
+  const scale=Math.min(1,OCR_LONG_EDGE/Math.max(1,longEdge));
+  const out=document.createElement("canvas");
+  out.width=Math.max(1,Math.round(source.width*scale));
+  out.height=Math.max(1,Math.round(source.height*scale));
+  const ctx=out.getContext("2d",{alpha:false});
+  ctx.fillStyle="#fff";ctx.fillRect(0,0,out.width,out.height);
+  ctx.imageSmoothingEnabled=true;
+  ctx.imageSmoothingQuality="high";
+  ctx.drawImage(source,0,0,out.width,out.height);
+  window.__alantuUocrDebug=window.__alantuUocrDebug||{};
+  window.__alantuUocrDebug.lastOcrInput={
+    width:out.width,
+    height:out.height,
+    longEdge:Math.max(out.width,out.height),
+    sourceWidth:source.width,
+    sourceHeight:source.height
+  };
+  return out;
+}
 
 function hasRasterImages(opList){
   const O=pdfjsLib.OPS;
@@ -181,15 +207,27 @@ async function ensureModel(){
       if(!gpu)throw err;
       try{await wllama?.exit()}catch{}
       wllama=null;
-      setStatus("WebGPU reicht nicht aus · Unlimited-OCR läuft auf CPU weiter …");
+      setStatus("WebGPU konnte nicht gestartet werden · Unlimited-OCR läuft auf CPU/WASM weiter …");
       wllama=await createRuntime(false);
       modelGpu=false;
     }
     modelLoaded=true;
-    mEngine.textContent=`Unlimited-OCR 3B · ${modelGpu?"WebGPU":"CPU"}`;
+    mEngine.textContent=`Unlimited-OCR 3B · ${modelGpu?"WebGPU":"CPU/WASM"}`;
     return wllama;
   })().finally(()=>{modelPromise=null});
   return modelPromise;
+}
+
+async function restartOnCpu(){
+  try{await wllama?.exit()}catch{}
+  wllama=null;modelLoaded=false;modelGpu=false;
+  busy.classList.add("show");
+  busy.textContent="WebGPU-Grenze erkannt · starte Unlimited-OCR auf CPU/WASM neu …";
+  setStatus("WebGPU-Grenze erkannt · sicherer CPU/WASM-Fallback wird gestartet …");
+  wllama=await createRuntime(false);
+  modelLoaded=true;
+  mEngine.textContent="Unlimited-OCR 3B · CPU/WASM Fallback";
+  return wllama;
 }
 async function runUnlimited(imageBuffer){
   if(MOCK_OCR){
@@ -223,6 +261,12 @@ async function runUnlimited(imageBuffer){
     const message=String(err?.message||err||"");
     if(/Failed to format input|Failed to tokenize prompt/i.test(message)){
       throw new Error("Unlimited-OCR Prompt-Format fehlgeschlagen. Bitte Seite neu laden; der aktuelle Browser-Code verwendet bereits den korrigierten llama.cpp-Server-Prompt ohne Chat-Template.");
+    }
+    if(modelGpu&&/(ABORT|unreachable|workgroup|WebGPU|GPU|CommandBuffer)/i.test(message)){
+      const cpu=await restartOnCpu();
+      busy.textContent="Unlimited-OCR 3B erkennt Bildtext · CPU/WASM Fallback …";
+      const response=await cpu.createChatCompletion(request);
+      return response?.choices?.[0]?.message?.content||"";
     }
     throw err;
   }
@@ -264,8 +308,13 @@ async function convertPage(pageNo,token,onPreview=()=>{}){
 
   let ocr=[],rawOcr="";
   if(provisional.usedAi){
-    const inputBlob=await canvasToBlob(canvas,"image/jpeg",.94);
+    // Keep the 2200px raster for visual fidelity, but feed the model only its
+    // native 1024px vision resolution. This prevents WebGPU workgroup overflow
+    // without reducing the final PDF/preview resolution.
+    const ocrCanvas=makeOcrCanvas(canvas);
+    const inputBlob=await canvasToBlob(ocrCanvas,"image/jpeg",.94);
     rawOcr=await runUnlimited(await blobToArrayBuffer(inputBlob));
+    ocrCanvas.width=1;ocrCanvas.height=1;
     if(token!==loadToken)throw new Error("cancelled");
     ocr=filterNativeDuplicates(parseUnlimited(rawOcr,base.width,base.height),native);
   }
