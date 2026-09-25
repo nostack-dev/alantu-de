@@ -240,7 +240,7 @@ jobs:
           grep -q "var phase='NEUTRAL / WARTEN'" index.html
           grep -q 'Number(s.horizon_events)!==100' index.html
           grep -q 'function connectMicrostructureRelay' index.html
-          grep -Fq "function chartEvents(){return ['mousemove','mouseout','click','touchstart','touchmove'];}" index.html
+          grep -Fq "function chartEvents(){return ['click','touchstart','touchmove'];}" index.html
           grep -q "enabled:true,mode:'nearest'" index.html
           grep -q "function compositeDayPriceSession" index.html
           grep -q "orcl-germany-minute.json" index.html
