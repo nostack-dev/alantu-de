@@ -37,9 +37,10 @@ jobs:
         run: |
           set -euo pipefail
           grep -q 'SVGGraphics' pdf-convert-anchor.html
-          grep -q 'data-pdf-text' pdf-convert-anchor.html
-          grep -q 'Text→SVG 100%' pdf-convert-anchor.html
-          grep -q 'downloadCurrentSvg' pdf-convert-anchor.html
+          grep -q 'tesseract.js@5.1.1' pdf-convert-anchor.html
+          grep -q 'data-baked-diff' pdf-convert-anchor.html
+          grep -q 'data-ocr-word' pdf-convert-anchor.html
+          grep -q 'buildMergedSvg' pdf-convert-anchor.html
           grep -q 'fontExtraProperties:true' pdf-convert-anchor.html
 
       - name: Wait for live SVG converter
@@ -49,7 +50,9 @@ jobs:
           for i in $(seq 1 30); do
             if curl -fsSL --max-time 20 "https://www.alantu.de/pdf-convert-anchor.html?smoke=${{ github.sha }}" -o /tmp/pdf-convert-live.html \
               && grep -q 'SVGGraphics' /tmp/pdf-convert-live.html \
-              && grep -q 'Text→SVG 100%' /tmp/pdf-convert-live.html \
+              && grep -q 'tesseract.js@5.1.1' /tmp/pdf-convert-live.html \
+              && grep -q 'data-baked-diff' /tmp/pdf-convert-live.html \
+              && grep -q 'buildMergedSvg' /tmp/pdf-convert-live.html \
               && grep -q 'fontExtraProperties:true' /tmp/pdf-convert-live.html; then
               exit 0
             fi
@@ -61,7 +64,7 @@ jobs:
       - name: Install Playwright
         shell: bash
         run: |
-          npm install --no-save playwright@1.55.0
+          npm install --no-save playwright@1.55.0 pdf-lib@1.17.1
           npx playwright install --with-deps chromium
 
       - name: Run real PDF to SVG smoke
@@ -80,10 +83,10 @@ jobs:
         run: |
           if [ "$JOB_STATUS" = "success" ]; then
             state=success
-            description="PDF SVG text 100% live and tested"
+            description="Hybrid SVG native plus OCR live and tested"
           else
             state=failure
-            description="PDF SVG conversion smoke failed"
+            description="Hybrid SVG conversion smoke failed"
           fi
           curl -fsS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
