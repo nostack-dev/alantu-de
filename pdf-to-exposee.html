@@ -425,6 +425,13 @@
       touch-action:none!important;
     }
 
+    /* Embedded viewer: same PDF-to-Exposé renderer, without builder chrome. */
+    html.embed,html.embed body{width:100%;height:100%;min-width:0;overflow:hidden;background:transparent}
+    html.embed .topbar,html.embed .layout>.panel{display:none!important}
+    html.embed .shell.layout{width:100%;max-width:none;height:100%;margin:0;padding:0;display:block}
+    html.embed .viewer-card{position:relative;top:auto;width:100%;height:100%;min-height:0}
+    html.embed .stage{width:100%;height:100%;min-height:0;aspect-ratio:auto;border-radius:inherit}
+
 </style>
 </head>
 <body>
@@ -554,10 +561,16 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
     import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand310";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, sanitizeAlantuCoverTitle, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand308";
     import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view404";
 
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
+
+    const queryParams=new URLSearchParams(location.search);
+    const embedMode=queryParams.get("embed")==="1";
+    const forcedTitle=queryParams.get("title")||"";
+    if(embedMode)document.documentElement.classList.add("embed");
+
 
     const MAX_PAGES=40;
     const MAX_TEXTURE_EDGE_DESKTOP=3072;
@@ -707,6 +720,23 @@
       return [side(),side(),side(),side(),exterior,interior];
     }
 
+    function hardcoverPageMaterials(pageCanvas){
+      const texture=createTexture(pageCanvas);
+      const side=()=>coverMaterial.clone();
+      const exterior=new THREE.MeshStandardMaterial({
+        map:texture,
+        color:0xffffff,
+        roughness:.72,
+        metalness:.03
+      });
+      const interior=new THREE.MeshStandardMaterial({
+        color:0x2b2924,
+        roughness:.94,
+        metalness:0
+      });
+      return [side(),side(),side(),side(),exterior,interior];
+    }
+
     function cleanBrandValue(value,fallback){
       const text=String(value??"").replace(/[\r\n\t]+/g," ").replace(/\s+/g," ").trim();
       return text||fallback;
@@ -717,7 +747,7 @@
       currentSubtitle=cleanBrandValue(subtitleInput?.value,"Exposé");
       if(brandPreview)brandPreview.textContent=currentBrand;
 
-      if(frontCover){
+      if(frontCover&&!frontCoverUsesPdf){
         disposeMaterial(frontCover.material);
         frontCover.material=hardcoverMaterials(currentCoverTitle);
       }
@@ -729,6 +759,7 @@
     let pageTextures=[];
     let leafRoots=[];
     let frontCover=null;
+    let frontCoverUsesPdf=false;
     let frontCoverPivot=null;
     let backCover=null;
     let endCoverPivot=null;
@@ -788,6 +819,7 @@
         disposeMaterial(frontCover.material);
         frontCover=null;
       }
+      frontCoverUsesPdf=false;
       if(frontCoverPivot){
         root.remove(frontCoverPivot);
         frontCoverPivot=null;
@@ -1089,8 +1121,9 @@
       // Match the proven main-page hardcover geometry exactly:
       // main = 3.85 × 5.15 around 3.52 × 4.80 paper.
       // Keep those physical overhangs for arbitrary PDF aspect ratios.
-      const COVER_W=PAGE_W+.33;
-      const COVER_H=PAGE_H+.35;
+      const COVER_SCALE=1.055;
+      const COVER_W=PAGE_W*COVER_SCALE;
+      const COVER_H=PAGE_H*COVER_SCALE;
       const COVER_T=.16;
       // Same hinge as the sheet geometry. All extra cover width belongs
       // to the outer edge, never between page and binding.
@@ -1104,8 +1137,9 @@
 
       frontCover=new THREE.Mesh(
         new THREE.BoxGeometry(COVER_W,COVER_H,COVER_T),
-        hardcoverMaterials(currentCoverTitle)
+        hardcoverPageMaterials(normalized[0])
       );
+      frontCoverUsesPdf=true;
       frontCover.position.set(COVER_W/2,0,0);
       frontCover.castShadow=true;
       frontCover.receiveShadow=true;
@@ -1270,6 +1304,22 @@
       }
     }
 
+    async function loadPdfFromUrl(url){
+      const response=await fetch(url,{cache:"no-store"});
+      if(!response.ok)throw new Error("Demo-PDF HTTP "+response.status);
+      const blob=await response.blob();
+      const name=forcedTitle
+        ? forcedTitle.replace(/[^a-z0-9äöüß]+/gi,"-").replace(/^-+|-+$/g,"")+".pdf"
+        : (url.split("/").pop()?.split("?")[0]||"Exposé.pdf");
+      const file=new File([blob],name,{type:"application/pdf"});
+      await loadPdf(file);
+    }
+
+    if(queryParams.has("brand"))brandInput.value=queryParams.get("brand")||brandInput.value;
+    if(queryParams.has("subtitle"))subtitleInput.value=queryParams.get("subtitle")||subtitleInput.value;
+    refreshBranding();
+    if(queryParams.get("controls")==="1")stage.classList.add("debug-controls");
+
     input.addEventListener("change",()=>loadPdf(input.files?.[0]));
     brandInput.addEventListener("input",refreshBranding);
     subtitleInput.addEventListener("input",refreshBranding);
@@ -1328,6 +1378,14 @@
     refreshBranding();
     bookCore.reset(0);
     render();
+
+    const preloadPdf=queryParams.get("pdf");
+    if(preloadPdf){
+      loadPdfFromUrl(preloadPdf).catch(err=>{
+        console.error(err);
+        setStatus(err?.message||"Demo-PDF konnte nicht geladen werden.","error");
+      });
+    }
   </script>
 </body>
 </html>
