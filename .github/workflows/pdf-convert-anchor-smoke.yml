@@ -40,10 +40,13 @@ jobs:
           grep -q 'alantu-unlimited-ocr.js' pdf-convert-anchor.html
           grep -q '@wllama/wllama@3.6.1' alantu-unlimited-ocr.js
           grep -q 'src/wasm/wllama.wasm' alantu-unlimited-ocr.js
-          grep -q 'Unlimited-OCR-Q4_K_M.gguf' alantu-unlimited-ocr.js
-          grep -q 'mmproj-Unlimited-OCR-F16.gguf' alantu-unlimited-ocr.js
+          grep -q 'sabafallah/Unlimited-OCR-GGUF' alantu-unlimited-ocr.js
+          grep -q 'mmprojQuant:"Q8_0"' alantu-unlimited-ocr.js
           grep -q 'buildSearchablePdf' alantu-unlimited-ocr.js
-          grep -q 'const OCR_LONG_EDGE=768' alantu-unlimited-ocr.js
+          grep -q 'loadModelFromHF' alantu-unlimited-ocr.js
+          grep -q 'chat_template:"deepseek-ocr"' alantu-unlimited-ocr.js
+          grep -q 'jinja:false' alantu-unlimited-ocr.js
+          grep -q 'const OCR_LONG_EDGE=1024' alantu-unlimited-ocr.js
           grep -q 'makeOcrCanvas' alantu-unlimited-ocr.js
           grep -q 'n_gpu_layers:0' alantu-unlimited-ocr.js
           grep -q 'image_max_tokens:imageMaxTokens' alantu-unlimited-ocr.js
@@ -51,9 +54,8 @@ jobs:
           ! grep -q 'n_gpu_layers:gpu' alantu-unlimited-ocr.js
           ! grep -q 'restartOnCpu' alantu-unlimited-ocr.js
           grep -q 'mImageTextPercent' alantu-unlimited-ocr.js
-          grep -q 'text:"<|grounding|>OCR"' alantu-unlimited-ocr.js
+          grep -q 'text:"document parsing."' alantu-unlimited-ocr.js
           grep -q '{type:"image",data:imageBuffer}' alantu-unlimited-ocr.js
-          ! grep -q 'chat_template:"deepseek-ocr"' alantu-unlimited-ocr.js
           grep -q 'buildMergedSvg' alantu-unlimited-ocr.js
 
       - name: Wait for live Unlimited-OCR converter
@@ -66,15 +68,17 @@ jobs:
               && grep -q 'alantu-unlimited-ocr.js' /tmp/pdf-convert-live.html \
               && grep -q '@wllama/wllama@3.6.1' /tmp/unlimited-live.js \
               && grep -q 'src/wasm/wllama.wasm' /tmp/unlimited-live.js \
-              && grep -q 'Unlimited-OCR-Q4_K_M.gguf' /tmp/unlimited-live.js \
-              && grep -q 'const OCR_LONG_EDGE=768' /tmp/unlimited-live.js \
+              && grep -q 'sabafallah/Unlimited-OCR-GGUF' /tmp/unlimited-live.js \
+              && grep -q 'const OCR_LONG_EDGE=1024' /tmp/unlimited-live.js \
               && grep -q 'n_gpu_layers:0' /tmp/unlimited-live.js \
               && grep -q 'image_max_tokens:imageMaxTokens' /tmp/unlimited-live.js \
               && grep -q 'mmproj_offload:false' /tmp/unlimited-live.js \
               && ! grep -q 'n_gpu_layers:gpu' /tmp/unlimited-live.js \
               && grep -q 'mImageTextPercent' /tmp/unlimited-live.js \
-              && grep -q 'text:"<|grounding|>OCR"' /tmp/unlimited-live.js \
-              && ! grep -q 'chat_template:"deepseek-ocr"' /tmp/unlimited-live.js \
+              && grep -q 'text:"document parsing."' /tmp/unlimited-live.js \
+              && grep -q 'loadModelFromHF' /tmp/unlimited-live.js \
+              && grep -q 'chat_template:"deepseek-ocr"' /tmp/unlimited-live.js \
+              && grep -q 'jinja:false' /tmp/unlimited-live.js \
               && grep -q 'buildSearchablePdf' /tmp/unlimited-live.js; then
               exit 0
             fi
@@ -89,8 +93,8 @@ jobs:
           set -euo pipefail
           curl -fsSIL --max-time 30 "https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/esm/index.js" >/dev/null
           curl -fsSIL --max-time 30 "https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/src/wasm/wllama.wasm" >/dev/null
-          curl -fsSIL --max-time 30 "https://huggingface.co/sahilchachra/Unlimited-OCR-GGUF/resolve/main/Unlimited-OCR-Q4_K_M.gguf?download=true" >/dev/null
-          curl -fsSIL --max-time 30 "https://huggingface.co/sahilchachra/Unlimited-OCR-GGUF/resolve/main/mmproj-Unlimited-OCR-F16.gguf?download=true" >/dev/null
+          curl -fsSIL --max-time 30 "https://huggingface.co/sabafallah/Unlimited-OCR-GGUF/resolve/main/unlimited-ocr-Q4_K_M.gguf" >/dev/null
+          curl -fsSIL --max-time 30 "https://huggingface.co/sabafallah/Unlimited-OCR-GGUF/resolve/main/mmproj-unlimited-ocr-q8_0.gguf" >/dev/null
 
       - name: Install Playwright
         shell: bash
