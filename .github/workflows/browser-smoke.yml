@@ -13,31 +13,30 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: alantu-browser-smoke-main
+  cancel-in-progress: true
+
 jobs:
   live-browser-smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Wait for current Pages content
+      - name: Wait for exact current Pages content
         shell: bash
         run: |
           set -euo pipefail
-          for i in $(seq 1 30); do
-            if curl -fsSL --max-time 15 https://www.alantu.de/ -o /tmp/alantu-live.html \
-              && grep -Fq 'function priceScrubOverlayPlugin()' /tmp/alantu-live.html \
-              && grep -Fq 'function projectionZonePlugin()' /tmp/alantu-live.html \
-              && grep -Fq "function chartEvents(){return ['click','touchstart','touchmove'];}" /tmp/alantu-live.html \
-              && grep -Fq 'var cut=Date.now()-14*864e5,firstKeep=0' /tmp/alantu-live.html \
-              && grep -Fq 'if(bv>0&&t-bt<=36*3600000)return bv;' /tmp/alantu-live.html \
-              && grep -Fq 'data-price-range="1m"' /tmp/alantu-live.html \
-              && grep -Fq 'data-price-range="year"' /tmp/alantu-live.html \
-              && grep -Fq 'data-price-range="5y"' /tmp/alantu-live.html \
-              && grep -Fq 'data-price-range="all"' /tmp/alantu-live.html; then
+          for i in $(seq 1 45); do
+            if curl -fsSL --max-time 15 "https://www.alantu.de/?_=${GITHUB_SHA}" -o /tmp/alantu-live.html \
+              && cmp -s index.html /tmp/alantu-live.html; then
+              echo "Live HTML exactly matches checkout."
               exit 0
             fi
             sleep 10
           done
-          echo "Current ALANTU page did not expose the current chart-range build in time" >&2
+          echo "Live ALANTU HTML did not converge to this checkout." >&2
+          sha256sum index.html /tmp/alantu-live.html 2>/dev/null || true
           exit 1
 
       - name: Install Playwright

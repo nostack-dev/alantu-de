@@ -6,45 +6,12 @@ name: Keep ALANTU runtime current
 on:
   push:
     branches: ["main"]
-    paths-ignore:
-      - "fresh-sources.json"
-      - "stockstrend-data.json"
-      - "watchlist-data.json"
-      - "watchlist.json"
-      - "orcl-minute.json"
-      - "orcl-germany-minute.json"
-      - "orcl-history.json"
-      - "orcl-sentiment-history.json"
-      - "eurusd-history.json"
-      - "runtime-status.json"
-      - "microstructure-current.json"
-      - "microstructure-status.json"
-      - "microstructure-edge-status.json"
-      - "microstructure-live-config.json"
-      - "orcl-l2-model.json"
-      - "orcl-wave-model.json"
-      - "wave-model-core.js"
-      - "tools/l2-event-signal.mjs"
-      - "tools/test-l2-event-signal.mjs"
-      - "tools/databento-orcl-mbp10-backfill.py"
-      - "tools/databento-orcl-mbp10-live.py"
-      - "tools/train-orcl-l2-100.py"
-      - "tools/finalize-l2-model.mjs"
-      - "Dockerfile.l2-collector"
-      - ".github/workflows/orcl-l2-proof.yml"
-      - "market-relay/**"
-      - "tools/microstructure-core.mjs"
-      - "tools/microstructure-signal.mjs"
-      - "tools/alpaca-microstructure-backfill.mjs"
-      - "tools/alpaca-microstructure-live.mjs"
-      - "tools/validate-sip-edge.mjs"
-      - "tools/apply-micro-edge.mjs"
-      - "Dockerfile.market-relay"
-      - ".dockerignore.market-relay"
-      - ".github/workflows/microstructure-data.yml"
-      - ".github/workflows/microstructure-shadow.yml"
-      - ".github/workflows/microstructure-edge.yml"
-      - ".github/workflows/market-relay-image.yml"
+    paths:
+      - "tools/refresh-runtime-data.mjs"
+      - "tools/refresh-fresh-sources.mjs"
+      - "tools/merge-yahoo-minute.mjs"
+      - "tools/test-chart-data-contract.mjs"
+      - ".github/workflows/stockstrend-sync.yml"
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
@@ -152,6 +119,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          node tools/test-chart-data-contract.mjs
 
           grep -q 'id="livePrice"' index.html
           grep -q 'id="marketClock"' index.html
@@ -287,8 +255,13 @@ jobs:
           grep -q '!shockNotifyEnabled()||liveShockTimer' index.html
           grep -q 'devicePixelRatio:Math.min(2,window.devicePixelRatio||1)' index.html
           grep -q "priceRange==='1d'?180" index.html
-          grep -Fq 'var cut=Date.now()-14*864e5,firstKeep=0' index.html
-          grep -Fq 'if(bv>0&&t-bt<=36*3600000)return bv;' index.html
+          grep -Fq 'var cut=t-14*864e5,firstKeep=0' index.html
+          grep -Fq 'var HISTORICAL_FX_MAX_AGE_MS=7*864e5;' index.html
+          grep -Fq 'if(bv>0&&t-bt<=HISTORICAL_FX_MAX_AGE_MS)return bv;' index.html
+          grep -Fq "session.source==='us_orcl_fx'" index.html
+          grep -Fq 'var rangeRenderSeq={price:0,forecast:0,sentiment:0,magnitude:0,opinions:0};' index.html
+          grep -Fq 'compactCoverage(v.priceRows' index.html
+          grep -Fq 'function stablePriceYBounds' index.html
           ! grep -q 'function livePricePace' index.html
           ! grep -q 'function marketFlowVector' index.html
           ! grep -q 'void p.offsetWidth' index.html

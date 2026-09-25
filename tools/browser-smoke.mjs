@@ -153,28 +153,39 @@ async function run(name,viewport){
       bodyText:(document.body?.innerText||'').slice(0,4000)
     };
   });
+  const dayContract=await page.evaluate(()=>{
+    const v=valueSeries(),de=(orclGermanyBars||[]).filter(x=>Number.isFinite(new Date(x.at||0).getTime()));
+    return {source:v.source,rows:v.priceRows.length,lastAt:v.priceRows.length?new Date(v.priceRows[v.priceRows.length-1].at).getTime():null,germanLastAt:de.length?new Date(de[de.length-1].at).getTime():null};
+  });
   const rangeStates={};
   for(const range of ['1w','1m','year','5y','all']){
     await page.locator(`button[data-price-range="${range}"]`).click();
     await page.waitForTimeout(650);
-    rangeStates[range]=await page.evaluate(()=>({
-      range:typeof priceRange==='undefined'?null:priceRange,
-      points:typeof ivChart==='undefined'||!ivChart?0:(ivChart.data?.datasets?.[0]?.data||[]).length,
-      sourceRows:typeof valueSeries==='function'?valueSeries().priceRows.length:0,
-      xMin:ivChart?.scales?.x?.min??null,
-      xMax:ivChart?.scales?.x?.max??null,
-      yMin:ivChart?.scales?.y?.min??null,
-      yMax:ivChart?.scales?.y?.max??null,
-      overflow:document.documentElement.scrollWidth-window.innerWidth
-    }));
+    rangeStates[range]=await page.evaluate(()=>{
+      const v=valueSeries(),raw=priceRange==='1w'?filterByAt(orclMinuteBars||[],h=>h.at,priceRange):filterByAt(orclDailyBars||[],h=>h.at,priceRange);
+      const convertible=raw.filter(h=>Number.isFinite(usdToEur(h.close,h.at))&&usdToEur(h.close,h.at)>0).length;
+      const pts=(ivChart?.data?.datasets?.find(d=>d.label==='Kurs')?.data||[]),xs=pts.map(p=>Number(p.x)).filter(Number.isFinite).sort((a,b)=>a-b),ys=pts.map(p=>Number(p.y)).filter(Number.isFinite);
+      return {range:priceRange,source:v.source,points:pts.length,sourceRows:v.priceRows.length,rawRows:raw.length,convertible,coverage:raw.length?convertible/raw.length:0,finitePositive:pts.length>0&&ys.length===pts.length&&ys.every(y=>y>0),spanDays:xs.length>1?(xs.at(-1)-xs[0])/864e5:0,xMin:ivChart?.scales?.x?.min??null,xMax:ivChart?.scales?.x?.max??null,yMin:ivChart?.scales?.y?.min??null,yMax:ivChart?.scales?.y?.max??null,overflow:document.documentElement.scrollWidth-window.innerWidth};
+    });
     if(range==='1m')await page.screenshot({path:`${out}/${name}-1m.png`,fullPage:true});
   }
   const monthState=rangeStates['1m'];
+  const secondaryStates={sentiment:{},magnitude:{},forecast:{},opinions:{}};
+  for(const range of ['1d','1w','1m','year','5y','all']){
+    for(const kind of ['sentiment','magnitude']){
+      await page.evaluate(({kind,range})=>setChartRange(kind,range),{kind,range});await page.waitForTimeout(120);
+      secondaryStates[kind][range]=await page.evaluate((kind)=>{const chart=kind==='sentiment'?hypeChart:magChart,selected=kind==='sentiment'?sentimentRange:magnitudeRange,pts=(chart?.data?.datasets?.[0]?.data||[]);return {range:selected,exists:!!chart,points:pts.length,xMin:chart?.scales?.x?.min??null,xMax:chart?.scales?.x?.max??null,yMin:chart?.scales?.y?.min??null,yMax:chart?.scales?.y?.max??null};},kind);
+    }
+    await page.evaluate(r=>setChartRange('forecast',r),range);await page.waitForTimeout(80);
+    secondaryStates.forecast[range]=await page.evaluate(()=>({range:forecastRange,invalid:/\b(?:NaN|undefined)\b/.test(document.getElementById('forecastProofStrip')?.textContent||'')}));
+    await page.evaluate(r=>setChartRange('opinions',r),range);await page.waitForTimeout(80);
+    secondaryStates.opinions[range]=await page.evaluate(()=>({range:opinionsRange,exists:!!pieChart,data:(pieChart?.data?.datasets?.[0]?.data||[]).map(Number)}));
+  }
   await page.locator('button[data-price-range="1d"]').click();
   await page.waitForTimeout(400);
 
   await page.evaluate(()=>{
-    localStorage.setItem('alantu_price_range_v1','BROKEN_RANGE');
+    ['alantu_price_range_v1','alantu_forecast_range_v1','alantu_sentiment_range_v1','alantu_magnitude_range_v1','alantu_opinions_range_v1'].forEach(k=>localStorage.setItem(k,'BROKEN_RANGE'));
     localStorage.setItem('alantu_chart_open_v1','{broken-json');
     localStorage.setItem('alantu_intrinsic_visible_v1','0');
   });
@@ -182,7 +193,11 @@ async function run(name,viewport){
   await page.waitForTimeout(3500);
   const storageSanitized=await page.evaluate(()=>({
     priceRange:typeof priceRange==='undefined'?null:priceRange,
-    storedRange:localStorage.getItem('alantu_price_range_v1'),
+    forecastRange:typeof forecastRange==='undefined'?null:forecastRange,
+    sentimentRange:typeof sentimentRange==='undefined'?null:sentimentRange,
+    magnitudeRange:typeof magnitudeRange==='undefined'?null:magnitudeRange,
+    opinionsRange:typeof opinionsRange==='undefined'?null:opinionsRange,
+    storedRanges:{price:localStorage.getItem('alantu_price_range_v1'),forecast:localStorage.getItem('alantu_forecast_range_v1'),sentiment:localStorage.getItem('alantu_sentiment_range_v1'),magnitude:localStorage.getItem('alantu_magnitude_range_v1'),opinions:localStorage.getItem('alantu_opinions_range_v1')},
     chartOpenRaw:localStorage.getItem('alantu_chart_open_v1'),
     showIntrinsic:typeof showIntrinsic==='undefined'?null:showIntrinsic,
     pressed:document.getElementById('intrinsicToggle')?.getAttribute('aria-pressed'),
@@ -230,18 +245,20 @@ async function run(name,viewport){
     if(projectionTarget.available&&(!projectionInteraction||!projectionInteraction.active||projectionInteraction.kind!=='projection'))errors.push('projection-scrub-not-active:'+JSON.stringify({projectionTarget,projectionInteraction}));
   }
   if(!interactionState.priceAxis||interactionState.priceAxis.minBerlin!=='08:00'||interactionState.priceAxis.maxBerlin!=='22:00')errors.push('day-axis-not-08-22:'+JSON.stringify(interactionState.priceAxis));
-  if(storageSanitized.priceRange!=='1d'||storageSanitized.storedRange!=='1d'||storageSanitized.chartOpenRaw!=='{}')errors.push('local-storage-sanitize-failed:'+JSON.stringify(storageSanitized));
+  if(storageSanitized.priceRange!=='1d'||storageSanitized.forecastRange!=='1d'||storageSanitized.sentimentRange!=='1m'||storageSanitized.magnitudeRange!=='1m'||storageSanitized.opinionsRange!=='1m'||JSON.stringify(storageSanitized.storedRanges)!==JSON.stringify({price:'1d',forecast:'1d',sentiment:'1m',magnitude:'1m',opinions:'1m'})||storageSanitized.chartOpenRaw!=='{}')errors.push('local-storage-sanitize-failed:'+JSON.stringify(storageSanitized));
   if(storageSanitized.showIntrinsic!==false||storageSanitized.pressed!=='false'||storageSanitized.active!==false||storageSanitized.intrinsicHidden!==true)errors.push('intrinsic-storage-load-failed:'+JSON.stringify(storageSanitized));
   if(storageImmediate.showIntrinsic!==true||storageImmediate.stored!=='1'||storageImmediate.pressed!=='true'||storageImmediate.active!==true||storageImmediate.intrinsicHidden!==false)errors.push('intrinsic-toggle-needs-reload:'+JSON.stringify(storageImmediate));
   if(storageReloaded.showIntrinsic!==true||storageReloaded.stored!=='1'||storageReloaded.pressed!=='true'||storageReloaded.active!==true||storageReloaded.intrinsicHidden!==false)errors.push('intrinsic-toggle-persistence-failed:'+JSON.stringify(storageReloaded));
-  const minRangePoints={ '1w':20, '1m':10, year:50, '5y':200, all:500 };
+  if(dayContract.source==='germany_eur'&&Number.isFinite(dayContract.germanLastAt)&&dayContract.lastAt>dayContract.germanLastAt+1000)errors.push('day-chart-mixed-venues:'+JSON.stringify(dayContract));
+  const minRangePoints={ '1w':20, '1m':10, year:50, '5y':200, all:500 },minSpanDays={ '1w':3, '1m':20, year:300, '5y':1460, all:2920 },expectedSource={ '1w':'us_orcl_fx_minute','1m':'us_orcl_fx_daily',year:'us_orcl_fx_daily','5y':'us_orcl_fx_daily',all:'us_orcl_fx_daily' };
   for(const [range,rs] of Object.entries(rangeStates)){
     const finiteAxes=[rs.xMin,rs.xMax,rs.yMin,rs.yMax].every(Number.isFinite);
-    if(rs.range!==range||rs.points<(minRangePoints[range]||2)||rs.sourceRows<(minRangePoints[range]||2)||!finiteAxes||!(rs.xMax>rs.xMin)||!(rs.yMax>rs.yMin)){
-      errors.push('price-range-invalid-'+range+':'+JSON.stringify(rs));
-    }
+    if(rs.range!==range||rs.source!==expectedSource[range]||rs.points<(minRangePoints[range]||2)||rs.sourceRows<(minRangePoints[range]||2)||rs.rawRows<(minRangePoints[range]||2)||rs.coverage<.999||!rs.finitePositive||rs.spanDays<(minSpanDays[range]||0)||!finiteAxes||!(rs.xMax>rs.xMin)||!(rs.yMax>rs.yMin)||rs.yMin<0)errors.push('price-range-invalid-'+range+':'+JSON.stringify(rs));
     if(rs.overflow>4)errors.push('price-range-horizontal-overflow-'+range+':'+rs.overflow);
   }
+  for(const kind of ['sentiment','magnitude'])for(const [range,rs] of Object.entries(secondaryStates[kind])){const axes=[rs.xMin,rs.xMax,rs.yMin,rs.yMax];if(rs.range!==range||!rs.exists||rs.points<1||!axes.every(Number.isFinite)||!(rs.xMax>rs.xMin)||!(rs.yMax>rs.yMin))errors.push(kind+'-range-invalid-'+range+':'+JSON.stringify(rs));}
+  for(const [range,rs] of Object.entries(secondaryStates.forecast))if(rs.range!==range||rs.invalid)errors.push('forecast-range-invalid-'+range+':'+JSON.stringify(rs));
+  for(const [range,rs] of Object.entries(secondaryStates.opinions))if(rs.range!==range||!rs.exists||rs.data.length!==3||!rs.data.every(Number.isFinite)||rs.data.some(v=>v<0))errors.push('opinions-range-invalid-'+range+':'+JSON.stringify(rs));
   if(wgoState.disabled||/nicht erreichbar|Frontend-Abbruch/i.test(wgoState.answer+' '+wgoState.meta)||!wgoState.answer)errors.push('wgo-live-failed:'+JSON.stringify(wgoState));
   if(!wgoState.open)errors.push('wgo-not-openable:'+JSON.stringify(wgoState));
   if(wgoState.hasFiveMinute)errors.push('wgo-five-minute-still-present');
@@ -264,7 +281,7 @@ async function run(name,viewport){
   if(!state.forecastCollapsed)errors.push('forecast-not-collapsed-by-default');
   if(!/MODELLSTATUS: (KAUFSIGNAL|KEIN KAUFSIGNAL|VERKAUFSSIGNAL)/.test(state.modelDecisionText))errors.push('model-decision-missing');
 
-  console.log(JSON.stringify({name,url,state,interactionState,projectionTarget,projectionInteraction,rangeStates,monthState,wgoState,wgoMonthState,storageSanitized,storageImmediate,storageReloaded,consoleErrors,pageErrors,httpErrors:allowedHttp,failed:allowedFailed,ok:errors.length===0,errors},null,2));
+  console.log(JSON.stringify({name,url,state,interactionState,projectionTarget,projectionInteraction,dayContract,rangeStates,secondaryStates,monthState,wgoState,wgoMonthState,storageSanitized,storageImmediate,storageReloaded,consoleErrors,pageErrors,httpErrors:allowedHttp,failed:allowedFailed,ok:errors.length===0,errors},null,2));
   await browser.close();
   if(errors.length)throw new Error(name+' smoke failed: '+errors.join(' | '));
 }

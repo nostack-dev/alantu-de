@@ -15,6 +15,11 @@ on:
       - 'tools/test-sqlite-v6.mjs'
       - 'tools/test-sqlite-store.mjs'
       - 'tools/test-data-contract.mjs'
+      - 'tools/test-chart-data-contract.mjs'
+      - 'index.html'
+      - 'stockstrend.html'
+      - 'tools/refresh-runtime-data.mjs'
+      - 'microstructure-live-config.json'
       - '.github/workflows/data-contract.yml'
   workflow_dispatch:
 
@@ -29,6 +34,7 @@ jobs:
       - name: First-principles data invariants
         run: |
           node tools/test-data-contract.mjs
+          node tools/test-chart-data-contract.mjs
           node tools/test-yahoo-stream-contract.mjs
           node tools/test-market-clock.mjs
           cd market-relay && npm install --ignore-scripts=false && cd ..

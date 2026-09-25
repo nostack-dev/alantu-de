@@ -294,7 +294,7 @@ const microstructureBootstrap = {
   mode: 'shadow-live',
   configured: true,
   at,
-  quality: {usable:false, reasons:['awaiting_railway_sse']},
+  quality: {usable:false, reasons:['static_bootstrap_replaced_by_railway_poll']},
   minutes: [],
   live_signal: null,
   shadow_signal: null,
@@ -309,7 +309,7 @@ const microstructureBootstrap = {
     shadow_only:true,
     horizons:[1,5,15,30].map(h=>({horizon_minutes:h,status:'shadow',proof:{n:0,hit:null,mean_gross_bps:null,mode:'shadow_only'}}))
   },
-  wave_forecast: {status:'blocked', reason:'awaiting_railway_sse', source:'yahoo_shadow'},
+  wave_forecast: {status:'blocked', reason:'awaiting_live_poll', source:'yahoo_shadow'},
   l2: {status:'retired', provider:'databento', reason:'replaced_by_event_wave'}
 };
 
