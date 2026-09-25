@@ -210,6 +210,8 @@
   .projection-hint{display:flex;align-items:center;gap:6px;margin:2px 0 3px;font-size:10px;line-height:1.2;color:#696975;font-variant-numeric:tabular-nums}
   .projection-hint[hidden]{display:none!important}
   .projection-hint strong{color:#4857d6;font-weight:820}
+  .projection-live-value{color:#4857d6;font-size:13px;font-weight:850;letter-spacing:-.01em;margin-left:1px;white-space:nowrap}
+  .projection-live-delta{color:#6c76d9;font-weight:750;white-space:nowrap}
   .projection-swatch{width:20px;height:0;border-top:2px dashed #5b6cff;display:inline-block;flex:0 0 auto}
   @media(max-width:700px){.mini-range button,.line-toggle{font-size:9px}.mini-range{margin-top:4px}.projection-hint{font-size:9px;gap:5px}.projection-hint span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
   .sentiment-source{font-size:12px;line-height:1.4;color:#74747c;margin:6px 0 9px;font-variant-numeric:tabular-nums}
@@ -875,7 +877,7 @@
       <div class="model-decision-meta">Gate noch nicht bestanden · warten</div>
     </div>
     <div class="chart-sub"><span id="ivCoverage"></span></div>
-    <div class="projection-hint" id="projectionHint" hidden><span class="projection-swatch"></span><strong>Live-Projektion</strong><span>1 / 5 / 15 / 30 Min · Hover oder ziehen</span></div>
+    <div class="projection-hint" id="projectionHint" hidden><span class="projection-swatch"></span><strong>Live-Projektion</strong><span class="projection-live-value" id="projectionLiveValue">—</span><span class="projection-live-delta" id="projectionLiveDelta"></span><span>30 Min · Hover oder ziehen</span></div>
     <div class="chart-wrap chart-wrap-lg"><canvas id="ivChart"></canvas></div>
     <div class="mini-range" id="priceRange" aria-label="Zeitraum Kurs und Wert">
       <button type="button" data-price-range="1d">1T</button><button type="button" data-price-range="1w">1W</button><button type="button" data-price-range="1m">1M</button><button type="button" data-price-range="year">1J</button><button type="button" data-price-range="5y">5J</button><button type="button" data-price-range="all">MAX</button>
@@ -2168,11 +2170,12 @@ function trajectoryPathMeta(path,bands,rows){
   var band=bands&&bands.length?bands[bands.length-1]:null;
   return {dir:dir,end_bps:endBps,agree:agree,total:rows.length,turn:turn,band_bps:band?band.bps:null};
 }
-function renderTrajectoryNote(meta){
-  var el=document.getElementById('trajectoryNote'),hint=document.getElementById('projectionHint');
+function renderTrajectoryNote(meta,path){
+  var el=document.getElementById('trajectoryNote'),hint=document.getElementById('projectionHint'),value=document.getElementById('projectionLiveValue'),delta=document.getElementById('projectionLiveDelta');
   if(!meta){
     if(el)el.innerHTML='<span><strong>1T Projektionspfad</strong> · wartet auf Live-Modell</span><span>Shadow · keine Kurszusage</span>';
     if(hint)hint.hidden=true;
+    if(value)value.textContent='—';if(delta)delta.textContent='';
     return;
   }
   var dir=meta.dir>0?'aufwärts':meta.dir<0?'abwärts':'seitwärts';
@@ -2180,6 +2183,12 @@ function renderTrajectoryNote(meta){
   var turn=meta.turn?(' · Dreht ~'+meta.turn+'m'):'';
   var band=isFinite(meta.band_bps)?(' · Band ±'+meta.band_bps.toFixed(1)+' bp'):'';
   if(el)el.innerHTML='<span><strong>'+dir+' '+move+'</strong> · Konsens '+meta.agree+'/'+meta.total+turn+band+'</span><span>Pfad statt Punktwolke · Shadow</span>';
+  var end=path&&path.length?path[path.length-1]:null,start=path&&path.length?path[0]:null;
+  if(value)value.textContent=end&&isFinite(Number(end.y))?euro(Number(end.y),2):'—';
+  if(delta){
+    var pct=end&&start&&Number(start.y)>0?(Number(end.y)/Number(start.y)-1)*100:NaN;
+    delta.textContent=isFinite(pct)?((pct>=0?'+':'')+pct.toFixed(2).replace('.',',')+' %'):'';
+  }
   if(hint){hint.hidden=false;hint.setAttribute('data-projection-active','1');}
 }
 function trajectoryDatasets(pts,session){
@@ -2226,7 +2235,7 @@ function trajectoryDatasets(pts,session){
     pointRotation:function(ctx){return turns[ctx.dataIndex]?90:0;},
     pointHoverRadius:6,borderWidth:2.6
   });
-  renderTrajectoryNote(trajectoryPathMeta(path,bands,rows));
+  renderTrajectoryNote(trajectoryPathMeta(path,bands,rows),path);
   return sets;
 }
 function trajectoryAxisMax(pts,session){
