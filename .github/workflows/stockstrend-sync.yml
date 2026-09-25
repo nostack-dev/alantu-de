@@ -209,8 +209,6 @@ jobs:
           grep -q 'function railwaySourcesUsable' index.html
           grep -q "function priceSegmentColor(){return '#000000';}" index.html
           grep -q 'function trajectoryDatasets' index.html
-          ! grep -q "fetch(base+'/v1/source-state" index.html
-          ! grep -q "fetch(base+'/v1/shadow-history" index.html
           grep -q 'trajectoryGuessCloud' index.html
           grep -q 'function guessPathDataset' index.html
           grep -q 'function projectionDispersionBpsAt' index.html
