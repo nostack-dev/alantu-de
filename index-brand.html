@@ -138,9 +138,6 @@
       border:1px solid rgba(13,13,11,.08);
       isolation:isolate;
       touch-action:pan-y;
-      overscroll-behavior:contain;
-      -webkit-user-select:none;
-      user-select:none;
     }
     .stage:after{
       content:"";
@@ -621,8 +618,8 @@
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=touch-axis-lock1";
-    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=prepdf-fix1";
+    import { createAlantuBookCore, computeAlantuBookSupportZ, configureAlantuPageTexture, createAlantuCoverCanvas, computeAlantuLeafStackStep } from "./alantu-book-core.js?v=brand308";
+    import { createAlantuBookViewControls, createAlantuFullscreenController } from "./alantu-book-view.js?v=view404";
 
     const canvas = document.getElementById("bookCanvas");
     canvas.addEventListener("contextmenu",e=>e.preventDefault());
@@ -721,11 +718,7 @@
     const goldMat = new THREE.MeshStandardMaterial({color:0xb89a63,roughness:.4,metalness:.35});
 
     function hardcoverMaterials(title){
-      const canvas=createAlantuCoverCanvas({
-        title,
-        brand:"SUNSIDE LIVING",
-        subtitle:"18 Eigentumswohnungen · Kindlebildstraße 13 + 13a"
-      });
+      const canvas=createAlantuCoverCanvas({title});
       const texture=configureAlantuPageTexture(new THREE.CanvasTexture(canvas),{
         renderer,
         linearFilter:THREE.LinearFilter,
@@ -790,15 +783,16 @@
       ctx.fillStyle="#f4f0e8";ctx.fillRect(0,0,900,1220);
 
       if(index===0){
-        const cover=createAlantuCoverCanvas({
-          title:"Konstanz Wollmatingen Exposé",
-          brand:"SUNSIDE LIVING",
-          subtitle:"18 Eigentumswohnungen · Kindlebildstraße 13 + 13a",
-          width:900,
-          height:1220
-        });
-        ctx.setTransform(1,0,0,1,0,0);
-        ctx.drawImage(cover,0,0,900*TEX_SCALE,1220*TEX_SCALE);
+        const g=ctx.createLinearGradient(0,0,900,1220);
+        g.addColorStop(0,"#1c211e");g.addColorStop(.55,"#2c332e");g.addColorStop(1,"#10120f");
+        ctx.fillStyle=g;ctx.fillRect(0,0,900,1220);
+        ctx.fillStyle="rgba(255,255,255,.055)";
+        for(let i=0;i<18;i++){ctx.fillRect(0,70+i*68,900,1)}
+        ctx.fillStyle="#c4a66d";ctx.font="600 27px Arial";ctx.letterSpacing="7px";ctx.fillText("SUNSIDE LIVING",70,88);
+        ctx.fillStyle="#f5f0e6";ctx.font="56px Georgia";ctx.fillText("Konstanz Wollmatingen Exposé",70,825);
+        ctx.font="28px Arial";ctx.fillStyle="#d7cfc1";ctx.fillText("Starnberger See · Bayern",72,875);
+        ctx.fillStyle="#c4a66d";ctx.fillRect(72,930,74,3);
+        ctx.font="600 18px Arial";ctx.fillStyle="#e8e0d2";ctx.fillText("PRIVATE RESIDENCE",72,987);
       }else if(index===1){
         ctx.fillStyle="#161814";ctx.fillRect(48,48,804,610);
         const g=ctx.createLinearGradient(48,48,852,658);
