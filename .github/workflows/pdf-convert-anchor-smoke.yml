@@ -25,7 +25,7 @@ jobs:
       - name: Guard source
         run: |
           set -euo pipefail
-          grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-10' pdf-convert-anchor.html
+          grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-11' pdf-convert-anchor.html
           grep -q 'from "./vendor/unlimited-ocr-browser-engine.js"' alantu-unlimited-ocr.js
           grep -q 'function fetchWithRetry' alantu-unlimited-ocr.js
           grep -q 'withHeartbeat' alantu-unlimited-ocr.js
@@ -63,7 +63,7 @@ jobs:
             if curl -fsSL --max-time 20 "https://www.alantu.de/pdf-convert-anchor.html?smoke=${{ github.sha }}" -o /tmp/page.html \
               && curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?smoke=${{ github.sha }}" -o /tmp/uocr.js \
               && curl -fsSL --max-time 20 "https://www.alantu.de/vendor/unlimited-ocr-browser-engine.js?smoke=${{ github.sha }}" -o /tmp/engine.js \
-              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-10' /tmp/page.html \
+              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-11' /tmp/page.html \
               && grep -q 'function fetchWithRetry' /tmp/uocr.js \
               && grep -q 'withHeartbeat' /tmp/uocr.js \
               && grep -q 'diagnoseLocalOcrBottleneck' /tmp/uocr.js \
