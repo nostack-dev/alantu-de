@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0d0d0b">
+  <title>ALANTU — PDF Convert / Anchor</title>
+  <style>
+    :root{
+      --ink:#0d0d0b;--paper:#f4f0e8;--muted:#746e65;--line:rgba(13,13,11,.14);
+      --gold:#b89a63;--ok:#536b50;--danger:#9c3f32;--panel:rgba(255,255,255,.44);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-width:320px;background:var(--paper);color:var(--ink)}
+    body{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+    button,input{font:inherit}
+    button{cursor:pointer}
+    .shell{width:min(1500px,calc(100% - 36px));margin:0 auto}
+    .topbar{height:68px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+    .brand{display:flex;align-items:center;gap:12px;font-size:13px;font-weight:700;letter-spacing:.30em}
+    .mark{width:22px;height:22px;position:relative;display:inline-block}
+    .mark:before,.mark:after{content:"";position:absolute;left:2px;right:2px;height:1.5px;background:var(--ink);transform-origin:left center}
+    .mark:before{top:16px;transform:rotate(-58deg)}.mark:after{top:4px;transform:rotate(58deg)}
+    .mark i{position:absolute;left:7px;right:7px;top:12px;height:1.5px;background:var(--gold)}
+    .topnote{font-size:11px;color:var(--muted)}
+    .layout{display:grid;grid-template-columns:340px minmax(0,1fr);gap:24px;padding:24px 0 32px;min-height:calc(100vh - 68px)}
+    .panel{border:1px solid var(--line);border-radius:22px;background:var(--panel);padding:22px;align-self:start}
+    .eyebrow{font-size:10px;font-weight:750;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+    h1{font:400 42px/1 Georgia,"Times New Roman",serif;letter-spacing:-.045em;margin:10px 0 12px}
+    .intro{font-size:13px;line-height:1.55;color:#5c554c;margin:0 0 18px}
+    .dropzone{position:relative;display:grid;place-items:center;text-align:center;min-height:142px;padding:20px;border:1px dashed rgba(13,13,11,.28);border-radius:16px;background:rgba(255,255,255,.32);transition:.15s ease}
+    .dropzone.drag{border-color:var(--gold);background:rgba(184,154,99,.08)}
+    .dropzone input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+    .dropzone strong{font-size:14px}.dropzone span{display:block;margin-top:6px;font-size:11px;color:var(--muted);line-height:1.45}
+    .status{margin-top:12px;min-height:20px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+    .status.ok{color:var(--ok)}.status.error{color:var(--danger)}
+    .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:0 0 auto}
+    .section{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
+    .section-title{font-size:10px;font-weight:750;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+    .zoom-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+    .zoom-grid button,.nav button,.action{border:1px solid var(--line);background:rgba(255,255,255,.55);color:var(--ink);border-radius:10px;min-height:38px;padding:0 10px;font-size:12px}
+    .zoom-grid button.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+    .zoom-grid button:disabled,.nav button:disabled,.action:disabled{opacity:.35;cursor:default}
+    .nav{display:grid;grid-template-columns:42px 1fr 42px;gap:6px;align-items:center}
+    .counter{text-align:center;font-size:12px;font-weight:650;font-variant-numeric:tabular-nums}
+    .action{width:100%;margin-top:8px}
+    .action.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+    .metrics{display:grid;gap:0;border-top:1px solid var(--line)}
+    .metric{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);font-size:11px}
+    .metric span{color:var(--muted)}.metric strong{text-align:right;font-weight:650;font-variant-numeric:tabular-nums}
+    .note{font-size:11px;color:#777066;line-height:1.5;margin-top:12px}
+    .viewer{min-width:0;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px}
+    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:40px}
+    .toolbar-left,.toolbar-right{display:flex;align-items:center;gap:8px;min-width:0}
+    .badge{font-size:11px;border:1px solid var(--line);background:rgba(255,255,255,.55);padding:8px 10px;border-radius:999px;color:#5d564d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52vw}
+    .viewport{position:relative;min-height:660px;height:calc(100vh - 142px);overflow:auto;overscroll-behavior:contain;border:1px solid rgba(13,13,11,.10);border-radius:24px;background:linear-gradient(145deg,#ddd3c5,#b8ad9f);box-shadow:inset 0 0 0 1px rgba(255,255,255,.24)}
+    .viewport.grabbing{cursor:grabbing}
+    .surface{position:relative;margin:56px;box-shadow:0 18px 52px rgba(28,22,16,.20);background:#fff;transform-origin:0 0}
+    .tile{position:absolute;display:block;background:#fff}
+    .anchor{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:1px solid var(--gold);pointer-events:none;z-index:20;box-shadow:0 0 0 2px rgba(255,255,255,.72)}
+    .anchor:before,.anchor:after{content:"";position:absolute;background:var(--gold)}
+    .anchor:before{left:10px;top:-7px;width:1px;height:34px}.anchor:after{left:-7px;top:10px;width:34px;height:1px}
+    .anchor.hidden{display:none}
+    .empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:40px;pointer-events:none;color:#5d564d}
+    .empty strong{display:block;font:400 30px/1.05 Georgia,"Times New Roman",serif;color:var(--ink)}
+    .empty span{display:block;margin-top:8px;font-size:12px;line-height:1.5}
+    .busy{position:sticky;left:14px;top:14px;z-index:50;width:max-content;max-width:calc(100% - 28px);padding:8px 10px;border-radius:999px;background:rgba(244,240,232,.90);border:1px solid var(--line);font-size:11px;display:none}
+    .busy.show{display:block}
+    @media(max-width:900px){
+      .shell{width:min(100% - 20px,1500px)}
+      .layout{grid-template-columns:1fr;min-height:0}
+      .viewport{height:72vh;min-height:500px}
+      .panel{order:2}.viewer{order:1}
+      .surface{margin:30px}
+    }
+    @media(max-width:560px){
+      .topnote{display:none}.layout{padding-top:12px}.panel{padding:16px}
+      h1{font-size:36px}.zoom-grid{grid-template-columns:repeat(4,1fr)}
+      .viewport{height:68vh;min-height:420px;border-radius:18px}.surface{margin:20px}
+      .badge{max-width:66vw}
+    }
+  </style>
+</head>
+<body>
+  <header class="shell topbar">
+    <div class="brand"><span class="mark" aria-hidden="true"><i></i></span><span>ALANTU</span></div>
+    <div class="topnote">PDF Convert · canonical anchors</div>
+  </header>
+
+  <main class="shell layout">
+    <aside class="panel">
+      <div class="eyebrow">PDF Convert V2</div>
+      <h1>PDF bleibt die Wahrheit.</h1>
+      <p class="intro">Keine separat nachgebauten Zeichen. Jede Zoomstufe wird aus denselben PDF-Seitenkoordinaten neu gerendert. Damit kann kein Zeichen relativ zum Seitenanker wegdriften.</p>
+
+      <label class="dropzone" id="dropzone">
+        <input id="pdfInput" type="file" accept="application/pdf,.pdf" aria-label="PDF auswählen">
+        <div><strong>PDF auswählen oder ablegen</strong><span>Nur lokal im Browser · bis 80 Seiten</span></div>
+      </label>
+      <div class="status" id="status"><span class="dot"></span><span>Bereit</span></div>
+
+      <div class="section">
+        <div class="section-title">Seite</div>
+        <div class="nav">
+          <button id="prevBtn" type="button" aria-label="Vorherige Seite">←</button>
+          <div class="counter" id="pageCounter">— / —</div>
+          <button id="nextBtn" type="button" aria-label="Nächste Seite">→</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Zoomtiefe</div>
+        <div class="zoom-grid" id="zoomGrid">
+          <button type="button" data-zoom="1">1×</button>
+          <button type="button" data-zoom="1.3">1,3×</button>
+          <button type="button" data-zoom="2.7">2,7×</button>
+          <button type="button" data-zoom="4">4×</button>
+          <button type="button" data-zoom="7.5">7,5×</button>
+          <button type="button" data-zoom="16">16×</button>
+          <button type="button" data-zoom="32">32×</button>
+          <button type="button" id="fitBtn">Fit</button>
+        </div>
+        <button class="action primary" id="centerAnchorBtn" type="button">Anker zentrieren</button>
+        <button class="action" id="clearAnchorBtn" type="button">Anker löschen</button>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Messung</div>
+        <div class="metrics">
+          <div class="metric"><span>Zoom</span><strong id="mZoom">—</strong></div>
+          <div class="metric"><span>PDF-Anker X / Y</span><strong id="mAnchor">—</strong></div>
+          <div class="metric"><span>Round-trip Δ</span><strong id="mDelta">—</strong></div>
+          <div class="metric"><span>Aktive Tiles</span><strong id="mTiles">0</strong></div>
+          <div class="metric"><span>PDF-Seite</span><strong id="mSize">—</strong></div>
+        </div>
+        <p class="note">Klick auf eine Stelle der Seite setzt den Hauptanker. Beim Zoom bleibt exakt derselbe PDF-Punkt erhalten und wird aus der PDF-Transformationsmatrix neu berechnet. 32× rendert nur sichtbare Kacheln statt eine gigantische Gesamtbitmap.</p>
+      </div>
+    </aside>
+
+    <section class="viewer">
+      <div class="toolbar">
+        <div class="toolbar-left"><span class="badge" id="fileBadge">Noch keine PDF geladen</span></div>
+        <div class="toolbar-right"><span class="badge" id="modeBadge">canonical PDF coordinates</span></div>
+      </div>
+      <div class="viewport" id="viewport">
+        <div class="busy" id="busy">Rendere …</div>
+        <div class="surface" id="surface">
+          <div class="anchor hidden" id="anchor"></div>
+        </div>
+        <div class="empty" id="empty"><div><strong>PDF laden.</strong><span>Dann bis 32× zoomen und denselben Punkt prüfen.</span></div></div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
+    pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
+
+    const MAX_PAGES=80;
+    const TILE_CSS=768;
+    const TILE_MARGIN=1;
+    const MAX_TILE_DPR=2;
+    const ZOOMS=[1,1.3,2.7,4,7.5,16,32];
+
+    const input=document.getElementById("pdfInput");
+    const dropzone=document.getElementById("dropzone");
+    const statusEl=document.getElementById("status");
+    const prevBtn=document.getElementById("prevBtn");
+    const nextBtn=document.getElementById("nextBtn");
+    const pageCounter=document.getElementById("pageCounter");
+    const zoomGrid=document.getElementById("zoomGrid");
+    const fitBtn=document.getElementById("fitBtn");
+    const centerAnchorBtn=document.getElementById("centerAnchorBtn");
+    const clearAnchorBtn=document.getElementById("clearAnchorBtn");
+    const viewportEl=document.getElementById("viewport");
+    const surface=document.getElementById("surface");
+    const anchorEl=document.getElementById("anchor");
+    const empty=document.getElementById("empty");
+    const busy=document.getElementById("busy");
+    const fileBadge=document.getElementById("fileBadge");
+    const mZoom=document.getElementById("mZoom");
+    const mAnchor=document.getElementById("mAnchor");
+    const mDelta=document.getElementById("mDelta");
+    const mTiles=document.getElementById("mTiles");
+    const mSize=document.getElementById("mSize");
+
+    let pdfDoc=null;
+    let pageObj=null;
+    let pageNo=1;
+    let pageBaseViewport=null;
+    let renderViewport=null;
+    let zoom=1;
+    let anchorPdf=null;
+    let loadToken=0;
+    let renderEpoch=0;
+    let scrollRAF=0;
+    let isPointerDown=false;
+    let pointerMoved=false;
+    let dragStart=null;
+    const tiles=new Map();
+
+    function setStatus(text,kind=""){
+      statusEl.className="status"+(kind?" "+kind:"");
+      statusEl.lastElementChild.textContent=text;
+    }
+
+    function fmt(n,d=2){return Number.isFinite(n)?Number(n).toFixed(d):"—"}
+
+    function clearTiles(){
+      renderEpoch++;
+      for(const tile of tiles.values()){
+        try{tile.task?.cancel()}catch{}
+        tile.canvas.remove();
+      }
+      tiles.clear();
+      mTiles.textContent="0";
+    }
+
+    function tileDpr(){
+      const device=Math.max(1,window.devicePixelRatio||1);
+      if(zoom>=7.5)return 1;
+      if(zoom>=4)return Math.min(1.25,device);
+      return Math.min(MAX_TILE_DPR,device);
+    }
+
+    function pagePointFromClient(clientX,clientY){
+      if(!renderViewport)return null;
+      const r=surface.getBoundingClientRect();
+      const x=clientX-r.left;
+      const y=clientY-r.top;
+      if(x<0||y<0||x>renderViewport.width||y>renderViewport.height)return null;
+      const [pdfX,pdfY]=renderViewport.convertToPdfPoint(x,y);
+      return {pdfX,pdfY,x,y};
+    }
+
+    function pixelForPdfPoint(pdfPoint,viewport=renderViewport){
+      if(!pdfPoint||!viewport)return null;
+      const [x,y]=viewport.convertToViewportPoint(pdfPoint.x,pdfPoint.y);
+      return {x,y};
+    }
+
+    function updateAnchorVisual(){
+      if(!anchorPdf||!renderViewport){
+        anchorEl.classList.add("hidden");
+        mAnchor.textContent="—";
+        mDelta.textContent="—";
+        return;
+      }
+      const p=pixelForPdfPoint(anchorPdf);
+      anchorEl.style.left=p.x+"px";
+      anchorEl.style.top=p.y+"px";
+      anchorEl.classList.remove("hidden");
+      mAnchor.textContent=fmt(anchorPdf.x,3)+" / "+fmt(anchorPdf.y,3)+" pt";
+
+      const [rx,ry]=renderViewport.convertToPdfPoint(p.x,p.y);
+      const [px2,py2]=renderViewport.convertToViewportPoint(rx,ry);
+      const delta=Math.hypot(px2-p.x,py2-p.y);
+      mDelta.textContent=delta<0.0005?"< 0,001 px":fmt(delta,4)+" px";
+    }
+
+    function centerOnPdfPoint(pdfPoint,behavior="auto"){
+      if(!pdfPoint||!renderViewport)return;
+      const p=pixelForPdfPoint(pdfPoint);
+      const left=surface.offsetLeft+p.x-viewportEl.clientWidth/2;
+      const top=surface.offsetTop+p.y-viewportEl.clientHeight/2;
+      viewportEl.scrollTo({left:Math.max(0,left),top:Math.max(0,top),behavior});
+    }
+
+    function currentCenterPdfPoint(){
+      if(!renderViewport)return null;
+      const x=viewportEl.scrollLeft+viewportEl.clientWidth/2-surface.offsetLeft;
+      const y=viewportEl.scrollTop+viewportEl.clientHeight/2-surface.offsetTop;
+      const cx=Math.max(0,Math.min(renderViewport.width,x));
+      const cy=Math.max(0,Math.min(renderViewport.height,y));
+      const [pdfX,pdfY]=renderViewport.convertToPdfPoint(cx,cy);
+      return {x:pdfX,y:pdfY};
+    }
+
+    function visibleTileRange(){
+      if(!renderViewport)return null;
+      const sx=surface.offsetLeft;
+      const sy=surface.offsetTop;
+      const left=Math.max(0,viewportEl.scrollLeft-sx);
+      const top=Math.max(0,viewportEl.scrollTop-sy);
+      const right=Math.min(renderViewport.width,viewportEl.scrollLeft+viewportEl.clientWidth-sx);
+      const bottom=Math.min(renderViewport.height,viewportEl.scrollTop+viewportEl.clientHeight-sy);
+      if(right<=0||bottom<=0||left>=renderViewport.width||top>=renderViewport.height)return null;
+      const maxCol=Math.max(0,Math.ceil(renderViewport.width/TILE_CSS)-1);
+      const maxRow=Math.max(0,Math.ceil(renderViewport.height/TILE_CSS)-1);
+      return {
+        c0:Math.max(0,Math.floor(left/TILE_CSS)-TILE_MARGIN),
+        r0:Math.max(0,Math.floor(top/TILE_CSS)-TILE_MARGIN),
+        c1:Math.min(maxCol,Math.floor(Math.max(0,right-1)/TILE_CSS)+TILE_MARGIN),
+        r1:Math.min(maxRow,Math.floor(Math.max(0,bottom-1)/TILE_CSS)+TILE_MARGIN)
+      };
+    }
+
+    function tileKey(row,col){return pageNo+"@"+zoom+":"+row+":"+col}
+
+    async function createTile(row,col,epoch){
+      if(!pageObj||!renderViewport||epoch!==renderEpoch)return;
+      const key=tileKey(row,col);
+      if(tiles.has(key))return;
+
+      const x=col*TILE_CSS;
+      const y=row*TILE_CSS;
+      const cssW=Math.max(1,Math.min(TILE_CSS,renderViewport.width-x));
+      const cssH=Math.max(1,Math.min(TILE_CSS,renderViewport.height-y));
+      const dpr=tileDpr();
+      const canvas=document.createElement("canvas");
+      canvas.className="tile";
+      canvas.style.left=x+"px";
+      canvas.style.top=y+"px";
+      canvas.style.width=cssW+"px";
+      canvas.style.height=cssH+"px";
+      canvas.width=Math.max(1,Math.round(cssW*dpr));
+      canvas.height=Math.max(1,Math.round(cssH*dpr));
+      const ctx=canvas.getContext("2d",{alpha:false});
+      if(!ctx)return;
+      ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);
+      surface.insertBefore(canvas,anchorEl);
+      const tile={canvas,task:null};
+      tiles.set(key,tile);
+      mTiles.textContent=String(tiles.size);
+
+      try{
+        tile.task=pageObj.render({
+          canvasContext:ctx,
+          viewport:renderViewport,
+          transform:[dpr,0,0,dpr,-x*dpr,-y*dpr],
+          background:"white"
+        });
+        await tile.task.promise;
+      }catch(err){
+        if(err?.name!=="RenderingCancelledException")console.error(err);
+      }
+    }
+
+    function pruneTiles(activeKeys){
+      for(const [key,tile] of tiles){
+        if(activeKeys.has(key))continue;
+        try{tile.task?.cancel()}catch{}
+        tile.canvas.remove();
+        tiles.delete(key);
+      }
+      mTiles.textContent=String(tiles.size);
+    }
+
+    async function renderVisibleTiles(){
+      scrollRAF=0;
+      if(!pageObj||!renderViewport)return;
+      const range=visibleTileRange();
+      if(!range)return;
+      const epoch=renderEpoch;
+      const active=new Set();
+      const jobs=[];
+      for(let r=range.r0;r<=range.r1;r++){
+        for(let c=range.c0;c<=range.c1;c++){
+          const key=tileKey(r,c);
+          active.add(key);
+          if(!tiles.has(key))jobs.push(createTile(r,c,epoch));
+        }
+      }
+      pruneTiles(active);
+      if(jobs.length){
+        busy.classList.add("show");
+        await Promise.allSettled(jobs);
+        if(epoch===renderEpoch)busy.classList.remove("show");
+      }
+    }
+
+    function scheduleTiles(){
+      if(scrollRAF)return;
+      scrollRAF=requestAnimationFrame(renderVisibleTiles);
+    }
+
+    function updateZoomButtons(){
+      zoomGrid.querySelectorAll("[data-zoom]").forEach(btn=>{
+        btn.classList.toggle("active",Math.abs(Number(btn.dataset.zoom)-zoom)<1e-9);
+      });
+      mZoom.textContent=(String(zoom).replace(".",","))+"×";
+    }
+
+    async function applyZoom(nextZoom,{keepPoint=null,center=true}={}){
+      if(!pageObj)return;
+      const preserve=keepPoint||anchorPdf||currentCenterPdfPoint();
+      zoom=Math.max(.2,Math.min(32,Number(nextZoom)||1));
+      renderViewport=pageObj.getViewport({scale:zoom});
+      surface.style.width=renderViewport.width+"px";
+      surface.style.height=renderViewport.height+"px";
+      clearTiles();
+      updateZoomButtons();
+      updateAnchorVisual();
+      await new Promise(requestAnimationFrame);
+      if(center&&preserve)centerOnPdfPoint(preserve);
+      scheduleTiles();
+    }
+
+    async function fitPage(){
+      if(!pageObj||!pageBaseViewport)return;
+      const availableW=Math.max(160,viewportEl.clientWidth-112);
+      const availableH=Math.max(160,viewportEl.clientHeight-112);
+      const fit=Math.min(availableW/pageBaseViewport.width,availableH/pageBaseViewport.height);
+      await applyZoom(Math.max(.2,Math.min(4,fit)),{keepPoint:anchorPdf||null});
+    }
+
+    async function showPage(nextNo,{fit=false}={}){
+      if(!pdfDoc)return;
+      const token=++loadToken;
+      clearTiles();
+      busy.classList.add("show");
+      try{
+        try{pageObj?.cleanup()}catch{}
+        pageNo=Math.max(1,Math.min(pdfDoc.numPages,nextNo));
+        pageObj=await pdfDoc.getPage(pageNo);
+        if(token!==loadToken)return;
+        pageBaseViewport=pageObj.getViewport({scale:1});
+        mSize.textContent=fmt(pageBaseViewport.width,1)+" × "+fmt(pageBaseViewport.height,1)+" pt";
+        pageCounter.textContent=String(pageNo).padStart(2,"0")+" / "+String(pdfDoc.numPages).padStart(2,"0");
+        prevBtn.disabled=pageNo<=1;
+        nextBtn.disabled=pageNo>=pdfDoc.numPages;
+        anchorPdf={x:(pageBaseViewport.viewBox[0]+pageBaseViewport.viewBox[2])/2,y:(pageBaseViewport.viewBox[1]+pageBaseViewport.viewBox[3])/2};
+        empty.style.display="none";
+        if(fit)await fitPage(); else await applyZoom(zoom,{keepPoint:anchorPdf});
+        setStatus("Seite "+pageNo+" bereit.","ok");
+      }catch(err){
+        console.error(err);
+        setStatus("Seite konnte nicht gerendert werden.","error");
+      }finally{
+        if(token===loadToken)busy.classList.remove("show");
+      }
+    }
+
+    async function loadPdf(file){
+      if(!file)return;
+      if(file.type!=="application/pdf"&&!file.name.toLowerCase().endsWith(".pdf")){
+        setStatus("Bitte eine PDF-Datei auswählen.","error");return;
+      }
+      const token=++loadToken;
+      clearTiles();
+      busy.classList.add("show");
+      setStatus("PDF wird gelesen …");
+      try{
+        try{await pdfDoc?.destroy()}catch{}
+        pdfDoc=null;pageObj=null;pageBaseViewport=null;renderViewport=null;
+        const bytes=new Uint8Array(await file.arrayBuffer());
+        if(token!==loadToken)return;
+        pdfDoc=await pdfjsLib.getDocument({data:bytes}).promise;
+        if(token!==loadToken)return;
+        if(pdfDoc.numPages<1)throw new Error("PDF enthält keine Seiten.");
+        if(pdfDoc.numPages>MAX_PAGES)throw new Error("Maximal "+MAX_PAGES+" Seiten.");
+        fileBadge.textContent=file.name;
+        pageNo=1;zoom=1;
+        await showPage(1,{fit:true});
+      }catch(err){
+        console.error(err);
+        setStatus(err?.message||"PDF konnte nicht gelesen werden.","error");
+        fileBadge.textContent="Noch keine PDF geladen";
+        empty.style.display="grid";
+      }finally{
+        if(token===loadToken)busy.classList.remove("show");
+      }
+    }
+
+    input.addEventListener("change",()=>loadPdf(input.files?.[0]));
+    ["dragenter","dragover"].forEach(type=>dropzone.addEventListener(type,e=>{e.preventDefault();dropzone.classList.add("drag")}));
+    ["dragleave","drop"].forEach(type=>dropzone.addEventListener(type,e=>{e.preventDefault();dropzone.classList.remove("drag")}));
+    dropzone.addEventListener("drop",e=>{const file=e.dataTransfer?.files?.[0];if(file)loadPdf(file)});
+
+    prevBtn.addEventListener("click",()=>showPage(pageNo-1));
+    nextBtn.addEventListener("click",()=>showPage(pageNo+1));
+    zoomGrid.addEventListener("click",e=>{
+      const btn=e.target.closest("button");if(!btn||!pageObj)return;
+      if(btn===fitBtn){fitPage();return}
+      if(btn.dataset.zoom)applyZoom(Number(btn.dataset.zoom));
+    });
+    centerAnchorBtn.addEventListener("click",()=>centerOnPdfPoint(anchorPdf,"smooth"));
+    clearAnchorBtn.addEventListener("click",()=>{anchorPdf=null;updateAnchorVisual()});
+
+    viewportEl.addEventListener("scroll",scheduleTiles,{passive:true});
+    new ResizeObserver(()=>scheduleTiles()).observe(viewportEl);
+
+    surface.addEventListener("pointerdown",e=>{
+      if(!pageObj||e.button!==0)return;
+      isPointerDown=true;pointerMoved=false;
+      dragStart={x:e.clientX,y:e.clientY,left:viewportEl.scrollLeft,top:viewportEl.scrollTop};
+      surface.setPointerCapture?.(e.pointerId);
+    });
+    surface.addEventListener("pointermove",e=>{
+      if(!isPointerDown||!dragStart)return;
+      const dx=e.clientX-dragStart.x,dy=e.clientY-dragStart.y;
+      if(Math.hypot(dx,dy)>5)pointerMoved=true;
+      if(pointerMoved){
+        viewportEl.classList.add("grabbing");
+        viewportEl.scrollLeft=dragStart.left-dx;
+        viewportEl.scrollTop=dragStart.top-dy;
+      }
+    });
+    surface.addEventListener("pointerup",e=>{
+      if(!isPointerDown)return;
+      isPointerDown=false;viewportEl.classList.remove("grabbing");
+      if(!pointerMoved){
+        const hit=pagePointFromClient(e.clientX,e.clientY);
+        if(hit){anchorPdf={x:hit.pdfX,y:hit.pdfY};updateAnchorVisual()}
+      }
+      dragStart=null;
+    });
+    surface.addEventListener("pointercancel",()=>{isPointerDown=false;dragStart=null;viewportEl.classList.remove("grabbing")});
+
+    window.addEventListener("keydown",e=>{
+      if(e.key==="ArrowLeft"&&pdfDoc)showPage(pageNo-1);
+      else if(e.key==="ArrowRight"&&pdfDoc)showPage(pageNo+1);
+      else if((e.key==="+"||e.key==="=")&&pageObj){
+        const i=ZOOMS.findIndex(z=>z>zoom+1e-6);applyZoom(i<0?ZOOMS.at(-1):ZOOMS[i]);
+      }else if(e.key==="-"&&pageObj){
+        const prev=[...ZOOMS].reverse().find(z=>z<zoom-1e-6);applyZoom(prev||ZOOMS[0]);
+      }
+    });
+
+    updateZoomButtons();
+    prevBtn.disabled=true;nextBtn.disabled=true;centerAnchorBtn.disabled=false;
+  </script>
+</body>
+</html>
