@@ -790,15 +790,15 @@
         <span style="display:none">Social-Druck <b id="orclImp">—</b></span>
         <span style="display:none">Bullisch <b id="orclBull">—</b></span>
         <span style="display:none">Bearisch <b id="orclBear">—</b></span>
-        <span title="Stimmung normalisiert: 0 bearish · 50 neutral · 100 bullish">Stimmung <b id="orclNet">—</b></span>
+        <span title="Eindeutige, marktbezogene Quellenereignisse der letzten 36 Stunden">Quellen/36h <b id="orclNet">—</b></span>
       </div></div>
       <div class="note" id="orclWhy"></div>
       <div class="meta" style="display:none" id="orclLinks"></div>
     </div>
     <div class="card sentiment-hero-card">
-      <div class="label">Oracle Stimmung <span class="live-state" id="sentimentHeroState">—</span></div>
-      <div class="market-clock" id="sentimentHeroMeta">Aktuelle Stimmung · 0–100</div>
-      <div class="hero-price sentiment-hero-score" id="sentimentHeroScore"><span id="sentimentHeroNumber">—</span><span class="sentiment-denom"> / 100</span></div>
+      <div class="label">Oracle Quellen <span class="live-state" id="sentimentHeroState">—</span></div>
+      <div class="market-clock" id="sentimentHeroMeta">Beobachtete Einzelereignisse · 36h</div>
+      <div class="hero-price sentiment-hero-score" id="sentimentHeroScore"><span id="sentimentHeroNumber">—</span></div>
       <div class="hero-change flat" id="sentimentHeroLabel"></div>
     </div>
     <div class="card aux-card">
@@ -819,8 +819,8 @@
       <div class="core-meta" id="intrinsicHeroMeta">wird berechnet</div>
     </div>
     <button type="button" class="core-insight sentiment-insight" id="sentimentOpen" aria-expanded="false" aria-controls="sentimentPanel">
-      <div class="core-kicker">Stimmung</div>
-      <div class="core-value sentiment-value"><span id="sentimentCompactNumber">—</span><span class="core-denom">/100</span></div>
+      <div class="core-kicker">Quellen</div>
+      <div class="core-value sentiment-value"><span id="sentimentCompactNumber">—</span></div>
       <div class="core-meta" id="sentimentCompactLabel">—</div>
     </button>
   </div>
@@ -853,8 +853,8 @@
 
   <section class="source-panel" id="sentimentPanel" hidden aria-live="polite">
     <div class="source-panel-head">
-      <div class="source-panel-title">Stimmung · Live-Quellen</div>
-      <button type="button" class="source-panel-close" id="sentimentClose" aria-label="Stimmungsquellen schließen">×</button>
+      <div class="source-panel-title">Live-Quellen · Rohbeobachtungen</div>
+      <button type="button" class="source-panel-close" id="sentimentClose" aria-label="Quellen schließen">×</button>
     </div>
     <div class="source-panel-status" id="sentimentPanelStatus">Noch keine Live-Verbindung.</div>
     <div class="source-counts" id="sentimentSourceCounts"></div>
@@ -934,7 +934,7 @@
   </div>
 
   <div class="card chart-card-lg chart-panel" data-chart-panel="sentiment">
-    <div class="chart-head"><div class="label">Oracle · Stimmung <a class="info-link info-inline" href="methodik.html#sentiment" aria-label="Quellen und Berechnung der Stimmung erklären" title="Quellen und Berechnung der Stimmung">i</a></div><button type="button" class="chart-collapse" data-chart-collapse="sentiment" aria-expanded="true" aria-label="Stimmungs-Chart einklappen">▴</button></div>
+    <div class="chart-head"><div class="label">Oracle · historische Stimmungsheuristik (retired) <a class="info-link info-inline" href="methodik.html#sentiment" aria-label="Quellenvertrag erklären" title="Quellenvertrag">i</a></div><button type="button" class="chart-collapse" data-chart-collapse="sentiment" aria-expanded="true" aria-label="Stimmungs-Chart einklappen">▴</button></div>
     <div class="chart-panel-body">
     <div class="sentiment-source" id="sentimentSource">Quellen werden geladen …</div>
     <div class="sentiment-relation" id="sentimentRelation"></div>
@@ -1876,26 +1876,8 @@ function sentimentMass(h){
   return Math.max(0,voice||alt||0);
 }
 function sentimentWave(){
-  var live=liveSourceState||{},liveAt=Date.parse(live.at||''),now=Date.now(),maxLag=1000*Number(live.max_live_delay_seconds||90);
-  if(live.event_mode!=='new_since_last_poll'||Number(live.live_count||0)<=0||!isFinite(liveAt)||liveAt>now+60000||now-liveAt>maxLag+30000){
-    return {dir:0,reliable:false,reason:'no_time_aligned_live_sentiment'};
-  }
-  var x=currentContext(),all=mergedSentimentHistory(x.orcl.history||[]).filter(function(h){
-    var t=Date.parse(h&&h.at||'');return isFinite(t)&&t<=liveAt;
-  });
-  var pts=all.map(function(h){return {at:h.at,y:stimmungNorm(h),mass:sentimentMass(h)};})
-    .filter(function(p){return p.at&&isFinite(Number(p.y));}).sort(function(a,b){return new Date(a.at)-new Date(b.at);});
-  if(pts.length<4)return {dir:0,reliable:false,reason:'insufficient_time_aligned_sentiment_history'};
-  var f90=trendFit(pts,function(p){return p.at;},function(p){return p.y;},90*60000);
-  var f360=trendFit(pts,function(p){return p.at;},function(p){return p.y;},360*60000);
-  var dir=0;
-  if(f90&&f90.eff>=.28&&f90.persist>=.58){
-    if(f360&&f360.dir===f90.dir)dir=f90.dir;
-    else if(Math.abs(f90.net)>=5&&f90.persist>=.67)dir=f90.dir;
-  }
-  var massPts=pts.filter(function(p){var t=new Date(p.at).getTime();return t<=liveAt&&liveAt-t<=6*3600000&&p.mass>0;});
-  var massFit=trendFit(massPts,function(p){return p.at;},function(p){return Math.log1p(p.mass);},180*60000);
-  return {dir:dir,reliable:!!dir,asof:new Date(liveAt).toISOString(),short:f90,long:f360,massDir:massFit&&massFit.eff>=.2?massFit.dir:0,massPersist:massFit?massFit.persist:0};
+  var x=liveSourceState||{},a=x.activity||{};
+  return {dir:0,reliable:false,massDir:0,reason:'directional_source_feature_not_validated',activity:a,asof:x.checked_at||null};
 }
 function hdrRelativeImpulse(localValue,globalValue){
   var local=Number(localValue),global=Number(globalValue);
@@ -1923,9 +1905,6 @@ function hdrImpulseVector(p,v,s){
   }
   if(v&&v.short&&v.long){
     add('Volumen',hdrRelativeImpulse(v.short.pressure,v.long.pressure),Math.max(v.short.persist||0,v.long.persist||0));
-  }
-  if(s&&s.short&&s.long){
-    add('Crowd',hdrRelativeImpulse(s.short.slope,s.long.slope),Math.max(s.short.persist||0,s.long.persist||0));
   }
 
   var active=components.filter(function(x){return Math.abs(x.value)>=.12&&x.quality>=.35;});
@@ -2369,7 +2348,7 @@ function relayBaseUrl(){
 }
 function railwaySourcesUsable(){
   var x=liveSourceState||{},checked=Date.parse(x.checked_at||'');
-  return x.status!=='stale'&&x.status!=='warming'&&x.status!=='unavailable'&&isFinite(checked)&&Date.now()-checked<=2*60*1000;
+  return x.contract==='source-event-v3'&&x.role==='raw_observation_only'&&x.interpretation_status==='unvalidated_not_used'&&x.status!=='stale'&&x.status!=='warming'&&x.status!=='unavailable'&&isFinite(checked)&&Date.now()-checked<=2*60*1000;
 }
 function berlinStamp(ms){
   try{return new Intl.DateTimeFormat('de-DE',{timeZone:'Europe/Berlin',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date(Number(ms)));}catch(e){return '—';}
@@ -2394,33 +2373,21 @@ function marketPriceAtTimestamp(ms){
 function applyRailwaySentiment(x){
   if(!x)return;
   liveSourceState=Object.assign({},liveSourceState||{},x);
-  var eventAt=x.at||null,checked=x.checked_at||new Date().toISOString(),archiveMood=x.archive_sentiment||{};
-  var hasPulse=Number(x.live_count||0)>0&&eventAt&&x.bull!=null&&x.bear!=null&&x.mixed!=null&&x.net!=null;
+  var checked=x.checked_at||new Date().toISOString();
+  if(x.contract!=='source-event-v3'||x.role!=='raw_observation_only'||x.interpretation_status!=='unvalidated_not_used'){
+    liveSourceState=Object.assign({},liveSourceState,{status:'unavailable',last_error:'source_contract_mismatch'});
+    renderSentimentSources();renderSyncFooter(true);return;
+  }
   if(!wlData)wlData={stocks:{}};wlData.stocks=wlData.stocks||{};
   var o=wlData.stocks.ORCL=wlData.stocks.ORCL||{symbol:'ORCL',name:'Oracle',history:[]};
-  if(hasPulse){
-    var bull=Number(x.bull),bear=Number(x.bear),mixed=Number(x.mixed),net=Number(x.net),eventMs=Date.parse(eventAt),alignedPrice=Number(x.market_anchor&&x.market_anchor.price)||marketPriceAtTimestamp(eventMs);
-    o.updated_at=eventAt;o.hype_bull=bull;o.hype_bear=bear;o.hype_mixed=mixed;o.hype_net=net;
-    o.latest=Object.assign({},o.latest||{},{at:eventAt,signal:'hold',hype_bull:bull,hype_bear:bear,hype_mixed:mixed,hype_net:net,confidence:null});
-    o.history=Array.isArray(o.history)?o.history:[];
-    var last=o.history.length?o.history[o.history.length-1]:null;
-    if(!last||eventMs>Date.parse(last.at||0)){
-      o.history.push({at:eventAt,signal:'hold',confidence:null,hype_bull:bull,hype_bear:bear,hype_mixed:mixed,hype_net:net,price:alignedPrice||o.price,social_count:Number(x.social_count)||0,news_count:Number(x.news_count)||0});
-      if(o.history.length>1200)o.history=o.history.slice(-1200);
-      saveLocalSentimentPoint({at:eventAt,signal:'hold',confidence:null,hype_bull:bull,hype_bear:bear,hype_mixed:mixed,hype_net:net,price:alignedPrice||o.price,social_count:Number(x.social_count)||0,news_count:Number(x.news_count)||0});
-    }
-  }
-  if(archiveMood&&archiveMood.role==='descriptive_only_not_model_signal'&&archiveMood.bull!=null&&archiveMood.bear!=null){
-    o.updated_at=checked;o.signal='hold';o.social_impulse=null;o.impulse=null;o.hype_bull=Number(archiveMood.bull);o.hype_bear=Number(archiveMood.bear);o.hype_mixed=Number(archiveMood.mixed);o.hype_net=Number(archiveMood.net);o.confidence=null;
-    o.sentiment_unit='percent_unique_events_descriptive';o.sentiment_role='descriptive_only_not_model_signal';
-    o.latest=Object.assign({},o.latest||{},{at:checked,signal:'hold',social_impulse:null,hype_bull:o.hype_bull,hype_bear:o.hype_bear,hype_mixed:o.hype_mixed,hype_net:o.hype_net,confidence:null,sentiment_role:'descriptive_only_not_model_signal'});
-  }
+  o.updated_at=checked;o.signal=null;o.social_impulse=null;o.impulse=null;o.hype_bull=null;o.hype_bear=null;o.hype_mixed=null;o.hype_net=null;o.confidence=null;o.hype_state=null;
+  o.sentiment_unit='retired_unvalidated';o.sentiment_role='retired_unvalidated';o.source_activity=x.activity||{};
+  o.latest={at:checked,signal:null,confidence:null,source_contract:'source-event-v3',role:'raw_observation_only',interpretation_status:'unvalidated_not_used',source_activity:x.activity||{}};
+  o.why='Beobachtete Quellenaktivität: '+Number(x.archive_news_count||0)+' News · '+Number(x.archive_social_count||0)+' Social / 36h. Keine Richtungswertung ohne validiertes Feature.';
   if(!tickData)tickData={};tickData.tick=tickData.tick||{};
-  tickData.tick.freshness={freshest_absolute:checked,latest_published_at:x.latest_published_at||null,primary_signal:'Railway Quellen-Poll',quality:'geprüft · '+String(x.coverage||'—'),scrape_berlin:checked,sample_window:'Archiv ≤36 Std. · neue Events separat markiert',freshest_item_age:x.latest_published_at?ageLabel(x.latest_published_at):'',oldest_usable_signal:''};
-  tickData.tick.live_sources={providers:(x.providers||[]).slice(),news_count:Number(x.news_count)||0,social_count:Number(x.social_count)||0,social_breakdown:x.source_counts||{},archive_breakdown:x.archive_source_counts||{},live_count:Number(x.live_count)||0,new_count:Number(x.new_count)||0,delayed_count:Number(x.delayed_count)||0,archive_count:Number(x.archive_count)||0,archive_news_count:Number(x.archive_news_count)||0,archive_social_count:Number(x.archive_social_count)||0,social_aggregates:x.social_aggregates||{},source_health:x.source_health||{},at:eventAt,checked_at:checked,event_mode:x.event_mode,max_live_delay_seconds:Number(x.max_live_delay_seconds)||90,market_anchor:x.market_anchor||null,window:'Archiv ≤36 Std. · neue Events separat markiert'};
-  try{renderOverview();renderSentimentChart();}catch(e){}
-  var meta=document.getElementById('sentimentCompactLabel');
-  if(meta)meta.textContent=Number(x.archive_count||0)+' Quellen/36h · '+Number(x.archive_news_count||0)+' News · '+Number(x.archive_social_count||0)+' Social · geprüft '+footerClock(checked);
+  tickData.tick.freshness={freshest_absolute:checked,latest_published_at:x.latest_published_at||null,primary_signal:'Railway source-event-v3',quality:'Rohbeobachtungen · keine Richtungsinterpretation',scrape_berlin:checked,sample_window:'Archiv ≤36 Std. · first_seen_at = handlungsrelevante Uhr',freshest_item_age:x.latest_published_at?ageLabel(x.latest_published_at):'',oldest_usable_signal:''};
+  tickData.tick.live_sources={contract:x.contract,role:x.role,interpretation_status:x.interpretation_status,providers:(x.providers||[]).slice(),news_count:Number(x.news_count)||0,social_count:Number(x.social_count)||0,social_breakdown:x.source_counts||{},archive_breakdown:x.archive_source_counts||{},live_count:Number(x.live_count)||0,new_count:Number(x.new_count)||0,delayed_count:Number(x.delayed_count)||0,archive_count:Number(x.archive_count)||0,archive_news_count:Number(x.archive_news_count)||0,archive_social_count:Number(x.archive_social_count)||0,activity:x.activity||{},social_aggregates:x.social_aggregates||{},source_health:x.source_health||{},at:x.at||null,checked_at:checked,event_mode:x.event_mode,event_clock:x.event_clock,max_live_delay_seconds:Number(x.max_live_delay_seconds)||90,market_anchor:x.market_anchor||null,actionable_market_anchor:x.actionable_market_anchor||null,window:'Archiv ≤36 Std.'};
+  try{renderOverview();}catch(e){}
   renderSentimentSources();renderSyncFooter(false);
 }
 function renderSentimentSources(){
@@ -2429,7 +2396,7 @@ function renderSentimentSources(){
   var c=x.source_counts||{},a=x.archive_source_counts||{},checked=x.checked_at?berlinStamp(Date.parse(x.checked_at)):'—';
   var state=x.status==='ok'?'neue Events':x.status==='quiet'?'keine neuen Events':x.status==='degraded'?'teilweise verfügbar':x.status==='stale'?'veraltet':x.status==='unavailable'?'nicht erreichbar':'noch ohne Live-Status';
   var latest=x.latest_published_at?berlinStamp(Date.parse(x.latest_published_at)):'—';
-  status.textContent=(x.checked_at?'Railway · '+state+' · geprüft '+checked:'Railway · '+state)+(x.last_error?' · letzter Abruf fehlgeschlagen':'')+' · '+Number(x.archive_count||0)+' Quellen/36h · neueste Publikation '+latest+' · Stimmung deskriptiv, kein Handelssignal';
+  status.textContent=(x.checked_at?'Railway · '+state+' · geprüft '+checked:'Railway · '+state)+(x.last_error?' · letzter Abruf fehlgeschlagen':'')+' · '+Number(x.archive_count||0)+' Quellen/36h · neueste Publikation '+latest+' · Rohbeobachtungen, keine Richtungswertung';
   var agg=x.social_aggregates||{},redditAgg=agg.reddit||{},health=x.source_health||{},xHealth=health.x||{};
   var redditExtra=Number.isFinite(Number(redditAgg.mentions_24h))?' · '+Number(redditAgg.mentions_24h)+' Erw./24h':'';
   var xText=xHealth.status==='disabled'?'nicht verbunden':(Number(a.x||0)+' · neu '+Number(c.x||0));
@@ -2601,7 +2568,7 @@ async function pollMicroSources(base){
   try{
     var r=await fetch(base+'/v1/source-state?_='+Date.now(),{cache:'no-store',headers:{Accept:'application/json'}});
     if(!r.ok)throw new Error('source_http_'+r.status);
-    var s=await r.json();if(s)applyRailwaySentiment(s);
+    var s=await r.json();if(!s||s.contract!=='source-event-v3')throw new Error('source_contract_mismatch');applyRailwaySentiment(s);
   }catch(e){
     var nowIso=new Date().toISOString();
     if(liveSourceState&&liveSourceState.checked_at)liveSourceState=Object.assign({},liveSourceState,{status:'stale',last_error:String(e&&e.message||e)});
@@ -2750,12 +2717,7 @@ function validatedMicrostructureSignal(){
   var dir=Number(s.dir);if(dir!==1&&dir!==-1)return null;
   return Object.assign({},s,{source:'raw_sip'});
 }
-function waveSocialContext(dir){
-  var s=sentimentWave(),sd=Number(s&&s.dir)||0,md=Number(s&&s.massDir)||0;
-  if(sd===dir||md===dir)return 'Social bestätigt';
-  if(sd===-dir||md===-dir)return 'Social widerspricht';
-  return 'Social neutral';
-}
+function waveSocialContext(dir){return 'Quellenrichtung nicht validiert · nicht im Modell';}
 function refreshWaveForecasts(){
   if(!(microstructureData&&microstructureData.wave_forecast))waveForecastState={status:'blocked',reason:'waiting_event_stream'};
   else waveForecastState=microstructureData.wave_forecast;
@@ -2882,29 +2844,33 @@ function renderOverview(){
   document.getElementById('orclSig').className='pill '+cls(sig);
   document.getElementById('orclSig').textContent=SIG_DE[sig]||String(lat.signal||'—').toUpperCase();
   (function(){var n=lat.social_impulse,el=document.getElementById('orclImp');if(n==null||n===''){el.textContent='—';return;}var s=Number(n);el.textContent=(s>0?'+':'')+s;})();
-  var dp=directionalPct({hype_bull:hyp.bull,hype_bear:hyp.bear});
+  var ls=liveSourceState||{},sourceV3=(ls.contract==='source-event-v3'||orcl.sentiment_role==='retired_unvalidated'),archiveCount=Number(ls.archive_count||0),archiveNews=Number(ls.archive_news_count||0),archiveSocial=Number(ls.archive_social_count||0);
+  var dp=sourceV3?{bull:null,bear:null}:directionalPct({hype_bull:hyp.bull,hype_bear:hyp.bear});
   document.getElementById('orclBull').textContent=dp.bull!=null?(dp.bull.toLocaleString('de-DE',{maximumFractionDigits:1})+' %'):'—';
   document.getElementById('orclBear').textContent=dp.bear!=null?(dp.bear.toLocaleString('de-DE',{maximumFractionDigits:1})+' %'):'—';
-  var sentimentScore=stimmungNorm({hype_bull:hyp.bull,hype_bear:hyp.bear,hype_net:hyp.net,social_impulse:lat.social_impulse});
-  document.getElementById('orclNet').textContent=sentimentScore!=null?(sentimentScore+' / 100'):'—';
+  var sentimentScore=sourceV3?null:stimmungNorm({hype_bull:hyp.bull,hype_bear:hyp.bear,hype_net:hyp.net,social_impulse:lat.social_impulse});
+  document.getElementById('orclNet').textContent=sourceV3?(archiveCount?String(archiveCount):'—'):(sentimentScore!=null?(sentimentScore+' / 100'):'—');
   var shs=document.getElementById('sentimentHeroScore'),shn=document.getElementById('sentimentHeroNumber'),shl=document.getElementById('sentimentHeroLabel'),shm=document.getElementById('sentimentHeroMeta'),shst=document.getElementById('sentimentHeroState');
   if(shs&&shn&&shl&&shm&&shst){
-    var mood=sentimentScore==null?'':(sentimentScore>55?'Positiv':sentimentScore<45?'Negativ':'Neutral');
-    var moodCls=sentimentScore==null?'flat':(sentimentScore>55?'up':sentimentScore<45?'down':'flat');
-    shn.className='sentiment-hero-number '+moodCls;
-    shn.textContent=sentimentScore!=null?String(sentimentScore):'—';
-    shl.className='hero-change '+moodCls;shl.textContent=mood;
-    var scn=document.getElementById('sentimentCompactNumber'),scl=document.getElementById('sentimentCompactLabel');
-    if(scn){scn.className=moodCls;scn.textContent=sentimentScore!=null?String(sentimentScore):'—';}
-    var ls=liveSourceState||{},lsAt=Date.parse(ls.checked_at||''),lsFresh=isFinite(lsAt)&&Date.now()-lsAt<=2*60*1000;
+    var lsAt=Date.parse(ls.checked_at||''),lsFresh=isFinite(lsAt)&&Date.now()-lsAt<=2*60*1000;
     var sourceState=ls.status==='ok'?'Live':ls.status==='quiet'?'Live · ruhig':ls.status==='degraded'?'Teilweise':ls.status==='stale'?'Veraltet':ls.status==='unavailable'?'Offline':'';
-    if(scl)scl.textContent=mood?(mood+(sourceState?' · '+sourceState:'')):(sourceState||'Keine Daten');
-    shm.textContent=sentimentHeroMetaText(t);
-    var sat=fr.freshest_absolute||updated;
-    var fallbackFresh=sat&&isFinite(Date.parse(sat))&&Date.now()-Date.parse(sat)<=20*60*1000;
-    var heroState=sourceState||(sentimentScore!=null?(fallbackFresh?'Snapshot':'Snapshot · alt'):'Keine Daten');
-    shst.className='live-state'+((lsFresh&&(ls.status==='ok'||ls.status==='quiet'))?' live':'');
-    shst.textContent=heroState;
+    if(sourceV3){
+      shn.className='sentiment-hero-number flat';shn.textContent=archiveCount?String(archiveCount):'—';
+      shl.className='hero-change flat';shl.textContent=archiveCount?('News '+archiveNews+' · Social '+archiveSocial):'';
+      shm.textContent='Eindeutige marktbezogene Rohereignisse · 36h';
+      shst.className='live-state'+(lsFresh?' live':'');shst.textContent=sourceState||'Rohdaten';
+      var scn=document.getElementById('sentimentCompactNumber'),scl=document.getElementById('sentimentCompactLabel');
+      if(scn){scn.className='flat';scn.textContent=archiveCount?String(archiveCount):'—';}
+      if(scl)scl.textContent=archiveCount?(archiveNews+' News · '+archiveSocial+' Social · keine Richtungswertung'):(sourceState||'Keine Daten');
+    }else{
+      var mood=sentimentScore==null?'':(sentimentScore>55?'Positiv':sentimentScore<45?'Negativ':'Neutral'),moodCls=sentimentScore==null?'flat':(sentimentScore>55?'up':sentimentScore<45?'down':'flat');
+      shn.className='sentiment-hero-number '+moodCls;shn.textContent=sentimentScore!=null?String(sentimentScore):'—';
+      shl.className='hero-change '+moodCls;shl.textContent=mood;
+      var scn=document.getElementById('sentimentCompactNumber'),scl=document.getElementById('sentimentCompactLabel');
+      if(scn){scn.className=moodCls;scn.textContent=sentimentScore!=null?String(sentimentScore):'—';}
+      if(scl)scl.textContent=mood?(mood+(sourceState?' · '+sourceState:'')):(sourceState||'Keine Daten');
+      shm.textContent=sentimentHeroMetaText(t);shst.className='live-state';shst.textContent='Legacy';
+    }
   }
   document.getElementById('orclWhy').textContent=lat.why||orcl.why||'';
   var L=lat.links||orcl.links||{};
@@ -3252,15 +3218,6 @@ async function fetchJson(url,optional){
   throw lastErr||new Error('Daten nicht verfügbar');
 }
 function liveClamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
-function liveHeadlineLean(title){
-  var s=String(title||'').toLowerCase();
-  var pos=['beat','beats','growth','surge','surges','rally','rallies','rise','rises','gain','gains','upgrade','upgraded','outperform','strong','record','backlog','contract','deal','boost','expands','expansion','demand','wins','win','bullish','buy rating'];
-  var neg=['debt','risk','risks','fall','falls','drop','drops','decline','declines','downgrade','downgraded','concern','concerns','lawsuit','probe','headwind','headwinds','cost','costs','capex','stress','stressed','junk bond','layoff','layoffs','slump','miss','misses','bearish','sell rating'];
-  var p=0,n=0,i;
-  for(i=0;i<pos.length;i++)if(s.indexOf(pos[i])>=0)p++;
-  for(i=0;i<neg.length;i++)if(s.indexOf(neg[i])>=0)n++;
-  return p>n?'bull':(n>p?'bear':'mixed');
-}
 function liveStoryAgeOk(ms){
   return isFinite(ms)&&ms>0&&(Date.now()-ms)<=36*60*60*1000;
 }
@@ -3286,13 +3243,6 @@ async function fetchFreshSignalSources(){
   var social=dedupeSocial((snap.social||[]).map(normalizeTickerTickStory).filter(Boolean));
   if(!news.length&&!social.length)throw new Error('Quellensnapshot leer');
   return {news:news,social:social.slice(0,300),providers:snap.providers||[],newsProviders:snap.news_providers||[],socialProviders:snap.social_providers||[],socialBreakdown:snap.social_breakdown||{},minSocial:0,fetchedAt:snap.fetched_at};
-}
-function liveRecencyWeight(ms){
-  var age=Math.max(0,Date.now()-Number(ms||0));
-  if(age<=2*3600e3)return 1.5;
-  if(age<=8*3600e3)return 1.25;
-  if(age<=24*3600e3)return 1;
-  return 0.65;
 }
 function deriveFreshSignal(src){
   var items=src.news.concat(src.social),newest=items.reduce(function(m,x){return Math.max(m,Number(x.time)||0);},0);

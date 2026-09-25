@@ -59,39 +59,22 @@ const SOCIAL_AGGREGATE_CACHE_MS=2*60*1000;
 const wgoRangeCache=new Map(),WGO_RANGE_CACHE_MS=10*60*1000;
 const sourceSeen=new Map();
 let sourceState={
-  contract:'source-event-v2',sentiment_role:'descriptive_only_not_model_signal',
-  status:'warming',at:null,checked_at:null,event_mode:'new_since_last_poll',
+  contract:'source-event-v3',role:'raw_observation_only',interpretation_status:'unvalidated_not_used',
+  status:'warming',at:null,checked_at:null,event_mode:'new_since_last_poll',event_clock:'first_seen_at',
   poll_interval_seconds:SOURCE_REFRESH_MS/1000,max_live_delay_seconds:SOURCE_MAX_LIVE_LAG_MS/1000,market_match_tolerance_seconds:SOURCE_MARKET_MATCH_MS/1000,
-  score:null,bull:null,bear:null,mixed:null,net:null,news_count:0,social_count:0,live_count:0,new_count:0,delayed_count:0,archive_count:0,
+  news_count:0,social_count:0,live_count:0,new_count:0,delayed_count:0,archive_count:0,
   archive_news_count:0,archive_social_count:0,coverage:'none',providers:[],
   source_counts:{news:0,reddit:0,x:0,bluesky:0,social:0},
-  archive_source_counts:{news:0,reddit:0,x:0,bluesky:0,social:0},latest_published_at:null,market_anchor:null,actionable_market_anchor:null,items:[],error:null
+  archive_source_counts:{news:0,reddit:0,x:0,bluesky:0,social:0},
+  activity:{role:'observed_only',model_eligible:false,direction:null,unique_events_36h:0,first_seen_windows:{m1:0,m5:0,m15:0,m60:0}},
+  latest_published_at:null,market_anchor:null,actionable_market_anchor:null,items:[],error:null
 };
 
 function cors(req,res){const o=req.headers.origin;if(o&&ALLOWED.has(o)){res.setHeader('Access-Control-Allow-Origin',o);res.setHeader('Vary','Origin');}}
 function json(res,code,obj){res.statusCode=code;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(obj));}
 async function readJson(file){try{return JSON.parse(await fs.readFile(file,'utf8'));}catch{return null;}}
 
-const SENT_POS=['beat','growth','surge','rally','rise','gain','upgrade','outperform','strong','record','backlog','contract','deal','boost','expand','demand','win','bullish','buy rating'];
-const SENT_NEG=['debt','risk','fall','drop','decline','downgrade','concern','lawsuit','probe','headwind','cost','capex','stress','junk bond','layoff','slump','miss','bearish','sell rating','force majeure','delay','delayed','financing','loan','permit','setback'];
 function normalizedText(s){return String(s||'').toLowerCase().replace(/[^a-z0-9$]+/g,' ').replace(/\s+/g,' ').trim();}
-function termScore(title){
-  const s=' '+normalizedText(title)+' ';
-  let pos=0,neg=0;
-  const hit=(term)=>s.includes(' '+term+' ')||term.includes(' ')&&s.includes(term);
-  const negated=(term)=>{
-    const i=s.indexOf(term);if(i<0)return false;
-    const pre=s.slice(Math.max(0,i-18),i);
-    return /\b(no|not|never|without|cuts?|falls?)\s+$/.test(pre);
-  };
-  for(const k of SENT_POS)if(hit(k)){if(negated(k))neg++;else pos++;}
-  for(const k of SENT_NEG)if(hit(k)){if(negated(k))pos++;else neg++;}
-  return pos>neg?1:neg>pos?-1:0;
-}
-function recencyWeight(ms,now=Date.now()){
-  const age=Math.max(0,now-Number(ms||0));
-  return age<=15000?1.35:age<=45000?1.15:age<=SOURCE_MAX_LIVE_LAG_MS?1:0;
-}
 const STORY_STOP=new Set('oracle corporation stock shares share market markets says said amid after before with from into over under about this that will could would should their its the and for are has have new latest report reports'.split(' '));
 function storyTokens(title){
   return new Set(normalizedText(title).split(' ').filter(x=>x.length>=3&&!STORY_STOP.has(x)));
@@ -225,25 +208,15 @@ function wgoTheme(title){
   return 'Sonstiges';
 }
 function wgoRangeBackgroundText(range,items){
-  const spec=wgoRangeSpec(range),rows=dedupeStories(items||[]);if(!spec||!rows.length)return {text:'Für diesen Zeitraum ist derzeit kein belastbarer Nachrichtenhintergrund abrufbar.',themes:[],items:[]};
+  const spec=wgoRangeSpec(range),rows=dedupeStories((items||[]).filter(marketRelevantStory),true);
+  if(!spec||!rows.length)return {text:'Für diesen Zeitraum ist derzeit kein belastbarer Nachrichtenhintergrund abrufbar.',themes:[],items:[],counts:{total:0}};
   const counts={},examples={};
-  for(const x of rows){
-    const th=wgoTheme(x.title);counts[th]=(counts[th]||0)+1;
-    if(!examples[th])examples[th]=x;
-  }
-  const ranked=Object.entries(counts).sort((a,b)=>b[1]-a[1]).filter(x=>x[0]!=='Sonstiges');
-  const top=ranked.slice(0,3);
-  const tone={pos:0,neg:0,mix:0};for(const x of rows){const z=termScore(x.title);if(z>0)tone.pos++;else if(z<0)tone.neg++;else tone.mix++;}
+  for(const x of rows){const th=wgoTheme(x.title);counts[th]=(counts[th]||0)+1;if(!examples[th])examples[th]=x;}
+  const ranked=Object.entries(counts).sort((a,b)=>b[1]-a[1]).filter(x=>x[0]!=='Sonstiges'),top=ranked.slice(0,3);
   const themeText=top.length?top.map(x=>x[0]+' ('+x[1]+')').join(', '):'keine klar dominierende Themenfamilie';
   const reps=top.slice(0,2).map(x=>examples[x[0]]).filter(Boolean);
   const repText=reps.length?' Auffällige Meldungen: '+reps.map(x=>'„'+String(x.title||'').replace(/\s+/g,' ').trim().slice(0,150)+(String(x.title||'').length>150?'…':'')+'“').join(' · ')+'.':'';
-  const bias=tone.neg>tone.pos*1.25?'überwiegend negativer':tone.pos>tone.neg*1.25?'überwiegend positiver':'gemischter';
-  return {
-    text:'Hintergrund '+spec.label+': Dominant waren '+themeText+'. Die Nachrichtenlage war '+bias+' Natur.'+repText,
-    themes:top.map(x=>({theme:x[0],count:x[1]})),
-    items:reps.map(x=>({title:x.title,url:x.url,time:x.time,site:x.site})),
-    counts:{total:rows.length,positive:tone.pos,negative:tone.neg,mixed:tone.mix}
-  };
+  return {text:'Hintergrund '+spec.label+': Dominant waren '+themeText+'.'+repText,themes:top.map(x=>({theme:x[0],count:x[1]})),items:reps.map(x=>({title:x.title,url:x.url,time:x.time,site:x.site})),counts:{total:rows.length}};
 }
 async function wgoRangeBackground(range){
   const spec=wgoRangeSpec(range);if(!spec)return {range,generated_at:new Date().toISOString(),background:'Unbekannter Zeitraum.',themes:[],items:[]};
@@ -255,8 +228,8 @@ async function wgoRangeBackground(range){
     optionalSource(()=>googleNewsQuery('(Oracle OR ORCL) stock shares '+suffix,maxAge)),
     optionalSource(()=>googleNewsQuery('Oracle (cloud OR AI OR earnings OR contract OR capex OR debt OR data center) '+suffix,maxAge))
   ]);
-  const rows=dedupeStories(market.concat(company)).slice(0,180),bg=wgoRangeBackgroundText(range,rows);
-  const data={range,label:spec.label,generated_at:new Date().toISOString(),background:bg.text,themes:bg.themes,items:bg.items,counts:bg.counts||{total:0,positive:0,negative:0,mixed:0},source:'google_news_rss',cache_seconds:600};
+  const rows=dedupeStories(market.concat(company).filter(marketRelevantStory),true).slice(0,180),bg=wgoRangeBackgroundText(range,rows);
+  const data={range,label:spec.label,generated_at:new Date().toISOString(),background:bg.text,themes:bg.themes,items:bg.items,counts:bg.counts||{total:0},source:'google_news_rss',cache_seconds:600};
   wgoRangeCache.set(range,{at:now,data});return data;
 }
 
@@ -301,6 +274,12 @@ function sourceChannel(x,type){
 }
 function storyKey(x,type){
   const channel=sourceChannel(x,type),url=String(x.url||'').trim(),title=normalizedText(x.title);
+  if(channel==='news'){
+    for(const [key,v] of sourceSeen){
+      if(v&&v.channel==='news'&&v.title&&nearDuplicateStory(x,{title:v.title}))return key;
+    }
+    return 'news|story|'+(canonicalStoryId(x)||title+'|'+String(Number(x.time)||0));
+  }
   return channel+'|'+(url||title+'|'+String(Number(x.time)||0));
 }
 function alignedMarketAt(ms){
@@ -334,35 +313,35 @@ function sourceQuality(channel,site){
   return 'ugc_aggregator';
 }
 function sourceItem(x,type,now=Date.now(),liveKeys=new Set(),delayedKeys=new Set()){
-  const channel=sourceChannel(x,type),lean=termScore(x.title),time=Number(x.time),age=Math.max(0,now-time),key=storyKey(x,type),seen=sourceSeen.get(key);
+  const channel=sourceChannel(x,type),time=Number(x.time),age=Math.max(0,now-time),key=storyKey(x,type),seen=sourceSeen.get(key);
   return {
-    version:'source-event-v2',type,channel,title:String(x.title||'').slice(0,320),
+    version:'source-event-v3',type,channel,title:String(x.title||'').slice(0,320),
     summary:String(x.title||'').replace(/\s+/g,' ').trim().slice(0,260),
-    url:String(x.url||''),site:String(x.site||''),provider:String(x.site||channel),time,key,
-    canonical_story_id:canonicalStoryId(x),entity_relevance:'orcl_market_material',
+    url:String(x.url||''),site:String(x.site||''),provider:String(x.site||channel),time,
+    published_at:Number.isFinite(time)?new Date(time).toISOString():null,key,
+    canonical_story_id:seen?.canonical_story_id||canonicalStoryId(x),entity_relevance:'orcl_market_material',
     source_quality:sourceQuality(channel,x.site),engagement:x.engagement||null,
     live:liveKeys.has(key),new:liveKeys.has(key)||delayedKeys.has(key),delayed:delayedKeys.has(key),
     novelty:(liveKeys.has(key)||delayedKeys.has(key))?'first_seen':'known',
     first_seen_at:seen?.first_seen_at?new Date(seen.first_seen_at).toISOString():null,
-    discovered_at:seen?.first_seen_at?new Date(seen.first_seen_at).toISOString():null,
     discovery_delay_ms:seen?Math.max(0,seen.first_seen_at-time):null,age_ms:age,
-    market:alignedMarketAt(time),
-    actionable_market:seen?.first_seen_at?alignedMarketAt(seen.first_seen_at):null,
-    lean:lean>0?'bull':lean<0?'bear':'mixed'
+    market_at_published:alignedMarketAt(time),
+    market_at_first_seen:seen?.first_seen_at?alignedMarketAt(seen.first_seen_at):null,
+    interpretation_status:'unvalidated_not_used'
   };
 }
 function sourceSummary(){
   const {items,...rest}=sourceState;
   return {...rest,item_count:Array.isArray(items)?items.length:0};
 }
-function channelPulse(items,now){
-  let bp=0,bn=0,bm=0;
-  for(const x of items){
-    const w=recencyWeight(x.time,now);if(!w)continue;
-    const v=termScore(x.title);if(v>0)bp+=w;else if(v<0)bn+=w;else bm+=w;
-  }
-  const total=bp+bn+bm;if(!total)return null;
-  return {bull:100*bp/total,bear:100*bn/total,mixed:100*bm/total,net:100*(bp-bn)/total,count:items.length};
+function sourceActivity(items,now){
+  const seenTimes=(items||[]).map(x=>Date.parse(x.first_seen_at||'')).filter(Number.isFinite);
+  const within=ms=>seenTimes.filter(t=>t<=now&&now-t<=ms).length;
+  return {
+    role:'observed_only',model_eligible:false,direction:null,
+    unique_events_36h:(items||[]).length,
+    first_seen_windows:{m1:within(60000),m5:within(5*60000),m15:within(15*60000),m60:within(60*60000)}
+  };
 }
 function deriveSourceState(news,social,providers,status='ok'){
   const now=Date.now();
@@ -375,7 +354,8 @@ function deriveSourceState(news,social,providers,status='ok'){
   for(const x of archiveRaw){
     const key=storyKey(x,x._type);
     if(sourceSeen.has(key))continue;
-    sourceSeen.set(key,{first_seen_at:now,published_at:Number(x.time)});
+    const channel=sourceChannel(x,x._type);
+    sourceSeen.set(key,{first_seen_at:now,published_at:Number(x.time),channel,title:String(x.title||''),canonical_story_id:canonicalStoryId(x)});
     if(sourcePrimed){
       newCount++;
       const lag=now-Number(x.time);
@@ -388,52 +368,33 @@ function deriveSourceState(news,social,providers,status='ok'){
   const archiveItems=archiveRaw.map(x=>sourceItem(x,x._type,now,liveKeys,delayedKeys)).slice(0,240);
   for(const item of archiveItems.filter(x=>x.new)){
     sourceEventBuffer.push({
-      version:'source-event-v2',key:item.key,canonical_story_id:item.canonical_story_id,type:item.type,channel:item.channel,title:item.title,url:item.url,site:item.site,provider:item.provider,lean:item.lean,
-      source_quality:item.source_quality,entity_relevance:item.entity_relevance,engagement:item.engagement,novelty:item.novelty,
-      published_at:new Date(Number(item.time)).toISOString(),first_seen_at:item.first_seen_at,delivery_lag_ms:item.discovery_delay_ms,
-      market_at_published:item.market,market_at_first_seen:item.actionable_market
+      version:'source-event-v3',key:item.key,canonical_story_id:item.canonical_story_id,type:item.type,channel:item.channel,title:item.title,
+      url:item.url,site:item.site,provider:item.provider,source_quality:item.source_quality,entity_relevance:item.entity_relevance,
+      engagement:item.engagement,novelty:item.novelty,interpretation_status:'unvalidated_not_used',
+      published_at:item.published_at,first_seen_at:item.first_seen_at,delivery_lag_ms:item.discovery_delay_ms,
+      market_at_published:item.market_at_published,market_at_first_seen:item.market_at_first_seen
     });
   }
+
   const liveItems=archiveItems.filter(x=>x.live);
-  const groups={};
-  for(const x of liveItems){if(!groups[x.channel])groups[x.channel]=[];groups[x.channel].push(x);}
-  const livePulse=channelPulse(liveItems,now);
-  const bull=livePulse?Math.round(livePulse.bull):null,bear=livePulse?Math.round(livePulse.bear):null;
-  const mixed=livePulse?Math.max(0,100-bull-bear):null,net=livePulse?bull-bear:null;
-  const archiveCounts=archiveItems.reduce((m,x)=>(m[x.lean]=(m[x.lean]||0)+1,m),{bull:0,bear:0,mixed:0});
-  const archiveTotal=archiveCounts.bull+archiveCounts.bear+archiveCounts.mixed;
-  const archiveBull=archiveTotal?Math.round(100*archiveCounts.bull/archiveTotal):null;
-  const archiveBear=archiveTotal?Math.round(100*archiveCounts.bear/archiveTotal):null;
-  const archiveMixed=archiveTotal?Math.max(0,100-archiveBull-archiveBear):null;
-  const archiveNet=archiveTotal?archiveBull-archiveBear:null;
-  const archiveSentiment={
-    role:'descriptive_only_not_model_signal',method:'equal_weight_unique_market_events_keyword_lean',
-    bull:archiveBull,bear:archiveBear,mixed:archiveMixed,net:archiveNet,
-    score:archiveNet==null?null:Math.max(0,Math.min(100,Math.round(50+archiveNet/2))),
-    unique_events:archiveTotal
-  };
-  const liveCount=liveItems.length,activeChannels=Object.keys(groups).length;
+  const liveCount=liveItems.length,activeChannels=new Set(liveItems.map(x=>x.channel)).size;
   const coverage=liveCount>=8&&activeChannels>=3?'high':liveCount>=3&&activeChannels>=2?'medium':liveCount>=1?'low':'quiet';
   const source_counts=liveItems.reduce((m,x)=>(m[x.channel]=(m[x.channel]||0)+1,m),{news:0,reddit:0,x:0,bluesky:0,social:0});
   const archive_source_counts=archiveItems.reduce((m,x)=>(m[x.channel]=(m[x.channel]||0)+1,m),{news:0,reddit:0,x:0,bluesky:0,social:0});
-  const newestLive=liveItems.length?liveItems.reduce((a,b)=>a.time>b.time?a:b):null;
+  const newestLive=liveItems.length?liveItems.reduce((a,b)=>Date.parse(a.first_seen_at||0)>Date.parse(b.first_seen_at||0)?a:b):null;
   const newestArchive=archiveItems.length?archiveItems[0]:null;
-  const marketAnchor=newestLive?.market?.before||newestLive?.market?.after||null;
-  const actionableMarketAnchor=newestLive?.actionable_market?.before||newestLive?.actionable_market?.after||null;
+  const marketAnchor=newestLive?.market_at_published?.before||newestLive?.market_at_published?.after||null;
+  const actionableMarketAnchor=newestLive?.market_at_first_seen?.before||newestLive?.market_at_first_seen?.after||null;
   return {
-    status:liveCount?status:'quiet',
-    at:newestLive?new Date(newestLive.time).toISOString():null,
-    checked_at:new Date(now).toISOString(),event_mode:'new_since_last_poll',
+    contract:'source-event-v3',role:'raw_observation_only',interpretation_status:'unvalidated_not_used',
+    status:liveCount?status:'quiet',at:newestLive?.first_seen_at||null,checked_at:new Date(now).toISOString(),
+    event_mode:'new_since_last_poll',event_clock:'first_seen_at',
     poll_interval_seconds:SOURCE_REFRESH_MS/1000,max_live_delay_seconds:SOURCE_MAX_LIVE_LAG_MS/1000,market_match_tolerance_seconds:SOURCE_MARKET_MATCH_MS/1000,
-    contract:'source-event-v2',sentiment_role:'descriptive_only_not_model_signal',
-    score:net==null?null:Math.max(0,Math.min(100,Math.round(50+net/2))),bull,bear,mixed,net,
-    live_pulse:{role:'time_aligned_event_feature',bull,bear,mixed,net,score:net==null?null:Math.max(0,Math.min(100,Math.round(50+net/2))),unique_events:liveCount},
-    archive_sentiment:archiveSentiment,
     news_count:liveItems.filter(x=>x.type==='news').length,social_count:liveItems.filter(x=>x.type==='social').length,
     live_count:liveCount,new_count:newCount,delayed_count:delayedKeys.size,archive_count:archiveItems.length,
     archive_news_count:newsArchive.length,archive_social_count:socialArchive.length,
-    coverage,providers,source_counts,archive_source_counts,
-    latest_published_at:newestArchive?new Date(newestArchive.time).toISOString():null,
+    coverage,providers,source_counts,archive_source_counts,activity:sourceActivity(archiveItems,now),
+    latest_published_at:newestArchive?.published_at||null,
     market_anchor:marketAnchor,actionable_market_anchor:actionableMarketAnchor,items:archiveItems,error:null
   };
 }
@@ -464,7 +425,7 @@ async function refreshSources(){
     const news=dedupeStories(ttNews.concat(gnews).filter(marketRelevantStory),true).slice(0,240);
     const relevant=entity.filter(x=>/\$orcl\b|\borcl\b/i.test(x.title)||(/oracle/i.test(x.title)&&/stock|share|earn|cloud|ai|market|bull|bear|buy|sell|valuation|price|contract|capex/i.test(x.title)));
     const social=dedupeStories(ticker.concat(relevant,reddit,x,bluesky)).slice(0,600);
-    if(!news.length&&!social.length)throw new Error('No sentiment sources available');
+    if(!news.length&&!social.length)throw new Error('No source events available');
     const providers=[];
     if(ttNews.length)providers.push('TickerTick News');
     if(gnews.length)providers.push('Google News RSS');
@@ -477,9 +438,9 @@ async function refreshSources(){
     sourceState.source_health=sourceHealth;
     sourceState.social_aggregates={reddit:redditAggregate};
     if(marketDb){
-      persistEvidence(marketDb,{kind:'source_state',approach_version:'source-state-v1',symbol:'ORCL',event_at:sourceState.checked_at,payload:sourceSummary()});
+      persistEvidence(marketDb,{kind:'source_state',approach_version:'source-state-v3',symbol:'ORCL',event_at:sourceState.checked_at,payload:sourceSummary()});
       for(const item of (sourceState.items||[]).filter(x=>x.new)){
-        persistEvidence(marketDb,{evidence_key:'source:'+item.key,kind:'source_event',approach_version:'source-event-v2',symbol:'ORCL',
+        persistEvidence(marketDb,{evidence_key:'source:'+item.key,kind:'source_event',approach_version:'source-event-v3',symbol:'ORCL',
           event_at_ms:Number(item.time),received_at_ms:Date.parse(item.discovered_at||''),payload:item});
       }
     }
@@ -524,7 +485,7 @@ async function loadSourceEvents(){
         if(!line)continue;let e;try{e=JSON.parse(line);}catch{continue;}
         const pub=Date.parse(e.published_at||''),seen=Date.parse(e.first_seen_at||'');
         if(!e.key||!Number.isFinite(pub)||!Number.isFinite(seen)||now-pub>SOURCE_ARCHIVE_WINDOW_MS)continue;
-        const prev=sourceSeen.get(e.key);if(!prev||seen<prev.first_seen_at)sourceSeen.set(e.key,{first_seen_at:seen,published_at:pub});
+        const prev=sourceSeen.get(e.key);if(!prev||seen<prev.first_seen_at)sourceSeen.set(e.key,{first_seen_at:seen,published_at:pub,channel:String(e.channel||''),title:String(e.title||''),canonical_story_id:String(e.canonical_story_id||'')});
       }
     }catch{}
   }
@@ -959,7 +920,7 @@ function snapshot(symbol){
     const market={price_usd:Number(marketEvent?.p)||null,price_at:marketTime?new Date(marketTime).toISOString():null,received_at:marketRecv?new Date(marketRecv).toISOString():null,
       day_volume:Number.isFinite(Number(marketEvent?.day_volume))?Number(marketEvent.day_volume):null,delta_volume:Number.isFinite(Number(marketEvent?.dv))?Number(marketEvent.dv):null,
       eurusd:Number(fxEvent?.p)||null,eurusd_at:fxTime?new Date(fxTime).toISOString():null,eurusd_received_at:fxRecv?new Date(fxRecv).toISOString():null,fresh:!!marketRecv&&Date.now()-marketRecv<=15000};
-    return {provider:'yahoo',feed:'streamer',symbol,mode:'shadow-live',at:marketRecv?new Date(marketRecv).toISOString():null,configured:true,subscription_verified:yahooState==='streaming',auth_state:'no_key_required',auth_error:null,raw:{events:(yahooSeries[symbol]||[]).length,last_upstream_at:marketRecv?new Date(marketRecv).toISOString():null,persistent:true},market,quality:yahooForecast?.quality||{status:'warming'},minutes:[],edge_status:'shadow',edge_model_id:m.model_id,live_signal:null,shadow_signal:best?{dir:best.dir,horizon_minutes:best.horizon_minutes,score:best.score,margin:best.margin,asof:yahooForecast.asof,source:'yahoo_shadow'}:null,wave:m,wave_forecast:yahooForecast,sentiment:sourceSummary(),shadow_trail_summary:{version:YAHOO_SHADOW_VERSION,pending:shadowState.predictions.filter(x=>x.version===YAHOO_SHADOW_VERSION).length,evaluated:shadowState.outcomes.filter(x=>x.version===YAHOO_SHADOW_VERSION&&x.status==='evaluated').length,proof:shadowProof(),updated_at:shadowState.updated_at},hypothesis_v4:{...hypothesisSummary(),counts:hypothesisCounts(),recommendation:hypothesisRecommendation()},research_v5:{...v5Summary(),counts:v5Counts(),recommendation:v5Recommendation(),candidate:latestV5Candidate()},l2:{status:'retired',provider:'databento',reason:'replaced_by_event_wave'}};
+    return {provider:'yahoo',feed:'streamer',symbol,mode:'shadow-live',at:marketRecv?new Date(marketRecv).toISOString():null,configured:true,subscription_verified:yahooState==='streaming',auth_state:'no_key_required',auth_error:null,raw:{events:(yahooSeries[symbol]||[]).length,last_upstream_at:marketRecv?new Date(marketRecv).toISOString():null,persistent:true},market,quality:yahooForecast?.quality||{status:'warming'},minutes:[],edge_status:'shadow',edge_model_id:m.model_id,live_signal:null,shadow_signal:best?{dir:best.dir,horizon_minutes:best.horizon_minutes,score:best.score,margin:best.margin,asof:yahooForecast.asof,source:'yahoo_shadow'}:null,wave:m,wave_forecast:yahooForecast,source_state:sourceSummary(),shadow_trail_summary:{version:YAHOO_SHADOW_VERSION,pending:shadowState.predictions.filter(x=>x.version===YAHOO_SHADOW_VERSION).length,evaluated:shadowState.outcomes.filter(x=>x.version===YAHOO_SHADOW_VERSION&&x.status==='evaluated').length,proof:shadowProof(),updated_at:shadowState.updated_at},hypothesis_v4:{...hypothesisSummary(),counts:hypothesisCounts(),recommendation:hypothesisRecommendation()},research_v5:{...v5Summary(),counts:v5Counts(),recommendation:v5Recommendation(),candidate:latestV5Candidate()},l2:{status:'retired',provider:'databento',reason:'replaced_by_event_wave'}};
   }
   const minutes=aggregateMicrostructure(r.trades,r.quotes);
   const quality=microstructureQuality(minutes,{symbol,feed:FEED,minMinutes:10});
@@ -971,7 +932,7 @@ function snapshot(symbol){
     quality,minutes,
     edge_status:rawModel?.status||'unavailable',edge_model_id:rawModel?.model_id||null,
     live_signal:best?{dir:best.dir,score_bps:best.score_bps,horizon_minutes:best.horizon_minutes,margin:best.margin,asof:rawForecast.asof,model_id:best.model_id,source:'raw_sip'}:null,
-    wave:modelSummary(),wave_forecast:rawForecast,sentiment:sourceSummary(),shadow_trail_summary:{version:YAHOO_SHADOW_VERSION,pending:shadowState.predictions.filter(x=>x.version===YAHOO_SHADOW_VERSION).length,evaluated:shadowState.outcomes.filter(x=>x.version===YAHOO_SHADOW_VERSION&&x.status==='evaluated').length,proof:shadowProof(),updated_at:shadowState.updated_at},
+    wave:modelSummary(),wave_forecast:rawForecast,source_state:sourceSummary(),shadow_trail_summary:{version:YAHOO_SHADOW_VERSION,pending:shadowState.predictions.filter(x=>x.version===YAHOO_SHADOW_VERSION).length,evaluated:shadowState.outcomes.filter(x=>x.version===YAHOO_SHADOW_VERSION&&x.status==='evaluated').length,proof:shadowProof(),updated_at:shadowState.updated_at},
     l2:{status:'retired',provider:'databento',reason:'replaced_by_raw_alpaca_sip'}
   };
 }
@@ -1024,10 +985,7 @@ function wgoContextItems(now=Date.now(),hours=18){
   const cut=now-hours*3600000;
   return (Array.isArray(sourceState.items)?sourceState.items:[]).filter(x=>{const t=wgoEventMs(x);return Number.isFinite(t)&&t>=cut&&t<=now;}).sort((a,b)=>wgoEventMs(b)-wgoEventMs(a));
 }
-function wgoTone(items){
-  let pos=0,neg=0,mixed=0;for(const x of items){const v=termScore(x.summary||x.title||'');if(v>0)pos++;else if(v<0)neg++;else mixed++;}
-  return {positive:pos,negative:neg,mixed};
-}
+function wgoTone(items){return {observed_items:Array.isArray(items)?items.length:0,interpretation:'not_scored'};}
 async function wgoYahooPreviousClose(symbol){
   const enc=encodeURIComponent(symbol),urls=[
     'https://query1.finance.yahoo.com/v8/finance/chart/'+enc+'?range=5d&interval=1d&includePrePost=false&events=div%2Csplits',
@@ -1094,7 +1052,6 @@ function wgoStoryImpact(x,now=Date.now(),direction=0,anchorMs=null){
   add(/earnings|guidance|revenue|cloud backlog|contract/,3);
   add(/stock drop|stock fall|shares fall|shares fell|shares drop|slid|selloff|sell-off/,4);
   add(/reuters|bloomberg|financial times|wall street journal|cnbc/,2);
-  const sentiment=termScore(txt);if(direction<0&&sentiment<0)score+=3;if(direction>0&&sentiment>0)score+=3;
   score+=Math.max(0,3-ageH/4);
   if(Number.isFinite(anchorMs)&&Number.isFinite(t)){
     const delta=Math.abs(t-anchorMs);
@@ -1114,8 +1071,8 @@ function wgoCatalyst(items,now=Date.now(),direction=0,anchorMs=null){
     summary='Project Jupiter / New-Mexico-Rechenzentrum: Im heutigen Feed häufen sich Meldungen zu Oracles Force-Majeure-Mitteilung sowie Verzögerungs-, Infrastruktur- und Kostenrisiken.';
     return {theme,summary,item:top.item,score:top.score,related_count:related.length,confidence:top.score>=15?'high':'moderate'};
   }
-  if(/layoff|job cut|restructur/.test(txt)){theme='restructuring';summary='Restrukturierung/Entlassungen sind heute ein auffälliger negativer Oracle-Themenblock.';}
-  else if(/debt|loan|financing|credit|downgrade|junk/.test(txt)){theme='financing';summary='Finanzierungs- und Kreditrisiken rund um Oracle sind heute der auffälligste negative Themenblock.';}
+  if(/layoff|job cut|restructur/.test(txt)){theme='restructuring';summary='Restrukturierung/Entlassungen sind heute ein auffälliger Oracle-Themenblock.';}
+  else if(/debt|loan|financing|credit|downgrade|junk/.test(txt)){theme='financing';summary='Finanzierungs- und Kreditthemen rund um Oracle sind heute der auffälligste Themenblock.';}
   return {theme,summary,item:top.item,score:top.score,related_count:1,confidence:top.score>=12?'high':top.score>=7?'moderate':'low'};
 }
 function wgoDeterministic(minutes,now=Date.now()){

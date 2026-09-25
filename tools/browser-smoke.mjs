@@ -128,7 +128,9 @@ async function run(name,viewport){
     freshItems:(document.getElementById('freshItems')?.textContent||'').trim(),
     freshAt:(document.getElementById('freshAt')?.textContent||'').trim(),
     redditRows:document.querySelectorAll('[data-source-kind="reddit"]').length,
-    xText:(document.getElementById('sentimentSourceCounts')?.textContent||'').trim()
+    xText:(document.getElementById('sentimentSourceCounts')?.textContent||'').trim(),
+    compactNumber:(document.getElementById('sentimentCompactNumber')?.textContent||'').trim(),
+    compactLabel:(document.getElementById('sentimentCompactLabel')?.textContent||'').trim()
   }));
   const state=await page.evaluate(()=>{
     let renderForecastError=null;
@@ -289,8 +291,13 @@ async function run(name,viewport){
     const age=Date.now()-Date.parse(sourceStateUi.live.checked_at||'');
     if(!Number.isFinite(age)||age>180000)errors.push('source-state-not-fresh:'+JSON.stringify(sourceStateUi));
     if(Number(sourceStateUi.live.archive_count||0)>0&&Number(sourceStateUi.freshItems)!==Number(sourceStateUi.live.archive_count))errors.push('source-archive-count-not-primary:'+JSON.stringify(sourceStateUi));
-    if(sourceStateUi.live.contract!=='source-event-v2')errors.push('source-contract-not-v2:'+JSON.stringify(sourceStateUi.live));
-    if(sourceStateUi.live.archive_sentiment?.role!=='descriptive_only_not_model_signal')errors.push('archive-sentiment-role-invalid:'+JSON.stringify(sourceStateUi.live.archive_sentiment));
+    if(sourceStateUi.live.contract!=='source-event-v3'||sourceStateUi.live.role!=='raw_observation_only')errors.push('source-contract-not-v3:'+JSON.stringify(sourceStateUi.live));
+    if(sourceStateUi.live.interpretation_status!=='unvalidated_not_used')errors.push('source-interpretation-status-invalid:'+JSON.stringify(sourceStateUi.live));
+    for(const k of ['score','bull','bear','mixed','net','archive_sentiment','live_pulse'])if(Object.prototype.hasOwnProperty.call(sourceStateUi.live,k))errors.push('directional-source-field-leaked:'+k);
+    if(sourceStateUi.live.activity?.model_eligible!==false||sourceStateUi.live.activity?.direction!==null)errors.push('source-activity-not-fail-closed:'+JSON.stringify(sourceStateUi.live.activity));
+    if((sourceStateUi.live.items||[]).some(x=>Object.prototype.hasOwnProperty.call(x,'lean')))errors.push('source-item-lean-leaked');
+    if(Number(sourceStateUi.live.archive_count||0)>0&&Number(sourceStateUi.compactNumber)!==Number(sourceStateUi.live.archive_count))errors.push('source-activity-ui-count-mismatch:'+JSON.stringify(sourceStateUi));
+    if(/\/100|positiv|negativ|bullisch|bearisch/i.test(sourceStateUi.compactLabel))errors.push('source-ui-directional-language:'+JSON.stringify(sourceStateUi));
     const irrelevant=(sourceStateUi.live.items||[]).filter(x=>/oracle academy|university workshop|oracle financial services/i.test(String(x.title||'')));
     if(irrelevant.length)errors.push('irrelevant-oracle-source:'+JSON.stringify(irrelevant.slice(0,3)));
     const redditArchive=Number(sourceStateUi.live.archive_source_counts?.reddit||0);

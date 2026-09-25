@@ -159,32 +159,32 @@ coverage_score = clamp(
   45, 80
 )</div>
 <p class="small">Wichtig: Live-Browserpfad und Fallbackpfad sind absichtlich getrennt. Der Fallback ist ein robuster Snapshot, nicht die Quelle des manuellen Sync-Zeitstempels.</p>
-        <p><strong>Live-Quellenvertrag:</strong> News und Social laufen als einzelne Ereignisse über <code>source-event-v2</code>. Maßgebliche Zeit für ein nutzbares Ereignis ist <code>first_seen_at</code>; <code>published_at</code> bleibt Herkunftszeit. Die 36h-Stimmung ist nur eine deskriptive Zusammenfassung eindeutiger Ereignisse und erzeugt kein Kauf-/Verkaufssignal. ApeWisdom bleibt ein getrenntes 24h-Aggregat und wird nicht mit Einzelereignissen zu einem Handelssignal vermischt. Marktferne Oracle-Meldungen (z. B. Academy/University ohne Kapitalmarktbezug) werden vor der Quellenlage ausgeschlossen; nahezu gleiche Publisher-Schlagzeilen werden als eine Story behandelt, damit Wiederholungen nicht mehrfach stimmen. Meldungen zu Oracle Financial Services Software (OFSS) werden ohne expliziten ORCL-Bezug nicht Oracle Corp. zugerechnet.</p>
+        <p><strong>Live-Quellenvertrag:</strong> News und Social laufen als einzelne Ereignisse über <code>source-event-v3</code>. Maßgebliche Zeit für ein nutzbares Ereignis ist <code>first_seen_at</code>; <code>published_at</code> bleibt Herkunftszeit. Der Quellenvertrag speichert ausschließlich Rohbeobachtungen: Quelle, Text, veröffentlichter Zeitpunkt, first_seen_at, Lieferverzug, Engagement und Marktanker. Es gibt im Vertragsobjekt bewusst keinen Bull/Bear-Score, keine Richtung und keinen Confidence-Wert. ApeWisdom bleibt ein getrenntes, unvalidiertes 24h-Aggregat und wird nicht in den Richtungs- oder Handelspfad gemischt. Marktferne Oracle-Meldungen (z. B. Academy/University ohne Kapitalmarktbezug) werden vor der Quellenlage ausgeschlossen; nahezu gleiche Publisher-Schlagzeilen werden als eine Story behandelt, damit Wiederholungen nicht mehrfach stimmen. Meldungen zu Oracle Financial Services Software (OFSS) werden ohne expliziten ORCL-Bezug nicht Oracle Corp. zugerechnet.</p>
 </section>
 
 <section id="wave">
-<h2>3 · Wellenvektor: Crowd, Kurs und Volumen über Zeit</h2>
+<h2>3 · Wellenvektor: Kurs und Volumen; Quellenrichtung gesperrt</h2>
 <p>Der Wellenvektor ist bewusst <b>kein Daytrading-Speed-Signal</b>. Realtime-Kurse dürfen schnell aktualisieren; die Interpretation selbst wird langsamer und nur bei konsistenten Mehrfenster-Mustern neu bewertet.</p>
 <div class="formula">Preisrichtung:
 lineare Richtung + Persistenz + Effizienz
 über ca. 20 / 60 / 180 Minuten.
 
 Volumenfluss:
-signiertes 1-Minuten-Volumen als Proxy:
+signiertes 1-Minuten-Volumen als transparenter Proxy:
 Volumen × Vorzeichen der Preisänderung.
 Auswertung über ca. 30 / 90 Minuten.
 
-Crowd-Richtung:
-Stimmungsverlauf über ca. 90 / 360 Minuten.
-Zusätzlich wird geprüft, ob die beobachtete
-Social-/News-Masse in dieselbe Richtung wächst.
+News/Social:
+werden als zeitlich saubere Rohereignisse erfasst,
+dürfen aber keine Richtung beitragen.
+Freigabe erst nach separatem prospektivem Feature-Gate.
 
 Wichtig:
 Yahoo liefert Volumen, aber keine echte Käufer-/Verkäufer-Zuordnung.
-„Volumenfluss“ ist deshalb ein transparenter Proxy,
+„Volumenfluss“ ist deshalb ein Proxy,
 kein echter Orderbuch- oder Trade-Tape-Saldo.</div>
-<p>Es wird <b>kein gemeinsamer Gesamtscore</b> gebildet. Die Oberfläche zeigt nur dann einen Wellenzustand, wenn mindestens zwei unabhängige Dimensionen tragen. Mögliche Zustände sind <b>„Welle baut sich auf“</b>, <b>„Welle bestätigt“</b>, <b>„Welle dreht“</b> und <b>„Welle läuft aus“</b>. Fehlt die Evidenz, bleibt die Zeile leer.</p>
-<p>Die Idee dahinter ist Timing statt Geschwindigkeit: interessant ist vor allem, wenn Crowd und Volumen bereits gemeinsam in eine Richtung laufen, während der Kurs noch nicht folgt, oder wenn der Kurs weiterläuft, während Crowd und Volumen bereits dagegen kippen. Das ist ein Strukturhinweis, keine garantierte Kursprognose.</p>
+<p>Es wird <b>kein gemeinsamer Gesamtscore</b> gebildet. Für die Richtungslogik zählen aktuell nur Kurs und Volumen sowie separat validierte Marktmodelle. News/Social werden sichtbar gesammelt, aber fail-closed nicht als Richtungsstimme verwendet.</p>
+<p>Die Idee dahinter bleibt Timing statt Geschwindigkeit: Quellenereignisse werden exakt mit <code>first_seen_at</code> an den Markt gekoppelt, damit später prospektiv geprüft werden kann, ob ihre Aktivität oder eine zukünftige Textrepräsentation überhaupt zusätzlichen monetären Informationswert besitzt. Bis dieser Nachweis erbracht ist, beeinflussen sie keine Richtung.</p>
 </section>
 
 <section id="price">
