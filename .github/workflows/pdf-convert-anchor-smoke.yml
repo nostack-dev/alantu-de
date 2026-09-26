@@ -25,7 +25,7 @@ jobs:
       - name: Guard source
         run: |
           set -euo pipefail
-          grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-14' pdf-convert-anchor.html
+          grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-15' pdf-convert-anchor.html
           grep -q 'from "./vendor/unlimited-ocr-browser-engine.js"' alantu-unlimited-ocr.js
           grep -q 'function fetchWithRetry' alantu-unlimited-ocr.js
           grep -q 'withHeartbeat' alantu-unlimited-ocr.js
@@ -36,6 +36,8 @@ jobs:
           grep -q 'FALLBACK_LONG_EDGE=1600' alantu-unlimited-ocr.js
           grep -q 'decoderTransport:"HTTP Range → GPU buffers"' alantu-unlimited-ocr.js
           grep -q 'primaryOcrDisabledReason' alantu-unlimited-ocr.js
+          grep -q 'mBottleneck' alantu-unlimited-ocr.js
+          grep -q 'id="mBottleneck"' pdf-convert-anchor.html
           grep -q 'forceFallbackOcr' alantu-unlimited-ocr.js
           grep -q 'tesseract.js@5.1.1' alantu-unlimited-ocr.js
           grep -q 'Fallback-OCR auf' alantu-unlimited-ocr.js
@@ -68,7 +70,7 @@ jobs:
             if curl -fsSL --max-time 20 "https://www.alantu.de/pdf-convert-anchor.html?smoke=${{ github.sha }}" -o /tmp/page.html \
               && curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?smoke=${{ github.sha }}" -o /tmp/uocr.js \
               && curl -fsSL --max-time 20 "https://www.alantu.de/vendor/unlimited-ocr-browser-engine.js?smoke=${{ github.sha }}" -o /tmp/engine.js \
-              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-14' /tmp/page.html \
+              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-15' /tmp/page.html \
               && grep -q 'function fetchWithRetry' /tmp/uocr.js \
               && grep -q 'withHeartbeat' /tmp/uocr.js \
               && grep -q 'diagnoseLocalOcrBottleneck' /tmp/uocr.js \
@@ -78,6 +80,8 @@ jobs:
               && grep -q 'FALLBACK_LONG_EDGE=1600' /tmp/uocr.js \
               && grep -q 'decoderTransport:"HTTP Range → GPU buffers"' /tmp/uocr.js \
               && grep -q 'primaryOcrDisabledReason' /tmp/uocr.js \
+              && grep -q 'mBottleneck' /tmp/uocr.js \
+              && grep -q 'id="mBottleneck"' /tmp/page.html \
               && grep -q 'forceFallbackOcr' /tmp/uocr.js \
               && grep -q 'tesseract.js@5.1.1' /tmp/uocr.js \
               && grep -q 'Fallback-OCR auf' /tmp/uocr.js \
