@@ -40,6 +40,7 @@ const busy=$("busy"),empty=$("empty"),emptyTitle=$("emptyTitle"),emptyText=$("em
 
 let pdfDoc=null,sourceName="exposee",pages=[],currentPage=0,loadToken=0;
 let decoderEngine=null,decoderPromise=null,visionSession=null,visionPromise=null,visionExtras=null,extrasPromise=null,modelLoaded=false;
+let primaryOcrDisabledReason="";
 let compareMode="side";
 
 function setStatus(text,kind=""){
@@ -141,9 +142,24 @@ function vectorTextSvg(page){
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 function shortError(err){
-  const msg=String(err?.message||err||"Load failed");
-  if(/Load failed|Failed to fetch|NetworkError|fetch|aborted|cancelled|body/i.test(msg))return "Download abgebrochen oder Browser-Speicher zu knapp.";
-  return msg;
+  return String(err?.message||err||"Unbekannter OCR-Fehler").replace(/\s+/g," ").trim();
+}
+function classifyOcrFailure(err){
+  const raw=shortError(err),m=raw.toLowerCase();
+  let code="RUNTIME";
+  if(/lokale 3b-ocr nicht gestartet|bottleneck:|preflight/.test(m))code="PREFLIGHT";
+  else if(/webgpu|gpu|adapter|device lost|storagebuffer|texture/.test(m))code="WEBGPU";
+  else if(/out of memory|memory access|allocation|alloc_graph|quota|speicher/.test(m))code="MEMORY";
+  else if(/timeout|timed out/.test(m))code="TIMEOUT";
+  else if(/failed to fetch|networkerror|download|http \d|load failed|fetch/.test(m))code="NETWORK";
+  else if(/decoder|vision|onnx|modell/.test(m))code="MODEL";
+  return {code,raw:raw.slice(0,600)};
+}
+function recordCascade(stage,state,detail={}){
+  window.__alantuUocrDebug=window.__alantuUocrDebug||{};
+  const log=window.__alantuUocrDebug.cascade||(window.__alantuUocrDebug.cascade=[]);
+  log.push({at:new Date().toISOString(),stage,state,...detail});
+  if(log.length>80)log.splice(0,log.length-80);
 }
 let heartbeatTimer=null;
 function startHeartbeat(label){
@@ -339,7 +355,8 @@ function spliceVision(patches,newline,seperator){
 
 
 const FALLBACK_TESSERACT_URL="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
-let tesseractLoadPromise=null,fallbackWorkerPromise=null,fallbackWorker=null;
+const FALLBACK_LONG_EDGE=1600;
+let tesseractLoadPromise=null,fallbackWorkerPromise=null,fallbackWorker=null,fallbackWorkerStarts=0,fallbackOcrCalls=0;
 function loadScriptOnce(src,globalName){
   if(window[globalName])return Promise.resolve(window[globalName]);
   return new Promise((resolve,reject)=>{
@@ -350,71 +367,86 @@ function loadScriptOnce(src,globalName){
       existing.addEventListener("error",()=>reject(new Error(globalName+" konnte nicht geladen werden.")),{once:true});
       return;
     }
-    const el=document.createElement("script");el.src=src;el.async=true;el.crossOrigin="anonymous";
+    const el=document.createElement("script");el.src=src;el.async=true;
     el.onload=()=>window[globalName]?resolve(window[globalName]):reject(new Error(globalName+" ist nach dem Laden nicht verfügbar."));
     el.onerror=()=>reject(new Error(globalName+" Download fehlgeschlagen."));
     document.head.appendChild(el);
   });
 }
 async function loadSmallOcr(){
-  if(!tesseractLoadPromise)tesseractLoadPromise=withHeartbeat("Fallback-OCR Runtime wird geladen",()=>loadScriptOnce(FALLBACK_TESSERACT_URL,"Tesseract"),90000);
+  if(!tesseractLoadPromise)tesseractLoadPromise=withHeartbeat("Fallback-OCR Runtime wird geladen",()=>loadScriptOnce(FALLBACK_TESSERACT_URL,"Tesseract"),90000).catch(err=>{tesseractLoadPromise=null;throw err});
   return tesseractLoadPromise;
 }
-function compactReason(reason){
-  const msg=String(reason||"3B-OCR nicht verfügbar").replace(/^.*?Bottleneck:\s*/,"").replace(/\s+/g," ").trim();
-  return msg.length>180?msg.slice(0,177)+"…":msg;
+function makeFallbackOcrCanvas(source,enhance=false){
+  const long=Math.max(source.width,source.height)||1,scale=Math.min(1,FALLBACK_LONG_EDGE/long);
+  const c=document.createElement("canvas");
+  c.width=Math.max(1,Math.round(source.width*scale));c.height=Math.max(1,Math.round(source.height*scale));
+  const x=c.getContext("2d",{alpha:false});x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.imageSmoothingEnabled=true;x.imageSmoothingQuality="high";x.drawImage(source,0,0,c.width,c.height);
+  if(enhance){
+    const im=x.getImageData(0,0,c.width,c.height),d=im.data;
+    for(let i=0;i<d.length;i+=4){const g=.299*d[i]+.587*d[i+1]+.114*d[i+2],v=clampByte((g-128)*1.35+128);d[i]=d[i+1]=d[i+2]=v}
+    x.putImageData(im,0,0);
+  }
+  return c;
 }
-async function ensureFallbackWorker(){
+async function resetFallbackWorker(){
+  const w=fallbackWorker;fallbackWorker=null;fallbackWorkerPromise=null;
+  if(w)try{await w.terminate()}catch{}
+}
+async function getFallbackWorker(){
+  const T=await loadSmallOcr();
   if(fallbackWorker)return fallbackWorker;
   if(fallbackWorkerPromise)return fallbackWorkerPromise;
-  fallbackWorkerPromise=(async()=>{
-    const T=await loadSmallOcr();
-    setStatus("3B-OCR nicht nutzbar · starte kleines lokales OCR …");
-    const worker=await withHeartbeat("Fallback-OCR Worker startet",()=>T.createWorker(["deu","eng"],1,{
-      logger:m=>{
-        if(!m?.status)return;
-        const pct=Number.isFinite(m.progress)?Math.round(m.progress*100):0;
-        busy.textContent=pct?`Fallback-OCR · ${m.status} · ${pct}%`:`Fallback-OCR · ${m.status}`;
-        setStatus(pct?`Fallback-OCR · ${m.status} · ${pct}%`:`Fallback-OCR · ${m.status}`);
-      }
-    }),120000);
-    fallbackWorker=worker;
+  fallbackWorkerPromise=withHeartbeat("Fallback-OCR Worker startet",async()=>{
+    const worker=await T.createWorker("deu+eng",1,{logger:m=>{
+      if(!m?.status)return;
+      const pct=Number.isFinite(m.progress)?Math.round(m.progress*100):0;
+      busy.textContent=pct?`Fallback-OCR · ${m.status} · ${pct}%`:`Fallback-OCR · ${m.status}`;
+      setStatus(pct?`Fallback-OCR · ${m.status} · ${pct}%`:`Fallback-OCR · ${m.status}`);
+      if(pct)setProgress(pct);
+    }});
+    fallbackWorker=worker;fallbackWorkerStarts++;recordCascade("fallback-worker","ready",{starts:fallbackWorkerStarts});
     return worker;
-  })().finally(()=>{fallbackWorkerPromise=null});
+  },120000).catch(async err=>{await resetFallbackWorker();throw err}).finally(()=>{fallbackWorkerPromise=null});
   return fallbackWorkerPromise;
 }
 function tesseractItems(data,pageW,pageH,canvasW,canvasH){
-  const items=[];
-  const add=(text,bbox,confidence=100)=>{
-    text=normalizeText(text);if(!text||!bbox)return;
-    if(Number.isFinite(confidence)&&confidence<25)return;
+  const items=[];const add=(text,bbox,confidence=100)=>{
+    text=normalizeText(text);if(!text||!bbox)return;if(Number.isFinite(confidence)&&confidence<30)return;
     const b={x0:bbox.x0/canvasW*pageW,y0:bbox.y0/canvasH*pageH,x1:bbox.x1/canvasW*pageW,y1:bbox.y1/canvasH*pageH};
-    if(area(b)<1)return;
-    items.push({text,bbox:b,type:"fallback",kind:"image-text",confidence});
+    if(area(b)<1)return;items.push({text,bbox:b,type:"fallback",kind:"image-text",confidence});
   };
   for(const w of data?.words||[])add(w.text,w.bbox,w.confidence);
   if(!items.length)for(const l of data?.lines||[])add(l.text,l.bbox,l.confidence);
-  if(!items.length&&normalizeText(data?.text)){
-    add(data.text,{x0:0,y0:0,x1:canvasW,y1:canvasH},data?.confidence);
-  }
   return items;
 }
-async function releasePrimaryOcrRuntime(){
+async function runSmallFallbackOcr(sourceCanvas,pageW,pageH,reason){
+  const T=await loadSmallOcr(),worker=await getFallbackWorker(),failure=classifyOcrFailure(reason);
+  setStatus(`3B-OCR nicht nutzbar (${failure.code}) · Fallback-OCR läuft …`,"error");busy.classList.add("show");fallbackOcrCalls++;
+  let pass=1,c=makeFallbackOcrCanvas(sourceCanvas,false);
+  try{
+    if(worker.setParameters&&T.PSM)await worker.setParameters({tessedit_pageseg_mode:T.PSM.AUTO});
+    let result=await withHeartbeat("Fallback-OCR erkennt Text",()=>worker.recognize(c),180000);
+    let items=tesseractItems(result?.data,pageW,pageH,c.width,c.height);
+    if(!items.length){
+      c.width=1;c.height=1;pass=2;c=makeFallbackOcrCanvas(sourceCanvas,true);
+      if(worker.setParameters&&T.PSM)await worker.setParameters({tessedit_pageseg_mode:T.PSM.SPARSE_TEXT});
+      setStatus("Fallback-OCR Pass 1 ohne Text · Kontrast-/Sparse-Pass 2 läuft …");
+      result=await withHeartbeat("Fallback-OCR Pass 2 erkennt Text",()=>worker.recognize(c),180000);
+      items=tesseractItems(result?.data,pageW,pageH,c.width,c.height);
+    }
+    window.__alantuUocrDebug=window.__alantuUocrDebug||{};
+    window.__alantuUocrDebug.fallback={engine:"tesseract.js 5.1.1",items:items.length,reason:failure.raw,reasonCode:failure.code,width:c.width,height:c.height,pass,workerStarts:fallbackWorkerStarts,calls:fallbackOcrCalls};
+    recordCascade("fallback","done",{items:items.length,pass,reasonCode:failure.code});
+    mEngine.textContent=`Fallback-OCR · Tesseract.js · ${failure.code}`;return items;
+  }catch(err){recordCascade("fallback","failed",{error:shortError(err)});await resetFallbackWorker();throw err}
+  finally{c.width=1;c.height=1}
+}
+async function releasePrimaryOcrResources(reason=""){
   try{decoderEngine?.dispose?.()}catch{}
   try{await visionSession?.release?.()}catch{}
-  decoderEngine=null;decoderPromise=null;visionSession=null;visionPromise=null;visionExtras=null;extrasPromise=null;modelLoaded=false;
-}
-async function runSmallFallbackOcr(ocrCanvas,pageW,pageH,reason){
-  await releasePrimaryOcrRuntime();
-  setStatus("3B-OCR übersprungen: "+compactReason(reason)+" · Fallback-OCR startet …");
-  busy.classList.add("show");
-  const worker=await ensureFallbackWorker();
-  const result=await withHeartbeat("Fallback-OCR erkennt Text",()=>worker.recognize(ocrCanvas),180000);
-  const items=tesseractItems(result?.data,pageW,pageH,ocrCanvas.width,ocrCanvas.height);
-  window.__alantuUocrDebug=window.__alantuUocrDebug||{};
-  window.__alantuUocrDebug.fallback={engine:"tesseract.js 5.1.1",items:items.length,reason:String(reason||"")};
-  mEngine.textContent="Fallback-OCR · Tesseract.js";
-  return items;
+  decoderEngine=null;decoderPromise=null;visionSession=null;visionPromise=null;modelLoaded=false;
+  recordCascade("3b","released",{reason:shortError(reason)});
 }
 
 function hasRasterImages(opList){
@@ -560,6 +592,7 @@ async function runUnlimited(ocrCanvas){
   }
 
   if(FORCE_FALLBACK_OCR)throw new Error("3B-OCR absichtlich übersprungen (Fallback-Test).");
+  if(primaryOcrDisabledReason)throw new Error("3B-OCR nach vorherigem Fehler für dieses Dokument deaktiviert: "+primaryOcrDisabledReason);
   await requireLocalOcrCapability();
   const [session,extras]=await Promise.all([ensureVision(),ensureExtras()]);
   busy.textContent="Unlimited-OCR 3B · Vision-Encoding …";
@@ -647,27 +680,27 @@ async function convertPage(pageNo,token,onPreview=()=>{}){
     try{
       rawOcr=await runUnlimited(ocrCanvas);
       if(token!==loadToken)throw new Error("cancelled");
-      ocr=filterNativeDuplicates(parseUnlimited(rawOcr,base.width,base.height),native);
+      const parsed=parseUnlimited(rawOcr,base.width,base.height);
+      if(!parsed.length)throw new Error("3B-OCR lieferte keinen verwertbaren positionierten Bildtext.");
+      ocr=filterNativeDuplicates(parsed,native);recordCascade("3b","done",{page:pageNo,items:ocr.length});
     }catch(err){
       if(err?.message==="cancelled")throw err;
-      const primaryError=shortError(err);
-      provisional.ocrPrimaryError=primaryError;
-      console.warn("3B-OCR → Fallback-OCR",err);
+      const primaryFailure=classifyOcrFailure(err),primaryError=primaryFailure.raw;
+      provisional.ocrPrimaryError=primaryError;provisional.ocrPrimaryCode=primaryFailure.code;provisional.ocrFallbackAttempted=true;
+      primaryOcrDisabledReason=primaryError;console.warn("3B-OCR → Fallback-OCR",primaryFailure.code,primaryError);
+      await releasePrimaryOcrResources(primaryError);
       try{
-        const fallback=await runSmallFallbackOcr(ocrCanvas,base.width,base.height,primaryError);
+        const fallback=await runSmallFallbackOcr(canvas,base.width,base.height,primaryError);
         if(token!==loadToken)throw new Error("cancelled");
-        ocr=filterNativeDuplicates(fallback,native);
-        provisional.ocrFallback=true;
-        setStatus(ocr.length?"Fallback-OCR fertig · Bildtext wird als sichtbarer Vektortext gesetzt.":"Fallback-OCR lief, hat aber keinen Text erkannt.",ocr.length?"ok":"error");
+        ocr=filterNativeDuplicates(fallback,native);provisional.ocrFallback=true;provisional.ocrNoText=ocr.length===0;
+        setStatus(ocr.length?"Fallback-OCR fertig · Bildtext wird als sichtbarer Vektortext gesetzt.":"Fallback-OCR fertig · auf dieser Bildseite wurde kein Text gefunden.",ocr.length?"ok":"");
       }catch(fallbackErr){
         if(fallbackErr?.message==="cancelled")throw fallbackErr;
-        provisional.ocrError=primaryError+" | Fallback: "+shortError(fallbackErr);
-        console.error(fallbackErr);
-        setStatus("Bild-OCR fehlgeschlagen · kein Textlayer für diese Bildseite.","error");
+        provisional.ocrError=primaryError+" | Fallback: "+shortError(fallbackErr);console.error(fallbackErr);
+        setStatus("3B- und Fallback-OCR fehlgeschlagen · Diagnose ist gespeichert.","error");
       }
-    }finally{
-      ocrCanvas.width=1;ocrCanvas.height=1;
-    }
+    }finally{ocrCanvas.width=1;ocrCanvas.height=1}
+
   }
   provisional.ocr=ocr;
   provisional.rawOcr=rawOcr;
