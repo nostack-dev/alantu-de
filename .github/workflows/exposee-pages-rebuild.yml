@@ -51,7 +51,7 @@ jobs:
               && grep -q 'touch-action:none;' /tmp/pdf-live.html \
               && grep -q 'pointerdown",pointerDown,{passive:false}' /tmp/core-live.js \
               && grep -q 'lostpointercapture' /tmp/core-live.js \
-              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-14' /tmp/convert-live.html \
+              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-15' /tmp/convert-live.html \
               && grep -q 'function fetchWithRetry' /tmp/uocr-live.js \
               && grep -q 'withHeartbeat' /tmp/uocr-live.js \
               && grep -q 'diagnoseLocalOcrBottleneck' /tmp/uocr-live.js \
@@ -61,6 +61,8 @@ jobs:
               && grep -q 'FALLBACK_LONG_EDGE=1600' /tmp/uocr-live.js \
               && grep -q 'decoderTransport:"HTTP Range → GPU buffers"' /tmp/uocr-live.js \
               && grep -q 'primaryOcrDisabledReason' /tmp/uocr-live.js \
+              && grep -q 'mBottleneck' /tmp/uocr-live.js \
+              && grep -q 'id="mBottleneck"' /tmp/convert-live.html \
               && grep -q 'forceFallbackOcr' /tmp/uocr-live.js \
               && grep -q 'tesseract.js@5.1.1' /tmp/uocr-live.js \
               && grep -q 'Fallback-OCR auf' /tmp/uocr-live.js \
