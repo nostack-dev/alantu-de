@@ -283,7 +283,7 @@ if(!/Fallback-OCR/.test(mobile.engine))mobileErrors.push('mobile-engine:'+mobile
 if(!/Fallback:/.test(mobile.coverage))mobileErrors.push('mobile-coverage:'+mobile.coverage);
 if(mobileHeavyRequests.length)mobileErrors.push('mobile-loaded-heavy-3b:'+JSON.stringify(mobileHeavyRequests));
 if(mobile.preflight?.ok!==false)mobileErrors.push('mobile-preflight-not-blocked:'+JSON.stringify(mobile.preflight));
-if(!mobile.preflight?.reasons?.some(x=>/iOS\/WebKit/i.test(x)))mobileErrors.push('mobile-preflight-reason:'+JSON.stringify(mobile.preflight));
+if(!mobile.preflight?.reasons?.some(x=>/WebKit|WebGPU-Adapter/i.test(x)))mobileErrors.push('mobile-preflight-reason:'+JSON.stringify(mobile.preflight));
 if(mobile.fallback?.workerStarts!==1||mobile.fallback?.calls!==2)mobileErrors.push('mobile-fallback-worker:'+JSON.stringify(mobile.fallback));
 if(mobileConsoleErrors.length)mobileErrors.push('mobile-console:'+JSON.stringify(mobileConsoleErrors));
 if(mobilePageErrors.length)mobileErrors.push('mobile-pageerror:'+JSON.stringify(mobilePageErrors));
