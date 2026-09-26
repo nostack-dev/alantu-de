@@ -229,7 +229,7 @@ async function diagnoseLocalOcrBottleneck(){
     if(navigator.storage?.estimate){
       const st=await navigator.storage.estimate();
       const free=Math.max(0,(st.quota||0)-(st.usage||0));
-      facts.push("Browser-Storage frei: "+gib(free)+"GB von "+gib(st.quota||0)+"GB Quote (Diagnose בלבד; kein 3B-Gate, weil der Decoder per HTTP Range streamt).");
+      facts.push("Browser-Storage frei: "+gib(free)+"GB von "+gib(st.quota||0)+"GB Quote (nur Diagnose; kein 3B-Gate, weil der Decoder per HTTP Range streamt).");
     }
   }catch(e){facts.push("Storage-Estimate nicht verfügbar: "+shortError(e))}
   if(navigator.gpu){
