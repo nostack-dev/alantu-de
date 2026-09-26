@@ -28,7 +28,7 @@ jobs:
             if curl -fsSL --max-time 20 "https://www.alantu.de/pdf-convert-anchor.html?real=${{ github.sha }}" -o /tmp/page.html \
               && curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?real=${{ github.sha }}" -o /tmp/uocr.js \
               && curl -fsSL --max-time 20 "https://www.alantu.de/vendor/unlimited-ocr-browser-engine.js?real=${{ github.sha }}" -o /tmp/engine.js \
-              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-15' /tmp/page.html \
+              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-16' /tmp/page.html \
               && grep -q 'decoderTransport:"HTTP Range → GPU buffers"' /tmp/uocr.js \
               && grep -q 'FALLBACK_LONG_EDGE=1600' /tmp/uocr.js \
               && grep -q 'primaryOcrDisabledReason' /tmp/uocr.js \
