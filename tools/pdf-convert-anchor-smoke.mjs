@@ -272,6 +272,7 @@ const mobile=await mobilePage.evaluate(()=>({
   engine:document.getElementById('mEngine')?.textContent||'',
   imageText:document.getElementById('mImageText')?.textContent||'',
   coverage:document.getElementById('mImageTextPercent')?.textContent||'',
+  bottleneck:document.getElementById('mBottleneck')?.textContent||'',
   buttonDisabled:document.getElementById('downloadPdfBtn')?.disabled,
   preflight:window.__alantuOcrDiagnostics||null,
   fallback:window.__alantuUocrDebug?.fallback||null,
