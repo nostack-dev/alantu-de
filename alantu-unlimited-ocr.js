@@ -742,8 +742,10 @@ function updateMetrics(){
   else mImageTextPercent.textContent="— · keine Rasterbilder";
   mBaked.textContent=pages.length?String(pages.length):"—";
   mVisual.textContent=pages.length?(imageText?"Raster-Diff + Vektortext":"Original / kein OCR-Text"):"—";
-  if(fallbackAttempted)mEngine.textContent=modelLoaded?"3B → Fallback-OCR":"Fallback-OCR · Tesseract.js";
-  else if(!modelLoaded)mEngine.textContent=MODEL.name;
+  if(fallbackAttempted){
+    const codes=[...new Set(pages.filter(p=>p.ocrFallbackAttempted).map(p=>p.ocrPrimaryCode).filter(Boolean))];
+    mEngine.textContent=(modelLoaded?"3B → ":"")+"Fallback-OCR · Tesseract.js"+(codes.length?" · "+codes.join("/"):"");
+  }else if(!modelLoaded)mEngine.textContent=MODEL.name;
 }
 function makeBoxes(container,page){
   container.innerHTML="";
@@ -907,11 +909,14 @@ async function loadPdf(file){
     const fallback=pages.filter(p=>p.ocrFallback&&p.ocr.length).length;
     const noText=pages.filter(p=>p.ocrNoText&&!p.ocrError).length;
     const noImprovement=aiPages>0&&addedOcr===0;
+    const firstFailure=pages.find(p=>p.ocrError&&!p.ocr.length);
+    const failureHint=firstFailure?" · "+shortError(firstFailure.ocrError).slice(0,220):"";
     setStatus(
-      noImprovement?`Kein OCR-Text erzeugt · ${failed} technische Fehler / ${noText} Seiten ohne erkannten Text. Export gesperrt, weil kein Vektor-Mehrwert entstanden ist.`:
+      noImprovement?`Kein OCR-Text erzeugt · ${failed} technische Fehler / ${noText} Seiten ohne erkannten Text. Export gesperrt, weil kein Vektor-Mehrwert entstanden ist.${failureHint}`:
+      failed?`${pages.length} Seiten fertig · ${fallback} Bildseiten via Fallback vektorisiert · ${failed}/${aiPages} Bildseiten nach kompletter Kaskade ohne Textlayer.${failureHint}`:
       fallback?`${pages.length} Seiten fertig · Fallback-OCR auf ${fallback} Bildseiten${noText?`, ${noText} ohne gefundenen Text`:""}.`:
       `${pages.length} Seiten fertig · Raster-Diff + sichtbarer Vektortext erzeugt.`,
-      noImprovement?"error":"ok"
+      (noImprovement||failed)?"error":"ok"
     );
     downloadPdfBtn.disabled=noImprovement;downloadSvgBtn.disabled=noImprovement;currentPage=0;renderCompare();setTimeout(()=>setProgress(0),900);
   }catch(err){
