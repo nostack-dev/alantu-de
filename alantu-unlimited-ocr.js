@@ -189,7 +189,7 @@ async function fetchWithRetry(url,opts={},label="Datei"){
 }
 
 
-const LOCAL_OCR_NEEDS={cacheGiB:5.5,physicalRamGiB:8,texture:1024,storageBufferMiB:256};
+const LOCAL_OCR_NEEDS={workingSetGiB:5.2,physicalRamGiB:8,texture:1024,bufferMiB:256,storageBufferMiB:256};
 let localOcrPreflightPromise=null;
 function gib(v){return Math.round(v/1024/1024/1024*10)/10}
 function mib(v){return Math.round(v/1024/1024)}
@@ -199,8 +199,8 @@ async function diagnoseLocalOcrBottleneck(){
   const reasons=[],facts=[];
   const ua=navigator.userAgent||"";
   facts.push("Browser: "+ua.slice(0,140));
-  facts.push("Lokaler 3B-OCR-Load braucht grob Decoder 3.5GB + Vision 1.6GB + Tensoren/Canvas/Cache, also Desktop-Klasse.");
-  if(isIOSLike())reasons.push("Bottleneck: iOS/WebKit-Tab-Speicher/Cache. iPhone/iPad-Browser können diesen lokalen 3B-OCR-Stack nicht stabil halten; Modell-Download/ONNX/WebGPU endet typischerweise in Load failed oder Tab-Kill.");
+  facts.push("3B-Pfad: GGUF-Decoder wird per HTTP Range direkt in GPU-Buffers gestreamt; Browser-Storage ist kein Hard-Gate. Arbeitsmenge grob >"+LOCAL_OCR_NEEDS.workingSetGiB+"GB inklusive Vision-Encoder und Laufzeitpuffern.");
+  if(isIOSLike())reasons.push("Bottleneck: WebKit stellt keinen verlässlichen RAM-/GPU-Speicherbudgetwert für diesen Tab bereit; bei >"+LOCAL_OCR_NEEDS.workingSetGiB+"GB benötigter Arbeitsmenge kann der 3B-Pfad daher nicht sicher reserviert werden. Automatischer lokaler Fallback statt riskantem Tab-Absturz.");
   if(!navigator.gpu)reasons.push("Bottleneck: WebGPU fehlt in diesem Browser. Der Vision-Encoder/Decoder kann lokal nicht gestartet werden.");
   if(navigator.deviceMemory){
     facts.push("Gemeldeter RAM-Bucket: "+navigator.deviceMemory+"GB");
@@ -212,8 +212,7 @@ async function diagnoseLocalOcrBottleneck(){
     if(navigator.storage?.estimate){
       const st=await navigator.storage.estimate();
       const free=Math.max(0,(st.quota||0)-(st.usage||0));
-      facts.push("Browser-Storage frei: "+gib(free)+"GB von "+gib(st.quota||0)+"GB Quote");
-      if(st.quota&&free<LOCAL_OCR_NEEDS.cacheGiB*1024**3)reasons.push("Bottleneck: Browser-Cache frei "+gib(free)+"GB < benötigte Modell-/Runtime-Reserve ca. "+LOCAL_OCR_NEEDS.cacheGiB+"GB.");
+      facts.push("Browser-Storage frei: "+gib(free)+"GB von "+gib(st.quota||0)+"GB Quote (Diagnose בלבד; kein 3B-Gate, weil der Decoder per HTTP Range streamt).");
     }
   }catch(e){facts.push("Storage-Estimate nicht verfügbar: "+shortError(e))}
   if(navigator.gpu){
@@ -223,13 +222,15 @@ async function diagnoseLocalOcrBottleneck(){
       else{
         const l=adapter.limits||{};
         facts.push("WebGPU limits: texture2D="+(l.maxTextureDimension2D||"?")+", storageBuffer="+(l.maxStorageBufferBindingSize?mib(l.maxStorageBufferBindingSize)+"MB":"?")+", buffer="+(l.maxBufferSize?mib(l.maxBufferSize)+"MB":"?"));
+        const info=adapter.info||{};if(info.vendor||info.architecture||info.device)facts.push("WebGPU Adapter: "+[info.vendor,info.architecture,info.device].filter(Boolean).join(" / "));
         if(l.maxTextureDimension2D&&l.maxTextureDimension2D<LOCAL_OCR_NEEDS.texture)reasons.push("Bottleneck: maxTextureDimension2D "+l.maxTextureDimension2D+" < "+LOCAL_OCR_NEEDS.texture+".");
+        if(l.maxBufferSize&&l.maxBufferSize<LOCAL_OCR_NEEDS.bufferMiB*1024*1024)reasons.push("Bottleneck: maxBufferSize "+mib(l.maxBufferSize)+"MB < "+LOCAL_OCR_NEEDS.bufferMiB+"MB.");
         if(l.maxStorageBufferBindingSize&&l.maxStorageBufferBindingSize<LOCAL_OCR_NEEDS.storageBufferMiB*1024*1024)reasons.push("Bottleneck: maxStorageBufferBindingSize "+mib(l.maxStorageBufferBindingSize)+"MB < "+LOCAL_OCR_NEEDS.storageBufferMiB+"MB.");
       }
     }catch(e){reasons.push("Bottleneck: WebGPU-Probe fehlgeschlagen: "+shortError(e))}
   }
   const ok=!reasons.length;
-  const report={ok,reasons,facts,checkedAt:new Date().toISOString()};
+  const report={ok,reasons,facts,workingSetGiB:LOCAL_OCR_NEEDS.workingSetGiB,decoderTransport:"HTTP Range → GPU buffers",checkedAt:new Date().toISOString()};
   window.__alantuOcrDiagnostics=report;
   window.__alantuUocrDebug=window.__alantuUocrDebug||{};
   window.__alantuUocrDebug.preflight=report;
