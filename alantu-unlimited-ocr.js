@@ -726,7 +726,9 @@ function updateMetrics(){
   const aiPages=pages.filter(p=>p.usedAi).length;
   const convertedImagePages=pages.filter(p=>p.usedAi&&p.ocr.length>0).length;
   const pendingAi=pages.some(p=>p.processing);
+  const fallbackAttempted=pages.filter(p=>p.ocrFallbackAttempted).length;
   const fallbackAi=pages.filter(p=>p.ocrFallback&&p.ocr.length>0).length;
+  const noTextAi=pages.filter(p=>p.ocrNoText&&!p.ocrError).length;
   const failedAi=pages.filter(p=>p.ocrError&&!p.ocr.length).length;
   const coverage=aiPages?Math.round(convertedImagePages/aiPages*100):null;
   mPages.textContent=pages.length?String(pages.length):"—";
@@ -734,13 +736,13 @@ function updateMetrics(){
   mImageText.textContent=pages.length?String(imageText):"—";
   if(!pages.length)mImageTextPercent.textContent="—";
   else if(pendingAi)mImageTextPercent.textContent="läuft …";
-  else if(failedAi)mImageTextPercent.textContent=`${coverage||0} % Bildseiten mit OCR · ${failedAi}/${aiPages} ohne Textlayer`;
-  else if(fallbackAi)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · Fallback-OCR auf ${fallbackAi}/${aiPages} · ${imageText} Blöcke / ${imageChars} Zeichen → Vektor · ${vectorPixels.toLocaleString("de-DE")} Rasterpixel ersetzt`;
+  else if(failedAi)mImageTextPercent.textContent=`${coverage||0} % Bildseiten mit OCR · ${failedAi}/${aiPages} nach 3B + Fallback ohne Textlayer`;
+  else if(fallbackAttempted)mImageTextPercent.textContent=`${coverage||0} % Bildseiten mit OCR · Fallback: ${fallbackAi} erfolgreich / ${noTextAi} ohne Text · ${imageText} Blöcke / ${imageChars} Zeichen → Vektor · ${vectorPixels.toLocaleString("de-DE")} Rasterpixel ersetzt`;
   else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 3B-OCR · ${imageText} Blöcke / ${imageChars} Zeichen → Vektor · ${vectorPixels.toLocaleString("de-DE")} Rasterpixel ersetzt`;
   else mImageTextPercent.textContent="— · keine Rasterbilder";
   mBaked.textContent=pages.length?String(pages.length):"—";
   mVisual.textContent=pages.length?(imageText?"Raster-Diff + Vektortext":"Original / kein OCR-Text"):"—";
-  if(fallbackAi)mEngine.textContent=modelLoaded?"3B + Fallback-OCR":"Fallback-OCR · Tesseract.js";
+  if(fallbackAttempted)mEngine.textContent=modelLoaded?"3B → Fallback-OCR":"Fallback-OCR · Tesseract.js";
   else if(!modelLoaded)mEngine.textContent=MODEL.name;
 }
 function makeBoxes(container,page){
@@ -874,7 +876,7 @@ async function clearDocument(){
 async function loadPdf(file){
   if(!file)return;
   if(file.type!=="application/pdf"&&!file.name.toLowerCase().endsWith(".pdf")){setStatus("Bitte eine PDF-Datei auswählen.","error");return}
-  await clearDocument();const token=++loadToken;sourceName=file.name;fileBadge.textContent=file.name;busy.classList.add("show");setStatus("PDF wird gelesen …");setProgress(2);
+  await clearDocument();primaryOcrDisabledReason="";const token=++loadToken;sourceName=file.name;fileBadge.textContent=file.name;busy.classList.add("show");setStatus("PDF wird gelesen …");setProgress(2);
   emptyTitle.textContent="Original wird vorbereitet …";
   emptyText.textContent="Sobald die erste Seite gerendert ist, erscheint sie sofort. Unlimited-OCR kann parallel noch laden.";
   empty.style.display="grid";
@@ -903,8 +905,14 @@ async function loadPdf(file){
     const addedOcr=pages.reduce((n,p)=>n+p.ocr.length,0);
     const failed=pages.filter(p=>p.ocrError&&!p.ocr.length).length;
     const fallback=pages.filter(p=>p.ocrFallback&&p.ocr.length).length;
+    const noText=pages.filter(p=>p.ocrNoText&&!p.ocrError).length;
     const noImprovement=aiPages>0&&addedOcr===0;
-    setStatus(noImprovement?`Kein OCR-Text erzeugt · ${failed||aiPages}/${aiPages} Bildseiten ohne Textlayer. Export gesperrt, weil er keinen Mehrwert hätte.`:(fallback?`${pages.length} Seiten fertig · Fallback-OCR auf ${fallback} Bildseiten.`:`${pages.length} Seiten fertig · visuell Original, zusätzlicher echter Textlayer.`),noImprovement?"error":"ok");
+    setStatus(
+      noImprovement?`Kein OCR-Text erzeugt · ${failed} technische Fehler / ${noText} Seiten ohne erkannten Text. Export gesperrt, weil kein Vektor-Mehrwert entstanden ist.`:
+      fallback?`${pages.length} Seiten fertig · Fallback-OCR auf ${fallback} Bildseiten${noText?`, ${noText} ohne gefundenen Text`:""}.`:
+      `${pages.length} Seiten fertig · Raster-Diff + sichtbarer Vektortext erzeugt.`,
+      noImprovement?"error":"ok"
+    );
     downloadPdfBtn.disabled=noImprovement;downloadSvgBtn.disabled=noImprovement;currentPage=0;renderCompare();setTimeout(()=>setProgress(0),900);
   }catch(err){
     busy.classList.remove("show");
@@ -917,9 +925,9 @@ async function clearModelCache(){
   try{
     try{decoderEngine?.dispose?.()}catch{}
     try{await visionSession?.release?.()}catch{}
-    decoderEngine=null;decoderPromise=null;visionSession=null;visionPromise=null;visionExtras=null;extrasPromise=null;modelLoaded=false;
-    try{await fallbackWorker?.terminate?.()}catch{}
-    fallbackWorker=null;fallbackWorkerPromise=null;tesseractLoadPromise=null;localOcrPreflightPromise=null;
+    decoderEngine=null;decoderPromise=null;visionSession=null;visionPromise=null;visionExtras=null;extrasPromise=null;modelLoaded=false;primaryOcrDisabledReason="";
+    await resetFallbackWorker();
+    tesseractLoadPromise=null;localOcrPreflightPromise=null;
     for(const key of await caches.keys())await caches.delete(key);
     mEngine.textContent="Unlimited-OCR 3B · Runtime neu";
     setStatus("Lokale Unlimited-OCR Runtime wurde zurückgesetzt.","ok");
