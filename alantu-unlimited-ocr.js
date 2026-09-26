@@ -117,11 +117,14 @@ function inpaintTextRect(ctx,rect,style){
   ctx.putImageData(out,x0,y0);
   return removed;
 }
-async function makeVectorizedRaster(sourceCanvas,ocr,pageW,pageH){
+async function makeVectorizedRaster(sourceCanvas,runs,pageW,pageH){
   const c=document.createElement("canvas");c.width=sourceCanvas.width;c.height=sourceCanvas.height;
   const ctx=c.getContext("2d",{alpha:false});ctx.drawImage(sourceCanvas,0,0);
   const sx=c.width/pageW,sy=c.height/pageH;
-  for(const r of ocr){
+  // Native PDF text and OCR image text are both removed from the raster copy
+  // and redrawn as real vectors. Anything not represented by a text run stays
+  // baked in the diff image.
+  for(const r of runs){
     const px={x0:r.bbox.x0*sx,y0:r.bbox.y0*sy,x1:r.bbox.x1*sx,y1:r.bbox.y1*sy};
     r.vectorStyle=sampleTextStyle(ctx,px);
     r.vectorPixelsRemoved=inpaintTextRect(ctx,px,r.vectorStyle);
@@ -133,9 +136,10 @@ async function makeVectorizedRaster(sourceCanvas,ocr,pageW,pageH){
   return {bytes,url};
 }
 function vectorTextSvg(page){
-  return page.ocr.map(r=>{
-    const b=r.bbox,h=Math.max(2,b.y1-b.y0),fs=Math.max(2,h*.82),x=b.x0,y=b.y0+fs*.9,w=Math.max(1,b.x1-b.x0),fill=r.vectorStyle?.fill||"#111111";
-    return `<text data-kind="image-text-vector" x="${x.toFixed(3)}" y="${y.toFixed(3)}" font-family="Arial,Helvetica,sans-serif" font-size="${fs.toFixed(3)}" fill="${fill}" textLength="${w.toFixed(3)}" lengthAdjust="spacingAndGlyphs">${escapeXml(r.text)}</text>`;
+  return allText(page).map(r=>{
+    const b=r.bbox,h=Math.max(2,b.y1-b.y0),fs=Math.max(2,r.fontSize||h*.82),x=b.x0,y=b.y0+Math.min(h,fs)*.9,w=Math.max(1,b.x1-b.x0),fill=r.vectorStyle?.fill||"#111111";
+    const angle=Number(r.angle)||0,deg=angle*180/Math.PI,transform=Math.abs(deg)>.01?` transform="rotate(${deg.toFixed(4)} ${x.toFixed(3)} ${y.toFixed(3)})"`:"";
+    return `<text data-kind="${r.kind==="native"?"native-text-vector":"image-text-vector"}" x="${x.toFixed(3)}" y="${y.toFixed(3)}" font-family="Arial,Helvetica,sans-serif" font-size="${fs.toFixed(3)}" fill="${fill}" textLength="${w.toFixed(3)}" lengthAdjust="spacingAndGlyphs"${transform}>${escapeXml(r.text)}</text>`;
   }).join("");
 }
 
@@ -727,8 +731,9 @@ async function convertPage(pageNo,token,onPreview=()=>{}){
   }
   provisional.ocr=ocr;
   provisional.rawOcr=rawOcr;
-  if(ocr.length){
-    const vectorized=await makeVectorizedRaster(canvas,ocr,base.width,base.height);
+  const vectorRuns=[...native,...ocr];
+  if(vectorRuns.length){
+    const vectorized=await makeVectorizedRaster(canvas,vectorRuns,base.width,base.height);
     provisional.vectorPngBytes=vectorized.bytes;
     provisional.vectorRasterUrl=vectorized.url;
   }else{
@@ -745,7 +750,8 @@ function updateMetrics(){
   const native=pages.reduce((n,p)=>n+p.native.length,0);
   const imageText=pages.reduce((n,p)=>n+p.ocr.length,0);
   const imageChars=pages.reduce((n,p)=>n+p.ocr.reduce((m,r)=>m+normalizeText(r.text).replace(/\s/g,"").length,0),0);
-  const vectorPixels=pages.reduce((n,p)=>n+p.ocr.reduce((m,r)=>m+(r.vectorPixelsRemoved||0),0),0);
+  const vectorRuns=pages.reduce((n,p)=>n+allText(p).length,0);
+  const vectorPixels=pages.reduce((n,p)=>n+allText(p).reduce((m,r)=>m+(r.vectorPixelsRemoved||0),0),0);
   const aiPages=pages.filter(p=>p.usedAi).length;
   const convertedImagePages=pages.filter(p=>p.usedAi&&p.ocr.length>0).length;
   const pendingAi=pages.some(p=>p.processing);
@@ -765,7 +771,7 @@ function updateMetrics(){
   else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 3B-OCR · ${imageText} Blöcke / ${imageChars} Zeichen → Vektor · ${vectorPixels.toLocaleString("de-DE")} Rasterpixel ersetzt`;
   else mImageTextPercent.textContent="— · keine Rasterbilder";
   mBaked.textContent=pages.length?String(pages.length):"—";
-  mVisual.textContent=pages.length?(imageText?"Raster-Diff + Vektortext":"Original / kein OCR-Text"):"—";
+  mVisual.textContent=pages.length?(vectorRuns?`Raster-Diff + ${vectorRuns} Vektortext-Runs`:"Original / kein Text"):"—";
   if(fallbackAttempted){
     const codes=[...new Set(pages.filter(p=>p.ocrFallbackAttempted).map(p=>p.ocrPrimaryCode).filter(Boolean))];
     mEngine.textContent=(modelLoaded?"3B → ":"")+"Fallback-OCR · Tesseract.js"+(codes.length?" · "+codes.join("/"):"");
@@ -790,14 +796,15 @@ function renderVectorSvgLayer(svg,page){
   svg.setAttribute("viewBox",`0 0 ${page.width} ${page.height}`);
   svg.setAttribute("preserveAspectRatio","none");
   svg.dataset.role="visible-vector-text";
-  for(const r of page.ocr){
-    const b=r.bbox,h=Math.max(2,b.y1-b.y0),fs=Math.max(2,h*.82),w=Math.max(1,b.x1-b.x0);
+  for(const r of allText(page)){
+    const b=r.bbox,h=Math.max(2,b.y1-b.y0),fs=Math.max(2,r.fontSize||h*.82),w=Math.max(1,b.x1-b.x0);
     const text=document.createElementNS("http://www.w3.org/2000/svg","text");
-    text.setAttribute("data-kind","image-text-vector");
-    text.setAttribute("x",b.x0.toFixed(3));text.setAttribute("y",(b.y0+fs*.9).toFixed(3));
+    text.setAttribute("data-kind",r.kind==="native"?"native-text-vector":"image-text-vector");
+    text.setAttribute("x",b.x0.toFixed(3));text.setAttribute("y",(b.y0+Math.min(h,fs)*.9).toFixed(3));
     text.setAttribute("font-family","Arial,Helvetica,sans-serif");text.setAttribute("font-size",fs.toFixed(3));
     text.setAttribute("fill",r.vectorStyle?.fill||"#111111");
     text.setAttribute("textLength",w.toFixed(3));text.setAttribute("lengthAdjust","spacingAndGlyphs");
+    const deg=(Number(r.angle)||0)*180/Math.PI;if(Math.abs(deg)>.01)text.setAttribute("transform",`rotate(${deg.toFixed(4)} ${b.x0.toFixed(3)} ${(b.y0+Math.min(h,fs)*.9).toFixed(3)})`);
     text.textContent=r.text;svg.appendChild(text);
   }
 }
@@ -860,7 +867,7 @@ async function buildVectorPdf(){
     const p=pages[i];busy.textContent=`PDF-Seite ${i+1} / ${pages.length}`;setProgress((i/pages.length)*100);
     const img=await out.embedPng(p.vectorPngBytes||p.pngBytes),page=out.addPage([p.width,p.height]);
     page.drawImage(img,{x:0,y:0,width:p.width,height:p.height});
-    for(const r of p.ocr){
+    for(const r of allText(p)){
       const b=r.bbox,text=safePdfText(font,r.text);if(!text)continue;
       const boxW=Math.max(2,b.x1-b.x0),boxH=Math.max(2,b.y1-b.y0);
       const widthAt1=Math.max(.01,font.widthOfTextAtSize(text,1));
@@ -872,8 +879,8 @@ async function buildVectorPdf(){
     if(i%2===1)await new Promise(requestAnimationFrame);
   }
   out.setTitle(sanitizeName(sourceName));
-  out.setSubject("ALANTU hybrid vector PDF · image text converted to visible PDF text");
-  out.setProducer("ALANTU OCR → vector text");
+  out.setSubject("ALANTU hybrid vector PDF · native + recognized image text converted to visible PDF text");
+  out.setProducer("ALANTU text/OCR → vector text");
   const bytes=await out.save({useObjectStreams:false});
   setProgress(100);setStatus("Hybrid-Vector-PDF fertig · erkannter Bildtext ist sichtbarer PDF-Text.","ok");busy.classList.remove("show");setTimeout(()=>setProgress(0),900);
   return new Blob([bytes],{type:"application/pdf"});
@@ -974,4 +981,5 @@ sideBtn.addEventListener("click",()=>setCompareMode("side"));overlayBtn.addEvent
 overlayOpacity.addEventListener("input",renderCompare);showBoxes.addEventListener("change",renderCompare);
 downloadPdfBtn.addEventListener("click",downloadPdf);downloadSvgBtn.addEventListener("click",downloadSvg);clearModelBtn.addEventListener("click",clearModelCache);
 
+window.__alantuVectorContract={nativeText:"visible-vector",ocrText:"visible-vector",unrecognized:"baked-diff",manualAnchor:false};
 mEngine.textContent="Unlimited-OCR 3B · WebGPU native";updateMetrics();setCompareMode("side");
