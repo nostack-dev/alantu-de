@@ -116,7 +116,7 @@
         <div class="section-title">Ergebnis</div>
         <div class="metrics">
           <div class="metric"><span>Seiten</span><strong id="mPages">—</strong></div>
-          <div class="metric"><span>PDF-Text</span><strong id="mNative">—</strong></div>
+          <div class="metric"><span>PDF-Text → Vektor</span><strong id="mNative">—</strong></div>
           <div class="metric"><span>Bildtext erkannt</span><strong id="mImageText">—</strong></div>
           <div class="metric"><span>Bildseiten → echter Text</span><strong id="mImageTextPercent">—</strong></div>
           <div class="metric"><span>Raster-Diff-Seiten</span><strong id="mBaked">—</strong></div>
@@ -127,7 +127,7 @@
         <button class="action primary" id="downloadPdfBtn" type="button" disabled>Hybrid-Vector-PDF herunterladen</button>
         <button class="action" id="downloadSvgBtn" type="button" disabled>Zusätzlich als Vektor-SVG</button>
         <button class="action" id="clearModelBtn" type="button">OCR-Runtime zurücksetzen</button>
-        <p class="note">Ziel ist nicht Indexierung: Erkannter Bildtext wird sichtbar vektorisiert. Sein alter Rasterbereich wird aus dem Hintergrund herausgerechnet; übrig bleibt nur der nicht erkannte Bildinhalt als Raster-Diff. Im PDF wird echter PDF-Text gesetzt, im SVG echter SVG-Text.</p>
+        <p class="note">PDF-Text und erkannter Bildtext werden als sichtbarer Vektortext gesetzt. Ihre alten Rasterpixel werden aus dem Hintergrund herausgerechnet; nicht erkannter Inhalt bleibt als Raster-Diff. Kein manueller Anchor. Im PDF entsteht echter PDF-Text, im SVG echter SVG-Text.</p>
       </div>
     </aside>
 
@@ -182,6 +182,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
-  <script type="module" src="./alantu-unlimited-ocr.js?v=browser-webgpu-16"></script>
+  <script type="module" src="./alantu-unlimited-ocr.js?v=browser-webgpu-17"></script>
 </body>
 </html>
