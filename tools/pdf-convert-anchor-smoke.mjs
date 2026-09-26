@@ -226,6 +226,7 @@ const fallback=await fallbackPage.evaluate(()=>({
   engine:document.getElementById('mEngine')?.textContent||'',
   imageText:document.getElementById('mImageText')?.textContent||'',
   coverage:document.getElementById('mImageTextPercent')?.textContent||'',
+  bottleneck:document.getElementById('mBottleneck')?.textContent||'',
   buttonDisabled:document.getElementById('downloadPdfBtn')?.disabled,
   debug:window.__alantuUocrDebug?.fallback||null
 }));
@@ -280,6 +281,7 @@ const mobileErrors=[];
 if(mobile.buttonDisabled)mobileErrors.push('mobile-export-disabled:'+mobile.status);
 if(Number(mobile.imageText)<1)mobileErrors.push('mobile-no-image-text:'+mobile.imageText);
 if(!/Fallback-OCR/.test(mobile.engine))mobileErrors.push('mobile-engine:'+mobile.engine);
+if(!mobile.bottleneck||mobile.bottleneck==='—')mobileErrors.push('mobile-bottleneck-missing:'+mobile.bottleneck);
 if(!/Fallback:/.test(mobile.coverage))mobileErrors.push('mobile-coverage:'+mobile.coverage);
 if(mobileHeavyRequests.length)mobileErrors.push('mobile-loaded-heavy-3b:'+JSON.stringify(mobileHeavyRequests));
 if(mobile.preflight?.ok!==false)mobileErrors.push('mobile-preflight-not-blocked:'+JSON.stringify(mobile.preflight));
