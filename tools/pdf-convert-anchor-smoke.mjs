@@ -233,12 +233,64 @@ const fallbackErrors=[];
 if(fallback.buttonDisabled)fallbackErrors.push('fallback-export-disabled:'+fallback.status);
 if(!/Fallback-OCR/.test(fallback.engine))fallbackErrors.push('fallback-engine:'+fallback.engine);
 if(Number(fallback.imageText)<1)fallbackErrors.push('fallback-no-image-text:'+fallback.imageText);
-if(!/Fallback-OCR auf/.test(fallback.coverage))fallbackErrors.push('fallback-coverage:'+fallback.coverage);
+if(!/Fallback:/.test(fallback.coverage))fallbackErrors.push('fallback-coverage:'+fallback.coverage);
 if(!fallback.debug||fallback.debug.engine!=='tesseract.js 5.1.1')fallbackErrors.push('fallback-debug:'+JSON.stringify(fallback.debug));
+if(fallback.debug?.workerStarts!==1)fallbackErrors.push('fallback-worker-restarted:'+JSON.stringify(fallback.debug));
+if(fallback.debug?.calls!==2)fallbackErrors.push('fallback-worker-calls:'+JSON.stringify(fallback.debug));
+if(!(fallback.debug?.width>0&&fallback.debug?.height>0&&Math.max(fallback.debug.width,fallback.debug.height)<=1600))fallbackErrors.push('fallback-canvas:'+JSON.stringify(fallback.debug));
 if(fallbackConsoleErrors.length)fallbackErrors.push('fallback-console:'+JSON.stringify(fallbackConsoleErrors));
 if(fallbackPageErrors.length)fallbackErrors.push('fallback-pageerror:'+JSON.stringify(fallbackPageErrors));
 console.log(JSON.stringify({fallbackUrl,fallback,ok:fallbackErrors.length===0,errors:fallbackErrors},null,2));
+if(fallbackErrors.length){await browser.close();throw new Error('OCR fallback cascade smoke failed: '+fallbackErrors.join(' | '));}
+
+// iPhone-13-Pro-class browser path: the runtime must detect that local 3B is
+// not a safe fit, skip every multi-GB model request, and automatically finish
+// with the lightweight fallback OCR instead of hanging or returning the input.
+const mobileHeavyRequests=[];
+const mobileContext=await browser.newContext({
+  viewport:{width:390,height:844},
+  screen:{width:390,height:844},
+  isMobile:true,
+  hasTouch:true,
+  userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
+});
+const mobilePage=await mobileContext.newPage();
+const mobileConsoleErrors=[],mobilePageErrors=[];
+mobilePage.on('console',m=>{if(m.type()==='error')mobileConsoleErrors.push(m.text())});
+mobilePage.on('pageerror',e=>mobilePageErrors.push(String(e?.stack||e)));
+mobilePage.on('request',req=>{if(/Unlimited-OCR-Q4_K_M|deepencoder_fp32\.onnx/i.test(req.url()))mobileHeavyRequests.push(req.url())});
+await mobilePage.goto(base,{waitUntil:'domcontentloaded',timeout:60000});
+await mobilePage.locator('#pdfInput').setInputFiles(fixture);
+await mobilePage.waitForFunction(()=>{
+  const b=document.getElementById('downloadPdfBtn');
+  const status=document.getElementById('status')?.textContent||'';
+  return b?.disabled===false||/Export gesperrt|3B- und Fallback-OCR fehlgeschlagen/.test(status);
+},null,{timeout:240000});
+const mobile=await mobilePage.evaluate(()=>({
+  status:document.getElementById('status')?.textContent||'',
+  engine:document.getElementById('mEngine')?.textContent||'',
+  imageText:document.getElementById('mImageText')?.textContent||'',
+  coverage:document.getElementById('mImageTextPercent')?.textContent||'',
+  buttonDisabled:document.getElementById('downloadPdfBtn')?.disabled,
+  preflight:window.__alantuOcrDiagnostics||null,
+  fallback:window.__alantuUocrDebug?.fallback||null,
+  cascade:window.__alantuUocrDebug?.cascade||[]
+}));
+const mobileErrors=[];
+if(mobile.buttonDisabled)mobileErrors.push('mobile-export-disabled:'+mobile.status);
+if(Number(mobile.imageText)<1)mobileErrors.push('mobile-no-image-text:'+mobile.imageText);
+if(!/Fallback-OCR/.test(mobile.engine))mobileErrors.push('mobile-engine:'+mobile.engine);
+if(!/Fallback:/.test(mobile.coverage))mobileErrors.push('mobile-coverage:'+mobile.coverage);
+if(mobileHeavyRequests.length)mobileErrors.push('mobile-loaded-heavy-3b:'+JSON.stringify(mobileHeavyRequests));
+if(mobile.preflight?.ok!==false)mobileErrors.push('mobile-preflight-not-blocked:'+JSON.stringify(mobile.preflight));
+if(!mobile.preflight?.reasons?.some(x=>/iOS\/WebKit/i.test(x)))mobileErrors.push('mobile-preflight-reason:'+JSON.stringify(mobile.preflight));
+if(mobile.fallback?.workerStarts!==1||mobile.fallback?.calls!==2)mobileErrors.push('mobile-fallback-worker:'+JSON.stringify(mobile.fallback));
+if(mobileConsoleErrors.length)mobileErrors.push('mobile-console:'+JSON.stringify(mobileConsoleErrors));
+if(mobilePageErrors.length)mobileErrors.push('mobile-pageerror:'+JSON.stringify(mobilePageErrors));
+console.log(JSON.stringify({mobile,mobileHeavyRequests,ok:mobileErrors.length===0,errors:mobileErrors},null,2));
+await mobileContext.close();
 await browser.close();
-if(fallbackErrors.length)throw new Error('OCR fallback cascade smoke failed: '+fallbackErrors.join(' | '));
+if(mobileErrors.length)throw new Error('iPhone-class OCR cascade smoke failed: '+mobileErrors.join(' | '));
 console.log('UNLIMITED_OCR_SEARCHABLE_PDF_SMOKE_OK');
 console.log('UNLIMITED_OCR_FALLBACK_CASCADE_OK');
+console.log('UNLIMITED_OCR_IPHONE_CASCADE_OK');
