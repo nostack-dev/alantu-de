@@ -27,6 +27,7 @@ const QUERY=new URLSearchParams(location.search);
 const MOCK_OCR=QUERY.get("mockOcr")==="1";
 const FORCE_FALLBACK_OCR=QUERY.get("forceFallbackOcr")==="1";
 const MOCK_OCR_DELAY=Math.max(0,Number(QUERY.get("mockOcrDelay"))||0);
+const KEEP_WHITE_RASTER=QUERY.get("keepWhiteRaster")==="1";
 
 const $=id=>document.getElementById(id);
 const pdfInput=$("pdfInput"),dropzone=$("dropzone"),statusEl=$("status"),progressBar=$("progressBar"),fileBadge=$("fileBadge");
@@ -259,6 +260,13 @@ async function makeTransparentWhiteDiff(canvas){
   const x=c.getContext("2d",{alpha:true});x.drawImage(canvas,0,0);
   const img=x.getImageData(0,0,c.width,c.height),d=img.data;
   let transparent=0;
+  // Test-only baseline switch: same vectorization/glyph erasure, but keep the
+  // page-white raster opaque so CI can measure exactly what transparency saves.
+  if(KEEP_WHITE_RASTER){
+    const blob=await canvasToBlob(c,"image/png"),bytes=new Uint8Array(await blobToArrayBuffer(blob)),url=URL.createObjectURL(blob);
+    c.width=1;c.height=1;
+    return {bytes,url,transparentShare:0};
+  }
   // PDF page background is white. Remove redundant white/near-white raster
   // pixels globally; on white this is visually identical but the baked diff
   // now contains only real unmatched visual information.
