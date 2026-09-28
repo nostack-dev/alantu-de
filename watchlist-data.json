@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-28T20:05:00+02:00",
+  "updated_at": "2026-09-28T20:15:00+02:00",
   "watchlist": [
     {
       "symbol": "ORCL",
@@ -14,7 +14,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-28T20:05:00+02:00",
+        "at": "2026-09-28T20:15:00+02:00",
         "signal": "hold",
         "social_impulse": -4,
         "confidence": 65,
@@ -27,7 +27,7 @@
         "voice_bull": 2,
         "voice_bear": 3,
         "voice_mixed": 3,
-        "price": 133.46
+        "price": 133.5
       },
       "history": [
         {
@@ -1758,6 +1758,22 @@
           "voice_bear": 3,
           "voice_mixed": 3,
           "price": 133.46
+        },
+        {
+          "at": "2026-09-28T20:15:00+02:00",
+          "signal": "hold",
+          "social_impulse": -4,
+          "confidence": 65,
+          "x_posts": 0,
+          "reddit_posts": 0,
+          "news": 5,
+          "hype_bull": 30,
+          "hype_bear": 40,
+          "hype_net": -10,
+          "voice_bull": 2,
+          "voice_bear": 3,
+          "voice_mixed": 3,
+          "price": 133.5
         }
       ],
       "voices_archive": [
@@ -2416,6 +2432,107 @@
           "url": "https://www.thedistributed.co/stocks/ORCL/",
           "lean": "mixed",
           "at": "2026-09-28T20:08:13+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Force-Majeure und Kostenschutz bleiben Last — Kurs leicht unter Druck.",
+          "url": "https://www.reuters.com/business/oracle-cites-force-majeure-shield-itself-controversial-data-center-bloomberg-2026-09-24/",
+          "lean": "bear",
+          "at": "2026-09-28T20:21:32+02:00"
+        },
+        {
+          "source": "News",
+          "text": "PeopleSoft-Breach-Welle (Mandiant) sorgt weiter für Unruhe.",
+          "url": "https://www.benzinga.com/",
+          "lean": "bear",
+          "at": "2026-09-28T20:21:32+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Seeking Alpha sieht das KI-Narrativ kritisch — Downgrade-Ton.",
+          "url": "https://seekingalpha.com/article/4950182-oracle-stock-heres-how-badly-ai-trade-could-go-rating-downgrade",
+          "lean": "bear",
+          "at": "2026-09-28T20:21:32+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Ellison sagt großen Aktienverkauf ab und hinterlegt mehr Aktien — etwas Entlastung.",
+          "url": "https://finance.yahoo.com/quote/ORCL",
+          "lean": "bull",
+          "at": "2026-09-28T20:21:32+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Kurs bei etwa 133.50 Dollar; kaum Bewegung zum Vortick.",
+          "url": "https://finance.yahoo.com/quote/ORCL",
+          "lean": "mixed",
+          "at": "2026-09-28T20:21:32+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Cloud- und KI-Auftragsbuch stützt die Bullen-Seite trotz Vorsicht.",
+          "url": "https://finance.yahoo.com/quote/ORCL",
+          "lean": "bull",
+          "at": "2026-09-28T20:21:32+02:00"
+        },
+        {
+          "source": "Reddit",
+          "text": "ApeWisdom 24h: 22 Mentions, Upvotes 32, WSB 21; Sentiment ~71%.",
+          "url": "https://apewisdom.io/stocks/ORCL/",
+          "lean": "mixed",
+          "at": "2026-09-28T20:21:32+02:00"
+        },
+        {
+          "source": "News",
+          "text": "The Distributed: ORCL 30d ~1813 Mentions, Sentiment nahe 49% bullish.",
+          "url": "https://www.thedistributed.co/stocks/ORCL/",
+          "lean": "mixed",
+          "at": "2026-09-28T20:21:32+02:00"
+        },
+        {
+          "at": "2026-09-28T20:15:00+02:00",
+          "voices": [
+            {
+              "lean": "bear",
+              "text": "Force-Majeure und Kostenschutz bleiben Last — Kurs leicht unter Druck.",
+              "source": "News"
+            },
+            {
+              "lean": "bear",
+              "text": "PeopleSoft-Breach-Welle (Mandiant) sorgt weiter für Unruhe.",
+              "source": "News"
+            },
+            {
+              "lean": "bear",
+              "text": "Seeking Alpha sieht das KI-Narrativ kritisch — Downgrade-Ton.",
+              "source": "News"
+            },
+            {
+              "lean": "bull",
+              "text": "Ellison sagt großen Aktienverkauf ab und hinterlegt mehr Aktien — etwas Entlastung.",
+              "source": "News"
+            },
+            {
+              "lean": "mixed",
+              "text": "Kurs bei etwa 133.50 Dollar; kaum Bewegung zum Vortick.",
+              "source": "News"
+            },
+            {
+              "lean": "bull",
+              "text": "Cloud- und KI-Auftragsbuch stützt die Bullen-Seite trotz Vorsicht.",
+              "source": "News"
+            },
+            {
+              "lean": "mixed",
+              "text": "ApeWisdom 24h: 22 Mentions, Upvotes 32, WSB 21; Sentiment ~71%.",
+              "source": "Reddit"
+            },
+            {
+              "lean": "mixed",
+              "text": "The Distributed: ORCL 30d ~1813 Mentions, Sentiment nahe 49% bullish.",
+              "source": "News"
+            }
+          ]
         }
       ],
       "signal": "hold",
@@ -2426,16 +2543,16 @@
       "hype_net": -10,
       "confidence": 65,
       "hype_state": "mixed",
-      "updated_at": "2026-09-28T20:05:00+02:00",
-      "why": "Kurs bei etwa 133.46 Dollar, Force-Majeure bleibt Last. Frische Meldungen zu Breach und KI-Risiken — weiter abwarten.",
+      "updated_at": "2026-09-28T20:15:00+02:00",
+      "why": "Kurs bei etwa 133.50 Dollar, Force-Majeure bleibt Last. Frische Meldungen zu Breach und KI-Risiken — weiter abwarten.",
       "evidence": {
         "x_posts": 0,
         "reddit_posts": 0,
         "news": 5,
         "snippets": [
-          "ORCL ~$133.46 (+0.18 vs prior $133.28); Force-Majeure overhang still heavy",
+          "ORCL ~$133.50 (+0.04 vs prior $133.46); Force-Majeure overhang still heavy",
           "PeopleSoft breach + AI-trade downgrade headlines (same-day)",
-          "BTC ~$83887.16; SPY ~767.24 / QQQ ~738.18; Fed/Jobs week"
+          "BTC ~$83890.99; SPY ~767.08 / QQQ ~738.0; Fed/Jobs week"
         ]
       },
       "voices": [
@@ -2444,61 +2561,61 @@
           "text": "Force-Majeure und Kostenschutz bleiben Last — Kurs leicht unter Druck.",
           "url": "https://www.reuters.com/business/oracle-cites-force-majeure-shield-itself-controversial-data-center-bloomberg-2026-09-24/",
           "lean": "bear",
-          "at": "2026-09-28T20:08:13+02:00"
+          "at": "2026-09-28T20:21:32+02:00"
         },
         {
           "source": "News",
           "text": "PeopleSoft-Breach-Welle (Mandiant) sorgt weiter für Unruhe.",
           "url": "https://www.benzinga.com/",
           "lean": "bear",
-          "at": "2026-09-28T20:08:13+02:00"
+          "at": "2026-09-28T20:21:32+02:00"
         },
         {
           "source": "News",
           "text": "Seeking Alpha sieht das KI-Narrativ kritisch — Downgrade-Ton.",
           "url": "https://seekingalpha.com/article/4950182-oracle-stock-heres-how-badly-ai-trade-could-go-rating-downgrade",
           "lean": "bear",
-          "at": "2026-09-28T20:08:13+02:00"
+          "at": "2026-09-28T20:21:32+02:00"
         },
         {
           "source": "News",
           "text": "Ellison sagt großen Aktienverkauf ab und hinterlegt mehr Aktien — etwas Entlastung.",
           "url": "https://finance.yahoo.com/quote/ORCL",
           "lean": "bull",
-          "at": "2026-09-28T20:08:13+02:00"
+          "at": "2026-09-28T20:21:32+02:00"
         },
         {
           "source": "News",
-          "text": "Kurs bei etwa 133.46 Dollar; leichte Erholung zum Vortick.",
+          "text": "Kurs bei etwa 133.50 Dollar; kaum Bewegung zum Vortick.",
           "url": "https://finance.yahoo.com/quote/ORCL",
           "lean": "mixed",
-          "at": "2026-09-28T20:08:13+02:00"
+          "at": "2026-09-28T20:21:32+02:00"
         },
         {
           "source": "News",
           "text": "Cloud- und KI-Auftragsbuch stützt die Bullen-Seite trotz Vorsicht.",
           "url": "https://finance.yahoo.com/quote/ORCL",
           "lean": "bull",
-          "at": "2026-09-28T20:08:13+02:00"
+          "at": "2026-09-28T20:21:32+02:00"
         },
         {
           "source": "Reddit",
           "text": "ApeWisdom 24h: 22 Mentions, Upvotes 32, WSB 21; Sentiment ~71%.",
           "url": "https://apewisdom.io/stocks/ORCL/",
           "lean": "mixed",
-          "at": "2026-09-28T20:08:13+02:00"
+          "at": "2026-09-28T20:21:32+02:00"
         },
         {
           "source": "News",
           "text": "The Distributed: ORCL 30d ~1813 Mentions, Sentiment nahe 49% bullish.",
           "url": "https://www.thedistributed.co/stocks/ORCL/",
           "lean": "mixed",
-          "at": "2026-09-28T20:08:13+02:00"
+          "at": "2026-09-28T20:21:32+02:00"
         }
       ],
       "hype_mixed": 30,
       "sentiment_unit": "percent_all_classified",
-      "price": 133.46
+      "price": 133.5
     }
   }
 }
