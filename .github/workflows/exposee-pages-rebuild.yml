@@ -57,8 +57,8 @@ jobs:
               && grep -q 'touch-action:none;' /tmp/pdf-live.html \
               && grep -q 'pointerdown",pointerDown,{passive:false}' /tmp/core-live.js \
               && grep -q 'lostpointercapture' /tmp/core-live.js \
-              && grep -q 'alantu-unlimited-ocr.js?v=searchable-text-2' /tmp/convert-live.html \
-              && grep -q 'alantu-unlimited-ocr.js?v=searchable-text-2' /tmp/convert-short-live.html \
+              && grep -q 'alantu-unlimited-ocr.js?v=raster-diff-2' /tmp/convert-live.html \
+              && grep -q 'alantu-unlimited-ocr.js?v=raster-diff-2' /tmp/convert-short-live.html \
               && grep -q 'function fetchWithRetry' /tmp/uocr-live.js \
               && grep -q 'withHeartbeat' /tmp/uocr-live.js \
               && grep -q 'diagnoseLocalOcrBottleneck' /tmp/uocr-live.js \
@@ -76,6 +76,9 @@ jobs:
               && grep -q 'data-role="visible-vector-text"' /tmp/uocr-live.js \
               && grep -q 'data-baked-diff="1"' /tmp/uocr-live.js \
               && grep -q 'buildSearchablePdf' /tmp/uocr-live.js \
+              && grep -q 'makeTransparentWhiteDiff' /tmp/uocr-live.js \
+              && grep -q 'makeSparseErasePatch' /tmp/uocr-live.js \
+              && grep -q 'transparent-white-diff+sparse-glyph-erasure' /tmp/uocr-live.js \
               && grep -q 'renderVectorSvgLayer' /tmp/uocr-live.js \
               && grep -q 'window.__alantuSearchablePdfContract' /tmp/uocr-live.js \
               && grep -q 'afterVectorSvg' /tmp/convert-live.html \
@@ -90,7 +93,7 @@ jobs:
             fi
             if [ "$i" = "18" ]; then
               echo "Live gate failed after 90s. Diagnostics:" >&2
-              grep -q 'alantu-unlimited-ocr.js?v=searchable-text-2' /tmp/convert-live.html || echo "MISSING: searchable runtime in converter" >&2
+              grep -q 'alantu-unlimited-ocr.js?v=raster-diff-2' /tmp/convert-live.html || echo "MISSING: raster-diff runtime in converter" >&2
               grep -q 'function fetchWithRetry' /tmp/uocr-live.js || echo "MISSING: fetchWithRetry" >&2
               grep -q 'withHeartbeat' /tmp/uocr-live.js || echo "MISSING: withHeartbeat" >&2
               grep -q 'diagnoseLocalOcrBottleneck' /tmp/uocr-live.js || echo "MISSING: diagnoseLocalOcrBottleneck" >&2
