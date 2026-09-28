@@ -249,6 +249,39 @@ if(errors.length){
   throw new Error('Unlimited OCR searchable PDF smoke failed: '+errors.join(' | '));
 }
 
+// Exact file-size A/B: identical fixture and vectorization. The only switch is
+// whether redundant white page pixels remain opaque in the raster diff.
+const originalStat=await fs.stat(fixture);
+const sizePage=await browser.newPage({viewport:{width:1500,height:1100}});
+const opaqueUrl=url+'&keepWhiteRaster=1';
+await sizePage.goto(opaqueUrl,{waitUntil:'domcontentloaded',timeout:60000});
+await sizePage.locator('#pdfInput').setInputFiles(fixture);
+await sizePage.waitForFunction(()=>document.getElementById('downloadPdfBtn')?.disabled===false,null,{timeout:45000});
+const opaqueDownloadPromise=sizePage.waitForEvent('download',{timeout:60000});
+await sizePage.locator('#downloadPdfBtn').click();
+const opaqueDl=await opaqueDownloadPromise;
+const opaquePath=await opaqueDl.path();
+const opaqueStat=await fs.stat(opaquePath);
+await sizePage.close();
+
+const transparentBytes=stat.size;
+const opaqueBytes=opaqueStat.size;
+const savedBytes=opaqueBytes-transparentBytes;
+const savedPct=opaqueBytes?100*savedBytes/opaqueBytes:0;
+console.log('RASTER_DIFF_SIZE_A_B '+JSON.stringify({
+  originalFixtureBytes:originalStat.size,
+  opaqueRasterPdfBytes:opaqueBytes,
+  transparentRasterPdfBytes:transparentBytes,
+  savedBytes,
+  savedKiB:savedBytes/1024,
+  savedMiB:savedBytes/1048576,
+  savedPct
+}));
+if(savedBytes<=0){
+  await browser.close();
+  throw new Error('Transparent raster diff did not reduce PDF size: '+JSON.stringify({opaqueBytes,transparentBytes}));
+}
+
 // Real lightweight cascade test: skip 3B deliberately and prove that the
 // browser falls through to Tesseract, creates real image text, and enables export.
 const fallbackPage=await browser.newPage({viewport:{width:1100,height:900}});
