@@ -25,7 +25,7 @@ jobs:
       - name: Guard source
         run: |
           set -euo pipefail
-          grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-17' pdf-convert-anchor.html
+          grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-18' pdf-convert-anchor.html
           grep -q 'from "./vendor/unlimited-ocr-browser-engine.js"' alantu-unlimited-ocr.js
           grep -q 'function fetchWithRetry' alantu-unlimited-ocr.js
           grep -q 'withHeartbeat' alantu-unlimited-ocr.js
@@ -41,11 +41,14 @@ jobs:
           grep -q 'forceFallbackOcr' alantu-unlimited-ocr.js
           grep -q 'tesseract.js@5.1.1' alantu-unlimited-ocr.js
           grep -q 'Fallback-OCR auf' alantu-unlimited-ocr.js
-          grep -q 'data-role="visible-vector-text"' alantu-unlimited-ocr.js
+          grep -q 'data-role="visible-vector-glyphs"' alantu-unlimited-ocr.js
           grep -q 'data-baked-diff="1"' alantu-unlimited-ocr.js
           grep -q 'buildVectorPdf' alantu-unlimited-ocr.js
           grep -q 'renderVectorSvgLayer' alantu-unlimited-ocr.js
-          grep -q 'native-text-vector' alantu-unlimited-ocr.js
+          grep -q 'image-text-glyph-vector' alantu-unlimited-ocr.js
+          grep -q 'sourcePdfBytes' alantu-unlimited-ocr.js
+          grep -q 'copyPages' alantu-unlimited-ocr.js
+          grep -q 'diffPatchBytes' alantu-unlimited-ocr.js
           grep -q 'window.__alantuVectorContract' alantu-unlimited-ocr.js
           grep -q 'afterVectorSvg' pdf-convert-anchor.html
           grep -q 'NakliTechie/gemma4-webgpu@0ca5e3a' alantu-unlimited-ocr.js
@@ -72,7 +75,7 @@ jobs:
             if curl -fsSL --max-time 20 "https://www.alantu.de/pdf-convert-anchor.html?smoke=${{ github.sha }}" -o /tmp/page.html \
               && curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?smoke=${{ github.sha }}" -o /tmp/uocr.js \
               && curl -fsSL --max-time 20 "https://www.alantu.de/vendor/unlimited-ocr-browser-engine.js?smoke=${{ github.sha }}" -o /tmp/engine.js \
-              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-17' /tmp/page.html \
+              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-18' /tmp/page.html \
               && grep -q 'function fetchWithRetry' /tmp/uocr.js \
               && grep -q 'withHeartbeat' /tmp/uocr.js \
               && grep -q 'diagnoseLocalOcrBottleneck' /tmp/uocr.js \
@@ -87,11 +90,14 @@ jobs:
               && grep -q 'forceFallbackOcr' /tmp/uocr.js \
               && grep -q 'tesseract.js@5.1.1' /tmp/uocr.js \
               && grep -q 'Fallback-OCR auf' /tmp/uocr.js \
-              && grep -q 'data-role="visible-vector-text"' /tmp/uocr.js \
+              && grep -q 'data-role="visible-vector-glyphs"' /tmp/uocr.js \
               && grep -q 'data-baked-diff="1"' /tmp/uocr.js \
               && grep -q 'buildVectorPdf' /tmp/uocr.js \
               && grep -q 'renderVectorSvgLayer' /tmp/uocr.js \
-              && grep -q 'native-text-vector' /tmp/uocr.js \
+              && grep -q 'image-text-glyph-vector' /tmp/uocr.js \
+              && grep -q 'sourcePdfBytes' /tmp/uocr.js \
+              && grep -q 'copyPages' /tmp/uocr.js \
+              && grep -q 'diffPatchBytes' /tmp/uocr.js \
               && grep -q 'window.__alantuVectorContract' /tmp/uocr.js \
               && grep -q 'afterVectorSvg' /tmp/page.html \
               && grep -q 'createGemmaEngine' /tmp/engine.js \
@@ -103,7 +109,7 @@ jobs:
           exit 1
       - name: Install Playwright
         run: |
-          npm install --no-save playwright@1.55.0 pdf-lib@1.17.1 pdfjs-dist@2.16.105
+          npm install --no-save playwright@1.55.0 pdf-lib@1.17.1 pdfjs-dist@2.16.105 pngjs@7.0.0
           npx playwright install --with-deps chromium
       - name: Run PDF UI/export smoke
         env:
