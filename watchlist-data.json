@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-28T18:10:00+02:00",
+  "updated_at": "2026-09-28T18:30:00+02:00",
   "watchlist": [
     {
       "symbol": "ORCL",
@@ -14,7 +14,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-28T18:10:00+02:00",
+        "at": "2026-09-28T18:30:00+02:00",
         "signal": "hold",
         "social_impulse": -4,
         "confidence": 65,
@@ -27,7 +27,7 @@
         "voice_bull": 2,
         "voice_bear": 3,
         "voice_mixed": 3,
-        "price": 132.68
+        "price": 133.81
       },
       "history": [
         {
@@ -1630,6 +1630,22 @@
           "voice_bear": 3,
           "voice_mixed": 3,
           "price": 132.68
+        },
+        {
+          "at": "2026-09-28T18:30:00+02:00",
+          "signal": "hold",
+          "social_impulse": -4,
+          "confidence": 65,
+          "x_posts": 0,
+          "reddit_posts": 0,
+          "news": 5,
+          "hype_bull": 30,
+          "hype_bear": 40,
+          "hype_net": -10,
+          "voice_bull": 2,
+          "voice_bear": 3,
+          "voice_mixed": 3,
+          "price": 133.81
         }
       ],
       "voices_archive": [
