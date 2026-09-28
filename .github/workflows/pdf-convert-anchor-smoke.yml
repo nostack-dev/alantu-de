@@ -26,8 +26,8 @@ jobs:
       - name: Guard source
         run: |
           set -euo pipefail
-          grep -q 'alantu-unlimited-ocr.js?v=visible-text-replace-1' pdf-convert-anchor.html
-          grep -q 'alantu-unlimited-ocr.js?v=visible-text-replace-1' pdfconvert.html
+          grep -q 'alantu-unlimited-ocr.js?v=raster-diff-2' pdf-convert-anchor.html
+          grep -q 'alantu-unlimited-ocr.js?v=raster-diff-2' pdfconvert.html
           grep -q 'from "./vendor/unlimited-ocr-browser-engine.js"' alantu-unlimited-ocr.js
           grep -q 'function fetchWithRetry' alantu-unlimited-ocr.js
           grep -q 'withHeartbeat' alantu-unlimited-ocr.js
@@ -55,6 +55,9 @@ jobs:
           grep -q 'visible-real-pdf-text-for-safe-raster-runs' alantu-unlimited-ocr.js
           grep -q 'invisibleOcrText:false' alantu-unlimited-ocr.js
           grep -q 'makeVectorizedRaster(canvas,ocr,base.width,base.height)' alantu-unlimited-ocr.js
+          grep -q 'makeTransparentWhiteDiff' alantu-unlimited-ocr.js
+          grep -q 'makeSparseErasePatch' alantu-unlimited-ocr.js
+          grep -q 'transparent-white-diff+sparse-glyph-erasure' alantu-unlimited-ocr.js
           grep -q 'page.drawText(text,{x:b.x0,y,size,font:regular,color:rgb' alantu-unlimited-ocr.js
           ! grep -q 'const drawInvisible=' alantu-unlimited-ocr.js
           grep -q 'afterVectorSvg' pdf-convert-anchor.html
@@ -83,7 +86,7 @@ jobs:
             if curl -fsSL --max-time 20 "https://www.alantu.de/pdfconvert.html?smoke=${{ github.sha }}" -o /tmp/page.html \
               && curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?smoke=${{ github.sha }}" -o /tmp/uocr.js \
               && curl -fsSL --max-time 20 "https://www.alantu.de/vendor/unlimited-ocr-browser-engine.js?smoke=${{ github.sha }}" -o /tmp/engine.js \
-              && grep -q 'alantu-unlimited-ocr.js?v=visible-text-replace-1' /tmp/page.html \
+              && grep -q 'alantu-unlimited-ocr.js?v=raster-diff-2' /tmp/page.html \
               && grep -q 'function fetchWithRetry' /tmp/uocr.js \
               && grep -q 'withHeartbeat' /tmp/uocr.js \
               && grep -q 'diagnoseLocalOcrBottleneck' /tmp/uocr.js \
@@ -110,6 +113,9 @@ jobs:
               && grep -q 'visible-real-pdf-text-for-safe-raster-runs' /tmp/uocr.js \
               && grep -q 'invisibleOcrText:false' /tmp/uocr.js \
               && grep -q 'makeVectorizedRaster(canvas,ocr,base.width,base.height)' /tmp/uocr.js \
+              && grep -q 'makeTransparentWhiteDiff' /tmp/uocr.js \
+              && grep -q 'makeSparseErasePatch' /tmp/uocr.js \
+              && grep -q 'transparent-white-diff+sparse-glyph-erasure' /tmp/uocr.js \
               && ! grep -q 'const drawInvisible=' /tmp/uocr.js \
               && grep -q 'afterVectorSvg' /tmp/page.html \
               && grep -q 'createGemmaEngine' /tmp/engine.js \
