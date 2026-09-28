@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-09-28T11:25:00+02:00",
+  "updated_at": "2026-09-28T11:30:00+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-28T11:25:00+02:00",
-    "scraped_at": "2026-09-28T11:27:12+02:00",
+    "tick_id": "2026-09-28T11:30:00+02:00",
+    "scraped_at": "2026-09-28T11:34:10+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "user-X": {
@@ -29,11 +29,11 @@
         "items": 5,
         "window": "same-day 2026-09-28",
         "notes": [
-          "Ellison pledges more shares as collateral; sale cancel still live; ORCL ~$137.1",
-          "Force-Majeure Project Jupiter + debt/BBB- backdrop still live",
-          "Iran tensions + OpenAI pause weigh on futures/tech tone",
-          "SPY ~771.35 / QQQ ~744.5; BTC ~$82821.59 (flat vs 82827.19)",
-          "PCE/NFP week ahead; rate-path test continues"
+          "Ellison pledges 67M more ORCL shares as collateral; ORCL ~$137.1",
+          "Force-Majeure Project Jupiter + debt caution still live",
+          "Iran tensions + OpenAI training pause weigh on futures/tech tone",
+          "SPY ~771.35 / QQQ ~744.5; BTC ~$82745.51 (soft vs 82821.59)",
+          "PCE Wednesday / NFP Friday; rate-path test continues"
         ]
       },
       "user-Bright Data": {
@@ -60,18 +60,18 @@
           "thedistributed.co"
         ],
         "window": "24h–30d aggregator snapshots 2026-09-28",
-        "freshest": "2026-09-28T11:27:12+0200",
+        "freshest": "2026-09-28T11:34:10+0200",
         "notes": [
-          "ApeWisdom 24h: 10 mentions (WSB 9), upvotes 16, sentiment ~50% overall",
+          "ApeWisdom 24h: 11 mentions (WSB 10), upvotes 17, sentiment ~50% overall",
           "AltIndex: AI Score 50 Hold; price $137.1; ~66 daily Reddit mentions (page Hold)",
-          "The Distributed 30d: 1782 mentions; 49% bull / 19% bear / 32% neutral (updated 28 September 2026)"
+          "The Distributed: homepage ok; ORCL ticker page 404 — prior 30d ~1782 mentions / ~49% bull retained as soft hint"
         ],
         "orcl_hint": {
-          "mentions_24h_approx": 10,
+          "mentions_24h_approx": 11,
           "sentiment_pct_bullish": 50,
           "daily_mentions_altindex": 66,
-          "upvotes_24h": 16,
-          "wsb_mentions_24h": 9,
+          "upvotes_24h": 17,
+          "wsb_mentions_24h": 10,
           "distributed_mentions_30d": 1782,
           "distributed_bull_pct": 49,
           "distributed_bear_pct": 19
@@ -89,9 +89,9 @@
           "ORCL": 137.1,
           "SPY": 771.35,
           "QQQ": 744.5,
-          "BTC-USD": 82821.59
+          "BTC-USD": 82745.51
         },
-        "note": "query1 chart 5m/1d"
+        "note": "query1 chart 1m/1d"
       }
     },
     "totals": {
@@ -106,20 +106,20 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-28T11:27:12+02:00",
+      "freshest_absolute": "2026-09-28T11:34:10+02:00",
       "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
       "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok fail (Treg auth_needed); Bright Data 401; Apify retired",
-      "scrape_berlin": "2026-09-28T11:25:00+02:00",
+      "scrape_berlin": "2026-09-28T11:30:00+02:00",
       "sample_window": "Web/news ≤24h; Reddit via ApeWisdom/AltIndex/TheDistributed; X fully credits_depleted",
       "freshest_item_age": "",
-      "oldest_usable_signal": "Force-Majeure Project Jupiter; Ellison collateral/sale-cancel; Iran/OpenAI soft tone"
+      "oldest_usable_signal": "Force-Majeure Project Jupiter; Ellison collateral 67M pledges; Iran/OpenAI soft tone"
     },
     "vector": {
       "direction": "mixed_cautious",
       "magnitude": 35,
       "confidence": 66,
       "early_signal": true,
-      "early_signal_note": "Iran und OpenAI belasten; ORCL flach bei 137."
+      "early_signal_note": "Ellison verpfändet weiter; Iran und OpenAI belasten."
     },
     "top_themes": [
       {
@@ -138,9 +138,9 @@
       {
         "theme": "Ellison Sale Cancel / Collateral Mixed",
         "sentiment": "mixed",
-        "strength": 74,
+        "strength": 76,
         "symbol": "ORCL",
-        "symbol_note": "Sale cancel removes overhang; further share pledges keep caution",
+        "symbol_note": "Sale cancel removes overhang; further 67M share pledges keep caution",
         "bias": "mixed",
         "bias_label": "Abwarten / Bias mixed",
         "links": {
@@ -166,7 +166,7 @@
         "sentiment": "mixed",
         "strength": 68,
         "symbol": "SPY",
-        "symbol_note": "PCE/NFP week ahead; rate-path test continues",
+        "symbol_note": "PCE Wednesday / NFP Friday; rate-path test continues",
         "bias": "mixed",
         "bias_label": "Abwarten / Bias mixed",
         "links": {
@@ -177,9 +177,9 @@
       {
         "theme": "BTC Soft / Risk Tone",
         "sentiment": "leicht_bearish",
-        "strength": 58,
+        "strength": 60,
         "symbol": "BTC-USD",
-        "symbol_note": "BTC ~$82821.59 (flat vs 82827.19)",
+        "symbol_note": "BTC ~$82745.51 (soft vs 82821.59)",
         "bias": "risk_off",
         "bias_label": "Vorsicht / Bias risk-off",
         "links": {
@@ -189,7 +189,7 @@
       }
     ],
     "delta_vs_prev": {
-      "prev_tick_id": "2026-09-28T11:15:00+02:00",
+      "prev_tick_id": "2026-09-28T11:25:00+02:00",
       "magnitude_delta": 0,
       "confidence_delta": 0,
       "direction_prev": "mixed_cautious",
@@ -204,7 +204,7 @@
       "new_themes": [],
       "gone_themes": [],
       "sentiment_swings": [
-        "ORCL flat $137.1; BTC 82821.59 (was 82827.19); ApeWisdom mentions 10 (was 9); tape unchanged HOLD/-3"
+        "ORCL flat $137.1; BTC 82745.51 (was 82821.59); ApeWisdom mentions 11 (was 10); tape unchanged HOLD/-3"
       ],
       "orcl": {
         "impulse_prev": -3,
@@ -233,21 +233,13 @@
     },
     "baseline": false,
     "scrape_window": {
-      "start": "2026-09-28T11:15:00+02:00",
-      "end": "2026-09-28T11:25:00+02:00",
+      "start": "2026-09-28T11:25:00+02:00",
+      "end": "2026-09-28T11:30:00+02:00",
       "kind": "tick_interval",
-      "note": "5-Min-Routine Mo–Fr 8–22 Berlin; Tick nach #58."
+      "note": "5-Min-Routine Mo–Fr 8–22 Berlin; Tick nach #59."
     },
     "volume_enriched": true,
     "mini_series": [
-      {
-        "tick_id": "2026-09-21T16:10:00+02:00",
-        "magnitude": 38,
-        "confidence": 76,
-        "direction": "mixed_cautious",
-        "items": 90,
-        "early_signal": true
-      },
       {
         "tick_id": "2026-09-21T16:25:00+02:00",
         "magnitude": 37,
@@ -557,6 +549,14 @@
         "direction": "mixed_cautious",
         "items": 8,
         "early_signal": true
+      },
+      {
+        "tick_id": "2026-09-28T11:30:00+02:00",
+        "magnitude": 35,
+        "confidence": 66,
+        "direction": "mixed_cautious",
+        "items": 8,
+        "early_signal": true
       }
     ],
     "stock_signals": [
@@ -570,72 +570,72 @@
         "hype_bull": 3,
         "hype_bear": 2,
         "hype_net": 1,
-        "why": "Force-Majeure und Schulden bleiben Belastung; Ellison verpfändet weiter Aktien. Kurs flach bei etwa 137 Dollar.",
+        "why": "Force-Majeure und neue Ellison-Verpfändung bleiben Belastung. Kurs flach bei etwa 137 Dollar.",
         "evidence": {
           "x_posts": 0,
           "reddit_posts": 0,
           "news": 5,
           "snippets": [
-            "Ellison pledges more ORCL shares as collateral; sale cancel still live; ORCL ~$137.1",
+            "Ellison pledges 67M more ORCL shares as collateral; ORCL ~$137.1",
             "Force-Majeure Project Jupiter + debt caution still live",
-            "BTC ~$82821.59; SPY ~771.35 / QQQ ~744.5; Iran/OpenAI soft tone"
+            "BTC ~$82745.51; SPY ~771.35 / QQQ ~744.5; Iran/OpenAI soft tone"
           ],
           "voices": [
             {
               "source": "News",
-              "text": "Ellison verpfändet weitere Millionen Aktien als Kreditsicherheit.",
+              "text": "Ellison verpfändet weitere 67 Millionen Aktien als Kreditsicherheit.",
               "url": "https://seekingalpha.com/news/4512342-ellison-pledges-67m-more-oracle-shares-as-loan-collateral",
               "lean": "mixed",
-              "at": "2026-09-28T11:27:12+02:00"
+              "at": "2026-09-28T11:34:10+02:00"
             },
             {
               "source": "News",
               "text": "Force-Majeure bei Project Jupiter bleibt; Schuldenrisiko im Fokus.",
-              "url": "https://www.reuters.com/business/oracle-cites-force-majeure-shield-itself-controversial-data-center-bloomberg-2026-09-24/",
+              "url": "https://www.cnbc.com/2026/09/24/oracle-force-majeure-data-center.html",
               "lean": "bear",
-              "at": "2026-09-28T11:27:12+02:00"
+              "at": "2026-09-28T11:34:10+02:00"
             },
             {
               "source": "News",
               "text": "Ellison stoppt Plan, bis zu 7,5 Mrd. Dollar Aktien zu verkaufen.",
               "url": "https://www.insidermonkey.com/news/oracle-orcl-says-ellison-canceled-a-plan-to-sell-up-to-7-5-billion-in-shares-does-it-change-the-investment-case-1840405/",
               "lean": "bull",
-              "at": "2026-09-28T11:27:12+02:00"
+              "at": "2026-09-28T11:34:10+02:00"
             },
             {
               "source": "News",
               "text": "Hoher Auftragsbestand, aber hohe Ausgaben für Rechenzentren bleiben Thema.",
               "url": "https://www.insidermonkey.com/news/oracle-orcl-reports-a-664-billion-backlog-can-ai-growth-outpace-its-cash-burn-1840386/",
               "lean": "mixed",
-              "at": "2026-09-28T11:27:12+02:00"
+              "at": "2026-09-28T11:34:10+02:00"
             },
             {
               "source": "News",
               "text": "Futures weich: Iran-Spannungen und OpenAI-Pause belasten Tech.",
               "url": "https://uk.investing.com/news/stock-market-news/us-stock-futures-dip-as-markets-parse-iran-tensions-openai-training-halt-4884569",
               "lean": "bear",
-              "at": "2026-09-28T11:27:12+02:00"
+              "at": "2026-09-28T11:34:10+02:00"
             },
             {
               "source": "News",
               "text": "Kurs um 137 Dollar; Markt wartet auf Klarheit beim Rechenzentrum.",
               "url": "https://finance.yahoo.com/quote/ORCL",
               "lean": "mixed",
-              "at": "2026-09-28T11:27:12+02:00"
+              "at": "2026-09-28T11:34:10+02:00"
             },
             {
               "source": "News",
               "text": "Starke Cloud-Zahlen und großes Auftragsbuch stützen die Bullen-Seite.",
               "url": "https://investor.oracle.com/investor-news/news-details/2026/Oracle-Announces-Q1-Results-Driven-by-Triple-Digit-Growth-in-Cloud-Infrastructure-Revenues/default.aspx",
               "lean": "bull",
-              "at": "2026-09-28T11:27:12+02:00"
+              "at": "2026-09-28T11:34:10+02:00"
             },
             {
               "source": "Reddit",
-              "text": "ApeWisdom 24h: 10 Mentions, Sentiment ~50%, WSB 9.",
+              "text": "ApeWisdom 24h: 11 Mentions, Sentiment ~50%, WSB 10.",
               "url": "https://apewisdom.io/stocks/ORCL/",
               "lean": "bull",
-              "at": "2026-09-28T11:27:12+02:00"
+              "at": "2026-09-28T11:34:10+02:00"
             }
           ]
         },
@@ -646,19 +646,19 @@
         }
       }
     ],
-    "early_signal_note": "Iran und OpenAI belasten; ORCL flach bei 137.",
+    "early_signal_note": "Ellison verpfändet weiter; Iran und OpenAI belasten.",
     "signals_disclaimer": ""
   },
   "signals_disclaimer": "",
-  "early_signal_note": "Iran und OpenAI belasten; ORCL flach bei 137.",
+  "early_signal_note": "Ellison verpfändet weiter; Iran und OpenAI belasten.",
   "freshness": {
-    "freshest_absolute": "2026-09-28T11:27:12+02:00",
+    "freshest_absolute": "2026-09-28T11:34:10+02:00",
     "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
     "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok fail (Treg auth_needed); Bright Data 401; Apify retired",
-    "scrape_berlin": "2026-09-28T11:25:00+02:00",
+    "scrape_berlin": "2026-09-28T11:30:00+02:00",
     "sample_window": "Web/news ≤24h; Reddit via ApeWisdom/AltIndex/TheDistributed; X fully credits_depleted",
     "freshest_item_age": "",
-    "oldest_usable_signal": "Force-Majeure Project Jupiter; Ellison collateral/sale-cancel; Iran/OpenAI soft tone"
+    "oldest_usable_signal": "Force-Majeure Project Jupiter; Ellison collateral 67M pledges; Iran/OpenAI soft tone"
   },
   "history": [
     {
@@ -1163,6 +1163,15 @@
     {
       "tick_id": "2026-09-28T11:25:00+02:00",
       "scraped_at": "2026-09-28T11:27:12+02:00",
+      "magnitude": 35,
+      "confidence": 66,
+      "direction": "mixed_cautious",
+      "items": 8,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-28T11:30:00+02:00",
+      "scraped_at": "2026-09-28T11:34:10+02:00",
       "magnitude": 35,
       "confidence": 66,
       "direction": "mixed_cautious",
