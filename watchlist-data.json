@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-28T12:06:00+02:00",
+  "updated_at": "2026-09-28T12:21:00+02:00",
   "watchlist": [
     {
       "symbol": "ORCL",
@@ -14,12 +14,12 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-28T12:06:00+02:00",
+        "at": "2026-09-28T12:21:00+02:00",
         "signal": "hold",
         "social_impulse": -3,
-        "hype_bull": 39,
+        "hype_bull": 40,
         "hype_bear": 25,
-        "hype_net": 14,
+        "hype_net": 15,
         "confidence": 65
       },
       "history": [
@@ -1357,9 +1357,46 @@
           "voice_bear": 2,
           "voice_mixed": 3,
           "price": 137.1
+        },
+        {
+          "at": "2026-09-28T12:21:00+02:00",
+          "signal": "hold",
+          "social_impulse": -3,
+          "confidence": 65,
+          "x_posts": 0,
+          "reddit_posts": 0,
+          "news": 5,
+          "hype_bull": 40,
+          "hype_bear": 25,
+          "hype_net": 15,
+          "voice_bull": 3,
+          "voice_bear": 2,
+          "voice_mixed": 3,
+          "price": 137.1
         }
       ],
       "voices_archive": [
+        {
+          "source": "News",
+          "text": "Ellison pfändet mehr Aktien als Kreditpfand — Markt bleibt wachsam.",
+          "url": "https://seekingalpha.com/",
+          "lean": "mixed",
+          "at": "2026-09-28T12:22:13+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Force-Majeure bei Project Jupiter bleibt; Schuldenrisiko im Fokus.",
+          "url": "https://www.cnbc.com/2026/09/24/oracle-force-majeure-data-center.html",
+          "lean": "bear",
+          "at": "2026-09-28T12:22:13+02:00"
+        },
+        {
+          "source": "Reddit",
+          "text": "ApeWisdom 24h: 11 Mentions, Sentiment ~50%, WSB 10.",
+          "url": "https://apewisdom.io/stocks/ORCL/",
+          "lean": "mixed",
+          "at": "2026-09-28T12:22:13+02:00"
+        },
         {
           "source": "News",
           "text": "Ellison sagt großen Aktienverkauf ab — etwas Entlastung.",
@@ -1644,138 +1681,18 @@
           "lean": "mixed",
           "at": "2026-09-21T16:34:13+02:00",
           "text_orig_lang": "de"
-        },
-        {
-          "source": "X",
-          "text": "SHORT $ORCL — Schulden und Lease-Risiko",
-          "url": "https://x.com/ithacaflow/status/2102042708483403977",
-          "lean": "bear",
-          "at": "2026-09-21T16:30:10+02:00",
-          "text_orig_lang": "de"
-        },
-        {
-          "source": "News",
-          "text": "SoftBank startet >$10B+$€1B Anleihen für OpenAI; Pricing ~24.09.",
-          "url": "https://www.reuters.com/business/media-telecom/softbank-group-launches-over-10-billion-bonds-openai-investment-term-sheet-shows-2026-09-21/",
-          "lean": "bear",
-          "at": "2026-09-21T20:33:00+02:00"
-        },
-        {
-          "source": "News",
-          "text": "ORCL-Schulden und KI-Ausbau bleiben unter Druck.",
-          "url": "https://finance.yahoo.com/markets/stocks/articles/oracle-junk-bond-fears-debt-173300814.html",
-          "lean": "bear",
-          "at": "2026-09-21T20:33:00+02:00"
-        },
-        {
-          "source": "News",
-          "text": "Wall Street grün: S&P ~+1%, NQ ~+1.7%; Öl nachgeben.",
-          "url": "https://www.reuters.com/business/wall-st-futures-rise-ai-stocks-gain-oil-prices-slide-2026-09-21/",
-          "lean": "bull",
-          "at": "2026-09-21T20:33:00+02:00"
-        },
-        {
-          "source": "News",
-          "text": "BTC ~$86k risk-on, Session stützt Risikoassets.",
-          "url": "https://cointelegraph.com/markets/bitcoin-price-86k-analysis-sees-crypto-new-bull-market",
-          "lean": "bull",
-          "at": "2026-09-21T20:33:00+02:00"
-        },
-        {
-          "source": "News",
-          "text": "ORCL ~$149, leicht im Plus bei KI-Session.",
-          "url": "https://finance.yahoo.com/quote/ORCL",
-          "lean": "mixed",
-          "at": "2026-09-21T20:33:00+02:00"
-        },
-        {
-          "source": "News",
-          "text": "Ellison verpfändet weitere 67 Millionen Aktien als Kreditsicherheit.",
-          "url": "https://seekingalpha.com/news/4512342-ellison-pledges-67m-more-oracle-shares-as-loan-collateral",
-          "lean": "mixed",
-          "at": "2026-09-28T11:38:46+02:00"
-        },
-        {
-          "source": "News",
-          "text": "Force-Majeure bei Project Jupiter bleibt; Schuldenrisiko im Fokus.",
-          "url": "https://www.cnbc.com/2026/09/24/oracle-force-majeure-data-center.html",
-          "lean": "bear",
-          "at": "2026-09-28T11:38:46+02:00"
-        },
-        {
-          "source": "News",
-          "text": "Ellison stoppt Plan, bis zu 7,5 Mrd. Dollar Aktien zu verkaufen.",
-          "url": "https://www.insidermonkey.com/news/oracle-orcl-says-ellison-canceled-a-plan-to-sell-up-to-7-5-billion-in-shares-does-it-change-the-investment-case-1840405/",
-          "lean": "bull",
-          "at": "2026-09-28T11:38:46+02:00"
-        },
-        {
-          "source": "News",
-          "text": "Ellison verpfändet weitere Aktien als Kreditsicherheit — Vorsicht bleibt.",
-          "url": "https://seekingalpha.com/news/4508128-ellison-pledges-67m-more-oracle-shares-as-loan-collateral",
-          "lean": "bear",
-          "at": "2026-09-28T12:01:36+02:00"
-        },
-        {
-          "source": "News",
-          "text": "Verkaufsstopp des großen Aktienverkaufs nimmt etwas Druck vom Markt.",
-          "url": "https://finance.yahoo.com/quote/ORCL",
-          "lean": "bull",
-          "at": "2026-09-28T12:01:36+02:00"
-        },
-        {
-          "source": "News",
-          "text": "Force-Majeure bei Project Jupiter bleibt; Schuldenrisiko im Fokus.",
-          "url": "https://www.cnbc.com/2026/09/24/oracle-force-majeure-data-center.html",
-          "lean": "bear",
-          "at": "2026-09-28T12:01:36+02:00"
-        },
-        {
-          "source": "News",
-          "text": "Kurs um 137 Dollar; Markt wartet auf Klarheit beim Rechenzentrum.",
-          "url": "https://finance.yahoo.com/quote/ORCL",
-          "lean": "mixed",
-          "at": "2026-09-28T12:01:36+02:00"
-        },
-        {
-          "source": "News",
-          "text": "Starke Cloud-Zahlen und großes Auftragsbuch stützen die Bullen-Seite.",
-          "url": "https://investor.oracle.com/",
-          "lean": "bull",
-          "at": "2026-09-28T12:01:36+02:00"
-        },
-        {
-          "source": "News",
-          "text": "Oracles große KI-Wette birgt laut Bericht ein Warnsignal für Anleger.",
-          "url": "https://www.thestreet.com/",
-          "lean": "mixed",
-          "at": "2026-09-28T12:01:36+02:00"
-        },
-        {
-          "source": "Reddit",
-          "text": "ApeWisdom 24h: 11 Mentions, Upvotes 18, WSB 10; Sentiment ~50%.",
-          "url": "https://apewisdom.io/stocks/ORCL/",
-          "lean": "mixed",
-          "at": "2026-09-28T12:01:36+02:00"
-        },
-        {
-          "source": "News",
-          "text": "Sale-Cancel und Cloud-Auftragslage stützen leicht die Bullen.",
-          "url": "https://finance.yahoo.com/quote/ORCL",
-          "lean": "bull",
-          "at": "2026-09-28T12:01:36+02:00"
         }
       ],
       "signal": "hold",
       "social_impulse": -3,
       "impulse": -3,
-      "hype_bull": 39,
+      "hype_bull": 40,
       "hype_bear": 25,
-      "hype_net": 14,
+      "hype_net": 15,
       "confidence": 65,
       "hype_state": "mixed",
-      "updated_at": "2026-09-28T12:06:00+02:00",
-      "why": "Ellison sagt großen Aktienverkauf ab — etwas Entlastung. Force-Majeure und Kurs um 137 Dollar halten zur Vorsicht.",
+      "updated_at": "2026-09-28T12:21:00+02:00",
+      "why": "Ellison stellt mehr Aktien als Kreditpfand — gemischtes Signal neben Verkaufsabsage. Force-Majeure und Kurs um 137 Dollar halten zur Vorsicht.",
       "evidence": {
         "X": 0,
         "Reddit": 0,
@@ -1785,7 +1702,7 @@
         "bull": 3,
         "bear": 2,
         "mixed": 3,
-        "updated_at": "2026-09-28T12:06:00+02:00"
+        "updated_at": "2026-09-28T12:21:00+02:00"
       },
       "hype_mixed": 37,
       "sentiment_unit": "percent_all_classified",
