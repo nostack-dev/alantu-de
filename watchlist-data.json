@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-28T10:16:00+02:00",
+  "updated_at": "2026-09-28T10:26:00+02:00",
   "watchlist": [
     {
       "symbol": "ORCL",
@@ -14,7 +14,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-28T10:16:00+02:00",
+        "at": "2026-09-28T10:26:00+02:00",
         "signal": "hold",
         "social_impulse": -3,
         "hype_bull": 38,
@@ -1181,6 +1181,22 @@
           "voice_bear": 2,
           "voice_mixed": 3,
           "price": 137.1
+        },
+        {
+          "at": "2026-09-28T10:26:00+02:00",
+          "signal": "hold",
+          "social_impulse": -3,
+          "confidence": 65,
+          "x_posts": 0,
+          "reddit_posts": 0,
+          "news": 5,
+          "hype_bull": 38,
+          "hype_bear": 25,
+          "hype_net": 13,
+          "voice_bull": 3,
+          "voice_bear": 2,
+          "voice_mixed": 3,
+          "price": 137.1
         }
       ],
       "voices_archive": [
@@ -1620,6 +1636,62 @@
           "url": "https://thedistributed.co/stocks/ORCL",
           "lean": "bull",
           "at": "2026-09-28T10:11:56+02:00"
+        },
+        {
+          "at": "2026-09-28T10:26:00+02:00",
+          "source": "News",
+          "text": "Force-Majeure bei Project Jupiter bleibt; Banken preisen Kredite neu.",
+          "lean": "bear",
+          "url": "https://www.tikr.com/blog/oracle-stock-fell-nearly-4-on-its-project-jupiter-notice-the-2028-target-lands-where-the-street-sees-cash-flow-turning"
+        },
+        {
+          "at": "2026-09-28T10:26:00+02:00",
+          "source": "News",
+          "text": "Starke Cloud-Zahlen und höheres Jahresziel stützen die Bullen-Seite.",
+          "lean": "bull",
+          "url": "https://stockanalysis.com/stocks/orcl/transcripts/689425-q1-2027/"
+        },
+        {
+          "at": "2026-09-28T10:26:00+02:00",
+          "source": "News",
+          "text": "OpenAI pausiert Training; Nasdaq-Futures und Tech starten weich.",
+          "lean": "bear",
+          "url": "https://www.fxstreet.com/analysis/nasdaq-futs-drop-amid-openai-model-training-pause-202609280607"
+        },
+        {
+          "at": "2026-09-28T10:26:00+02:00",
+          "source": "News",
+          "text": "Kurs um 137.1 Dollar; Markt wartet auf Klarheit beim Rechenzentrum.",
+          "lean": "mixed",
+          "url": "https://finance.yahoo.com/quote/ORCL"
+        },
+        {
+          "at": "2026-09-28T10:26:00+02:00",
+          "source": "News",
+          "text": "Futures leicht im Minus; Iran-Spannungen und Zinswetter belasten.",
+          "lean": "mixed",
+          "url": "https://news.trustfinance.com/news/en-US/us-stock-futures-dip-on-iran-tensions-openai-development-halt"
+        },
+        {
+          "at": "2026-09-28T10:26:00+02:00",
+          "source": "News",
+          "text": "Backlog und Cloud-Wachstum bleiben stark trotz Bau-Risiken.",
+          "lean": "bull",
+          "url": "https://www.investing.com/analysis/oracles-664-billion-backlog-faces-a-harder-conversion-test-200688353"
+        },
+        {
+          "at": "2026-09-28T10:26:00+02:00",
+          "source": "Reddit",
+          "text": "ApeWisdom: 9 Mentions/24h, Sentiment ~50%; AltIndex Hold.",
+          "lean": "mixed",
+          "url": "https://apewisdom.io/stocks/ORCL"
+        },
+        {
+          "at": "2026-09-28T10:26:00+02:00",
+          "source": "Reddit",
+          "text": "The Distributed 30d: 49% bull / 19% bear bei 1782 Mentions.",
+          "lean": "bull",
+          "url": "https://thedistributed.co/stocks/ORCL"
         }
       ],
       "signal": "hold",
@@ -1630,8 +1702,8 @@
       "hype_net": 13,
       "confidence": 65,
       "hype_state": "mixed",
-      "updated_at": "2026-09-28T10:06:00+02:00",
-      "why": "Force-Majeure und Kreditdruck belasten; Cloud-Wachstum stützt. Kurs flach bei etwa 137 Dollar.",
+      "updated_at": "2026-09-28T10:26:00+02:00",
+      "why": "Force-Majeure und Kreditdruck belasten weiter; Cloud-Wachstum stützt. Kurs flach bei etwa 137 Dollar.",
       "evidence": {
         "X": 0,
         "Reddit": 0,
@@ -1641,7 +1713,7 @@
         "bull": 3,
         "bear": 2,
         "mixed": 3,
-        "updated_at": "2026-09-28T10:06:00+02:00"
+        "updated_at": "2026-09-28T10:26:00+02:00"
       },
       "hype_mixed": 37,
       "sentiment_unit": "percent_all_classified",
