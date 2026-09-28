@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-28T11:56:00+02:00",
+  "updated_at": "2026-09-28T12:06:00+02:00",
   "watchlist": [
     {
       "symbol": "ORCL",
@@ -14,12 +14,12 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-28T11:56:00+02:00",
+        "at": "2026-09-28T12:06:00+02:00",
         "signal": "hold",
         "social_impulse": -3,
-        "hype_bull": 38,
+        "hype_bull": 39,
         "hype_bear": 25,
-        "hype_net": 13,
+        "hype_net": 14,
         "confidence": 65
       },
       "history": [
@@ -1341,9 +1341,46 @@
           "voice_bear": 2,
           "voice_mixed": 3,
           "price": 137.1
+        },
+        {
+          "at": "2026-09-28T12:06:00+02:00",
+          "signal": "hold",
+          "social_impulse": -3,
+          "confidence": 65,
+          "x_posts": 0,
+          "reddit_posts": 0,
+          "news": 5,
+          "hype_bull": 39,
+          "hype_bear": 25,
+          "hype_net": 14,
+          "voice_bull": 3,
+          "voice_bear": 2,
+          "voice_mixed": 3,
+          "price": 137.1
         }
       ],
       "voices_archive": [
+        {
+          "source": "News",
+          "text": "Ellison sagt großen Aktienverkauf ab — etwas Entlastung.",
+          "url": "https://finance.yahoo.com/quote/ORCL",
+          "lean": "bull",
+          "at": "2026-09-28T12:11:18+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Force-Majeure bei Project Jupiter bleibt; Schuldenrisiko im Fokus.",
+          "url": "https://www.cnbc.com/2026/09/24/oracle-force-majeure-data-center.html",
+          "lean": "bear",
+          "at": "2026-09-28T12:11:18+02:00"
+        },
+        {
+          "source": "Reddit",
+          "text": "ApeWisdom 24h: 11 Mentions, Sentiment ~50%, WSB 10.",
+          "url": "https://apewisdom.io/stocks/ORCL/",
+          "lean": "mixed",
+          "at": "2026-09-28T12:11:18+02:00"
+        },
         {
           "source": "Reddit",
           "text": "ApeWisdom 24h: 11 Mentions, Sentiment ~50%, WSB 10.",
@@ -1732,13 +1769,13 @@
       "signal": "hold",
       "social_impulse": -3,
       "impulse": -3,
-      "hype_bull": 38,
+      "hype_bull": 39,
       "hype_bear": 25,
-      "hype_net": 13,
+      "hype_net": 14,
       "confidence": 65,
       "hype_state": "mixed",
-      "updated_at": "2026-09-28T11:56:00+02:00",
-      "why": "Ellison erhöht Aktien-Verpfändungen — Schuldenrisiko bleibt. Force-Majeure und Kurs um 137 Dollar halten zur Vorsicht.",
+      "updated_at": "2026-09-28T12:06:00+02:00",
+      "why": "Ellison sagt großen Aktienverkauf ab — etwas Entlastung. Force-Majeure und Kurs um 137 Dollar halten zur Vorsicht.",
       "evidence": {
         "X": 0,
         "Reddit": 0,
@@ -1748,7 +1785,7 @@
         "bull": 3,
         "bear": 2,
         "mixed": 3,
-        "updated_at": "2026-09-28T11:56:00+02:00"
+        "updated_at": "2026-09-28T12:06:00+02:00"
       },
       "hype_mixed": 37,
       "sentiment_unit": "percent_all_classified",
