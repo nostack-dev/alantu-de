@@ -131,11 +131,11 @@ const side=await page.evaluate(()=>({
   sideBeforeHidden:document.getElementById('sideBefore')?.hidden,
   sideAfterHidden:document.getElementById('sideAfter')?.hidden,
   overlayHidden:document.getElementById('overlayStage')?.hidden,
-  vectorGlyphs:document.querySelectorAll('#afterVectorSvg rect[data-kind="image-text-glyph-vector"]').length,
-  semanticTexts:document.querySelectorAll('#afterVectorSvg text[data-kind="image-text-semantic"]').length,
+  vectorTexts:document.querySelectorAll('#afterVectorSvg text[data-kind="image-text-vector"]').length,
+  semanticTexts:document.querySelectorAll('#afterVectorSvg text[data-kind="image-text-vector"]').length,
   vectorRole:document.getElementById('afterVectorSvg')?.dataset?.role||'',
   vectorContract:window.__alantuVectorContract||null,
-  vectorFills:[...document.querySelectorAll('#afterVectorSvg rect[data-kind="image-text-glyph-vector"]')].map(x=>x.getAttribute('fill')),
+  vectorFills:[...document.querySelectorAll('#afterVectorSvg text[data-kind="image-text-vector"]')].map(x=>x.getAttribute('fill')),
   visualText:document.getElementById('mVisual')?.textContent||'',
   coverageText:document.getElementById('mImageTextPercent')?.textContent||''
 }));
@@ -167,8 +167,8 @@ const overlay=await page.evaluate(()=>({
   afterSrc:document.getElementById('overlayAfter')?.src||'',
   opacity:getComputedStyle(document.getElementById('overlayAfter')).opacity,
   boxes:document.querySelectorAll('#overlayBoxes .ocr-box').length,
-  vectorGlyphs:document.querySelectorAll('#overlayVectorSvg rect[data-kind="image-text-glyph-vector"]').length,
-  semanticTexts:document.querySelectorAll('#overlayVectorSvg text[data-kind="image-text-semantic"]').length,
+  vectorTexts:document.querySelectorAll('#overlayVectorSvg text[data-kind="image-text-vector"]').length,
+  semanticTexts:document.querySelectorAll('#overlayVectorSvg text[data-kind="image-text-vector"]').length,
   vectorRole:document.getElementById('overlayVectorSvg')?.dataset?.role||'',
   toolsHidden:document.getElementById('overlayTools')?.hidden
 }));
@@ -200,7 +200,7 @@ if(Number(side.imageText)<1)errors.push('image-text-count:'+side.imageText);
 if(!/^100 % Bildseiten mit OCR · 3B-OCR · /.test(side.imageTextPercent))errors.push('image-text-percent:'+side.imageTextPercent);
 if(!/komplex\/Branding unverändert/.test(side.imageTextPercent))errors.push('branding-skip-metric:'+side.imageTextPercent);
 if(side.baked!=='2')errors.push('baked-pages:'+side.baked);
-if(!/^Original \+ sicherer Raster-Diff \+ [\d.]+ Vektorglyphen · [1-9]\d* komplex unverändert$/.test(side.visual))errors.push('visual:'+side.visual);
+if(!/^Original \+ sicherer Raster-Diff \+ [\d.]+ echte Textobjekte · [1-9]\d* komplex unverändert$/.test(side.visual))errors.push('visual:'+side.visual);
 if(!/Unlimited-OCR 3B/.test(side.engine))errors.push('engine:'+side.engine);
 if(!side.beforeSrc||!side.afterSrc||side.beforeSrc===side.afterSrc)errors.push('side-by-side-vector-preview-not-distinct');
 if(side.boxes<1)errors.push('side-image-text-box-missing');
@@ -218,8 +218,9 @@ const svgPath=await svgDl.path();
 const svgText=await fs.readFile(svgPath,'utf8');
 if(!svgDl.suggestedFilename().endsWith('-vectorized.svg'))errors.push('svg-name:'+svgDl.suggestedFilename());
 if(!/data-baked-diff="1"/.test(svgText))errors.push('svg-raster-diff-missing');
-if(!/data-role="visible-vector-glyphs"/.test(svgText)||!/<rect[^>]+data-kind="image-text-glyph-vector"/.test(svgText))errors.push('svg-visible-image-vector-glyphs-missing');
-if(!/data-role="semantic-text"/.test(svgText)||!/<text[^>]+data-kind="image-text-semantic"/.test(svgText))errors.push('svg-semantic-text-missing');
+if(!/data-role="visible-vector-text"/.test(svgText)||!/<text[^>]+data-kind="image-text-vector"/.test(svgText))errors.push('svg-visible-real-text-missing');
+if(/data-kind="image-text-glyph-vector"/.test(svgText))errors.push('svg-pseudo-glyph-rectangles-still-present');
+if(!/<text[^>]+data-kind="image-text-vector"[^>]+fill="#111111"/.test(svgText))errors.push('svg-visible-text-color-missing');
 const allText=textPages.join(' | ');
 if(!/ALANTU EXPOSE/.test(allText))errors.push('ocr-vector-text-missing:'+allText);
 if(!/Native PDF Text/.test(allText)||!/Already searchable/.test(allText))errors.push('native-vector-text-missing:'+allText);
@@ -231,10 +232,12 @@ else{
   if(Math.abs(firstVectorItem.x-48.05)>6)errors.push('ocr-vector-x-drift:'+JSON.stringify(firstVectorItem));
   if(firstVectorItem.y<645||firstVectorItem.y>690)errors.push('ocr-vector-y-drift:'+JSON.stringify(firstVectorItem));
 }
-if(side.vectorGlyphs<1||side.semanticTexts<2||side.vectorRole!=='visible-vector-glyphs')errors.push('vector-preview-missing-visible-glyphs:'+JSON.stringify(side));
+if(side.vectorTexts<1||side.vectorRole!=='visible-vector-text')errors.push('vector-preview-missing-real-text:'+JSON.stringify(side));
 if(!side.vectorFills.length||side.vectorFills.some(x=>String(x).toLowerCase()!=='#111111'))errors.push('exact-monochrome-color-not-preserved:'+JSON.stringify(side.vectorFills));
-if(overlay.vectorGlyphs<1||overlay.semanticTexts<1||overlay.vectorRole!=='visible-vector-glyphs')errors.push('overlay-preview-missing-visible-glyphs:'+JSON.stringify(overlay));
-if(side.vectorContract?.nativeText!=='preserved-original-pdf'||side.vectorContract?.ocrText!=='traced-visible-vector-glyphs+semantic-text'||side.vectorContract?.unrecognized!=='original-pdf+baked-diff'||side.vectorContract?.manualAnchor!==false)errors.push('vector-contract:'+JSON.stringify(side.vectorContract));
+const hiddenRealText=await page.evaluate(()=>[...document.querySelectorAll('#afterVectorSvg text[data-kind="image-text-vector"]')].some(x=>getComputedStyle(x).opacity==='0'||x.getAttribute('fill-opacity')==='0'));
+if(hiddenRealText)errors.push('real-vector-text-hidden');
+if(overlay.vectorTexts<1||overlay.vectorRole!=='visible-vector-text')errors.push('overlay-preview-missing-real-text:'+JSON.stringify(overlay));
+if(side.vectorContract?.nativeText!=='preserved-original-pdf'||side.vectorContract?.ocrText!=='visible-svg-text+visible-pdf-text'||side.vectorContract?.unrecognized!=='original-pdf+baked-diff'||side.vectorContract?.manualAnchor!==false)errors.push('vector-contract:'+JSON.stringify(side.vectorContract));
 if(visualDiff.mae>7||visualDiff.changed>.08)errors.push('visual-drift:'+JSON.stringify(visualDiff));
 
 console.log(JSON.stringify({url,loadingView,side,overlay,visualDiff,download:{name:dl.suggestedFilename(),bytes:stat.size,textPages,firstVectorItem:extracted.items?.[0]?.find(x=>/ALANTU EXPOSE/.test(x.str))||null},svg:{name:svgDl.suggestedFilename(),bytes:svgText.length},ok:errors.length===0,errors},null,2));
