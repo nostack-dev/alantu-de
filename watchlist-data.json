@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-28T15:00:00+02:00",
+  "updated_at": "2026-09-28T15:25:00+02:00",
   "watchlist": [
     {
       "symbol": "ORCL",
@@ -14,37 +14,22 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-28T15:00:00+02:00",
+        "at": "2026-09-28T15:25:00+02:00",
         "signal": "hold",
-        "social_impulse": -3,
+        "social_impulse": -5,
         "confidence": 65,
         "x_posts": 0,
         "reddit_posts": 0,
         "news": 5,
-        "hype_bull": 40,
-        "hype_bear": 25,
-        "hype_net": 15,
-        "voice_bull": 3,
-        "voice_bear": 2,
+        "hype_bull": 30,
+        "hype_bear": 40,
+        "hype_net": -10,
+        "voice_bull": 2,
+        "voice_bear": 3,
         "voice_mixed": 3,
-        "price": 137.1
+        "price": 132.9
       },
       "history": [
-        {
-          "at": "2026-08-25T12:00:00+02:00",
-          "signal": "hold",
-          "social_impulse": 0,
-          "confidence": 51,
-          "x_posts": 2,
-          "reddit_posts": 0,
-          "news": 0,
-          "hype_bull": 0,
-          "hype_bear": 0,
-          "hype_net": 0,
-          "voice_bull": 0,
-          "voice_bear": 0,
-          "voice_mixed": 2
-        },
         {
           "at": "2026-08-26T12:00:00+02:00",
           "signal": "hold",
@@ -1531,6 +1516,22 @@
           "voice_bear": 2,
           "voice_mixed": 3,
           "price": 137.1
+        },
+        {
+          "at": "2026-09-28T15:25:00+02:00",
+          "signal": "hold",
+          "social_impulse": -5,
+          "confidence": 65,
+          "x_posts": 0,
+          "reddit_posts": 0,
+          "news": 5,
+          "hype_bull": 30,
+          "hype_bear": 40,
+          "hype_net": -10,
+          "voice_bull": 2,
+          "voice_bear": 3,
+          "voice_mixed": 3,
+          "price": 132.9
         }
       ],
       "voices_archive": [
