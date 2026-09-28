@@ -73,35 +73,91 @@ async function blobToArrayBuffer(blob){return blob.arrayBuffer()}
 function clampByte(v){return Math.max(0,Math.min(255,Math.round(v)))}
 function rgbHex(r,g,b){return "#"+[r,g,b].map(v=>clampByte(v).toString(16).padStart(2,"0")).join("")}
 function colorDistance(a,b){const dr=a[0]-b[0],dg=a[1]-b[1],db=a[2]-b[2];return Math.sqrt(dr*dr+dg*dg+db*db)}
+function median(values){if(!values.length)return 0;const a=[...values].sort((x,y)=>x-y),m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2}
+function percentile(values,p){if(!values.length)return 0;const a=[...values].sort((x,y)=>x-y),i=Math.max(0,Math.min(a.length-1,Math.round((a.length-1)*p)));return a[i]}
+function robustColor(points){
+  if(!points.length)return [255,255,255];
+  return [0,1,2].map(c=>median(points.map(p=>p[c])));
+}
+function quantKey(p,step=24){return p.map(v=>Math.max(0,Math.min(255,Math.round(v/step)*step))).join(",")}
+function actualMedoid(points,target){
+  if(!points.length)return target.map(clampByte);
+  let best=points[0],bestD=Infinity;
+  for(const p of points){const d=colorDistance(p,target);if(d<bestD){best=p;bestD=d}}
+  return best.map(clampByte);
+}
 function sampleTextStyle(ctx,rect){
   const x0=Math.max(0,Math.floor(rect.x0)),y0=Math.max(0,Math.floor(rect.y0)),x1=Math.min(ctx.canvas.width,Math.ceil(rect.x1)),y1=Math.min(ctx.canvas.height,Math.ceil(rect.y1));
   const w=Math.max(1,x1-x0),h=Math.max(1,y1-y0),img=ctx.getImageData(x0,y0,w,h),d=img.data;
   const border=[];
-  for(let x=0;x<w;x++){for(const y of [0,h-1]){const i=(y*w+x)*4;border.push([d[i],d[i+1],d[i+2]])}}
-  for(let y=1;y<h-1;y++){for(const x of [0,w-1]){const i=(y*w+x)*4;border.push([d[i],d[i+1],d[i+2]])}}
-  const bg=[0,1,2].map(c=>border.length?border.reduce((n,p)=>n+p[c],0)/border.length:255);
+  const pushPix=(x,y)=>{const i=(y*w+x)*4;border.push([d[i],d[i+1],d[i+2]])};
+  for(let x=0;x<w;x++){pushPix(x,0);if(h>1)pushPix(x,h-1)}
+  for(let y=1;y<h-1;y++){pushPix(0,y);if(w>1)pushPix(w-1,y)}
+  const bg=robustColor(border);
+  const borderSpread=percentile(border.map(p=>colorDistance(p,bg)),.9);
+
   const candidates=[];
-  const step=Math.max(1,Math.floor(Math.min(w,h)/40));
-  for(let y=0;y<h;y+=step)for(let x=0;x<w;x+=step){const i=(y*w+x)*4,p=[d[i],d[i+1],d[i+2]],dist=colorDistance(p,bg);if(dist>55)candidates.push({p,dist})}
-  candidates.sort((a,b)=>b.dist-a.dist);
-  const top=candidates.slice(0,Math.max(1,Math.min(120,Math.ceil(candidates.length*.18))));
-  const fg=[0,1,2].map(c=>top.length?top.reduce((n,q)=>n+q.p[c],0)/top.length:(bg[0]+bg[1]+bg[2])/3>128?20:235);
-  return {fill:rgbHex(...fg),rgb:fg.map(v=>clampByte(v)/255),background:bg};
+  const sampleStep=Math.max(1,Math.floor(Math.min(w,h)/64));
+  for(let y=0;y<h;y+=sampleStep)for(let x=0;x<w;x+=sampleStep){
+    const i=(y*w+x)*4,p=[d[i],d[i+1],d[i+2]],dist=colorDistance(p,bg);
+    if(dist>34)candidates.push(p);
+  }
+  if(candidates.length<3){
+    return {safe:false,reason:"zu wenig eindeutiger Vordergrund",fill:"#111111",rgb:[.07,.07,.07],background:bg,confidence:0};
+  }
+
+  const buckets=new Map();
+  for(const p of candidates){
+    const k=quantKey(p,24),arr=buckets.get(k)||[];arr.push(p);buckets.set(k,arr);
+  }
+  const clusters=[...buckets.values()].sort((a,b)=>b.length-a.length);
+  const dominant=clusters[0]||[],second=clusters[1]||[];
+  const dominance=dominant.length/candidates.length;
+  const secondShare=second.length/candidates.length;
+  const domCenter=robustColor(dominant);
+  const exact=actualMedoid(dominant,domCenter);
+  const domSpread=percentile(dominant.map(p=>colorDistance(p,domCenter)),.9);
+  const secondCenter=second.length?robustColor(second):domCenter;
+  const clusterSeparation=second.length?colorDistance(domCenter,secondCenter):0;
+
+  // Conservative by design: visible raster replacement is allowed only when
+  // the OCR box is visually simple (uniform background + one dominant text color).
+  // Logos, gradients, multicolor branding and photo-backed text remain pixel-perfect
+  // raster; they still get the invisible semantic/search text layer.
+  const complexBackground=borderSpread>24;
+  const multicolor=(dominance<.76)||(secondShare>.16&&clusterSeparation>34);
+  const noisyForeground=domSpread>26;
+  const safe=!complexBackground&&!multicolor&&!noisyForeground;
+  let reason="";
+  if(complexBackground)reason="komplexer/gradientiger Hintergrund";
+  else if(multicolor)reason="mehrfarbiger/Branding-Text";
+  else if(noisyForeground)reason="uneinheitliche Textfarbe";
+
+  return {
+    safe,reason,
+    fill:rgbHex(...exact),
+    rgb:exact.map(v=>v/255),
+    exactRgb:exact,
+    background:bg,
+    confidence:Math.max(0,Math.min(1,dominance*(1-Math.min(1,borderSpread/80)))),
+    dominance,borderSpread,foregroundSpread:domSpread,secondShare,clusterSeparation
+  };
 }
 function vectorizeTextRect(ctx,rect,style,sx,sy){
   const W=ctx.canvas.width,H=ctx.canvas.height;
   const x0=Math.max(1,Math.floor(rect.x0)-1),y0=Math.max(1,Math.floor(rect.y0)-1),x1=Math.min(W-2,Math.ceil(rect.x1)+1),y1=Math.min(H-2,Math.ceil(rect.y1)+1);
   const w=x1-x0+1,h=y1-y0+1;if(w<2||h<2)return {removed:0,glyphs:[],pxBox:{x0,y0,x1,y1}};
+  if(!style?.safe)return {removed:0,glyphs:[],pxBox:null,skipped:true,reason:style?.reason||"unsicher"};
   const patch=ctx.getImageData(x0-1,y0-1,w+2,h+2),pd=patch.data,pw=w+2,out=ctx.createImageData(w,h),od=out.data;
   const mask=new Uint8Array(w*h);
-  const bg=style?.background||[255,255,255],fg=(style?.rgb||[0,0,0]).map(v=>v*255);
+  const bg=style.background||[255,255,255],fg=style.exactRgb||[0,0,0];
   const pix=(x,y,c)=>pd[((y+1)*pw+(x+1))*4+c];
   let removed=0;
   for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){
     const tx=w<=1?0:xx/(w-1),ty=h<=1?0:yy/(h-1),oi=(yy*w+xx)*4;
     const original=[pix(xx,yy,0),pix(xx,yy,1),pix(xx,yy,2)];
     const dBg=colorDistance(original,bg),dFg=colorDistance(original,fg);
-    const isGlyph=dBg>14 && dFg+8<dBg;
+    const isGlyph=dBg>20 && dFg+7<dBg;
     mask[yy*w+xx]=isGlyph?1:0;
     for(let c=0;c<3;c++){
       if(isGlyph){
@@ -113,6 +169,7 @@ function vectorizeTextRect(ctx,rect,style,sx,sy){
     if(isGlyph)removed++;
     od[oi+3]=255;
   }
+  if(removed<Math.max(3,Math.round(w*h*.0015)))return {removed:0,glyphs:[],pxBox:null,skipped:true,reason:"zu wenig sicherer Textpixel"};
   ctx.putImageData(out,x0,y0);
   const glyphs=[];
   const rowStep=Math.max(1,Math.round(Math.min(sx,sy)*0.55));
@@ -125,12 +182,12 @@ function vectorizeTextRect(ctx,rect,style,sx,sy){
       if(on&&run<0)run=xx;
       if((!on||xx===w)&&run>=0){
         const endX=xx;
-        if(endX-run>=1)glyphs.push({x:(x0+run)/sx,y:(y0+yy)/sy,width:(endX-run)/sx,height:Math.max(0.18,(yEnd-yy)/sy)});
+        if(endX-run>=1)glyphs.push({x:(x0+run)/sx,y:(y0+yy)/sy,width:(endX-run)/sx,height:Math.max(0.18,(yEnd-yy)/sy),fill:style.fill});
         run=-1;
       }
     }
   }
-  return {removed,glyphs,pxBox:{x0,y0,x1:x1+1,y1:y1+1}};
+  return {removed,glyphs,pxBox:{x0,y0,x1:x1+1,y1:y1+1},skipped:false};
 }
 async function cropDiffPatch(canvas,pxBox,sx,sy){
   const x0=Math.max(0,Math.floor(pxBox.x0)),y0=Math.max(0,Math.floor(pxBox.y0));
@@ -150,7 +207,27 @@ async function makeVectorizedRaster(sourceCanvas,runs,pageW,pageH){
   for(const r of runs){
     const px={x0:r.bbox.x0*sx,y0:r.bbox.y0*sy,x1:r.bbox.x1*sx,y1:r.bbox.y1*sy};
     r.vectorStyle=sampleTextStyle(ctx,px);
+    if(!r.vectorStyle.safe){
+      r.vectorSkipped=true;
+      r.vectorSkipReason=r.vectorStyle.reason;
+      r.vectorPixelsRemoved=0;
+      r.vectorGlyphs=[];
+      r.diffPatchBytes=null;
+      r.diffPatchBox=null;
+      continue;
+    }
     const v=vectorizeTextRect(ctx,px,r.vectorStyle,sx,sy);
+    if(v.skipped||!v.pxBox){
+      r.vectorSkipped=true;
+      r.vectorSkipReason=v.reason||"unsicher";
+      r.vectorPixelsRemoved=0;
+      r.vectorGlyphs=[];
+      r.diffPatchBytes=null;
+      r.diffPatchBox=null;
+      continue;
+    }
+    r.vectorSkipped=false;
+    r.vectorSkipReason="";
     r.vectorPixelsRemoved=v.removed;
     r.vectorGlyphs=v.glyphs;
     r._vectorPxBox=v.pxBox;
@@ -176,7 +253,7 @@ function vectorTextSvg(page){
   const glyphs=[],semantic=[];
   for(const r of page.ocr||[]){
     const fill=r.vectorStyle?.fill||"#111111";
-    for(const g of r.vectorGlyphs||[])glyphs.push(`<rect data-kind="image-text-glyph-vector" x="${g.x.toFixed(3)}" y="${g.y.toFixed(3)}" width="${g.width.toFixed(3)}" height="${g.height.toFixed(3)}" fill="${fill}"/>`);
+    for(const g of r.vectorGlyphs||[])glyphs.push(`<rect data-kind="image-text-glyph-vector" x="${g.x.toFixed(3)}" y="${g.y.toFixed(3)}" width="${g.width.toFixed(3)}" height="${g.height.toFixed(3)}" fill="${g.fill||fill}"/>`);
     semantic.push(semanticTextSvg(r));
   }
   return `<g data-role="visible-vector-glyphs">${glyphs.join("")}</g><g data-role="semantic-text" opacity="0">${semantic.join("")}</g>`;
@@ -787,7 +864,8 @@ function updateMetrics(){
   const native=pages.reduce((n,p)=>n+p.native.length,0);
   const imageText=pages.reduce((n,p)=>n+p.ocr.length,0);
   const imageChars=pages.reduce((n,p)=>n+p.ocr.reduce((m,r)=>m+normalizeText(r.text).replace(/\s/g,"").length,0),0);
-  const vectorRuns=pages.reduce((n,p)=>n+p.ocr.length,0);
+  const vectorRuns=pages.reduce((n,p)=>n+p.ocr.filter(r=>!r.vectorSkipped&&(r.vectorGlyphs?.length||0)>0).length,0);
+  const vectorSkipped=pages.reduce((n,p)=>n+p.ocr.filter(r=>r.vectorSkipped).length,0);
   const vectorGlyphs=pages.reduce((n,p)=>n+p.ocr.reduce((m,r)=>m+(r.vectorGlyphs?.length||0),0),0);
   const vectorPixels=pages.reduce((n,p)=>n+allText(p).reduce((m,r)=>m+(r.vectorPixelsRemoved||0),0),0);
   const aiPages=pages.filter(p=>p.usedAi).length;
@@ -805,11 +883,11 @@ function updateMetrics(){
   if(!pages.length)mImageTextPercent.textContent="—";
   else if(pendingAi)mImageTextPercent.textContent="läuft …";
   else if(failedAi)mImageTextPercent.textContent=`${coverage||0} % Bildseiten mit OCR · ${failedAi}/${aiPages} nach 3B + Fallback ohne Textlayer`;
-  else if(fallbackAttempted)mImageTextPercent.textContent=`${coverage||0} % Bildseiten mit OCR · Fallback: ${fallbackAi} erfolgreich / ${noTextAi} ohne Text · ${imageText} Blöcke / ${imageChars} Zeichen → Vektor · ${vectorPixels.toLocaleString("de-DE")} Rasterpixel ersetzt`;
-  else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 3B-OCR · ${imageText} Blöcke / ${imageChars} Zeichen → Vektor · ${vectorPixels.toLocaleString("de-DE")} Rasterpixel ersetzt`;
+  else if(fallbackAttempted)mImageTextPercent.textContent=`${coverage||0} % Bildseiten mit OCR · Fallback: ${fallbackAi} erfolgreich / ${noTextAi} ohne Text · ${vectorRuns}/${imageText} sicher vektorisiert${vectorSkipped?` · ${vectorSkipped} komplex/Branding unverändert`:""} · ${vectorPixels.toLocaleString("de-DE")} Rasterpixel ersetzt`;
+  else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 3B-OCR · ${vectorRuns}/${imageText} sicher vektorisiert${vectorSkipped?` · ${vectorSkipped} komplex/Branding unverändert`:""} · ${vectorPixels.toLocaleString("de-DE")} Rasterpixel ersetzt`;
   else mImageTextPercent.textContent="— · keine Rasterbilder";
   mBaked.textContent=pages.length?String(pages.length):"—";
-  mVisual.textContent=pages.length?(vectorRuns?`Original + Raster-Diff + ${vectorGlyphs.toLocaleString("de-DE")} Vektorglyphen`:"Original unverändert"):"—";
+  mVisual.textContent=pages.length?(vectorRuns?`Original + sicherer Raster-Diff + ${vectorGlyphs.toLocaleString("de-DE")} Vektorglyphen${vectorSkipped?` · ${vectorSkipped} komplex unverändert`:""}`:(vectorSkipped?`Original unverändert · ${vectorSkipped} komplex/Branding geschützt`:"Original unverändert")):"—";
   if(fallbackAttempted){
     const codes=[...new Set(pages.filter(p=>p.ocrFallbackAttempted).map(p=>p.ocrPrimaryCode).filter(Boolean))];
     mEngine.textContent=(modelLoaded?"3B → ":"")+"Fallback-OCR · Tesseract.js"+(codes.length?" · "+codes.join("/"):"");
@@ -842,7 +920,7 @@ function renderVectorSvgLayer(svg,page){
       rect.setAttribute("data-kind","image-text-glyph-vector");
       rect.setAttribute("x",g.x);rect.setAttribute("y",g.y);
       rect.setAttribute("width",g.width);rect.setAttribute("height",g.height);
-      rect.setAttribute("fill",fill);svg.appendChild(rect);
+      rect.setAttribute("fill",g.fill||fill);svg.appendChild(rect);
     }
     const b=r.bbox,h=Math.max(2,b.y1-b.y0),fs=Math.max(2,h*.82),w=Math.max(1,b.x1-b.x0);
     const tx=document.createElementNS(NS,"text");
@@ -924,7 +1002,7 @@ async function buildVectorPdf(){
           page.drawImage(patch,{x:b.x0,y:p.height-b.y1,width:b.x1-b.x0,height:b.y1-b.y0});
         }
         const col=r.vectorStyle?.rgb||[.07,.07,.07];
-        for(const g of r.vectorGlyphs||[])page.drawRectangle({x:g.x,y:p.height-g.y-g.height,width:g.width,height:g.height,color:rgb(col[0],col[1],col[2]),borderWidth:0});
+        for(const g of r.vectorGlyphs||[]){const gc=g.fill?g.fill.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i):null,grgb=gc?[parseInt(gc[1],16)/255,parseInt(gc[2],16)/255,parseInt(gc[3],16)/255]:col;page.drawRectangle({x:g.x,y:p.height-g.y-g.height,width:g.width,height:g.height,color:rgb(grgb[0],grgb[1],grgb[2]),borderWidth:0})}
         const b0=r.bbox,text=safePdfText(font,r.text);if(text){
           const boxW=Math.max(2,b0.x1-b0.x0),boxH=Math.max(2,b0.y1-b0.y0);
           const widthAt1=Math.max(.01,font.widthOfTextAtSize(text,1));
@@ -937,7 +1015,7 @@ async function buildVectorPdf(){
       page=out.addPage([p.width,p.height]);page.drawImage(img,{x:0,y:0,width:p.width,height:p.height});
       for(const r of p.ocr||[]){
         const col=r.vectorStyle?.rgb||[.07,.07,.07];
-        for(const g of r.vectorGlyphs||[])page.drawRectangle({x:g.x,y:p.height-g.y-g.height,width:g.width,height:g.height,color:rgb(col[0],col[1],col[2]),borderWidth:0});
+        for(const g of r.vectorGlyphs||[]){const gc=g.fill?g.fill.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i):null,grgb=gc?[parseInt(gc[1],16)/255,parseInt(gc[2],16)/255,parseInt(gc[3],16)/255]:col;page.drawRectangle({x:g.x,y:p.height-g.y-g.height,width:g.width,height:g.height,color:rgb(grgb[0],grgb[1],grgb[2]),borderWidth:0})}
         const b0=r.bbox,text=safePdfText(font,r.text);if(text){
           const boxW=Math.max(2,b0.x1-b0.x0),boxH=Math.max(2,b0.y1-b0.y0),widthAt1=Math.max(.01,font.widthOfTextAtSize(text,1)),size=Math.max(2,Math.min(boxH*.82,boxW/widthAt1));
           page.drawText(text,{x:b0.x0,y:p.height-b0.y1+(boxH-size)*.45,size,font,opacity:0});
