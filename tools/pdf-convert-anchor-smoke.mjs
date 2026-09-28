@@ -134,7 +134,7 @@ const side=await page.evaluate(()=>({
   vectorTexts:document.querySelectorAll('#afterVectorSvg text[data-kind="image-text-vector"]').length,
   semanticTexts:document.querySelectorAll('#afterVectorSvg text[data-kind="image-text-vector"]').length,
   vectorRole:document.getElementById('afterVectorSvg')?.dataset?.role||'',
-  vectorContract:window.__alantuVectorContract||null,
+  searchableContract:window.__alantuSearchablePdfContract||null,
   vectorFills:[...document.querySelectorAll('#afterVectorSvg text[data-kind="image-text-vector"]')].map(x=>x.getAttribute('fill')),
   visualText:document.getElementById('mVisual')?.textContent||'',
   coverageText:document.getElementById('mImageTextPercent')?.textContent||''
@@ -197,7 +197,7 @@ if(failed.length)errors.push('requestfailed:'+JSON.stringify(failed));
 if(side.pages!=='2')errors.push('pages:'+side.pages);
 if(Number(side.native)<2)errors.push('native-text-count:'+side.native);
 if(Number(side.imageText)<1)errors.push('image-text-count:'+side.imageText);
-if(!/^100 % Bildseiten mit OCR · 3B-OCR · /.test(side.imageTextPercent))errors.push('image-text-percent:'+side.imageTextPercent);
+if(!/^100 % Bildseiten mit OCR · 100 % erkannter OCR-Text → PDF-Textlayer · /.test(side.imageTextPercent))errors.push('image-text-percent:'+side.imageTextPercent);
 if(!/komplex\/Branding unverändert/.test(side.imageTextPercent))errors.push('branding-skip-metric:'+side.imageTextPercent);
 if(side.baked!=='2')errors.push('baked-pages:'+side.baked);
 if(!/^Original \+ sicherer Raster-Diff \+ [\d.]+ echte Textobjekte · [1-9]\d* komplex unverändert$/.test(side.visual))errors.push('visual:'+side.visual);
@@ -210,7 +210,7 @@ if(!overlay.beforeSrc||!overlay.afterSrc||overlay.beforeSrc===overlay.afterSrc)e
 if(overlay.opacity!=='0.5')errors.push('overlay-opacity:'+overlay.opacity);
 if(overlay.boxes<1)errors.push('overlay-boxes-missing');
 if(stat.size<5000)errors.push('pdf-too-small:'+stat.size);
-if(!dl.suggestedFilename().endsWith('-vectorized.pdf'))errors.push('pdf-name:'+dl.suggestedFilename());
+if(!dl.suggestedFilename().endsWith('-searchable.pdf'))errors.push('pdf-name:'+dl.suggestedFilename());
 const svgDownloadPromise=page.waitForEvent('download',{timeout:60000});
 await page.locator('#downloadSvgBtn').click();
 const svgDl=await svgDownloadPromise;
@@ -222,11 +222,11 @@ if(!/data-role="visible-vector-text"/.test(svgText)||!/<text[^>]+data-kind="imag
 if(/data-kind="image-text-glyph-vector"/.test(svgText))errors.push('svg-pseudo-glyph-rectangles-still-present');
 if(!/<text[^>]+data-kind="image-text-vector"[^>]+fill="#111111"/.test(svgText))errors.push('svg-visible-text-color-missing');
 const allText=textPages.join(' | ');
-// Contract: multicolor/branding text stays raster-only; only the safe
-// monochrome OCR run becomes real PDF/SVG text.
-if(/ALANTU EXPOSE/.test(allText))errors.push('branding-was-vectorized:'+allText);
+// Searchable-PDF contract: every OCR-recognized string becomes machine-readable,
+// independent of whether visual vector replacement was considered safe.
+if(!/ALANTU EXPOSE/.test(allText))errors.push('branding-ocr-text-not-searchable:'+allText);
 if(!/Wohnung mit Seeblick in Konstanz/.test(allText))errors.push('safe-ocr-vector-text-missing:'+allText);
-if(!/Native PDF Text/.test(allText)||!/Already searchable/.test(allText))errors.push('native-vector-text-missing:'+allText);
+if(!/Native PDF Text/.test(allText)||!/Already searchable/.test(allText))errors.push('native-pdf-text-missing:'+allText);
 if(/ALANTU EXPOSE/.test(svgText))errors.push('branding-was-vectorized-in-svg');
 if(!/Wohnung mit Seeblick in Konstanz/.test(svgText))errors.push('safe-ocr-vector-text-missing-in-svg');
 const firstVectorItem=extracted.items?.[0]?.find(x=>/Wohnung mit Seeblick in Konstanz/.test(x.str));
@@ -242,7 +242,7 @@ if(!side.vectorFills.length||side.vectorFills.some(x=>String(x).toLowerCase()!==
 const hiddenRealText=await page.evaluate(()=>[...document.querySelectorAll('#afterVectorSvg text[data-kind="image-text-vector"]')].some(x=>getComputedStyle(x).opacity==='0'||x.getAttribute('fill-opacity')==='0'));
 if(hiddenRealText)errors.push('real-vector-text-hidden');
 if(overlay.vectorTexts<1||overlay.vectorRole!=='visible-vector-text')errors.push('overlay-preview-missing-real-text:'+JSON.stringify(overlay));
-if(side.vectorContract?.nativeText!=='preserved-original-pdf'||side.vectorContract?.ocrText!=='visible-svg-text+visible-pdf-text'||side.vectorContract?.unrecognized!=='original-pdf+baked-diff'||side.vectorContract?.manualAnchor!==false)errors.push('vector-contract:'+JSON.stringify(side.vectorContract));
+if(side.searchableContract?.nativeText!=='preserved-original-pdf'||side.searchableContract?.ocrText!=='invisible-real-pdf-text-objects'||side.searchableContract?.visual!=='original-pdf-preserved'||side.searchableContract?.fullTextIndex!==true||side.searchableContract?.copyable!==true||side.searchableContract?.manualAnchor!==false)errors.push('searchable-contract:'+JSON.stringify(side.searchableContract));
 if(visualDiff.mae>7||visualDiff.changed>.08)errors.push('visual-drift:'+JSON.stringify(visualDiff));
 
 console.log(JSON.stringify({url,loadingView,side,overlay,visualDiff,download:{name:dl.suggestedFilename(),bytes:stat.size,textPages,firstVectorItem:extracted.items?.[0]?.find(x=>/Wohnung mit Seeblick in Konstanz/.test(x.str))||null},svg:{name:svgDl.suggestedFilename(),bytes:svgText.length},ok:errors.length===0,errors},null,2));
@@ -278,7 +278,7 @@ const fallbackErrors=[];
 if(fallback.buttonDisabled)fallbackErrors.push('fallback-export-disabled:'+fallback.status);
 if(!/Fallback-OCR/.test(fallback.engine))fallbackErrors.push('fallback-engine:'+fallback.engine);
 if(Number(fallback.imageText)<1)fallbackErrors.push('fallback-no-image-text:'+fallback.imageText);
-if(!/Fallback:/.test(fallback.coverage))fallbackErrors.push('fallback-coverage:'+fallback.coverage);
+if(!/PDF-Textlayer/.test(fallback.coverage))fallbackErrors.push('fallback-coverage:'+fallback.coverage);
 if(!fallback.debug||fallback.debug.engine!=='tesseract.js 5.1.1')fallbackErrors.push('fallback-debug:'+JSON.stringify(fallback.debug));
 if(fallback.debug?.workerStarts!==1)fallbackErrors.push('fallback-worker-restarted:'+JSON.stringify(fallback.debug));
 if(fallback.debug?.calls!==2)fallbackErrors.push('fallback-worker-calls:'+JSON.stringify(fallback.debug));
@@ -327,7 +327,7 @@ if(mobile.buttonDisabled)mobileErrors.push('mobile-export-disabled:'+mobile.stat
 if(Number(mobile.imageText)<1)mobileErrors.push('mobile-no-image-text:'+mobile.imageText);
 if(!/Fallback-OCR/.test(mobile.engine))mobileErrors.push('mobile-engine:'+mobile.engine);
 if(!mobile.bottleneck||mobile.bottleneck==='—')mobileErrors.push('mobile-bottleneck-missing:'+mobile.bottleneck);
-if(!/Fallback:/.test(mobile.coverage))mobileErrors.push('mobile-coverage:'+mobile.coverage);
+if(!/PDF-Textlayer/.test(mobile.coverage))mobileErrors.push('mobile-coverage:'+mobile.coverage);
 if(mobileHeavyRequests.length)mobileErrors.push('mobile-loaded-heavy-3b:'+JSON.stringify(mobileHeavyRequests));
 if(mobile.preflight?.ok!==false)mobileErrors.push('mobile-preflight-not-blocked:'+JSON.stringify(mobile.preflight));
 if(!mobile.preflight?.reasons?.some(x=>/WebKit|WebGPU-Adapter/i.test(x)))mobileErrors.push('mobile-preflight-reason:'+JSON.stringify(mobile.preflight));
