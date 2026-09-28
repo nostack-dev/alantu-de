@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-28T08:30:00+02:00",
+  "updated_at": "2026-09-28T08:35:00+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,7 +9,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-28T08:30:00+02:00",
+        "at": "2026-09-28T08:35:00+02:00",
         "signal": "hold",
         "social_impulse": -3,
         "hype_bull": 38,
@@ -964,6 +964,23 @@
           "x_posts": 0,
           "reddit_posts": 0,
           "news": 5
+        },
+        {
+          "at": "2026-09-28T08:35:00+02:00",
+          "hype_bull": 38,
+          "hype_bear": 25,
+          "hype_net": 13,
+          "social_impulse": -3,
+          "signal": "hold",
+          "confidence": 65,
+          "hype_mixed": 37,
+          "voice_bull": 3,
+          "voice_bear": 2,
+          "voice_mixed": 3,
+          "price": 137.1,
+          "x_posts": 0,
+          "reddit_posts": 0,
+          "news": 5
         }
       ],
       "voices_archive": [
@@ -1276,6 +1293,70 @@
           "bull": 2,
           "bear": 3,
           "mixed": 3
+        },
+        {
+          "at": "2026-09-28T08:35:00+02:00",
+          "bull": 3,
+          "bear": 2,
+          "mixed": 3,
+          "items": [
+            {
+              "source": "News",
+              "text": "Force-Majeure bei Project Jupiter bleibt; Banken preisen 18-Mrd-Kredite neu.",
+              "url": "https://www.reuters.com/business/oracle-cites-force-majeure-shield-itself-controversial-data-center-bloomberg-2026-09-24/",
+              "lean": "bear",
+              "at": "2026-09-28T08:41:38+02:00"
+            },
+            {
+              "source": "News",
+              "text": "Stifel hält Buy und Kursziel 200 Dollar; sieht Notice eher als Vorsicht.",
+              "url": "https://finbold.com/wall-street-sets-oracle-stock-price-target-for-next-12-months-2/",
+              "lean": "bull",
+              "at": "2026-09-28T08:41:38+02:00"
+            },
+            {
+              "source": "News",
+              "text": "Auftragsbuch rund 664 Mrd. Dollar; AI-Wachstum bleibt das Gegenargument.",
+              "url": "https://www.insidermonkey.com/news/oracle-orcl-reports-a-664-billion-backlog-can-ai-growth-outpace-its-cash-burn-1840386/",
+              "lean": "bull",
+              "at": "2026-09-28T08:41:38+02:00"
+            },
+            {
+              "source": "News",
+              "text": "Schulden und Rechenzentrum-Kosten bleiben der Gegenwind zur AI-Story.",
+              "url": "https://www.insidermonkey.com/news/oracles-ai-expansion-faces-a-new-test-as-data-center-costs-rise-1845132/",
+              "lean": "bear",
+              "at": "2026-09-28T08:41:38+02:00"
+            },
+            {
+              "source": "News",
+              "text": "Fear-and-Greed etwa 37 (Fear); Risikoappetit vor NFP verhalten.",
+              "url": "https://feargreedmeter.com/fear-and-greed-index",
+              "lean": "mixed",
+              "at": "2026-09-28T08:41:38+02:00"
+            },
+            {
+              "source": "Reddit",
+              "text": "ApeWisdom: ORCL 9 Mentions/24h (WSB 8, Upvotes 15), Sentiment ~50%.",
+              "url": "https://apewisdom.io/stocks/ORCL/",
+              "lean": "mixed",
+              "at": "2026-09-28T08:41:38+02:00"
+            },
+            {
+              "source": "Reddit",
+              "text": "AltIndex: ~38 Mentions/Tag, Sentiment 77/100, AI-Score 50 Hold.",
+              "url": "https://altindex.com/ticker/orcl",
+              "lean": "bull",
+              "at": "2026-09-28T08:41:38+02:00"
+            },
+            {
+              "source": "Reddit",
+              "text": "TheDistributed 30d: 1781 Mentions, 49% bull / 19% bear / 32% neutral (Stand 28.09.).",
+              "url": "https://thedistributed.co/stocks/ORCL",
+              "lean": "mixed",
+              "at": "2026-09-28T08:41:38+02:00"
+            }
+          ]
         }
       ],
       "signal": "hold",
@@ -1286,23 +1367,18 @@
       "hype_net": 13,
       "confidence": 65,
       "hype_state": "mixed",
-      "updated_at": "2026-09-28T08:20:00+02:00",
-      "why": "Force-Majeure und Kredit-Neupreisung belasten; Stifel hält Buy. Kurs etwa 137 Dollar, Reddit gemischt.",
+      "updated_at": "2026-09-28T08:35:00+02:00",
+      "why": "Force-Majeure und Kreditdruck belasten; Stifel hält Buy. Kurs flach bei etwa 137 Dollar.",
       "evidence": {
-        "x_posts": 0,
-        "reddit_posts": 0,
-        "news": 5,
-        "snippets": [
-          "Force-Majeure + Kredit-Neupreisung — ORCL ~$137.10; Stifel Buy PT $200",
-          "ORCL voices bull3/bear2/mixed3; Reddit ApeWisdom 9/24h @50%; X skipped (credits)",
-          "Fear&Greed ~35–37; BTC ~$83157; NFP Fr 02.10"
-        ]
+        "X": 0,
+        "Reddit": 0,
+        "News": 5
       },
       "voices": {
         "bull": 3,
         "bear": 2,
         "mixed": 3,
-        "updated_at": "2026-09-28T08:20:00+02:00"
+        "updated_at": "2026-09-28T08:35:00+02:00"
       },
       "hype_mixed": 37,
       "sentiment_unit": "percent_all_classified",
