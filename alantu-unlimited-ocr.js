@@ -820,7 +820,7 @@ async function convertPage(pageNo,token,onPreview=()=>{}){
         const fallback=await runSmallFallbackOcr(canvas,base.width,base.height,primaryError);
         if(token!==loadToken)throw new Error("cancelled");
         ocr=filterNativeDuplicates(fallback,native);provisional.ocrFallback=true;provisional.ocrNoText=ocr.length===0;
-        setStatus(ocr.length?"Fallback-OCR fertig · Bildtext wird als echter sichtbarer Text gesetzt.":"Fallback-OCR fertig · auf dieser Bildseite wurde kein Text gefunden.",ocr.length?"ok":"");
+        setStatus(ocr.length?"Fallback-OCR fertig · Bildtext wird als echter PDF-Textlayer ergänzt.":"Fallback-OCR fertig · auf dieser Bildseite wurde kein Text gefunden.",ocr.length?"ok":"");
       }catch(fallbackErr){
         if(fallbackErr?.message==="cancelled")throw fallbackErr;
         provisional.ocrError=primaryError+" | Fallback: "+shortError(fallbackErr);console.error(fallbackErr);
@@ -966,7 +966,7 @@ function safePdfText(font,text){
   return normalizeText(out);
 }
 async function verifyMachineReadablePdf(bytes){
-  const expectedByPage=pages.map(p=>(p.ocr||[])
+  const expectedByPage=pages.map(p=>[...(p.native||[]),...(p.ocr||[])]
     .map(r=>normalizeText(r.text).split(/\s+/).map(cleanForCompare).filter(t=>t.length>=3))
     .flat()
     .filter(Boolean));
@@ -1104,8 +1104,8 @@ async function loadPdf(file){
     const firstFailure=pages.find(p=>p.ocrError&&!p.ocr.length);
     const failureHint=firstFailure?" · "+shortError(firstFailure.ocrError).slice(0,220):"";
     setStatus(
-      noImprovement?`Kein OCR-Text erzeugt · ${failed} technische Fehler / ${noText} Seiten ohne erkannten Text. Export gesperrt, weil kein Vektor-Mehrwert entstanden ist.${failureHint}`:
-      failed?`${pages.length} Seiten fertig · ${fallback} Bildseiten via Fallback vektorisiert · ${failed}/${aiPages} Bildseiten nach kompletter Kaskade ohne Textlayer.${failureHint}`:
+      noImprovement?`Kein OCR-Text erzeugt · ${failed} technische Fehler / ${noText} Seiten ohne erkannten Text. Export gesperrt, weil kein zusätzlicher maschinenlesbarer Text entstanden ist.${failureHint}`:
+      failed?`${pages.length} Seiten fertig · ${fallback} Bildseiten via Fallback als Textlayer ergänzt · ${failed}/${aiPages} Bildseiten nach kompletter Kaskade ohne Textlayer.${failureHint}`:
       fallback?`${pages.length} Seiten fertig · Fallback-OCR auf ${fallback} Bildseiten${noText?`, ${noText} ohne gefundenen Text`:""}.`:
       `${pages.length} Seiten fertig · Originaloptik erhalten · maschinenlesbarer Textlayer bereit.`,
       (noImprovement||failed)?"error":"ok"
