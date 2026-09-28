@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-28T11:30:00+02:00",
+  "updated_at": "2026-09-28T11:36:00+02:00",
   "watchlist": [
     {
       "symbol": "ORCL",
@@ -14,7 +14,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-28T11:30:00+02:00",
+        "at": "2026-09-28T11:36:00+02:00",
         "signal": "hold",
         "social_impulse": -3,
         "hype_bull": 38,
@@ -1293,6 +1293,22 @@
           "voice_bear": 2,
           "voice_mixed": 3,
           "price": 137.1
+        },
+        {
+          "at": "2026-09-28T11:36:00+02:00",
+          "signal": "hold",
+          "social_impulse": -3,
+          "confidence": 65,
+          "x_posts": 0,
+          "reddit_posts": 0,
+          "news": 5,
+          "hype_bull": 38,
+          "hype_bear": 25,
+          "hype_net": 13,
+          "voice_bull": 3,
+          "voice_bear": 2,
+          "voice_mixed": 3,
+          "price": 137.1
         }
       ],
       "voices_archive": [
@@ -1602,6 +1618,27 @@
           "url": "https://finance.yahoo.com/quote/ORCL",
           "lean": "mixed",
           "at": "2026-09-21T20:33:00+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Ellison verpfändet weitere 67 Millionen Aktien als Kreditsicherheit.",
+          "url": "https://seekingalpha.com/news/4512342-ellison-pledges-67m-more-oracle-shares-as-loan-collateral",
+          "lean": "mixed",
+          "at": "2026-09-28T11:38:46+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Force-Majeure bei Project Jupiter bleibt; Schuldenrisiko im Fokus.",
+          "url": "https://www.cnbc.com/2026/09/24/oracle-force-majeure-data-center.html",
+          "lean": "bear",
+          "at": "2026-09-28T11:38:46+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Ellison stoppt Plan, bis zu 7,5 Mrd. Dollar Aktien zu verkaufen.",
+          "url": "https://www.insidermonkey.com/news/oracle-orcl-says-ellison-canceled-a-plan-to-sell-up-to-7-5-billion-in-shares-does-it-change-the-investment-case-1840405/",
+          "lean": "bull",
+          "at": "2026-09-28T11:38:46+02:00"
         }
       ],
       "signal": "hold",
@@ -1612,7 +1649,7 @@
       "hype_net": 13,
       "confidence": 65,
       "hype_state": "mixed",
-      "updated_at": "2026-09-28T11:30:00+02:00",
+      "updated_at": "2026-09-28T11:36:00+02:00",
       "why": "Force-Majeure und neue Ellison-Verpfändung bleiben Belastung. Kurs flach bei etwa 137 Dollar.",
       "evidence": {
         "X": 0,
@@ -1623,7 +1660,7 @@
         "bull": 3,
         "bear": 2,
         "mixed": 3,
-        "updated_at": "2026-09-28T11:30:00+02:00"
+        "updated_at": "2026-09-28T11:36:00+02:00"
       },
       "hype_mixed": 37,
       "sentiment_unit": "percent_all_classified",
