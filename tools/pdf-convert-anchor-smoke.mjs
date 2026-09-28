@@ -226,7 +226,7 @@ else{
 }
 if(side.vectorTexts!==0)errors.push('searchable-preview-should-not-replace-pixels:'+JSON.stringify(side));
 if(overlay.vectorTexts!==0)errors.push('searchable-overlay-should-not-replace-pixels:'+JSON.stringify(overlay));
-if(side.searchableContract?.nativeText!=='preserved-original-pdf'||side.searchableContract?.ocrText!=='invisible-real-pdf-text-objects'||side.searchableContract?.visual!=='original-pdf-preserved'||side.searchableContract?.fullTextIndex!==true||side.searchableContract?.copyable!==true||side.searchableContract?.manualAnchor!==false)errors.push('searchable-contract:'+JSON.stringify(side.searchableContract));
+if(side.searchableContract?.nativeText!=='preserved-original-pdf-objects'||side.searchableContract?.ocrText!=='invisible-real-pdf-text-objects'||side.searchableContract?.visual!=='original-pdf-preserved-no-pixel-replacement'||side.searchableContract?.fullTextIndex!=='verified-by-pdfjs-readback-on-export'||side.searchableContract?.copyable!==true||side.searchableContract?.brandingSafe!==true||side.searchableContract?.manualAnchor!==false)errors.push('searchable-contract:'+JSON.stringify(side.searchableContract));
 if(visualDiff.mae>.5||visualDiff.changed>.0001)errors.push('visual-not-identical:'+JSON.stringify(visualDiff));
 
 console.log(JSON.stringify({url,loadingView,side,overlay,visualDiff,download:{name:dl.suggestedFilename(),bytes:stat.size,textPages,firstTextLayerItem:extracted.items?.[0]?.find(x=>/Wohnung mit Seeblick in Konstanz/.test(x.str))||null},ok:errors.length===0,errors},null,2));
