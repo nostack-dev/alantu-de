@@ -30,7 +30,7 @@ const MOCK_OCR_DELAY=Math.max(0,Number(QUERY.get("mockOcrDelay"))||0);
 
 const $=id=>document.getElementById(id);
 const pdfInput=$("pdfInput"),dropzone=$("dropzone"),statusEl=$("status"),progressBar=$("progressBar"),fileBadge=$("fileBadge");
-const mPages=$("mPages"),mNative=$("mNative"),mImageText=$("mImageText"),mImageTextPercent=$("mImageTextPercent"),mBaked=$("mBaked"),mEngine=$("mEngine"),mVisual=$("mVisual"),mBottleneck=$("mBottleneck");
+const mPages=$("mPages"),mNative=$("mNative"),mImageText=$("mImageText"),mImageTextPercent=$("mImageTextPercent"),mBaked=$("mBaked"),mEngine=$("mEngine"),mVisual=$("mVisual"),mBottleneck=$("mBottleneck"),mIndexable=$("mIndexable");
 const downloadPdfBtn=$("downloadPdfBtn"),downloadSvgBtn=$("downloadSvgBtn"),clearModelBtn=$("clearModelBtn");
 const prevBtn=$("prevBtn"),nextBtn=$("nextBtn"),pageCounter=$("pageCounter");
 const sideBtn=$("sideBtn"),overlayBtn=$("overlayBtn"),overlayTools=$("overlayTools"),overlayOpacity=$("overlayOpacity"),overlayValue=$("overlayValue"),showBoxes=$("showBoxes");
@@ -42,6 +42,7 @@ let pdfDoc=null,sourcePdfBytes=null,sourceName="exposee",pages=[],currentPage=0,
 let decoderEngine=null,decoderPromise=null,visionSession=null,visionPromise=null,visionExtras=null,extrasPromise=null,modelLoaded=false;
 let primaryOcrDisabledReason="";
 let compareMode="side";
+let lastPdfVerification=null;
 
 function setStatus(text,kind=""){
   statusEl.className="status"+(kind?" "+kind:"");
@@ -830,14 +831,11 @@ async function convertPage(pageNo,token,onPreview=()=>{}){
   }
   provisional.ocr=ocr;
   provisional.rawOcr=rawOcr;
-  if(ocr.length){
-    const vectorized=await makeVectorizedRaster(canvas,ocr,base.width,base.height);
-    provisional.vectorPngBytes=vectorized.bytes;
-    provisional.vectorRasterUrl=vectorized.url;
-  }else{
-    provisional.vectorPngBytes=pngBytes;
-    provisional.vectorRasterUrl=previewUrl;
-  }
+  // Searchable-PDF contract: NEVER repaint/replace original pixels. This is
+  // deliberate branding protection for multicolor logos, gradients, photos,
+  // antialiasing and custom type. OCR contributes text objects only.
+  provisional.vectorPngBytes=pngBytes;
+  provisional.vectorRasterUrl=previewUrl;
   provisional.processing=false;
   canvas.width=1;canvas.height=1;
   return provisional;
@@ -867,6 +865,11 @@ function updateMetrics(){
   else mImageTextPercent.textContent="— · keine Rasterbilder";
   mBaked.textContent=pages.length?String(pages.length):"—";
   mVisual.textContent=pages.length?"Originaloptik unverändert":"—";
+  if(mIndexable){
+    if(!pages.length)mIndexable.textContent="—";
+    else if(lastPdfVerification?.ok)mIndexable.textContent="verifiziert · "+lastPdfVerification.pages+" Seiten";
+    else mIndexable.textContent="bereit · Prüfung beim Export";
+  }
   if(fallbackAttempted){
     const codes=[...new Set(pages.filter(p=>p.ocrFallbackAttempted).map(p=>p.ocrPrimaryCode).filter(Boolean))];
     mEngine.textContent=(modelLoaded?"3B → ":"")+"Fallback-OCR · Tesseract.js"+(codes.length?" · "+codes.join("/"):"");
@@ -962,6 +965,30 @@ function safePdfText(font,text){
   let out="";for(const ch of text){try{font.encodeText(ch);out+=ch}catch{out+=" "}}
   return normalizeText(out);
 }
+async function verifyMachineReadablePdf(bytes){
+  const expectedByPage=pages.map(p=>(p.ocr||[])
+    .map(r=>normalizeText(r.text).split(/\s+/).map(cleanForCompare).filter(t=>t.length>=3))
+    .flat()
+    .filter(Boolean));
+  // Use PDF.js itself, because this is the same class of text extraction that
+  // archives/search indexers consume. A PDF is not called "fertig" unless the
+  // OCR text can actually be read back from the exported PDF.
+  const doc=await pdfjsLib.getDocument({data:new Uint8Array(bytes),disableWorker:true}).promise;
+  try{
+    if(doc.numPages!==pages.length)throw new Error("Seitenzahl nach Export stimmt nicht.");
+    const missing=[];
+    for(let i=1;i<=doc.numPages;i++){
+      const pg=await doc.getPage(i),tc=await pg.getTextContent();
+      const extracted=cleanForCompare((tc.items||[]).map(x=>x.str||"").join(" "));
+      for(const wanted of expectedByPage[i-1]){
+        if(!extracted.includes(wanted))missing.push({page:i,text:wanted.slice(0,80)});
+      }
+    }
+    if(missing.length)throw new Error("Textlayer nicht vollständig auslesbar: "+missing.slice(0,3).map(x=>"S."+x.page+" "+x.text).join(" | "));
+    return {ok:true,pages:doc.numPages,ocrRuns:expectedByPage.reduce((n,a)=>n+a.length,0)};
+  }finally{try{await doc.destroy()}catch{}}
+}
+
 async function buildSearchablePdf(){
   if(!pages.length)return null;
   if(!sourcePdfBytes)throw new Error("Original-PDF ist nicht mehr im Speicher.");
@@ -989,21 +1016,13 @@ async function buildSearchablePdf(){
     const p=pages[i];
     busy.textContent=`PDF-Seite ${i+1} / ${pages.length} · Textlayer`;
     setProgress((i/pages.length)*100);
-    let page;
-    if((p.rotation||0)===0&&copied[i]){
-      // Best path: keep the original PDF page byte-for-byte in appearance.
-      // Existing native PDF text stays native. Add only OCR text that was
-      // detected in raster/image content; every recognized OCR run is indexed.
-      page=copied[i];out.addPage(page);
-      for(const r of p.ocr||[])drawInvisible(page,p,r);
-    }else{
-      // Rotation-safe fallback: bake only the visual page, then restore all
-      // native + OCR text as invisible real PDF text objects.
-      const img=await out.embedPng(p.pngBytes);
-      page=out.addPage([p.width,p.height]);
-      page.drawImage(img,{x:0,y:0,width:p.width,height:p.height});
-      for(const r of [...(p.native||[]),...(p.ocr||[])])drawInvisible(page,p,r);
-    }
+    const page=copied[i];
+    if(!page)throw new Error("Originalseite "+(i+1)+" konnte nicht übernommen werden.");
+    // Always preserve the original PDF page, including its native text,
+    // vectors, colors, transparency, branding and page rotation. We NEVER
+    // rasterize/replace it in the searchable-PDF export.
+    out.addPage(page);
+    for(const r of p.ocr||[])drawInvisible(page,p,r);
     if(i%2===1)await new Promise(requestAnimationFrame);
   }
 
@@ -1012,8 +1031,11 @@ async function buildSearchablePdf(){
   out.setKeywords(["searchable PDF","OCR","text layer","full text index"]);
   out.setProducer("ALANTU searchable PDF");
   const bytes=await out.save({useObjectStreams:false});
+  setStatus("Textlayer wird aus exportierter PDF zurückgelesen …");
+  lastPdfVerification=await verifyMachineReadablePdf(bytes);
+  if(mIndexable)mIndexable.textContent="verifiziert · "+lastPdfVerification.pages+" Seiten";
   setProgress(100);
-  setStatus("Fertig · Originaloptik erhalten · Text markieren/kopieren · Volltextindex möglich.","ok");
+  setStatus("Fertig · Original unverändert · Text markieren/kopieren · Volltextindex verifiziert.","ok");
   busy.classList.remove("show");
   setTimeout(()=>setProgress(0),900);
   return new Blob([bytes],{type:"application/pdf"});
@@ -1036,7 +1058,7 @@ function downloadSvg(){
 
 async function clearDocument(){
   loadToken++;for(const p of pages){try{if(p.vectorRasterUrl&&p.vectorRasterUrl!==p.previewUrl)URL.revokeObjectURL(p.vectorRasterUrl)}catch{};try{URL.revokeObjectURL(p.previewUrl)}catch{}}
-  pages=[];currentPage=0;beforeImg.removeAttribute("src");afterImg.removeAttribute("src");overlayBefore.removeAttribute("src");overlayAfter.removeAttribute("src");
+  pages=[];currentPage=0;lastPdfVerification=null;if(mIndexable)mIndexable.textContent="—";beforeImg.removeAttribute("src");afterImg.removeAttribute("src");overlayBefore.removeAttribute("src");overlayAfter.removeAttribute("src");
   afterOverlay.innerHTML="";overlayBoxes.innerHTML="";if(afterVectorSvg)afterVectorSvg.innerHTML="";if(overlayVectorSvg)overlayVectorSvg.innerHTML="";downloadPdfBtn.disabled=true;downloadSvgBtn.disabled=true;prevBtn.disabled=true;nextBtn.disabled=true;
   sideGrid.hidden=true;overlayWrap.hidden=true;overlayStage.hidden=true;
   emptyTitle.textContent="PDF laden.";
@@ -1120,5 +1142,5 @@ sideBtn.addEventListener("click",()=>setCompareMode("side"));overlayBtn.addEvent
 overlayOpacity.addEventListener("input",renderCompare);showBoxes.addEventListener("change",renderCompare);
 downloadPdfBtn.addEventListener("click",downloadPdf);downloadSvgBtn.addEventListener("click",downloadSvg);clearModelBtn.addEventListener("click",clearModelCache);
 
-window.__alantuSearchablePdfContract={nativeText:"preserved-original-pdf",ocrText:"invisible-real-pdf-text-objects",visual:"original-pdf-preserved",fullTextIndex:true,copyable:true,manualAnchor:false};
+window.__alantuSearchablePdfContract={nativeText:"preserved-original-pdf-objects",ocrText:"invisible-real-pdf-text-objects",visual:"original-pdf-preserved-no-pixel-replacement",fullTextIndex:"verified-by-pdfjs-readback-on-export",copyable:true,brandingSafe:true,manualAnchor:false};
 mEngine.textContent="Unlimited-OCR 3B · WebGPU native";updateMetrics();setCompareMode("side");
