@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-28T11:25:00+02:00",
+  "updated_at": "2026-09-28T11:30:00+02:00",
   "watchlist": [
     {
       "symbol": "ORCL",
@@ -14,7 +14,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-28T11:25:00+02:00",
+        "at": "2026-09-28T11:30:00+02:00",
         "signal": "hold",
         "social_impulse": -3,
         "hype_bull": 38,
@@ -1277,9 +1277,81 @@
           "voice_bear": 2,
           "voice_mixed": 3,
           "price": 137.1
+        },
+        {
+          "at": "2026-09-28T11:30:00+02:00",
+          "signal": "hold",
+          "social_impulse": -3,
+          "confidence": 65,
+          "x_posts": 0,
+          "reddit_posts": 0,
+          "news": 5,
+          "hype_bull": 38,
+          "hype_bear": 25,
+          "hype_net": 13,
+          "voice_bull": 3,
+          "voice_bear": 2,
+          "voice_mixed": 3,
+          "price": 137.1
         }
       ],
       "voices_archive": [
+        {
+          "source": "Reddit",
+          "text": "ApeWisdom 24h: 11 Mentions, Sentiment ~50%, WSB 10.",
+          "url": "https://apewisdom.io/stocks/ORCL/",
+          "lean": "bull",
+          "at": "2026-09-28T11:34:10+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Starke Cloud-Zahlen und großes Auftragsbuch stützen die Bullen-Seite.",
+          "url": "https://investor.oracle.com/investor-news/news-details/2026/Oracle-Announces-Q1-Results-Driven-by-Triple-Digit-Growth-in-Cloud-Infrastructure-Revenues/default.aspx",
+          "lean": "bull",
+          "at": "2026-09-28T11:34:10+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Kurs um 137 Dollar; Markt wartet auf Klarheit beim Rechenzentrum.",
+          "url": "https://finance.yahoo.com/quote/ORCL",
+          "lean": "mixed",
+          "at": "2026-09-28T11:34:10+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Futures weich: Iran-Spannungen und OpenAI-Pause belasten Tech.",
+          "url": "https://uk.investing.com/news/stock-market-news/us-stock-futures-dip-as-markets-parse-iran-tensions-openai-training-halt-4884569",
+          "lean": "bear",
+          "at": "2026-09-28T11:34:10+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Hoher Auftragsbestand, aber hohe Ausgaben für Rechenzentren bleiben Thema.",
+          "url": "https://www.insidermonkey.com/news/oracle-orcl-reports-a-664-billion-backlog-can-ai-growth-outpace-its-cash-burn-1840386/",
+          "lean": "mixed",
+          "at": "2026-09-28T11:34:10+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Ellison stoppt Plan, bis zu 7,5 Mrd. Dollar Aktien zu verkaufen.",
+          "url": "https://www.insidermonkey.com/news/oracle-orcl-says-ellison-canceled-a-plan-to-sell-up-to-7-5-billion-in-shares-does-it-change-the-investment-case-1840405/",
+          "lean": "bull",
+          "at": "2026-09-28T11:34:10+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Force-Majeure bei Project Jupiter bleibt; Schuldenrisiko im Fokus.",
+          "url": "https://www.cnbc.com/2026/09/24/oracle-force-majeure-data-center.html",
+          "lean": "bear",
+          "at": "2026-09-28T11:34:10+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Ellison verpfändet weitere 67 Millionen Aktien als Kreditsicherheit.",
+          "url": "https://seekingalpha.com/news/4512342-ellison-pledges-67m-more-oracle-shares-as-loan-collateral",
+          "lean": "mixed",
+          "at": "2026-09-28T11:34:10+02:00"
+        },
         {
           "source": "X",
           "text": "Dip gekauft — Chart-Anfrage für $ORCL",
@@ -1418,34 +1490,10 @@
         },
         {
           "source": "X",
-          "text": "$ORCL nur +1%, Sektor läuft weg",
-          "url": "https://x.com/Wilson_WZW/status/2102070701754630397",
-          "lean": "bear",
-          "at": "2026-09-21T18:21:24+02:00",
-          "text_orig_lang": "de"
-        },
-        {
-          "source": "X",
-          "text": "Cloud-Backlog stützt $ORCL vs Netflix",
-          "url": "https://x.com/TradeTheCrowd/status/2102067387134869852",
-          "lean": "mixed",
-          "at": "2026-09-21T18:08:14+02:00",
-          "text_orig_lang": "de"
-        },
-        {
-          "source": "X",
           "text": "Watchlist: ORCL Cloud +121% Umsatz",
           "url": "https://x.com/jbfinancebull/status/2102065837515698660",
           "lean": "mixed",
           "at": "2026-09-21T18:02:04+02:00",
-          "text_orig_lang": "de"
-        },
-        {
-          "source": "X",
-          "text": "KI-Bewertungen: Bubble-Mathe warnen",
-          "url": "https://x.com/Robert46989257/status/2102065407527878785",
-          "lean": "bear",
-          "at": "2026-09-21T18:00:22+02:00",
           "text_orig_lang": "de"
         },
         {
@@ -1494,14 +1542,6 @@
           "url": "https://x.com/TylerHardt/status/2102048032057356731",
           "lean": "mixed",
           "at": "2026-09-21T16:51:19+02:00",
-          "text_orig_lang": "de"
-        },
-        {
-          "source": "X",
-          "text": "ORCL-Schuldverluste schwer zu übersehen",
-          "url": "https://x.com/LesCoast/status/2102046833417830708",
-          "lean": "bear",
-          "at": "2026-09-21T16:46:33+02:00",
           "text_orig_lang": "de"
         },
         {
@@ -1562,272 +1602,6 @@
           "url": "https://finance.yahoo.com/quote/ORCL",
           "lean": "mixed",
           "at": "2026-09-21T20:33:00+02:00"
-        },
-        {
-          "source": "Reddit",
-          "text": "ApeWisdom: ORCL 6 Mentions/24h (WSB 5), Sentiment ~40–50%.",
-          "url": "https://apewisdom.io/stocks/ORCL/",
-          "lean": "mixed",
-          "at": "2026-09-21T20:33:00+02:00"
-        },
-        {
-          "source": "Reddit",
-          "text": "AltIndex: ~30 daily Mentions, Reddit-Sentiment 46/100 eher vorsichtig.",
-          "url": "https://altindex.com/ticker/orcl/reddit-mentions",
-          "lean": "bear",
-          "at": "2026-09-21T20:33:00+02:00"
-        },
-        {
-          "source": "Reddit",
-          "text": "TheDistributed 30d: 1403 Mentions, 50% bull / 17% bear / 33% neutral.",
-          "url": "https://thedistributed.co/stocks/ORCL/",
-          "lean": "mixed",
-          "at": "2026-09-21T20:33:00+02:00"
-        },
-        {
-          "at": "2026-09-21T20:30:00+02:00",
-          "bull": 2,
-          "bear": 3,
-          "mixed": 3
-        },
-        {
-          "at": "2026-09-28T08:35:00+02:00",
-          "bull": 3,
-          "bear": 2,
-          "mixed": 3,
-          "items": [
-            {
-              "source": "News",
-              "text": "Force-Majeure bei Project Jupiter bleibt; Banken preisen 18-Mrd-Kredite neu.",
-              "url": "https://www.reuters.com/business/oracle-cites-force-majeure-shield-itself-controversial-data-center-bloomberg-2026-09-24/",
-              "lean": "bear",
-              "at": "2026-09-28T08:41:38+02:00"
-            },
-            {
-              "source": "News",
-              "text": "Stifel hält Buy und Kursziel 200 Dollar; sieht Notice eher als Vorsicht.",
-              "url": "https://finbold.com/wall-street-sets-oracle-stock-price-target-for-next-12-months-2/",
-              "lean": "bull",
-              "at": "2026-09-28T08:41:38+02:00"
-            },
-            {
-              "source": "News",
-              "text": "Auftragsbuch rund 664 Mrd. Dollar; AI-Wachstum bleibt das Gegenargument.",
-              "url": "https://www.insidermonkey.com/news/oracle-orcl-reports-a-664-billion-backlog-can-ai-growth-outpace-its-cash-burn-1840386/",
-              "lean": "bull",
-              "at": "2026-09-28T08:41:38+02:00"
-            },
-            {
-              "source": "News",
-              "text": "Schulden und Rechenzentrum-Kosten bleiben der Gegenwind zur AI-Story.",
-              "url": "https://www.insidermonkey.com/news/oracles-ai-expansion-faces-a-new-test-as-data-center-costs-rise-1845132/",
-              "lean": "bear",
-              "at": "2026-09-28T08:41:38+02:00"
-            },
-            {
-              "source": "News",
-              "text": "Fear-and-Greed etwa 37 (Fear); Risikoappetit vor NFP verhalten.",
-              "url": "https://feargreedmeter.com/fear-and-greed-index",
-              "lean": "mixed",
-              "at": "2026-09-28T08:41:38+02:00"
-            },
-            {
-              "source": "Reddit",
-              "text": "ApeWisdom: ORCL 9 Mentions/24h (WSB 8, Upvotes 15), Sentiment ~50%.",
-              "url": "https://apewisdom.io/stocks/ORCL/",
-              "lean": "mixed",
-              "at": "2026-09-28T08:41:38+02:00"
-            },
-            {
-              "source": "Reddit",
-              "text": "AltIndex: ~38 Mentions/Tag, Sentiment 77/100, AI-Score 50 Hold.",
-              "url": "https://altindex.com/ticker/orcl",
-              "lean": "bull",
-              "at": "2026-09-28T08:41:38+02:00"
-            },
-            {
-              "source": "Reddit",
-              "text": "TheDistributed 30d: 1781 Mentions, 49% bull / 19% bear / 32% neutral (Stand 28.09.).",
-              "url": "https://thedistributed.co/stocks/ORCL",
-              "lean": "mixed",
-              "at": "2026-09-28T08:41:38+02:00"
-            }
-          ]
-        },
-        {
-          "source": "News",
-          "text": "Force-Majeure bei Project Jupiter bleibt; Banken preisen 18-Mrd-Kredite neu.",
-          "url": "https://www.reuters.com/business/oracle-cites-force-majeure-shield-itself-controversial-data-center-bloomberg-2026-09-24/",
-          "lean": "bear",
-          "at": "2026-09-28T09:36:37+02:00"
-        },
-        {
-          "source": "News",
-          "text": "Stifel hält Buy und Kursziel 200 Dollar; sieht Notice eher als Vorsicht.",
-          "url": "https://finbold.com/wall-street-sets-oracle-stock-price-target-for-next-12-months-2/",
-          "lean": "bull",
-          "at": "2026-09-28T09:36:37+02:00"
-        },
-        {
-          "source": "News",
-          "text": "Insider Monkey: 664-Mrd-Backlog und AI-Verträge; Cash-Burn und Schulden bleiben Streitpunkt.",
-          "url": "https://www.insidermonkey.com/news/oracle-orcl-reports-a-664-billion-backlog-can-ai-growth-outpace-its-cash-burn-1840386/",
-          "lean": "mixed",
-          "at": "2026-09-28T09:36:37+02:00"
-        },
-        {
-          "source": "News",
-          "text": "Kurs um 137 Dollar; Street-Ziele weit darüber, Markt bleibt skeptisch.",
-          "url": "https://www.tikr.com/blog/oracle-stock-fell-nearly-4-on-its-project-jupiter-notice-the-2028-target-lands-where-the-street-sees-cash-flow-turning",
-          "lean": "mixed",
-          "at": "2026-09-28T09:36:37+02:00"
-        },
-        {
-          "source": "Reddit",
-          "text": "AltIndex: ~66 Mentions/Tag, AI-Score 50 Hold, Kurs 137,10 Dollar.",
-          "url": "https://altindex.com/ticker/orcl",
-          "lean": "bull",
-          "at": "2026-09-28T09:36:37+02:00"
-        },
-        {
-          "source": "Reddit",
-          "text": "TheDistributed 30d: 1781 Mentions, 49% bull / 19% bear / 32% neutral (Stand 28.09.).",
-          "url": "https://thedistributed.co/stocks/ORCL",
-          "lean": "bull",
-          "at": "2026-09-28T09:36:37+02:00"
-        },
-        {
-          "source": "Reddit",
-          "text": "TheDistributed 30d: 1781 Mentions, 49% bull / 19% bear / 32% neutral (Stand 28.09.).",
-          "url": "https://thedistributed.co/stocks/ORCL",
-          "lean": "bull",
-          "at": "2026-09-28T09:55:48+02:00"
-        },
-        {
-          "source": "News",
-          "text": "ORCL flach ~$137.1; Force-Majeure Project Jupiter weiter im Markt.",
-          "url": "https://www.reuters.com/business/oracle-cites-force-majeure-shield-itself-controversial-data-center-bloomberg-2026-09-24/",
-          "lean": "bear",
-          "at": "2026-09-28T10:11:56+02:00"
-        },
-        {
-          "source": "Reddit",
-          "text": "TheDistributed 30d: 1782 Mentions, 49% bull / 19% bear / 32% neutral (Stand 28.09.).",
-          "url": "https://thedistributed.co/stocks/ORCL",
-          "lean": "bull",
-          "at": "2026-09-28T10:11:56+02:00"
-        },
-        {
-          "at": "2026-09-28T10:26:00+02:00",
-          "source": "News",
-          "text": "Force-Majeure bei Project Jupiter bleibt; Banken preisen Kredite neu.",
-          "lean": "bear",
-          "url": "https://www.tikr.com/blog/oracle-stock-fell-nearly-4-on-its-project-jupiter-notice-the-2028-target-lands-where-the-street-sees-cash-flow-turning"
-        },
-        {
-          "at": "2026-09-28T10:26:00+02:00",
-          "source": "News",
-          "text": "Starke Cloud-Zahlen und höheres Jahresziel stützen die Bullen-Seite.",
-          "lean": "bull",
-          "url": "https://stockanalysis.com/stocks/orcl/transcripts/689425-q1-2027/"
-        },
-        {
-          "at": "2026-09-28T10:26:00+02:00",
-          "source": "News",
-          "text": "OpenAI pausiert Training; Nasdaq-Futures und Tech starten weich.",
-          "lean": "bear",
-          "url": "https://www.fxstreet.com/analysis/nasdaq-futs-drop-amid-openai-model-training-pause-202609280607"
-        },
-        {
-          "at": "2026-09-28T10:26:00+02:00",
-          "source": "News",
-          "text": "Kurs um 137.1 Dollar; Markt wartet auf Klarheit beim Rechenzentrum.",
-          "lean": "mixed",
-          "url": "https://finance.yahoo.com/quote/ORCL"
-        },
-        {
-          "at": "2026-09-28T10:26:00+02:00",
-          "source": "News",
-          "text": "Futures leicht im Minus; Iran-Spannungen und Zinswetter belasten.",
-          "lean": "mixed",
-          "url": "https://news.trustfinance.com/news/en-US/us-stock-futures-dip-on-iran-tensions-openai-development-halt"
-        },
-        {
-          "at": "2026-09-28T10:26:00+02:00",
-          "source": "News",
-          "text": "Backlog und Cloud-Wachstum bleiben stark trotz Bau-Risiken.",
-          "lean": "bull",
-          "url": "https://www.investing.com/analysis/oracles-664-billion-backlog-faces-a-harder-conversion-test-200688353"
-        },
-        {
-          "at": "2026-09-28T10:26:00+02:00",
-          "source": "Reddit",
-          "text": "ApeWisdom: 9 Mentions/24h, Sentiment ~50%; AltIndex Hold.",
-          "lean": "mixed",
-          "url": "https://apewisdom.io/stocks/ORCL"
-        },
-        {
-          "at": "2026-09-28T10:26:00+02:00",
-          "source": "Reddit",
-          "text": "The Distributed 30d: 49% bull / 19% bear bei 1782 Mentions.",
-          "lean": "bull",
-          "url": "https://thedistributed.co/stocks/ORCL"
-        },
-        {
-          "at": "2026-09-28T10:56:00+02:00",
-          "source": "News",
-          "text": "Ellison stellt weitere Aktien als Pfand; Kreditvorsicht bleibt.",
-          "lean": "bear",
-          "url": "https://seekingalpha.com/news/4512342-ellison-pledges-67m-more-oracle-shares-as-loan-collateral"
-        },
-        {
-          "at": "2026-09-28T10:56:00+02:00",
-          "source": "Reddit",
-          "text": "ApeWisdom 24h: 9 Mentions, Sentiment ~50%, WSB 8.",
-          "lean": "mixed",
-          "url": "https://apewisdom.io/stocks/ORCL/"
-        },
-        {
-          "at": "2026-09-28T11:01:00+02:00",
-          "source": "News",
-          "text": "Ellison stoppt Plan, bis zu 7,5 Mrd. Dollar Aktien zu verkaufen.",
-          "lean": "bull",
-          "url": "https://finance.yahoo.com/quote/ORCL"
-        },
-        {
-          "at": "2026-09-28T11:01:00+02:00",
-          "source": "Reddit",
-          "text": "ApeWisdom 24h: 9 Mentions, Sentiment ~50%, WSB 8.",
-          "lean": "mixed",
-          "url": "https://apewisdom.io/stocks/ORCL/"
-        },
-        {
-          "source": "News",
-          "text": "Ellison stoppt Plan, bis zu 7,5 Mrd. Dollar Aktien zu verkaufen.",
-          "url": "https://finance.yahoo.com/quote/ORCL",
-          "lean": "bull",
-          "at": "2026-09-28T11:15:00+02:00"
-        },
-        {
-          "source": "Reddit",
-          "text": "ApeWisdom 24h: 9 Mentions, Sentiment ~50%, WSB 8.",
-          "url": "https://apewisdom.io/stocks/ORCL/",
-          "lean": "mixed",
-          "at": "2026-09-28T11:15:00+02:00"
-        },
-        {
-          "source": "News",
-          "text": "Ellison verpfändet weitere Millionen Aktien als Kreditsicherheit.",
-          "url": "https://seekingalpha.com/news/4512342-ellison-pledges-67m-more-oracle-shares-as-loan-collateral",
-          "lean": "mixed",
-          "at": "2026-09-28T11:25:00+02:00"
-        },
-        {
-          "source": "Reddit",
-          "text": "ApeWisdom 24h: 10 Mentions, Sentiment ~50%, WSB 9.",
-          "url": "https://apewisdom.io/stocks/ORCL/",
-          "lean": "bull",
-          "at": "2026-09-28T11:25:00+02:00"
         }
       ],
       "signal": "hold",
@@ -1838,8 +1612,8 @@
       "hype_net": 13,
       "confidence": 65,
       "hype_state": "mixed",
-      "updated_at": "2026-09-28T11:25:00+02:00",
-      "why": "Force-Majeure und Schulden bleiben Belastung; Ellison verpfändet weiter Aktien. Kurs flach bei etwa 137 Dollar.",
+      "updated_at": "2026-09-28T11:30:00+02:00",
+      "why": "Force-Majeure und neue Ellison-Verpfändung bleiben Belastung. Kurs flach bei etwa 137 Dollar.",
       "evidence": {
         "X": 0,
         "Reddit": 0,
@@ -1849,7 +1623,7 @@
         "bull": 3,
         "bear": 2,
         "mixed": 3,
-        "updated_at": "2026-09-28T11:25:00+02:00"
+        "updated_at": "2026-09-28T11:30:00+02:00"
       },
       "hype_mixed": 37,
       "sentiment_unit": "percent_all_classified",
