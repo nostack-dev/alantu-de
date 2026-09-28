@@ -89,28 +89,29 @@ function actualMedoid(points,target){
 function sampleTextStyle(ctx,rect){
   const x0=Math.max(0,Math.floor(rect.x0)),y0=Math.max(0,Math.floor(rect.y0)),x1=Math.min(ctx.canvas.width,Math.ceil(rect.x1)),y1=Math.min(ctx.canvas.height,Math.ceil(rect.y1));
   const w=Math.max(1,x1-x0),h=Math.max(1,y1-y0),img=ctx.getImageData(x0,y0,w,h),d=img.data;
-  const border=[];
-  const pushPix=(x,y)=>{const i=(y*w+x)*4;border.push([d[i],d[i+1],d[i+2]])};
-  for(let x=0;x<w;x++){pushPix(x,0);if(h>1)pushPix(x,h-1)}
-  for(let y=1;y<h-1;y++){pushPix(0,y);if(w>1)pushPix(w-1,y)}
-  const bg=robustColor(border);
-  const borderSpread=percentile(border.map(p=>colorDistance(p,bg)),.9);
+  const sampleStep=Math.max(1,Math.floor(Math.min(w,h)/80));
+  const samples=[];
+  for(let y=0;y<h;y+=sampleStep)for(let x=0;x<w;x+=sampleStep){const i=(y*w+x)*4;samples.push([d[i],d[i+1],d[i+2]])}
+  if(samples.length<8)return {safe:false,reason:"zu wenig Bilddaten",fill:"#111111",rgb:[.07,.07,.07],background:[255,255,255],confidence:0};
 
-  const candidates=[];
-  const sampleStep=Math.max(1,Math.floor(Math.min(w,h)/64));
-  for(let y=0;y<h;y+=sampleStep)for(let x=0;x<w;x+=sampleStep){
-    const i=(y*w+x)*4,p=[d[i],d[i+1],d[i+2]],dist=colorDistance(p,bg);
-    if(dist>34)candidates.push(p);
-  }
+  // Estimate background from the dominant color of the whole OCR box, not its
+  // border: tight OCR boxes often cut through antialiased glyph edges.
+  const bgBuckets=new Map();
+  for(const p of samples){const k=quantKey(p,20),arr=bgBuckets.get(k)||[];arr.push(p);bgBuckets.set(k,arr)}
+  const bgClusters=[...bgBuckets.values()].sort((x,y)=>y.length-x.length);
+  const bgCluster=bgClusters[0]||[];
+  const bgCenter=robustColor(bgCluster);
+  const bg=actualMedoid(bgCluster,bgCenter);
+  const bgShare=bgCluster.length/samples.length;
+
+  const candidates=samples.filter(p=>colorDistance(p,bg)>32);
   if(candidates.length<3){
-    return {safe:false,reason:"zu wenig eindeutiger Vordergrund",fill:"#111111",rgb:[.07,.07,.07],background:bg,confidence:0};
+    return {safe:false,reason:"zu wenig eindeutiger Vordergrund",fill:"#111111",rgb:[.07,.07,.07],background:bg,confidence:0,bgShare};
   }
 
-  const buckets=new Map();
-  for(const p of candidates){
-    const k=quantKey(p,24),arr=buckets.get(k)||[];arr.push(p);buckets.set(k,arr);
-  }
-  const clusters=[...buckets.values()].sort((a,b)=>b.length-a.length);
+  const fgBuckets=new Map();
+  for(const p of candidates){const k=quantKey(p,24),arr=fgBuckets.get(k)||[];arr.push(p);fgBuckets.set(k,arr)}
+  const clusters=[...fgBuckets.values()].sort((x,y)=>y.length-x.length);
   const dominant=clusters[0]||[],second=clusters[1]||[];
   const dominance=dominant.length/candidates.length;
   const secondShare=second.length/candidates.length;
@@ -120,13 +121,13 @@ function sampleTextStyle(ctx,rect){
   const secondCenter=second.length?robustColor(second):domCenter;
   const clusterSeparation=second.length?colorDistance(domCenter,secondCenter):0;
 
-  // Conservative by design: visible raster replacement is allowed only when
-  // the OCR box is visually simple (uniform background + one dominant text color).
-  // Logos, gradients, multicolor branding and photo-backed text remain pixel-perfect
-  // raster; they still get the invisible semantic/search text layer.
-  const complexBackground=borderSpread>24;
-  const multicolor=(dominance<.76)||(secondShare>.16&&clusterSeparation>34);
-  const noisyForeground=domSpread>26;
+  // Branding protection:
+  // - photo/gradient/no stable background => never touch raster;
+  // - two materially different foreground colors => never touch raster;
+  // - antialias shades of one color are allowed.
+  const complexBackground=bgShare<.42;
+  const multicolor=secondShare>.14&&clusterSeparation>65&&dominance<.82;
+  const noisyForeground=domSpread>34;
   const safe=!complexBackground&&!multicolor&&!noisyForeground;
   let reason="";
   if(complexBackground)reason="komplexer/gradientiger Hintergrund";
@@ -139,8 +140,8 @@ function sampleTextStyle(ctx,rect){
     rgb:exact.map(v=>v/255),
     exactRgb:exact,
     background:bg,
-    confidence:Math.max(0,Math.min(1,dominance*(1-Math.min(1,borderSpread/80)))),
-    dominance,borderSpread,foregroundSpread:domSpread,secondShare,clusterSeparation
+    confidence:Math.max(0,Math.min(1,(.5+.5*dominance)*Math.min(1,bgShare/.6))),
+    dominance,bgShare,foregroundSpread:domSpread,secondShare,clusterSeparation
   };
 }
 function vectorizeTextRect(ctx,rect,style,sx,sy){
