@@ -27,6 +27,7 @@ jobs:
         run: |
           set -euo pipefail
           grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-21' pdf-convert-anchor.html
+          grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-21' pdfconvert.html
           grep -q 'from "./vendor/unlimited-ocr-browser-engine.js"' alantu-unlimited-ocr.js
           grep -q 'function fetchWithRetry' alantu-unlimited-ocr.js
           grep -q 'withHeartbeat' alantu-unlimited-ocr.js
@@ -74,7 +75,7 @@ jobs:
         run: |
           set -euo pipefail
           for i in $(seq 1 60); do
-            if curl -fsSL --max-time 20 "https://www.alantu.de/pdf-convert-anchor.html?smoke=${{ github.sha }}" -o /tmp/page.html \
+            if curl -fsSL --max-time 20 "https://www.alantu.de/pdfconvert.html?smoke=${{ github.sha }}" -o /tmp/page.html \
               && curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?smoke=${{ github.sha }}" -o /tmp/uocr.js \
               && curl -fsSL --max-time 20 "https://www.alantu.de/vendor/unlimited-ocr-browser-engine.js?smoke=${{ github.sha }}" -o /tmp/engine.js \
               && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-21' /tmp/page.html \
@@ -116,5 +117,5 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Run PDF UI/export smoke
         env:
-          PDF_CONVERT_URL: https://www.alantu.de/pdf-convert-anchor.html
+          PDF_CONVERT_URL: https://www.alantu.de/pdfconvert.html
         run: node tools/pdf-convert-anchor-smoke.mjs
