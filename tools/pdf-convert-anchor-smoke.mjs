@@ -222,15 +222,20 @@ if(!/data-role="visible-vector-text"/.test(svgText)||!/<text[^>]+data-kind="imag
 if(/data-kind="image-text-glyph-vector"/.test(svgText))errors.push('svg-pseudo-glyph-rectangles-still-present');
 if(!/<text[^>]+data-kind="image-text-vector"[^>]+fill="#111111"/.test(svgText))errors.push('svg-visible-text-color-missing');
 const allText=textPages.join(' | ');
-if(!/ALANTU EXPOSE/.test(allText))errors.push('ocr-vector-text-missing:'+allText);
+// Contract: multicolor/branding text stays raster-only; only the safe
+// monochrome OCR run becomes real PDF/SVG text.
+if(/ALANTU EXPOSE/.test(allText))errors.push('branding-was-vectorized:'+allText);
+if(!/Wohnung mit Seeblick in Konstanz/.test(allText))errors.push('safe-ocr-vector-text-missing:'+allText);
 if(!/Native PDF Text/.test(allText)||!/Already searchable/.test(allText))errors.push('native-vector-text-missing:'+allText);
-const firstVectorItem=extracted.items?.[0]?.find(x=>/ALANTU EXPOSE/.test(x.str));
-if(!firstVectorItem)errors.push('ocr-vector-position-item-missing');
+if(/ALANTU EXPOSE/.test(svgText))errors.push('branding-was-vectorized-in-svg');
+if(!/Wohnung mit Seeblick in Konstanz/.test(svgText))errors.push('safe-ocr-vector-text-missing-in-svg');
+const firstVectorItem=extracted.items?.[0]?.find(x=>/Wohnung mit Seeblick in Konstanz/.test(x.str));
+if(!firstVectorItem)errors.push('safe-ocr-vector-position-item-missing');
 else{
-  // Mock bbox [[80,80,920,180]] is mapped from 0..999 into a 600x800 page.
-  // x should begin at ~48pt; baseline should stay inside that same OCR box.
-  if(Math.abs(firstVectorItem.x-48.05)>6)errors.push('ocr-vector-x-drift:'+JSON.stringify(firstVectorItem));
-  if(firstVectorItem.y<645||firstVectorItem.y>690)errors.push('ocr-vector-y-drift:'+JSON.stringify(firstVectorItem));
+  // Safe mock bbox [[80,220,920,330]] maps from 0..999 into a 600x800 page.
+  // x starts at ~48pt; PDF baseline must remain inside that OCR region.
+  if(Math.abs(firstVectorItem.x-48.05)>6)errors.push('safe-ocr-vector-x-drift:'+JSON.stringify(firstVectorItem));
+  if(firstVectorItem.y<535||firstVectorItem.y>610)errors.push('safe-ocr-vector-y-drift:'+JSON.stringify(firstVectorItem));
 }
 if(side.vectorTexts<1||side.vectorRole!=='visible-vector-text')errors.push('vector-preview-missing-real-text:'+JSON.stringify(side));
 if(!side.vectorFills.length||side.vectorFills.some(x=>String(x).toLowerCase()!=='#111111'))errors.push('exact-monochrome-color-not-preserved:'+JSON.stringify(side.vectorFills));
@@ -240,7 +245,7 @@ if(overlay.vectorTexts<1||overlay.vectorRole!=='visible-vector-text')errors.push
 if(side.vectorContract?.nativeText!=='preserved-original-pdf'||side.vectorContract?.ocrText!=='visible-svg-text+visible-pdf-text'||side.vectorContract?.unrecognized!=='original-pdf+baked-diff'||side.vectorContract?.manualAnchor!==false)errors.push('vector-contract:'+JSON.stringify(side.vectorContract));
 if(visualDiff.mae>7||visualDiff.changed>.08)errors.push('visual-drift:'+JSON.stringify(visualDiff));
 
-console.log(JSON.stringify({url,loadingView,side,overlay,visualDiff,download:{name:dl.suggestedFilename(),bytes:stat.size,textPages,firstVectorItem:extracted.items?.[0]?.find(x=>/ALANTU EXPOSE/.test(x.str))||null},svg:{name:svgDl.suggestedFilename(),bytes:svgText.length},ok:errors.length===0,errors},null,2));
+console.log(JSON.stringify({url,loadingView,side,overlay,visualDiff,download:{name:dl.suggestedFilename(),bytes:stat.size,textPages,firstVectorItem:extracted.items?.[0]?.find(x=>/Wohnung mit Seeblick in Konstanz/.test(x.str))||null},svg:{name:svgDl.suggestedFilename(),bytes:svgText.length},ok:errors.length===0,errors},null,2));
 if(errors.length){
   await browser.close();
   throw new Error('Unlimited OCR searchable PDF smoke failed: '+errors.join(' | '));
