@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-09-28T09:46:00+02:00",
+  "updated_at": "2026-09-28T09:51:00+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-28T09:46:00+02:00",
-    "scraped_at": "2026-09-28T09:51:12+02:00",
+    "tick_id": "2026-09-28T09:51:00+02:00",
+    "scraped_at": "2026-09-28T09:55:48+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "user-X": {
@@ -29,11 +29,11 @@
         "items": 5,
         "window": "same-day 2026-09-28",
         "notes": [
-          "Stifel Buy / PT $200 after Force-Majeure; ORCL ~$137.1",
-          "Force-Majeure Project Jupiter (NM) still live; ~$18B debt quoted ~90¢",
-          "Morningstar/Street: possible $25B revenue delay risk; base case still on track",
-          "SPY ~771.35 / QQQ ~744.5; BTC ~$82939; soft ahead of NFP week",
-          "Macro: NFP Fr 02.10, JOLTS Di 29.09, CPI ~14.10, FOMC 28.10; Oct hike ~65%"
+          "Force-Majeure Project Jupiter (NM) still live; ORCL ~$137.1",
+          "Q1 FY27 Cloud Infra +121%; FY guidance ≥$90B; Investor Day Oct 28",
+          "~$18B Project Jupiter debt quoted ~89–91¢; S&P near junk notch",
+          "SPY ~771.35 / QQQ ~744.5; BTC ~$82992; focus NFP/PCE week",
+          "Macro: PCE Wed; NFP Fr 02.10; FOMC 28.10; Oct hike ~65–67%"
         ]
       },
       "user-Bright Data": {
@@ -60,7 +60,7 @@
           "thedistributed.co"
         ],
         "window": "24h–30d aggregator snapshots 2026-09-28",
-        "freshest": "2026-09-28T09:51:12+02:00",
+        "freshest": "2026-09-28T09:55:48+02:00",
         "notes": [
           "ApeWisdom 24h: 9 mentions (WSB 8), upvotes 14, sentiment ~50% overall",
           "AltIndex: ~66 daily Reddit mentions; AI Score 50 Hold; price $137.1",
@@ -89,9 +89,9 @@
           "ORCL": 137.1,
           "SPY": 771.35,
           "QQQ": 744.5,
-          "BTC-USD": 82939.04
+          "BTC-USD": 82991.78
         },
-        "note": "query2 chart 1d (query1 429 then query2 OK)"
+        "note": "query2 chart 1d OK"
       }
     },
     "totals": {
@@ -106,11 +106,11 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-28T09:51:12+02:00",
+      "freshest_absolute": "2026-09-28T09:55:48+02:00",
       "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
       "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok skip; Bright Data 401; Treg auth_needed",
-      "scrape_berlin": "2026-09-28T09:46:00+02:00",
-      "sample_window": "Web/news ≤few days Force-Majeure+debt-reprice+Stifel+market; Reddit via ApeWisdom/AltIndex/TheDistributed; X credits_depleted",
+      "scrape_berlin": "2026-09-28T09:51:00+02:00",
+      "sample_window": "Web/news ≤few days Force-Majeure+debt-reprice+Q1+market; Reddit via ApeWisdom/AltIndex/TheDistributed; X credits_depleted",
       "freshest_item_age": "",
       "oldest_usable_signal": "Force-Majeure Project Jupiter Sep 24; NFP week; ORCL ~$137.1"
     },
@@ -127,7 +127,7 @@
         "sentiment": "bearish",
         "strength": 86,
         "symbol": "ORCL",
-        "symbol_note": "Sep 24 notice still live; ~$18B debt ~90¢; ORCL ~$137.1; Stifel Buy $200",
+        "symbol_note": "Sep 24 notice still live; ~$18B debt ~90¢; ORCL ~$137.1",
         "bias": "risk_off",
         "bias_label": "Vorsicht / Bias risk-off",
         "links": {
@@ -136,11 +136,11 @@
         }
       },
       {
-        "theme": "Stifel Buy vs Debt/Capex Mixed",
+        "theme": "Cloud Growth vs Capex/Debt Mixed",
         "sentiment": "mixed",
         "strength": 75,
         "symbol": "ORCL",
-        "symbol_note": "Stifel Buy PT $200 vs Sell targets; AI Score 50 Hold; Street split",
+        "symbol_note": "Q1 Cloud Infra +121%; AI Score 50 Hold; Street split on build-out risk",
         "bias": "mixed",
         "bias_label": "Abwarten / Bias mixed",
         "links": {
@@ -149,34 +149,34 @@
         }
       },
       {
-        "theme": "Morning Futures Soft / NFP Week",
-        "sentiment": "leicht_bearish",
-        "strength": 68,
-        "symbol": "SPY",
-        "symbol_note": "SPY ~771.35 / QQQ ~744.5; BTC ~$82939; soft ahead of NFP",
-        "bias": "risk_off",
-        "bias_label": "Vorsicht / Bias risk-off",
-        "links": {
-          "tradingview": "https://www.tradingview.com/symbols/SPY/",
-          "yahoo": "https://finance.yahoo.com/quote/SPY"
-        }
-      },
-      {
-        "theme": "NFP Week Macro Pressure",
+        "theme": "NFP/PCE Week Macro Pressure",
         "sentiment": "cautious",
-        "strength": 72,
+        "strength": 70,
         "symbol": "SPY",
-        "symbol_note": "NFP Fr 02.10; JOLTS 29.09; CPI ~14.10; FOMC 28.10; Oct hike ~65%",
+        "symbol_note": "SPY ~771.35 / QQQ ~744.5; BTC ~$82992; PCE Wed; NFP Fr; Oct hike ~65%",
         "bias": "mixed",
         "bias_label": "Beobachten / Bias mixed",
         "links": {
           "tradingview": "https://www.tradingview.com/symbols/SPY/",
           "yahoo": "https://finance.yahoo.com/quote/SPY"
         }
+      },
+      {
+        "theme": "BTC Soft / Risk Tone",
+        "sentiment": "leicht_bearish",
+        "strength": 66,
+        "symbol": "BTC-USD",
+        "symbol_note": "BTC ~$82992 soft vs prior; oil/geopolitics noise ahead of data",
+        "bias": "risk_off",
+        "bias_label": "Vorsicht / Bias risk-off",
+        "links": {
+          "tradingview": "https://www.tradingview.com/symbols/BTCUSD/",
+          "yahoo": "https://finance.yahoo.com/quote/BTC-USD"
+        }
       }
     ],
     "delta_vs_prev": {
-      "prev_tick_id": "2026-09-28T09:41:00+02:00",
+      "prev_tick_id": "2026-09-28T09:46:00+02:00",
       "magnitude_delta": 0,
       "confidence_delta": 0,
       "direction_prev": "mixed_cautious",
@@ -191,7 +191,7 @@
       "new_themes": [],
       "gone_themes": [],
       "sentiment_swings": [
-        "ORCL flat; Force-Majeure narrative unchanged vs #48"
+        "ORCL flat; Force-Majeure narrative unchanged vs #49"
       ],
       "orcl": {
         "impulse_prev": -3,
@@ -220,41 +220,13 @@
     },
     "baseline": false,
     "scrape_window": {
-      "start": "2026-09-28T09:41:00+02:00",
-      "end": "2026-09-28T09:46:00+02:00",
+      "start": "2026-09-28T09:46:00+02:00",
+      "end": "2026-09-28T09:51:00+02:00",
       "kind": "scheduled_5min",
-      "note": "Tick #49 scheduled Mo–Fr 5-min window; publish partial OK (X skipped)."
+      "note": "Tick #50 scheduled Mo–Fr 5-min window; publish partial OK (X skipped)."
     },
     "volume_enriched": true,
     "mini_series": [
-      {
-        "tick": 3,
-        "at": "2026-09-17T11:15:00+02:00",
-        "direction": "leicht_bearish_risk_off",
-        "magnitude": 56,
-        "confidence": 76
-      },
-      {
-        "tick": 4,
-        "at": "2026-09-17T11:45:00+02:00",
-        "direction": "leicht_bearish_risk_off",
-        "magnitude": 53,
-        "confidence": 77
-      },
-      {
-        "tick": 5,
-        "at": "2026-09-17T12:00:00+02:00",
-        "direction": "leicht_bearish_risk_off",
-        "magnitude": 51,
-        "confidence": 78
-      },
-      {
-        "tick": 6,
-        "at": "2026-09-21T08:15:00+02:00",
-        "direction": "mixed_cautious",
-        "magnitude": 40,
-        "confidence": 71
-      },
       {
         "tick": 7,
         "at": "2026-09-21T08:55:00+02:00",
@@ -593,6 +565,14 @@
         "direction": "mixed_cautious",
         "items": 8,
         "early_signal": true
+      },
+      {
+        "tick_id": "2026-09-28T09:51:00+02:00",
+        "magnitude": 35,
+        "confidence": 66,
+        "direction": "mixed_cautious",
+        "items": 8,
+        "early_signal": true
       }
     ],
     "stock_signals": [
@@ -606,15 +586,15 @@
         "hype_bull": 3,
         "hype_bear": 2,
         "hype_net": 1,
-        "why": "Force-Majeure und Kreditdruck belasten; Stifel hält Buy. Kurs flach bei etwa 137 Dollar.",
+        "why": "Force-Majeure und Kreditdruck belasten; Cloud-Wachstum stützt. Kurs flach bei etwa 137 Dollar.",
         "evidence": {
           "x_posts": 0,
           "reddit_posts": 0,
           "news": 5,
           "snippets": [
-            "Force-Majeure + Kreditdruck — ORCL ~$137.1; Stifel Buy PT $200",
+            "Force-Majeure + Kreditdruck — ORCL ~$137.1; Cloud Infra +121%",
             "ORCL voices bull3/bear2/mixed3; Reddit ApeWisdom 9/24h @50%; X skipped (credits)",
-            "SPY ~771.35; BTC ~$82939; NFP Fr 02.10"
+            "SPY ~771.35; BTC ~$82992; NFP Fr 02.10"
           ],
           "voices": [
             {
@@ -622,64 +602,64 @@
               "text": "Force-Majeure bei Project Jupiter bleibt; Banken preisen 18-Mrd-Kredite neu.",
               "url": "https://www.reuters.com/business/oracle-cites-force-majeure-shield-itself-controversial-data-center-bloomberg-2026-09-24/",
               "lean": "bear",
-              "at": "2026-09-28T09:51:12+02:00"
+              "at": "2026-09-28T09:55:48+02:00"
             },
             {
               "source": "News",
-              "text": "Stifel hält Buy und Kursziel 200 Dollar; sieht Notice eher als Vorsicht.",
-              "url": "https://finbold.com/wall-street-sets-oracle-stock-price-target-for-next-12-months-2/",
+              "text": "Starke Cloud-Zahlen und höheres Jahresziel stützen die Bullen-Seite.",
+              "url": "https://investor.oracle.com/investor-news/news-details/2026/Oracle-Announces-Q1-Results-Driven-by-Triple-Digit-Growth-in-Cloud-Infrastructure-Revenues/default.aspx",
               "lean": "bull",
-              "at": "2026-09-28T09:51:12+02:00"
+              "at": "2026-09-28T09:55:48+02:00"
             },
             {
               "source": "News",
-              "text": "Morningstar: möglicher 25-Mrd-Umsatz-Schub nach hinten; Basis-Szenario bleibt on track.",
-              "url": "https://www.morningstar.com/stocks/oracle-data-center-force-majeure-implies-possibility-25-bln-revenue-delay",
-              "lean": "mixed",
-              "at": "2026-09-28T09:51:12+02:00"
+              "text": "Kosten und Genehmigungen beim New-Mexico-Bau belasten die Stimmung.",
+              "url": "https://www.wsj.com/finance/investing/cracks-in-oracles-ai-data-center-build-out-appear-in-massive-new-mexico-project-effb51c2",
+              "lean": "bear",
+              "at": "2026-09-28T09:55:48+02:00"
             },
             {
               "source": "News",
-              "text": "Kurs um 137 Dollar; Street-Ziele weit darüber, Markt bleibt skeptisch.",
-              "url": "https://finance.yahoo.com/technology/ai/articles/oracles-stock-falls-3-5-110800801.html",
-              "lean": "mixed",
-              "at": "2026-09-28T09:51:12+02:00"
-            },
-            {
-              "source": "News",
-              "text": "Markt vor NFP verhalten; SPY und QQQ flach. Bitcoin etwas über 82939 Dollar.",
+              "text": "Kurs um 137 Dollar; Markt wartet auf neue Klarheit beim Rechenzentrum.",
               "url": "https://finance.yahoo.com/quote/ORCL",
               "lean": "mixed",
-              "at": "2026-09-28T09:51:12+02:00"
+              "at": "2026-09-28T09:55:48+02:00"
+            },
+            {
+              "source": "News",
+              "text": "Diese Woche Jobs und Inflation — Zinswetter bleibt angespannt.",
+              "url": "https://www.fxstreet.com/analysis/yields-rip-higher-as-focus-shifts-to-jobs-data-202609280622",
+              "lean": "mixed",
+              "at": "2026-09-28T09:55:48+02:00"
+            },
+            {
+              "source": "News",
+              "text": "Analysten sehen weiter Wachstum, aber Bau-Risiken bleiben im Blick.",
+              "url": "https://www.insidermonkey.com/news/oracles-ai-expansion-faces-a-new-test-as-data-center-costs-rise-1845132/",
+              "lean": "bull",
+              "at": "2026-09-28T09:55:48+02:00"
             },
             {
               "source": "Reddit",
-              "text": "ApeWisdom: ORCL 9 Mentions/24h (WSB 8, Upvotes 14), Sentiment ~50%.",
+              "text": "ApeWisdom und AltIndex zeigen neutrale Stimmung um die 50.",
               "url": "https://apewisdom.io/stocks/ORCL/",
               "lean": "mixed",
-              "at": "2026-09-28T09:51:12+02:00"
+              "at": "2026-09-28T09:55:48+02:00"
             },
             {
               "source": "Reddit",
-              "text": "AltIndex: ~66 Mentions/Tag, AI-Score 50 Hold, Kurs 137.1 Dollar.",
-              "url": "https://altindex.com/ticker/orcl",
-              "lean": "bull",
-              "at": "2026-09-28T09:51:12+02:00"
-            },
-            {
-              "source": "Reddit",
-              "text": "TheDistributed 30d: 1781 Mentions, 49% bull / 19% bear / 32% neutral (Stand 28.09.).",
+              "text": "TheDistributed: in 30 Tagen leicht mehr Bullen als Bären.",
               "url": "https://thedistributed.co/stocks/ORCL",
               "lean": "bull",
-              "at": "2026-09-28T09:51:12+02:00"
+              "at": "2026-09-28T09:55:48+02:00"
             }
           ]
         },
+        "price": 137.1,
         "links": {
           "tradingview": "https://www.tradingview.com/symbols/ORCL/",
           "yahoo": "https://finance.yahoo.com/quote/ORCL"
-        },
-        "price": 137.1
+        }
       }
     ],
     "signals_disclaimer": "",
@@ -694,7 +674,9 @@
     "scrape_berlin": "2026-09-28T09:46:00+02:00",
     "sample_window": "Web/news ≤few days Force-Majeure+debt-reprice+Stifel+market; Reddit via ApeWisdom/AltIndex/TheDistributed; X credits_depleted",
     "freshest_item_age": "",
-    "oldest_usable_signal": "Force-Majeure Project Jupiter Sep 24; NFP week; ORCL ~$137.1"
+    "oldest_usable_signal": "Force-Majeure Project Jupiter Sep 24; NFP week; ORCL ~$137.1",
+    "updated_at": "2026-09-28T09:51:00+02:00",
+    "freshest": "2026-09-28T09:55:48+02:00"
   },
   "history": [
     {
@@ -1109,6 +1091,15 @@
     {
       "tick_id": "2026-09-28T09:46:00+02:00",
       "scraped_at": "2026-09-28T09:51:12+02:00",
+      "magnitude": 35,
+      "confidence": 66,
+      "direction": "mixed_cautious",
+      "items": 8,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-28T09:51:00+02:00",
+      "scraped_at": "2026-09-28T09:55:48+02:00",
       "magnitude": 35,
       "confidence": 66,
       "direction": "mixed_cautious",
