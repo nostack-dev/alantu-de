@@ -147,10 +147,9 @@ function sampleTextStyle(ctx,rect){
 function vectorizeTextRect(ctx,rect,style,sx,sy){
   const W=ctx.canvas.width,H=ctx.canvas.height;
   const x0=Math.max(1,Math.floor(rect.x0)-1),y0=Math.max(1,Math.floor(rect.y0)-1),x1=Math.min(W-2,Math.ceil(rect.x1)+1),y1=Math.min(H-2,Math.ceil(rect.y1)+1);
-  const w=x1-x0+1,h=y1-y0+1;if(w<2||h<2)return {removed:0,glyphs:[],pxBox:{x0,y0,x1,y1}};
-  if(!style?.safe)return {removed:0,glyphs:[],pxBox:null,skipped:true,reason:style?.reason||"unsicher"};
+  const w=x1-x0+1,h=y1-y0+1;if(w<2||h<2)return {removed:0,pxBox:{x0,y0,x1,y1}};
+  if(!style?.safe)return {removed:0,pxBox:null,skipped:true,reason:style?.reason||"unsicher"};
   const patch=ctx.getImageData(x0-1,y0-1,w+2,h+2),pd=patch.data,pw=w+2,out=ctx.createImageData(w,h),od=out.data;
-  const mask=new Uint8Array(w*h);
   const bg=style.background||[255,255,255],fg=style.exactRgb||[0,0,0];
   const pix=(x,y,c)=>pd[((y+1)*pw+(x+1))*4+c];
   let removed=0;
@@ -159,7 +158,6 @@ function vectorizeTextRect(ctx,rect,style,sx,sy){
     const original=[pix(xx,yy,0),pix(xx,yy,1),pix(xx,yy,2)];
     const dBg=colorDistance(original,bg),dFg=colorDistance(original,fg);
     const isGlyph=dBg>20 && dFg+7<dBg;
-    mask[yy*w+xx]=isGlyph?1:0;
     for(let c=0;c<3;c++){
       if(isGlyph){
         const top=pix(xx,-1,c),bottom=pix(xx,h,c),left=pix(-1,yy,c),right=pix(w,yy,c);
@@ -170,25 +168,9 @@ function vectorizeTextRect(ctx,rect,style,sx,sy){
     if(isGlyph)removed++;
     od[oi+3]=255;
   }
-  if(removed<Math.max(3,Math.round(w*h*.0015)))return {removed:0,glyphs:[],pxBox:null,skipped:true,reason:"zu wenig sicherer Textpixel"};
+  if(removed<Math.max(3,Math.round(w*h*.0015)))return {removed:0,pxBox:null,skipped:true,reason:"zu wenig sicherer Textpixel"};
   ctx.putImageData(out,x0,y0);
-  const glyphs=[];
-  const rowStep=Math.max(1,Math.round(Math.min(sx,sy)*0.55));
-  for(let yy=0;yy<h;yy+=rowStep){
-    const yEnd=Math.min(h,yy+rowStep);
-    let run=-1;
-    for(let xx=0;xx<=w;xx++){
-      let on=false;
-      if(xx<w)for(let ry=yy;ry<yEnd&&!on;ry++)on=mask[ry*w+xx]===1;
-      if(on&&run<0)run=xx;
-      if((!on||xx===w)&&run>=0){
-        const endX=xx;
-        if(endX-run>=1)glyphs.push({x:(x0+run)/sx,y:(y0+yy)/sy,width:(endX-run)/sx,height:Math.max(0.18,(yEnd-yy)/sy),fill:style.fill});
-        run=-1;
-      }
-    }
-  }
-  return {removed,glyphs,pxBox:{x0,y0,x1:x1+1,y1:y1+1},skipped:false};
+  return {removed,pxBox:{x0,y0,x1:x1+1,y1:y1+1},skipped:false};
 }
 async function cropDiffPatch(canvas,pxBox,sx,sy){
   const x0=Math.max(0,Math.floor(pxBox.x0)),y0=Math.max(0,Math.floor(pxBox.y0));
@@ -212,7 +194,7 @@ async function makeVectorizedRaster(sourceCanvas,runs,pageW,pageH){
       r.vectorSkipped=true;
       r.vectorSkipReason=r.vectorStyle.reason;
       r.vectorPixelsRemoved=0;
-      r.vectorGlyphs=[];
+      r.vectorTextReady=false;
       r.diffPatchBytes=null;
       r.diffPatchBox=null;
       continue;
@@ -222,7 +204,7 @@ async function makeVectorizedRaster(sourceCanvas,runs,pageW,pageH){
       r.vectorSkipped=true;
       r.vectorSkipReason=v.reason||"unsicher";
       r.vectorPixelsRemoved=0;
-      r.vectorGlyphs=[];
+      r.vectorTextReady=false;
       r.diffPatchBytes=null;
       r.diffPatchBox=null;
       continue;
@@ -230,7 +212,7 @@ async function makeVectorizedRaster(sourceCanvas,runs,pageW,pageH){
     r.vectorSkipped=false;
     r.vectorSkipReason="";
     r.vectorPixelsRemoved=v.removed;
-    r.vectorGlyphs=v.glyphs;
+    r.vectorTextReady=true;
     r._vectorPxBox=v.pxBox;
   }
   for(const r of runs){
@@ -246,18 +228,19 @@ async function makeVectorizedRaster(sourceCanvas,runs,pageW,pageH){
   c.width=1;c.height=1;
   return {bytes,url};
 }
-function semanticTextSvg(r){
-  const b=r.bbox,h=Math.max(2,b.y1-b.y0),fs=Math.max(2,h*.82),x=b.x0,y=b.y0+fs*.9,w=Math.max(1,b.x1-b.x0);
-  return `<text data-kind="image-text-semantic" x="${x.toFixed(3)}" y="${y.toFixed(3)}" font-family="Arial,Helvetica,sans-serif" font-size="${fs.toFixed(3)}" fill="#000" fill-opacity="0" textLength="${w.toFixed(3)}" lengthAdjust="spacingAndGlyphs">${escapeXml(r.text)}</text>`;
+function vectorTextSpec(r){
+  const b=r.bbox,boxW=Math.max(2,b.x1-b.x0),boxH=Math.max(2,b.y1-b.y0);
+  const fs=Math.max(2,boxH*.82),x=b.x0,y=b.y0+boxH*.84;
+  return {x,y,fs,w:boxW,fill:r.vectorStyle?.fill||"#111111",text:normalizeText(r.text)};
 }
 function vectorTextSvg(page){
-  const glyphs=[],semantic=[];
+  const items=[];
   for(const r of page.ocr||[]){
-    const fill=r.vectorStyle?.fill||"#111111";
-    for(const g of r.vectorGlyphs||[])glyphs.push(`<rect data-kind="image-text-glyph-vector" x="${g.x.toFixed(3)}" y="${g.y.toFixed(3)}" width="${g.width.toFixed(3)}" height="${g.height.toFixed(3)}" fill="${g.fill||fill}"/>`);
-    semantic.push(semanticTextSvg(r));
+    if(r.vectorSkipped||!r.vectorTextReady)continue;
+    const t=vectorTextSpec(r);if(!t.text)continue;
+    items.push(`<text data-kind="image-text-vector" x="${t.x.toFixed(3)}" y="${t.y.toFixed(3)}" font-family="Arial,Helvetica,sans-serif" font-size="${t.fs.toFixed(3)}" fill="${t.fill}" textLength="${t.w.toFixed(3)}" lengthAdjust="spacingAndGlyphs" xml:space="preserve">${escapeXml(t.text)}</text>`);
   }
-  return `<g data-role="visible-vector-glyphs">${glyphs.join("")}</g><g data-role="semantic-text" opacity="0">${semantic.join("")}</g>`;
+  return `<g data-role="visible-vector-text">${items.join("")}</g>`;
 }
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
@@ -836,7 +819,7 @@ async function convertPage(pageNo,token,onPreview=()=>{}){
         const fallback=await runSmallFallbackOcr(canvas,base.width,base.height,primaryError);
         if(token!==loadToken)throw new Error("cancelled");
         ocr=filterNativeDuplicates(fallback,native);provisional.ocrFallback=true;provisional.ocrNoText=ocr.length===0;
-        setStatus(ocr.length?"Fallback-OCR fertig · Bildtext wird als sichtbarer Vektortext gesetzt.":"Fallback-OCR fertig · auf dieser Bildseite wurde kein Text gefunden.",ocr.length?"ok":"");
+        setStatus(ocr.length?"Fallback-OCR fertig · Bildtext wird als echter sichtbarer Text gesetzt.":"Fallback-OCR fertig · auf dieser Bildseite wurde kein Text gefunden.",ocr.length?"ok":"");
       }catch(fallbackErr){
         if(fallbackErr?.message==="cancelled")throw fallbackErr;
         provisional.ocrError=primaryError+" | Fallback: "+shortError(fallbackErr);console.error(fallbackErr);
@@ -865,9 +848,8 @@ function updateMetrics(){
   const native=pages.reduce((n,p)=>n+p.native.length,0);
   const imageText=pages.reduce((n,p)=>n+p.ocr.length,0);
   const imageChars=pages.reduce((n,p)=>n+p.ocr.reduce((m,r)=>m+normalizeText(r.text).replace(/\s/g,"").length,0),0);
-  const vectorRuns=pages.reduce((n,p)=>n+p.ocr.filter(r=>!r.vectorSkipped&&(r.vectorGlyphs?.length||0)>0).length,0);
+  const vectorRuns=pages.reduce((n,p)=>n+p.ocr.filter(r=>!r.vectorSkipped&&r.vectorTextReady).length,0);
   const vectorSkipped=pages.reduce((n,p)=>n+p.ocr.filter(r=>r.vectorSkipped).length,0);
-  const vectorGlyphs=pages.reduce((n,p)=>n+p.ocr.reduce((m,r)=>m+(r.vectorGlyphs?.length||0),0),0);
   const vectorPixels=pages.reduce((n,p)=>n+allText(p).reduce((m,r)=>m+(r.vectorPixelsRemoved||0),0),0);
   const aiPages=pages.filter(p=>p.usedAi).length;
   const convertedImagePages=pages.filter(p=>p.usedAi&&p.ocr.length>0).length;
@@ -888,7 +870,7 @@ function updateMetrics(){
   else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 3B-OCR · ${vectorRuns}/${imageText} sicher vektorisiert${vectorSkipped?` · ${vectorSkipped} komplex/Branding unverändert`:""} · ${vectorPixels.toLocaleString("de-DE")} Rasterpixel ersetzt`;
   else mImageTextPercent.textContent="— · keine Rasterbilder";
   mBaked.textContent=pages.length?String(pages.length):"—";
-  mVisual.textContent=pages.length?(vectorRuns?`Original + sicherer Raster-Diff + ${vectorGlyphs.toLocaleString("de-DE")} Vektorglyphen${vectorSkipped?` · ${vectorSkipped} komplex unverändert`:""}`:(vectorSkipped?`Original unverändert · ${vectorSkipped} komplex/Branding geschützt`:"Original unverändert")):"—";
+  mVisual.textContent=pages.length?(vectorRuns?`Original + sicherer Raster-Diff + ${vectorRuns.toLocaleString("de-DE")} echte Textobjekte${vectorSkipped?` · ${vectorSkipped} komplex unverändert`:""}`:(vectorSkipped?`Original unverändert · ${vectorSkipped} komplex/Branding geschützt`:"Original unverändert")):"—";
   if(fallbackAttempted){
     const codes=[...new Set(pages.filter(p=>p.ocrFallbackAttempted).map(p=>p.ocrPrimaryCode).filter(Boolean))];
     mEngine.textContent=(modelLoaded?"3B → ":"")+"Fallback-OCR · Tesseract.js"+(codes.length?" · "+codes.join("/"):"");
@@ -912,24 +894,22 @@ function renderVectorSvgLayer(svg,page){
   if(!page)return;
   svg.setAttribute("viewBox",`0 0 ${page.width} ${page.height}`);
   svg.setAttribute("preserveAspectRatio","none");
-  svg.dataset.role="visible-vector-glyphs";
+  svg.dataset.role="visible-vector-text";
   const NS="http://www.w3.org/2000/svg";
   for(const r of page.ocr||[]){
-    const fill=r.vectorStyle?.fill||"#111111";
-    for(const g of r.vectorGlyphs||[]){
-      const rect=document.createElementNS(NS,"rect");
-      rect.setAttribute("data-kind","image-text-glyph-vector");
-      rect.setAttribute("x",g.x);rect.setAttribute("y",g.y);
-      rect.setAttribute("width",g.width);rect.setAttribute("height",g.height);
-      rect.setAttribute("fill",g.fill||fill);svg.appendChild(rect);
-    }
-    const b=r.bbox,h=Math.max(2,b.y1-b.y0),fs=Math.max(2,h*.82),w=Math.max(1,b.x1-b.x0);
+    if(r.vectorSkipped||!r.vectorTextReady)continue;
+    const t=vectorTextSpec(r);if(!t.text)continue;
     const tx=document.createElementNS(NS,"text");
-    tx.setAttribute("data-kind","image-text-semantic");
-    tx.setAttribute("x",b.x0);tx.setAttribute("y",b.y0+fs*.9);
-    tx.setAttribute("font-family","Arial,Helvetica,sans-serif");tx.setAttribute("font-size",fs);
-    tx.setAttribute("fill-opacity","0");tx.setAttribute("textLength",w);
-    tx.setAttribute("lengthAdjust","spacingAndGlyphs");tx.textContent=r.text;svg.appendChild(tx);
+    tx.setAttribute("data-kind","image-text-vector");
+    tx.setAttribute("x",t.x);tx.setAttribute("y",t.y);
+    tx.setAttribute("font-family","Arial,Helvetica,sans-serif");
+    tx.setAttribute("font-size",t.fs);
+    tx.setAttribute("fill",t.fill);
+    tx.setAttribute("textLength",t.w);
+    tx.setAttribute("lengthAdjust","spacingAndGlyphs");
+    tx.setAttribute("xml:space","preserve");
+    tx.textContent=t.text;
+    svg.appendChild(tx);
   }
 }
 function renderCompare(){
@@ -986,10 +966,21 @@ function safePdfText(font,text){
 async function buildVectorPdf(){
   if(!pages.length)return null;
   if(!sourcePdfBytes)throw new Error("Original-PDF ist nicht mehr im Speicher.");
-  busy.classList.add("show");busy.textContent="Finales Vektor-PDF wird gebaut …";setStatus("Originalseiten werden erhalten; nur erkannter Rastertext wird ersetzt …");
-  const out=await PDFDocument.create(),font=await out.embedFont(StandardFonts.Helvetica);
+  busy.classList.add("show");busy.textContent="Finales Vektor-PDF wird gebaut …";setStatus("Originalseiten werden erhalten; erkannter Rastertext wird durch echte PDF-Textobjekte ersetzt …");
+  const out=await PDFDocument.create();
+  const regular=await out.embedFont(StandardFonts.Helvetica);
   const src=await PDFDocument.load(sourcePdfBytes,{ignoreEncryption:true});
   const copied=await out.copyPages(src,src.getPageIndices());
+  const drawRealText=(page,p,r)=>{
+    if(r.vectorSkipped||!r.vectorTextReady)return;
+    const text=safePdfText(regular,r.text);if(!text)return;
+    const b=r.bbox,boxW=Math.max(2,b.x1-b.x0),boxH=Math.max(2,b.y1-b.y0);
+    const widthAt1=Math.max(.01,regular.widthOfTextAtSize(text,1));
+    const size=Math.max(2,Math.min(boxH*.82,boxW/widthAt1));
+    const col=r.vectorStyle?.rgb||[.07,.07,.07];
+    const y=p.height-b.y1+(boxH-size)*.45;
+    page.drawText(text,{x:b.x0,y,size,font:regular,color:rgb(col[0],col[1],col[2]),opacity:1,lineHeight:size});
+  };
   for(let i=0;i<pages.length;i++){
     const p=pages[i];busy.textContent=`PDF-Seite ${i+1} / ${pages.length}`;setProgress((i/pages.length)*100);
     let page;
@@ -1002,39 +993,28 @@ async function buildVectorPdf(){
           const patch=await out.embedPng(r.diffPatchBytes);
           page.drawImage(patch,{x:b.x0,y:p.height-b.y1,width:b.x1-b.x0,height:b.y1-b.y0});
         }
-        const col=r.vectorStyle?.rgb||[.07,.07,.07];
-        for(const g of r.vectorGlyphs||[]){const gc=g.fill?g.fill.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i):null,grgb=gc?[parseInt(gc[1],16)/255,parseInt(gc[2],16)/255,parseInt(gc[3],16)/255]:col;page.drawRectangle({x:g.x,y:p.height-g.y-g.height,width:g.width,height:g.height,color:rgb(grgb[0],grgb[1],grgb[2]),borderWidth:0})}
-        const b0=r.bbox,text=safePdfText(font,r.text);if(text){
-          const boxW=Math.max(2,b0.x1-b0.x0),boxH=Math.max(2,b0.y1-b0.y0);
-          const widthAt1=Math.max(.01,font.widthOfTextAtSize(text,1));
-          const size=Math.max(2,Math.min(boxH*.82,boxW/widthAt1));
-          page.drawText(text,{x:b0.x0,y:p.height-b0.y1+(boxH-size)*.45,size,font,color:rgb(0,0,0),opacity:0,lineHeight:size});
-        }
+        drawRealText(page,p,r);
       }
     }else{
       const img=await out.embedPng(p.vectorPngBytes||p.pngBytes);
       page=out.addPage([p.width,p.height]);page.drawImage(img,{x:0,y:0,width:p.width,height:p.height});
-      for(const r of p.ocr||[]){
-        const col=r.vectorStyle?.rgb||[.07,.07,.07];
-        for(const g of r.vectorGlyphs||[]){const gc=g.fill?g.fill.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i):null,grgb=gc?[parseInt(gc[1],16)/255,parseInt(gc[2],16)/255,parseInt(gc[3],16)/255]:col;page.drawRectangle({x:g.x,y:p.height-g.y-g.height,width:g.width,height:g.height,color:rgb(grgb[0],grgb[1],grgb[2]),borderWidth:0})}
-        const b0=r.bbox,text=safePdfText(font,r.text);if(text){
-          const boxW=Math.max(2,b0.x1-b0.x0),boxH=Math.max(2,b0.y1-b0.y0),widthAt1=Math.max(.01,font.widthOfTextAtSize(text,1)),size=Math.max(2,Math.min(boxH*.82,boxW/widthAt1));
-          page.drawText(text,{x:b0.x0,y:p.height-b0.y1+(boxH-size)*.45,size,font,opacity:0});
-        }
-      }
+      for(const r of p.ocr||[])drawRealText(page,p,r);
+      // Rotated/raster fallback pages keep native PDF text searchable even if the
+      // original vector page cannot be copied without coordinate drift.
       for(const r of p.native||[]){
-        const b0=r.bbox,text=safePdfText(font,r.text);if(!text)continue;
-        const boxW=Math.max(2,b0.x1-b0.x0),boxH=Math.max(2,b0.y1-b0.y0),widthAt1=Math.max(.01,font.widthOfTextAtSize(text,1)),size=Math.max(2,Math.min(boxH*.82,boxW/widthAt1));
-        page.drawText(text,{x:b0.x0,y:p.height-b0.y1+(boxH-size)*.45,size,font,opacity:0});
+        const text=safePdfText(regular,r.text);if(!text)continue;
+        const b=r.bbox,boxW=Math.max(2,b.x1-b.x0),boxH=Math.max(2,b.y1-b.y0),widthAt1=Math.max(.01,regular.widthOfTextAtSize(text,1));
+        const size=Math.max(2,Math.min(boxH*.82,boxW/widthAt1));
+        page.drawText(text,{x:b.x0,y:p.height-b.y1+(boxH-size)*.45,size,font:regular,opacity:0});
       }
     }
     if(i%2===1)await new Promise(requestAnimationFrame);
   }
   out.setTitle(sanitizeName(sourceName));
-  out.setSubject("ALANTU baked-diff vector PDF · original PDF preserved, raster text replaced by traced vector glyphs + searchable text");
-  out.setProducer("ALANTU Unlimited-OCR 3B baked-diff vectorizer");
+  out.setSubject("ALANTU hybrid vector PDF · original PDF preserved, raster text replaced by real PDF text objects");
+  out.setProducer("ALANTU OCR text vectorizer");
   const bytes=await out.save({useObjectStreams:false});
-  setProgress(100);setStatus("Fertig · Original-PDF erhalten, erkannter Bildtext als Vektorglyphen + echter Suchtext.","ok");busy.classList.remove("show");setTimeout(()=>setProgress(0),900);
+  setProgress(100);setStatus("Fertig · erkannter Bildtext ist echter sichtbarer PDF-Text, kein Rechteck-/Pixelpfad.","ok");busy.classList.remove("show");setTimeout(()=>setProgress(0),900);
   return new Blob([bytes],{type:"application/pdf"});
 }
 async function downloadPdf(){
@@ -1099,7 +1079,7 @@ async function loadPdf(file){
       noImprovement?`Kein OCR-Text erzeugt · ${failed} technische Fehler / ${noText} Seiten ohne erkannten Text. Export gesperrt, weil kein Vektor-Mehrwert entstanden ist.${failureHint}`:
       failed?`${pages.length} Seiten fertig · ${fallback} Bildseiten via Fallback vektorisiert · ${failed}/${aiPages} Bildseiten nach kompletter Kaskade ohne Textlayer.${failureHint}`:
       fallback?`${pages.length} Seiten fertig · Fallback-OCR auf ${fallback} Bildseiten${noText?`, ${noText} ohne gefundenen Text`:""}.`:
-      `${pages.length} Seiten fertig · Raster-Diff + sichtbarer Vektortext erzeugt.`,
+      `${pages.length} Seiten fertig · Raster-Diff + echter sichtbarer Text erzeugt.`,
       (noImprovement||failed)?"error":"ok"
     );
     downloadPdfBtn.disabled=noImprovement;downloadSvgBtn.disabled=noImprovement;currentPage=0;renderCompare();setTimeout(()=>setProgress(0),900);
@@ -1134,5 +1114,5 @@ sideBtn.addEventListener("click",()=>setCompareMode("side"));overlayBtn.addEvent
 overlayOpacity.addEventListener("input",renderCompare);showBoxes.addEventListener("change",renderCompare);
 downloadPdfBtn.addEventListener("click",downloadPdf);downloadSvgBtn.addEventListener("click",downloadSvg);clearModelBtn.addEventListener("click",clearModelCache);
 
-window.__alantuVectorContract={nativeText:"preserved-original-pdf",ocrText:"traced-visible-vector-glyphs+semantic-text",unrecognized:"original-pdf+baked-diff",manualAnchor:false};
+window.__alantuVectorContract={nativeText:"preserved-original-pdf",ocrText:"visible-svg-text+visible-pdf-text",unrecognized:"original-pdf+baked-diff",manualAnchor:false};
 mEngine.textContent="Unlimited-OCR 3B · WebGPU native";updateMetrics();setCompareMode("side");
