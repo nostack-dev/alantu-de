@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-28T08:15:00+02:00",
+  "updated_at": "2026-09-28T08:20:00+02:00",
   "watchlist": [
     "ORCL"
   ],
@@ -9,7 +9,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-28T08:15:00+02:00",
+        "at": "2026-09-28T08:20:00+02:00",
         "signal": "hold",
         "social_impulse": -3,
         "hype_bull": 38,
@@ -930,6 +930,23 @@
           "x_posts": 0,
           "reddit_posts": 0,
           "news": 5
+        },
+        {
+          "at": "2026-09-28T08:20:00+02:00",
+          "hype_bull": 38,
+          "hype_bear": 25,
+          "hype_net": 13,
+          "social_impulse": -3,
+          "signal": "hold",
+          "confidence": 65,
+          "hype_mixed": 37,
+          "voice_bull": 3,
+          "voice_bear": 2,
+          "voice_mixed": 3,
+          "price": 137.1,
+          "x_posts": 0,
+          "reddit_posts": 0,
+          "news": 5
         }
       ],
       "voices_archive": [
@@ -1252,23 +1269,23 @@
       "hype_net": 13,
       "confidence": 65,
       "hype_state": "mixed",
-      "updated_at": "2026-09-28T08:15:00+02:00",
-      "why": "Force-Majeure bei Project Jupiter bleibt Thema, Analysten halten aber Buy. Kurs etwa 137 Dollar, Reddit gemischt.",
+      "updated_at": "2026-09-28T08:20:00+02:00",
+      "why": "Force-Majeure und Kredit-Neupreisung belasten; Stifel hält Buy. Kurs etwa 137 Dollar, Reddit gemischt.",
       "evidence": {
         "x_posts": 0,
         "reddit_posts": 0,
         "news": 5,
         "snippets": [
-          "Force-Majeure Project Jupiter still live — ORCL ~$137.10; Stifel Buy PT $200",
+          "Force-Majeure + Kredit-Neupreisung — ORCL ~$137.10; Stifel Buy PT $200",
           "ORCL voices bull3/bear2/mixed3; Reddit ApeWisdom 9/24h @50%; X skipped (credits)",
-          "Fear&Greed ~36–37; BTC ~$83,221; NFP Fr 02.10"
+          "Fear&Greed ~35–37; BTC ~$83157; NFP Fr 02.10"
         ]
       },
       "voices": {
         "bull": 3,
         "bear": 2,
         "mixed": 3,
-        "updated_at": "2026-09-28T08:15:00+02:00"
+        "updated_at": "2026-09-28T08:20:00+02:00"
       },
       "hype_mixed": 37,
       "sentiment_unit": "percent_all_classified",
