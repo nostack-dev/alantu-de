@@ -116,18 +116,18 @@
         <div class="section-title">Ergebnis</div>
         <div class="metrics">
           <div class="metric"><span>Seiten</span><strong id="mPages">—</strong></div>
-          <div class="metric"><span>PDF-Text → Vektor</span><strong id="mNative">—</strong></div>
+          <div class="metric"><span>Vorhandener PDF-Text</span><strong id="mNative">—</strong></div>
           <div class="metric"><span>Bildtext erkannt</span><strong id="mImageText">—</strong></div>
-          <div class="metric"><span>Bildseiten → echter Text</span><strong id="mImageTextPercent">—</strong></div>
-          <div class="metric"><span>Originalseiten / Raster-Diff</span><strong id="mBaked">—</strong></div>
+          <div class="metric"><span>Bildtext → PDF-Textlayer</span><strong id="mImageTextPercent">—</strong></div>
+          <div class="metric"><span>Originalseiten</span><strong id="mBaked">—</strong></div>
           <div class="metric"><span>Visuell</span><strong id="mVisual">—</strong></div>
           <div class="metric"><span>Engine</span><strong id="mEngine">Unlimited-OCR 3B</strong></div>
           <div class="metric"><span>Flaschenhals</span><strong id="mBottleneck">—</strong></div>
         </div>
-        <button class="action primary" id="downloadPdfBtn" type="button" disabled>Hybrid-Vector-PDF herunterladen</button>
-        <button class="action" id="downloadSvgBtn" type="button" disabled>Zusätzlich als Vektor-SVG</button>
+        <button class="action primary" id="downloadPdfBtn" type="button" disabled>Searchable PDF herunterladen</button>
+        <button class="action" id="downloadSvgBtn" type="button" disabled hidden>Zusätzlich als SVG</button>
         <button class="action" id="clearModelBtn" type="button">OCR-Runtime zurücksetzen</button>
-        <p class="note">Vorhandener PDF-Text und alle Vektorobjekte bleiben im Original-PDF unangetastet. Nur erkannter Text in Rasterbildern wird pixelgenau aus dem Bild-Diff entfernt, als echten sichtbaren SVG-/PDF-Text gesetzt; dadurch bleibt er such-, kopier- und editierbar. Alles andere bleibt original.</p>
+        <p class="note">Vorhandene PDF-Textobjekte bleiben erhalten. Erkannter Text in Bildern wird zusätzlich als unsichtbarer echter PDF-Textlayer positionsgenau eingebettet. Die Optik bleibt unverändert; Text ist markierbar, kopierbar und für Volltextindexe maschinenlesbar.</p>
       </div>
     </aside>
 
@@ -182,6 +182,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
-  <script type="module" src="./alantu-unlimited-ocr.js?v=searchable-text-1"></script>
+  <script type="module" src="./alantu-unlimited-ocr.js?v=searchable-text-2"></script>
 </body>
 </html>
