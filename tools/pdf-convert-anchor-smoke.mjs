@@ -152,6 +152,7 @@ function imageDiff(a,b){
   return {mae:sum/n,changed:changed/n,width:A.width,height:A.height};
 }
 const visualDiff=imageDiff(beforeShot,afterShot);
+await page.locator('#showBoxes').check();
 
 await page.locator('#overlayBtn').click();
 const overlay=await page.evaluate(()=>({
