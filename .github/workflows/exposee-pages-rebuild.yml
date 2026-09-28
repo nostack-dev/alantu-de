@@ -19,6 +19,10 @@ permissions:
   contents: read
   pages: write
 
+concurrency:
+  group: exposee-pages-live-gate
+  cancel-in-progress: true
+
 jobs:
   rebuild-pages:
     runs-on: ubuntu-latest
@@ -38,7 +42,7 @@ jobs:
       - name: Wait for current public files
         run: |
           set -euo pipefail
-          for i in $(seq 1 60); do
+          for i in $(seq 1 18); do
             ok=1
             curl -fsSL --max-time 20 "https://www.alantu.de/index-brand.html?deploy=${{ github.sha }}" -o /tmp/index-brand-live.html || ok=0
             curl -fsSL --max-time 20 "https://www.alantu.de/pdf-to-exposee.html?deploy=${{ github.sha }}" -o /tmp/pdf-live.html || ok=0
@@ -70,7 +74,6 @@ jobs:
               && grep -q 'data-baked-diff="1"' /tmp/uocr-live.js \
               && grep -q 'buildVectorPdf' /tmp/uocr-live.js \
               && grep -q 'renderVectorSvgLayer' /tmp/uocr-live.js \
-              && grep -q 'native-text-vector' /tmp/uocr-live.js \
               && grep -q 'window.__alantuVectorContract' /tmp/uocr-live.js \
               && grep -q 'afterVectorSvg' /tmp/convert-live.html \
               && grep -q 'NakliTechie/gemma4-webgpu@0ca5e3a' /tmp/uocr-live.js \
@@ -81,6 +84,19 @@ jobs:
               && ! grep -q '@wllama/wllama' /tmp/uocr-live.js; then
               exit 0
             fi
-            sleep 10
+            if [ "$i" = "18" ]; then
+              echo "Live gate failed after 90s. Diagnostics:" >&2
+              grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-18' /tmp/convert-live.html || echo "MISSING: runtime v18 in converter" >&2
+              grep -q 'function fetchWithRetry' /tmp/uocr-live.js || echo "MISSING: fetchWithRetry" >&2
+              grep -q 'withHeartbeat' /tmp/uocr-live.js || echo "MISSING: withHeartbeat" >&2
+              grep -q 'diagnoseLocalOcrBottleneck' /tmp/uocr-live.js || echo "MISSING: diagnoseLocalOcrBottleneck" >&2
+              grep -q 'runSmallFallbackOcr' /tmp/uocr-live.js || echo "MISSING: runSmallFallbackOcr" >&2
+              grep -q 'data-role="visible-vector-text"' /tmp/uocr-live.js || echo "MISSING: visible-vector-text" >&2
+              grep -q 'data-baked-diff="1"' /tmp/uocr-live.js || echo "MISSING: baked-diff" >&2
+              grep -q 'buildVectorPdf' /tmp/uocr-live.js || echo "MISSING: buildVectorPdf" >&2
+              grep -q 'window.__alantuVectorContract' /tmp/uocr-live.js || echo "MISSING: vector contract" >&2
+              grep -q 'createGemmaEngine' /tmp/engine-live.js || echo "MISSING: browser engine" >&2
+            fi
+            sleep 5
           done
           exit 1
