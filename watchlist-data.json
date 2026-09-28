@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-28T15:46:00+02:00",
+  "updated_at": "2026-09-28T16:06:00+02:00",
   "watchlist": [
     {
       "symbol": "ORCL",
@@ -14,7 +14,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-28T15:46:00+02:00",
+        "at": "2026-09-28T16:06:00+02:00",
         "signal": "hold",
         "social_impulse": -4,
         "confidence": 65,
@@ -27,24 +27,9 @@
         "voice_bull": 2,
         "voice_bear": 3,
         "voice_mixed": 3,
-        "price": 133.6
+        "price": 133.49
       },
       "history": [
-        {
-          "at": "2026-08-27T12:00:00+02:00",
-          "signal": "buy",
-          "social_impulse": 10,
-          "confidence": 51,
-          "x_posts": 2,
-          "reddit_posts": 0,
-          "news": 0,
-          "hype_bull": 50,
-          "hype_bear": 0,
-          "hype_net": 50,
-          "voice_bull": 1,
-          "voice_bear": 0,
-          "voice_mixed": 1
-        },
         {
           "at": "2026-08-28T12:00:00+02:00",
           "signal": "buy",
@@ -1533,64 +1518,80 @@
           "voice_bear": 3,
           "voice_mixed": 3,
           "price": 133.6
+        },
+        {
+          "at": "2026-09-28T16:06:00+02:00",
+          "signal": "hold",
+          "social_impulse": -4,
+          "confidence": 65,
+          "x_posts": 0,
+          "reddit_posts": 0,
+          "news": 5,
+          "hype_bull": 30,
+          "hype_bear": 40,
+          "hype_net": -10,
+          "voice_bull": 2,
+          "voice_bear": 3,
+          "voice_mixed": 3,
+          "price": 133.49
         }
       ],
       "voices_archive": [
         {
           "source": "News",
-          "text": "Force-Majeure und Kostenschutz bleiben Last — Aktie nur leicht erholt.",
+          "text": "Force-Majeure und Kostenschutz bleiben Last — Kurs hält sich nur knapp.",
           "url": "https://www.cnbc.com/2026/09/24/oracle-force-majeure-data-center.html",
           "lean": "bear",
-          "at": "2026-09-28T15:52:25+02:00"
+          "at": "2026-09-28T16:10:35+02:00"
         },
         {
           "source": "News",
           "text": "Warum ORCL fällt — Rechenzentrum und Kostenrisiken weiter im Fokus.",
           "url": "https://finance.yahoo.com/quote/ORCL",
           "lean": "bear",
-          "at": "2026-09-28T15:52:25+02:00"
+          "at": "2026-09-28T16:10:35+02:00"
         },
         {
           "source": "News",
           "text": "Ellison pfändet weiter Aktien als Kreditpfand — Markt bleibt wachsam.",
           "url": "https://seekingalpha.com/",
           "lean": "mixed",
-          "at": "2026-09-28T15:52:25+02:00"
+          "at": "2026-09-28T16:10:35+02:00"
         },
         {
           "source": "News",
           "text": "Verkaufsplan abgesagt — etwas Entlastung gegenüber dem großen Verkauf.",
           "url": "https://www.reuters.com/business/larry-ellison-cancels-plan-sell-oracle-stock-2026-09-12/",
           "lean": "bull",
-          "at": "2026-09-28T15:52:25+02:00"
+          "at": "2026-09-28T16:10:35+02:00"
         },
         {
           "source": "News",
-          "text": "Kurs bei etwa 133.6 Dollar; leichte Erholung nach dem Abverkauf.",
+          "text": "Kurs bei etwa 133.49 Dollar; kaum Bewegung nach dem Abverkauf.",
           "url": "https://finance.yahoo.com/quote/ORCL",
           "lean": "mixed",
-          "at": "2026-09-28T15:52:25+02:00"
+          "at": "2026-09-28T16:10:35+02:00"
         },
         {
           "source": "News",
           "text": "Cloud- und KI-Auftragsbuch stützt die Bullen-Seite trotz Vorsicht.",
           "url": "https://finance.yahoo.com/quote/ORCL",
           "lean": "bull",
-          "at": "2026-09-28T15:52:25+02:00"
+          "at": "2026-09-28T16:10:35+02:00"
         },
         {
           "source": "Reddit",
-          "text": "ApeWisdom 24h: 20 Mentions, Upvotes 30, WSB 19; Sentiment ~50%.",
+          "text": "ApeWisdom 24h: 22 Mentions, Upvotes 32, WSB 21; Sentiment ~50%.",
           "url": "https://apewisdom.io/stocks/ORCL/",
           "lean": "mixed",
-          "at": "2026-09-28T15:52:25+02:00"
+          "at": "2026-09-28T16:10:35+02:00"
         },
         {
           "source": "News",
-          "text": "The Distributed: ORCL 30d ~1787 Mentions, Sentiment nahe 49% bullish.",
+          "text": "The Distributed: ORCL 30d ~1805 Mentions, Sentiment nahe 49% bullish.",
           "url": "https://www.thedistributed.co/stocks/ORCL/",
           "lean": "bear",
-          "at": "2026-09-28T15:52:25+02:00"
+          "at": "2026-09-28T16:10:35+02:00"
         }
       ],
       "signal": "hold",
@@ -1601,8 +1602,8 @@
       "hype_net": -1,
       "confidence": 65,
       "hype_state": "mixed",
-      "updated_at": "2026-09-28T15:46:00+02:00",
-      "why": "Kurs erholt sich leicht auf etwa 134 Dollar, Force-Majeure bleibt aber Last. Ellison-Pfand und Verkaufsabsage weiter gemischt — abwarten.",
+      "updated_at": "2026-09-28T16:06:00+02:00",
+      "why": "Kurs hält sich bei etwa 133.50 Dollar, Force-Majeure bleibt Last. Ellison-Pfand und Verkaufsabsage weiter gemischt — abwarten.",
       "evidence": {
         "x_posts": 0,
         "reddit_posts": 0,
@@ -1615,7 +1616,7 @@
       },
       "hype_mixed": 3,
       "sentiment_unit": "percent_all_classified",
-      "price": 133.6
+      "price": 133.49
     }
   }
 }
