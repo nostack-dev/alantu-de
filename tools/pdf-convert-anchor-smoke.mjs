@@ -14,8 +14,11 @@ async function makeFixture(browser){
   const png=await p.evaluate(()=>{
     const c=document.getElementById('c'),x=c.getContext('2d');
     x.fillStyle='white';x.fillRect(0,0,1200,1600);
-    x.fillStyle='#111';x.font='700 72px Arial';x.fillText('ALANTU EXPOSE',90,180);
-    x.font='42px Arial';x.fillText('Wohnung mit Seeblick in Konstanz',90,280);
+    // Deliberately multicolor first OCR block: branding must remain raster and untouched.
+    x.font='700 72px Arial';x.fillStyle='#D91E3A';x.fillText('ALANTU',90,180);
+    x.fillStyle='#1457D9';x.fillText(' EXPOSE',390,180);
+    // Simple monochrome OCR block: this one is safe to vectorize, preserving exact #111111.
+    x.fillStyle='#111111';x.font='42px Arial';x.fillText('Wohnung mit Seeblick in Konstanz',90,280);
     x.fillStyle='#ddd';x.fillRect(90,380,1020,700);
     return c.toDataURL('image/png');
   });
@@ -131,7 +134,10 @@ const side=await page.evaluate(()=>({
   vectorGlyphs:document.querySelectorAll('#afterVectorSvg rect[data-kind="image-text-glyph-vector"]').length,
   semanticTexts:document.querySelectorAll('#afterVectorSvg text[data-kind="image-text-semantic"]').length,
   vectorRole:document.getElementById('afterVectorSvg')?.dataset?.role||'',
-  vectorContract:window.__alantuVectorContract||null
+  vectorContract:window.__alantuVectorContract||null,
+  vectorFills:[...document.querySelectorAll('#afterVectorSvg rect[data-kind="image-text-glyph-vector"]')].map(x=>x.getAttribute('fill')),
+  visualText:document.getElementById('mVisual')?.textContent||'',
+  coverageText:document.getElementById('mImageTextPercent')?.textContent||''
 }));
 
 
@@ -192,8 +198,9 @@ if(side.pages!=='2')errors.push('pages:'+side.pages);
 if(Number(side.native)<2)errors.push('native-text-count:'+side.native);
 if(Number(side.imageText)<1)errors.push('image-text-count:'+side.imageText);
 if(!/^100 % Bildseiten mit OCR · 3B-OCR · /.test(side.imageTextPercent))errors.push('image-text-percent:'+side.imageTextPercent);
+if(!/komplex\/Branding unverändert/.test(side.imageTextPercent))errors.push('branding-skip-metric:'+side.imageTextPercent);
 if(side.baked!=='2')errors.push('baked-pages:'+side.baked);
-if(!/^Original \+ Raster-Diff \+ [\d.]+ Vektorglyphen$/.test(side.visual))errors.push('visual:'+side.visual);
+if(!/^Original \+ sicherer Raster-Diff \+ [\d.]+ Vektorglyphen · 1 komplex unverändert$/.test(side.visual))errors.push('visual:'+side.visual);
 if(!/Unlimited-OCR 3B/.test(side.engine))errors.push('engine:'+side.engine);
 if(!side.beforeSrc||!side.afterSrc||side.beforeSrc===side.afterSrc)errors.push('side-by-side-vector-preview-not-distinct');
 if(side.boxes<1)errors.push('side-image-text-box-missing');
@@ -224,7 +231,8 @@ else{
   if(Math.abs(firstVectorItem.x-48.05)>6)errors.push('ocr-vector-x-drift:'+JSON.stringify(firstVectorItem));
   if(firstVectorItem.y<645||firstVectorItem.y>690)errors.push('ocr-vector-y-drift:'+JSON.stringify(firstVectorItem));
 }
-if(side.vectorGlyphs<1||side.semanticTexts<1||side.vectorRole!=='visible-vector-glyphs')errors.push('vector-preview-missing-visible-glyphs:'+JSON.stringify(side));
+if(side.vectorGlyphs<1||side.semanticTexts<2||side.vectorRole!=='visible-vector-glyphs')errors.push('vector-preview-missing-visible-glyphs:'+JSON.stringify(side));
+if(!side.vectorFills.length||side.vectorFills.some(x=>String(x).toLowerCase()!=='#111111'))errors.push('exact-monochrome-color-not-preserved:'+JSON.stringify(side.vectorFills));
 if(overlay.vectorGlyphs<1||overlay.semanticTexts<1||overlay.vectorRole!=='visible-vector-glyphs')errors.push('overlay-preview-missing-visible-glyphs:'+JSON.stringify(overlay));
 if(side.vectorContract?.nativeText!=='preserved-original-pdf'||side.vectorContract?.ocrText!=='traced-visible-vector-glyphs+semantic-text'||side.vectorContract?.unrecognized!=='original-pdf+baked-diff'||side.vectorContract?.manualAnchor!==false)errors.push('vector-contract:'+JSON.stringify(side.vectorContract));
 if(visualDiff.mae>7||visualDiff.changed>.08)errors.push('visual-drift:'+JSON.stringify(visualDiff));
