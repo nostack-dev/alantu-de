@@ -201,33 +201,21 @@ if(!/^100 % Bildseiten mit OCR · 100 % erkannter OCR-Text → PDF-Textlayer · 
 if(side.baked!=='2')errors.push('baked-pages:'+side.baked);
 if(side.visual!=='Originaloptik unverändert')errors.push('visual:'+side.visual);
 if(!/Unlimited-OCR 3B/.test(side.engine))errors.push('engine:'+side.engine);
-if(!side.beforeSrc||!side.afterSrc||side.beforeSrc===side.afterSrc)errors.push('side-by-side-vector-preview-not-distinct');
+if(!side.beforeSrc||!side.afterSrc||side.beforeSrc!==side.afterSrc)errors.push('side-preview-must-match-original');
 if(side.boxes<1)errors.push('side-image-text-box-missing');
 if(side.sideBeforeHidden||side.sideAfterHidden||!side.overlayHidden)errors.push('side-mode-broken');
 if(overlay.hidden||overlay.toolsHidden)errors.push('overlay-mode-hidden');
-if(!overlay.beforeSrc||!overlay.afterSrc||overlay.beforeSrc===overlay.afterSrc)errors.push('overlay-vector-preview-not-distinct');
+if(!overlay.beforeSrc||!overlay.afterSrc||overlay.beforeSrc!==overlay.afterSrc)errors.push('overlay-preview-must-match-original');
 if(overlay.opacity!=='0.5')errors.push('overlay-opacity:'+overlay.opacity);
 if(overlay.boxes<1)errors.push('overlay-boxes-missing');
 if(stat.size<5000)errors.push('pdf-too-small:'+stat.size);
 if(!dl.suggestedFilename().endsWith('-searchable.pdf'))errors.push('pdf-name:'+dl.suggestedFilename());
-const svgDownloadPromise=page.waitForEvent('download',{timeout:60000});
-await page.locator('#downloadSvgBtn').click();
-const svgDl=await svgDownloadPromise;
-const svgPath=await svgDl.path();
-const svgText=await fs.readFile(svgPath,'utf8');
-if(!svgDl.suggestedFilename().endsWith('-vectorized.svg'))errors.push('svg-name:'+svgDl.suggestedFilename());
-if(!/data-baked-diff="1"/.test(svgText))errors.push('svg-raster-diff-missing');
-if(!/data-role="visible-vector-text"/.test(svgText)||!/<text[^>]+data-kind="image-text-vector"/.test(svgText))errors.push('svg-visible-real-text-missing');
-if(/data-kind="image-text-glyph-vector"/.test(svgText))errors.push('svg-pseudo-glyph-rectangles-still-present');
-if(!/<text[^>]+data-kind="image-text-vector"[^>]+fill="#111111"/.test(svgText))errors.push('svg-visible-text-color-missing');
 const allText=textPages.join(' | ');
 // Searchable-PDF contract: every OCR-recognized string becomes machine-readable,
 // independent of whether visual vector replacement was considered safe.
 if(!/ALANTU EXPOSE/.test(allText))errors.push('branding-ocr-text-not-searchable:'+allText);
 if(!/Wohnung mit Seeblick in Konstanz/.test(allText))errors.push('safe-ocr-vector-text-missing:'+allText);
 if(!/Native PDF Text/.test(allText)||!/Already searchable/.test(allText))errors.push('native-pdf-text-missing:'+allText);
-if(/ALANTU EXPOSE/.test(svgText))errors.push('branding-was-vectorized-in-svg');
-if(!/Wohnung mit Seeblick in Konstanz/.test(svgText))errors.push('safe-ocr-vector-text-missing-in-svg');
 const firstVectorItem=extracted.items?.[0]?.find(x=>/Wohnung mit Seeblick in Konstanz/.test(x.str));
 if(!firstVectorItem)errors.push('safe-ocr-vector-position-item-missing');
 else{
@@ -236,15 +224,12 @@ else{
   if(Math.abs(firstVectorItem.x-48.05)>6)errors.push('safe-ocr-vector-x-drift:'+JSON.stringify(firstVectorItem));
   if(firstVectorItem.y<535||firstVectorItem.y>610)errors.push('safe-ocr-vector-y-drift:'+JSON.stringify(firstVectorItem));
 }
-if(side.vectorTexts<1||side.vectorRole!=='visible-vector-text')errors.push('vector-preview-missing-real-text:'+JSON.stringify(side));
-if(!side.vectorFills.length||side.vectorFills.some(x=>String(x).toLowerCase()!=='#111111'))errors.push('exact-monochrome-color-not-preserved:'+JSON.stringify(side.vectorFills));
-const hiddenRealText=await page.evaluate(()=>[...document.querySelectorAll('#afterVectorSvg text[data-kind="image-text-vector"]')].some(x=>getComputedStyle(x).opacity==='0'||x.getAttribute('fill-opacity')==='0'));
-if(hiddenRealText)errors.push('real-vector-text-hidden');
-if(overlay.vectorTexts<1||overlay.vectorRole!=='visible-vector-text')errors.push('overlay-preview-missing-real-text:'+JSON.stringify(overlay));
+if(side.vectorTexts!==0)errors.push('searchable-preview-should-not-replace-pixels:'+JSON.stringify(side));
+if(overlay.vectorTexts!==0)errors.push('searchable-overlay-should-not-replace-pixels:'+JSON.stringify(overlay));
 if(side.searchableContract?.nativeText!=='preserved-original-pdf'||side.searchableContract?.ocrText!=='invisible-real-pdf-text-objects'||side.searchableContract?.visual!=='original-pdf-preserved'||side.searchableContract?.fullTextIndex!==true||side.searchableContract?.copyable!==true||side.searchableContract?.manualAnchor!==false)errors.push('searchable-contract:'+JSON.stringify(side.searchableContract));
-if(visualDiff.mae>7||visualDiff.changed>.08)errors.push('visual-drift:'+JSON.stringify(visualDiff));
+if(visualDiff.mae>.01||visualDiff.changed>.0001)errors.push('visual-not-identical:'+JSON.stringify(visualDiff));
 
-console.log(JSON.stringify({url,loadingView,side,overlay,visualDiff,download:{name:dl.suggestedFilename(),bytes:stat.size,textPages,firstVectorItem:extracted.items?.[0]?.find(x=>/Wohnung mit Seeblick in Konstanz/.test(x.str))||null},svg:{name:svgDl.suggestedFilename(),bytes:svgText.length},ok:errors.length===0,errors},null,2));
+console.log(JSON.stringify({url,loadingView,side,overlay,visualDiff,download:{name:dl.suggestedFilename(),bytes:stat.size,textPages,firstTextLayerItem:extracted.items?.[0]?.find(x=>/Wohnung mit Seeblick in Konstanz/.test(x.str))||null},ok:errors.length===0,errors},null,2));
 if(errors.length){
   await browser.close();
   throw new Error('Unlimited OCR searchable PDF smoke failed: '+errors.join(' | '));
