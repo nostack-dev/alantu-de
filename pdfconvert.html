@@ -102,7 +102,7 @@
     <aside class="panel">
       <div class="eyebrow">PDF → ECHTER TEXT</div>
       <h1>Bildtext raus. Echter Text rein.</h1>
-      <p class="intro">Vorhandene PDF-Textobjekte bleiben echte Textobjekte. Sicher erkannter Text in Bildern wird aus dem Raster entfernt und sichtbar als echter PDF-Text neu gesetzt. Mehrfarbiges Branding, Logos, Fotos und komplexe Hintergründe werden automatisch nicht angefasst.</p>
+      <p class="intro">Vorhandene PDF-Textobjekte bleiben echte Textobjekte. Sicher erkannter Text in Bildern wird vollständig inklusive Antialias-Rändern aus dem Raster entfernt und sichtbar als echter PDF-Text neu gesetzt. Redundante weiße Rasterflächen werden transparent; Mehrfarb-Branding, Logos, Fotos und komplexe Hintergründe bleiben unangetastet.</p>
 
       <label class="dropzone" id="dropzone">
         <input id="pdfInput" type="file" accept="application/pdf,.pdf" aria-label="PDF auswählen">
@@ -128,7 +128,7 @@
         <button class="action primary" id="downloadPdfBtn" type="button" disabled>PDF mit echtem Text herunterladen</button>
         <button class="action" id="downloadSvgBtn" type="button" disabled hidden>Zusätzlich als SVG</button>
         <button class="action" id="clearModelBtn" type="button">OCR-Runtime zurücksetzen</button>
-        <p class="note">Kein unsichtbarer OCR-Layer: Nur visuell sichere Bildtexte werden wirklich aus dem Raster entfernt und als sichtbare PDF-Textobjekte ersetzt. Komplexe oder mehrfarbige Branding-Bereiche bleiben unverändert im Originalbild.</p>
+        <p class="note">Kein unsichtbarer OCR-Layer: sichere Bildtexte werden inklusive heller Kantenpixel wirklich entfernt und als sichtbare PDF-Textobjekte ersetzt. Weiße-on-weiße Rasterfläche fliegt aus dem Diff; Branding, Fotos und komplexe Bereiche bleiben original.</p>
       </div>
     </aside>
 
@@ -183,6 +183,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
-  <script type="module" src="./alantu-unlimited-ocr.js?v=visible-text-replace-1"></script>
+  <script type="module" src="./alantu-unlimited-ocr.js?v=raster-diff-2"></script>
 </body>
 </html>
