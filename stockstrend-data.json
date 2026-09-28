@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-09-28T09:41:00+02:00",
+  "updated_at": "2026-09-28T09:46:00+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-28T09:41:00+02:00",
-    "scraped_at": "2026-09-28T09:43:59+02:00",
+    "tick_id": "2026-09-28T09:46:00+02:00",
+    "scraped_at": "2026-09-28T09:51:12+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "user-X": {
@@ -32,7 +32,7 @@
           "Stifel Buy / PT $200 after Force-Majeure; ORCL ~$137.1",
           "Force-Majeure Project Jupiter (NM) still live; ~$18B debt quoted ~90¢",
           "Morningstar/Street: possible $25B revenue delay risk; base case still on track",
-          "SPY ~771.35 / QQQ ~744.5; BTC ~$82892; soft ahead of NFP week",
+          "SPY ~771.35 / QQQ ~744.5; BTC ~$82939; soft ahead of NFP week",
           "Macro: NFP Fr 02.10, JOLTS Di 29.09, CPI ~14.10, FOMC 28.10; Oct hike ~65%"
         ]
       },
@@ -60,7 +60,7 @@
           "thedistributed.co"
         ],
         "window": "24h–30d aggregator snapshots 2026-09-28",
-        "freshest": "2026-09-28T09:43:59+02:00",
+        "freshest": "2026-09-28T09:51:12+02:00",
         "notes": [
           "ApeWisdom 24h: 9 mentions (WSB 8), upvotes 14, sentiment ~50% overall",
           "AltIndex: ~66 daily Reddit mentions; AI Score 50 Hold; price $137.1",
@@ -89,7 +89,7 @@
           "ORCL": 137.1,
           "SPY": 771.35,
           "QQQ": 744.5,
-          "BTC-USD": 82891.7
+          "BTC-USD": 82939.04
         },
         "note": "query2 chart 1d (query1 429 then query2 OK)"
       }
@@ -106,10 +106,10 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-28T09:43:59+02:00",
+      "freshest_absolute": "2026-09-28T09:51:12+02:00",
       "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
       "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok skip; Bright Data 401; Treg auth_needed",
-      "scrape_berlin": "2026-09-28T09:41:00+02:00",
+      "scrape_berlin": "2026-09-28T09:46:00+02:00",
       "sample_window": "Web/news ≤few days Force-Majeure+debt-reprice+Stifel+market; Reddit via ApeWisdom/AltIndex/TheDistributed; X credits_depleted",
       "freshest_item_age": "",
       "oldest_usable_signal": "Force-Majeure Project Jupiter Sep 24; NFP week; ORCL ~$137.1"
@@ -153,7 +153,7 @@
         "sentiment": "leicht_bearish",
         "strength": 68,
         "symbol": "SPY",
-        "symbol_note": "SPY ~771.35 / QQQ ~744.5; BTC ~$82892; soft ahead of NFP",
+        "symbol_note": "SPY ~771.35 / QQQ ~744.5; BTC ~$82939; soft ahead of NFP",
         "bias": "risk_off",
         "bias_label": "Vorsicht / Bias risk-off",
         "links": {
@@ -176,7 +176,7 @@
       }
     ],
     "delta_vs_prev": {
-      "prev_tick_id": "2026-09-28T09:31:00+02:00",
+      "prev_tick_id": "2026-09-28T09:41:00+02:00",
       "magnitude_delta": 0,
       "confidence_delta": 0,
       "direction_prev": "mixed_cautious",
@@ -191,7 +191,7 @@
       "new_themes": [],
       "gone_themes": [],
       "sentiment_swings": [
-        "ORCL flat; Force-Majeure narrative unchanged vs #47"
+        "ORCL flat; Force-Majeure narrative unchanged vs #48"
       ],
       "orcl": {
         "impulse_prev": -3,
@@ -220,10 +220,10 @@
     },
     "baseline": false,
     "scrape_window": {
-      "start": "2026-09-28T09:31:00+02:00",
-      "end": "2026-09-28T09:41:00+02:00",
+      "start": "2026-09-28T09:41:00+02:00",
+      "end": "2026-09-28T09:46:00+02:00",
       "kind": "scheduled_5min",
-      "note": "Tick #48 scheduled Mo–Fr 5-min window; publish partial OK (X skipped)."
+      "note": "Tick #49 scheduled Mo–Fr 5-min window; publish partial OK (X skipped)."
     },
     "volume_enriched": true,
     "mini_series": [
@@ -585,6 +585,14 @@
         "direction": "mixed_cautious",
         "items": 8,
         "early_signal": true
+      },
+      {
+        "tick_id": "2026-09-28T09:46:00+02:00",
+        "magnitude": 35,
+        "confidence": 66,
+        "direction": "mixed_cautious",
+        "items": 8,
+        "early_signal": true
       }
     ],
     "stock_signals": [
@@ -606,7 +614,7 @@
           "snippets": [
             "Force-Majeure + Kreditdruck — ORCL ~$137.1; Stifel Buy PT $200",
             "ORCL voices bull3/bear2/mixed3; Reddit ApeWisdom 9/24h @50%; X skipped (credits)",
-            "SPY ~771.35; BTC ~$82892; NFP Fr 02.10"
+            "SPY ~771.35; BTC ~$82939; NFP Fr 02.10"
           ],
           "voices": [
             {
@@ -614,56 +622,56 @@
               "text": "Force-Majeure bei Project Jupiter bleibt; Banken preisen 18-Mrd-Kredite neu.",
               "url": "https://www.reuters.com/business/oracle-cites-force-majeure-shield-itself-controversial-data-center-bloomberg-2026-09-24/",
               "lean": "bear",
-              "at": "2026-09-28T09:43:59+02:00"
+              "at": "2026-09-28T09:51:12+02:00"
             },
             {
               "source": "News",
               "text": "Stifel hält Buy und Kursziel 200 Dollar; sieht Notice eher als Vorsicht.",
               "url": "https://finbold.com/wall-street-sets-oracle-stock-price-target-for-next-12-months-2/",
               "lean": "bull",
-              "at": "2026-09-28T09:43:59+02:00"
+              "at": "2026-09-28T09:51:12+02:00"
             },
             {
               "source": "News",
               "text": "Morningstar: möglicher 25-Mrd-Umsatz-Schub nach hinten; Basis-Szenario bleibt on track.",
               "url": "https://www.morningstar.com/stocks/oracle-data-center-force-majeure-implies-possibility-25-bln-revenue-delay",
               "lean": "mixed",
-              "at": "2026-09-28T09:43:59+02:00"
+              "at": "2026-09-28T09:51:12+02:00"
             },
             {
               "source": "News",
               "text": "Kurs um 137 Dollar; Street-Ziele weit darüber, Markt bleibt skeptisch.",
               "url": "https://finance.yahoo.com/technology/ai/articles/oracles-stock-falls-3-5-110800801.html",
               "lean": "mixed",
-              "at": "2026-09-28T09:43:59+02:00"
+              "at": "2026-09-28T09:51:12+02:00"
             },
             {
               "source": "News",
-              "text": "Markt vor NFP verhalten; SPY und QQQ flach. Bitcoin etwas über 82.892 Dollar.",
+              "text": "Markt vor NFP verhalten; SPY und QQQ flach. Bitcoin etwas über 82939 Dollar.",
               "url": "https://finance.yahoo.com/quote/ORCL",
               "lean": "mixed",
-              "at": "2026-09-28T09:43:59+02:00"
+              "at": "2026-09-28T09:51:12+02:00"
             },
             {
               "source": "Reddit",
               "text": "ApeWisdom: ORCL 9 Mentions/24h (WSB 8, Upvotes 14), Sentiment ~50%.",
               "url": "https://apewisdom.io/stocks/ORCL/",
               "lean": "mixed",
-              "at": "2026-09-28T09:43:59+02:00"
+              "at": "2026-09-28T09:51:12+02:00"
             },
             {
               "source": "Reddit",
               "text": "AltIndex: ~66 Mentions/Tag, AI-Score 50 Hold, Kurs 137.1 Dollar.",
               "url": "https://altindex.com/ticker/orcl",
               "lean": "bull",
-              "at": "2026-09-28T09:43:59+02:00"
+              "at": "2026-09-28T09:51:12+02:00"
             },
             {
               "source": "Reddit",
               "text": "TheDistributed 30d: 1781 Mentions, 49% bull / 19% bear / 32% neutral (Stand 28.09.).",
               "url": "https://thedistributed.co/stocks/ORCL",
               "lean": "bull",
-              "at": "2026-09-28T09:43:59+02:00"
+              "at": "2026-09-28T09:51:12+02:00"
             }
           ]
         },
@@ -680,10 +688,10 @@
   "signals_disclaimer": "",
   "early_signal_note": "Force-Majeure bleibt; Kurs flach bei 137.",
   "freshness": {
-    "freshest_absolute": "2026-09-28T09:43:59+02:00",
+    "freshest_absolute": "2026-09-28T09:51:12+02:00",
     "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
     "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok skip; Bright Data 401; Treg auth_needed",
-    "scrape_berlin": "2026-09-28T09:41:00+02:00",
+    "scrape_berlin": "2026-09-28T09:46:00+02:00",
     "sample_window": "Web/news ≤few days Force-Majeure+debt-reprice+Stifel+market; Reddit via ApeWisdom/AltIndex/TheDistributed; X credits_depleted",
     "freshest_item_age": "",
     "oldest_usable_signal": "Force-Majeure Project Jupiter Sep 24; NFP week; ORCL ~$137.1"
@@ -1092,6 +1100,15 @@
     {
       "tick_id": "2026-09-28T09:41:00+02:00",
       "scraped_at": "2026-09-28T09:43:59+02:00",
+      "magnitude": 35,
+      "confidence": 66,
+      "direction": "mixed_cautious",
+      "items": 8,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-28T09:46:00+02:00",
+      "scraped_at": "2026-09-28T09:51:12+02:00",
       "magnitude": 35,
       "confidence": 66,
       "direction": "mixed_cautious",
