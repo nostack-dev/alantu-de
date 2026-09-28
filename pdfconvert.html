@@ -100,7 +100,7 @@
 
   <main class="shell layout">
     <aside class="panel">
-      <div class="eyebrow">PDF → Hybrid Vector PDF</div>
+      <div class="eyebrow">PDF → Echter Text + Raster-Diff PDF</div>
       <h1>Bildtext raus. Vektortext rein.</h1>
       <p class="intro">Text, der nur als Bild in der PDF steckt, wird erkannt, aus dem Rasterbereich entfernt und an derselben Stelle als sichtbarer PDF-Vektortext neu gesetzt. Nicht erkannte Bildteile bleiben als Raster-Diff erhalten. Die OCR-Stufe passt sich automatisch an den Browser an.</p>
 
@@ -127,7 +127,7 @@
         <button class="action primary" id="downloadPdfBtn" type="button" disabled>Hybrid-Vector-PDF herunterladen</button>
         <button class="action" id="downloadSvgBtn" type="button" disabled>Zusätzlich als Vektor-SVG</button>
         <button class="action" id="clearModelBtn" type="button">OCR-Runtime zurücksetzen</button>
-        <p class="note">Vorhandener PDF-Text und alle Vektorobjekte bleiben im Original-PDF unangetastet. Nur erkannter Text in Rasterbildern wird pixelgenau aus dem Bild-Diff entfernt, als sichtbare Vektorglyphen rekonstruiert und zusätzlich als echter such-/kopierbarer PDF-Text hinterlegt. Alles andere bleibt original.</p>
+        <p class="note">Vorhandener PDF-Text und alle Vektorobjekte bleiben im Original-PDF unangetastet. Nur erkannter Text in Rasterbildern wird pixelgenau aus dem Bild-Diff entfernt, als echten sichtbaren SVG-/PDF-Text gesetzt; dadurch bleibt er such-, kopier- und editierbar. Alles andere bleibt original.</p>
       </div>
     </aside>
 
@@ -162,7 +162,7 @@
             <div class="paper"><img id="beforeImg" alt=""></div>
           </div>
           <div class="pane" id="sideAfter">
-            <div class="pane-head"><span>Nachher</span><span>Hybrid Vector</span></div>
+            <div class="pane-head"><span>Nachher</span><span>Echter Text + Raster-Diff</span></div>
             <div class="paper"><img id="afterImg" alt=""><svg id="afterVectorSvg" class="vector-svg" aria-hidden="true"></svg><div class="overlay-boxes" id="afterOverlay"></div></div>
           </div>
         </div>
@@ -182,6 +182,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
-  <script type="module" src="./alantu-unlimited-ocr.js?v=browser-webgpu-20"></script>
+  <script type="module" src="./alantu-unlimited-ocr.js?v=browser-webgpu-21"></script>
 </body>
 </html>
