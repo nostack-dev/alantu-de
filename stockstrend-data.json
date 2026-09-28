@@ -1,10 +1,43 @@
 {
-  "updated_at": "2026-09-28T12:26:00+02:00",
+  "updated_at": "2026-09-28T12:36:00+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-28T12:26:00+02:00",
-    "scraped_at": "2026-09-28T12:27:58+02:00",
+    "tick_id": "2026-09-28T12:36:00+02:00",
+    "scraped_at": "2026-09-28T12:38:25+02:00",
     "timezone": "Europe/Berlin",
+    "scrape_window": {
+      "start": "2026-09-28T12:26:00+02:00",
+      "end": "2026-09-28T12:36:00+02:00",
+      "kind": "tick_interval",
+      "note": "5-Min-Routine Mo–Fr 8–22 Berlin; Tick nach #66."
+    },
+    "baseline": false,
+    "volume_enriched": true,
+    "vector": {
+      "direction": "mixed_cautious",
+      "magnitude": 35,
+      "confidence": 66,
+      "early_signal": true,
+      "early_signal_note": "Mehr Pfand-Aktien; KI-Warnung bleibt, ORCL flach."
+    },
+    "early_signal_note": "Mehr Pfand-Aktien; KI-Warnung bleibt, ORCL flach.",
+    "chart": {
+      "magnitude": 35,
+      "confidence": 66,
+      "direction": "mixed_cautious",
+      "items": 8
+    },
+    "totals": {
+      "content_items_usable": 8,
+      "breakdown": {
+        "x_trends": 0,
+        "x_news": 0,
+        "x_posts": 0,
+        "reddit": 3,
+        "tiktok": 0,
+        "websearch": 5
+      }
+    },
     "sources": {
       "user-X": {
         "status": "ok_partial",
@@ -32,7 +65,7 @@
           "Ellison pledges 67M more ORCL shares as loan collateral (same-day); sale-cancel still in tape",
           "Force-Majeure Project Jupiter + debt caution still weigh on tape",
           "ORCL AI-bet caution / rating-downgrade headlines; price flat ~$137.1",
-          "SPY ~771.35 / QQQ ~744.5; BTC ~$82792.07 (slightly firmer vs 82712.17)",
+          "SPY ~771.35 / QQQ ~744.5; BTC ~$82869.13 (slightly firmer vs 82792.07)",
           "Fed/jobs-inflation week: rate-path caution keeps risk tone mixed"
         ]
       },
@@ -60,7 +93,7 @@
           "thedistributed.co"
         ],
         "window": "24h–30d aggregator snapshots 2026-09-28",
-        "freshest": "2026-09-28T12:27:58+02:00",
+        "freshest": "2026-09-28T12:38:25+02:00",
         "notes": [
           "ApeWisdom 24h: 11 mentions (WSB 10), upvotes 18, sentiment ~50% overall",
           "AltIndex: page Hold; price $137.1; ~66 daily Reddit mentions (snapshot); Hold bias",
@@ -88,37 +121,10 @@
           "ORCL": 137.1,
           "SPY": 771.35,
           "QQQ": 744.5,
-          "BTC-USD": 82792.07
+          "BTC-USD": 82869.13
         },
         "note": "query1 chart 1d"
       }
-    },
-    "totals": {
-      "content_items_usable": 8,
-      "breakdown": {
-        "x_trends": 0,
-        "x_news": 0,
-        "x_posts": 0,
-        "reddit": 3,
-        "tiktok": 0,
-        "websearch": 5
-      }
-    },
-    "freshness": {
-      "freshest_absolute": "2026-09-28T12:27:58+02:00",
-      "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
-      "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok fail (Treg auth_needed); Bright Data 401; Apify retired",
-      "scrape_berlin": "2026-09-28T12:26:00+02:00",
-      "sample_window": "Web/news ≤24h; Reddit via ApeWisdom/AltIndex/TheDistributed; X fully credits_depleted",
-      "freshest_item_age": "",
-      "oldest_usable_signal": "Force-Majeure Project Jupiter still in tape"
-    },
-    "vector": {
-      "direction": "mixed_cautious",
-      "magnitude": 35,
-      "confidence": 66,
-      "early_signal": true,
-      "early_signal_note": "Mehr Pfand-Aktien; KI-Warnung bleibt, ORCL flach."
     },
     "top_themes": [
       {
@@ -178,7 +184,7 @@
         "sentiment": "mixed",
         "strength": 58,
         "symbol": "BTC-USD",
-        "symbol_note": "BTC ~$82792.07 (firmer vs 82712.17; still cautious risk tone)",
+        "symbol_note": "BTC ~$82869.13 (firmer vs 82792.07; still cautious risk tone)",
         "bias": "mixed",
         "bias_label": "Abwarten / Bias mixed",
         "links": {
@@ -206,7 +212,7 @@
           "snippets": [
             "Ellison pledges 67M more shares as collateral; sale-cancel still in tape; ORCL ~$137.1",
             "Force-Majeure Project Jupiter + debt caution still live",
-            "BTC ~$82792.07; SPY ~771.35 / QQQ ~744.5; Fed/Jobs week"
+            "BTC ~$82869.13; SPY ~771.35 / QQQ ~744.5; Fed/Jobs week"
           ],
           "voices": [
             {
@@ -214,56 +220,56 @@
               "text": "Ellison pfändet 67 Mio. weitere Aktien als Kreditpfand — Markt bleibt wachsam.",
               "url": "https://seekingalpha.com/",
               "lean": "mixed",
-              "at": "2026-09-28T12:27:58+02:00"
+              "at": "2026-09-28T12:38:25+02:00"
             },
             {
               "source": "News",
               "text": "Verkaufsplan abgesagt — etwas Entlastung gegenüber dem großen Verkauf.",
               "url": "https://www.reuters.com/business/larry-ellison-cancels-plan-sell-oracle-stock-2026-09-12/",
               "lean": "bull",
-              "at": "2026-09-28T12:27:58+02:00"
+              "at": "2026-09-28T12:38:25+02:00"
             },
             {
               "source": "News",
               "text": "Force-Majeure bei Project Jupiter bleibt; Schuldenrisiko im Fokus.",
               "url": "https://www.cnbc.com/2026/09/24/oracle-force-majeure-data-center.html",
               "lean": "bear",
-              "at": "2026-09-28T12:27:58+02:00"
+              "at": "2026-09-28T12:38:25+02:00"
             },
             {
               "source": "News",
               "text": "Kurs um 137 Dollar; Markt wartet auf Klarheit beim Rechenzentrum.",
               "url": "https://finance.yahoo.com/quote/ORCL",
               "lean": "mixed",
-              "at": "2026-09-28T12:27:58+02:00"
+              "at": "2026-09-28T12:38:25+02:00"
             },
             {
               "source": "News",
               "text": "Analysten senken Rating: KI-Wette könnte schiefgehen.",
               "url": "https://seekingalpha.com/",
               "lean": "bear",
-              "at": "2026-09-28T12:27:58+02:00"
+              "at": "2026-09-28T12:38:25+02:00"
             },
             {
               "source": "News",
               "text": "Großes Auftragsbuch und Cloud-Wachstum stützen die Bullen-Seite.",
               "url": "https://finance.yahoo.com/quote/ORCL",
               "lean": "bull",
-              "at": "2026-09-28T12:27:58+02:00"
+              "at": "2026-09-28T12:38:25+02:00"
             },
             {
               "source": "Reddit",
               "text": "ApeWisdom 24h: 11 Mentions, Upvotes 18, WSB 10; Sentiment ~50%.",
               "url": "https://apewisdom.io/stocks/ORCL/",
               "lean": "mixed",
-              "at": "2026-09-28T12:27:58+02:00"
+              "at": "2026-09-28T12:38:25+02:00"
             },
             {
               "source": "News",
               "text": "The Distributed: ORCL 30d ~1783 Mentions, Sentiment nahe 49% bullish.",
-              "url": "https://thedistributed.co/stocks/ORCL/",
+              "url": "https://www.thedistributed.co/stocks/ORCL/",
               "lean": "bull",
-              "at": "2026-09-28T12:27:58+02:00"
+              "at": "2026-09-28T12:38:25+02:00"
             }
           ]
         },
@@ -274,8 +280,17 @@
         }
       }
     ],
+    "freshness": {
+      "freshest_absolute": "2026-09-28T12:38:25+02:00",
+      "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
+      "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok fail (Treg auth_needed); Bright Data 401; Apify retired",
+      "scrape_berlin": "2026-09-28T12:36:00+02:00",
+      "sample_window": "Web/news ≤24h; Reddit via ApeWisdom/AltIndex/TheDistributed; X fully credits_depleted",
+      "freshest_item_age": "",
+      "oldest_usable_signal": "Force-Majeure Project Jupiter still in tape"
+    },
     "delta_vs_prev": {
-      "prev_tick_id": "2026-09-28T12:21:00+02:00",
+      "prev_tick_id": "2026-09-28T12:26:00+02:00",
       "magnitude_delta": 0,
       "confidence_delta": 0,
       "direction_prev": "mixed_cautious",
@@ -290,21 +305,13 @@
       "new_themes": [],
       "gone_themes": [],
       "sentiment_swings": [
-        "ORCL flat $137.1; BTC 82792.07 (was 82712.17); ApeWisdom mentions 11 (was 11); tape unchanged HOLD/-3"
+        "ORCL flat $137.1; BTC 82869.13 (was 82792.07); ApeWisdom mentions 11 (was 11); tape unchanged HOLD/-3"
       ],
       "note": "Δmag 0; evidence mix unchanged (X0/Reddit aggregators/Web5)"
     },
     "material_change": false,
     "material_change_reasons": [],
     "mini_series": [
-      {
-        "tick_id": "2026-09-21T17:21:00+02:00",
-        "magnitude": 36,
-        "confidence": 74,
-        "direction": "mixed_cautious",
-        "items": 93,
-        "early_signal": true
-      },
       {
         "tick_id": "2026-09-21T18:00:00+02:00",
         "magnitude": 35,
@@ -646,32 +653,25 @@
         "direction": "mixed_cautious",
         "items": 8,
         "early_signal": true
+      },
+      {
+        "tick_id": "2026-09-28T12:36:00+02:00",
+        "magnitude": 35,
+        "confidence": 66,
+        "direction": "mixed_cautious",
+        "items": 8,
+        "early_signal": true
       }
     ],
-    "chart": {
-      "magnitude": 35,
-      "confidence": 66,
-      "direction": "mixed_cautious",
-      "items": 8
-    },
-    "baseline": false,
-    "volume_enriched": true,
-    "scrape_window": {
-      "start": "2026-09-28T12:21:00+02:00",
-      "end": "2026-09-28T12:26:00+02:00",
-      "kind": "tick_interval",
-      "note": "5-Min-Routine Mo–Fr 8–22 Berlin; Tick nach #65."
-    },
-    "early_signal_note": "Mehr Pfand-Aktien; KI-Warnung bleibt, ORCL flach.",
     "signals_disclaimer": ""
   },
   "signals_disclaimer": "",
   "early_signal_note": "Mehr Pfand-Aktien; KI-Warnung bleibt, ORCL flach.",
   "freshness": {
-    "freshest_absolute": "2026-09-28T12:27:58+02:00",
+    "freshest_absolute": "2026-09-28T12:38:25+02:00",
     "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
     "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok fail (Treg auth_needed); Bright Data 401; Apify retired",
-    "scrape_berlin": "2026-09-28T12:26:00+02:00",
+    "scrape_berlin": "2026-09-28T12:36:00+02:00",
     "sample_window": "Web/news ≤24h; Reddit via ApeWisdom/AltIndex/TheDistributed; X fully credits_depleted",
     "freshest_item_age": "",
     "oldest_usable_signal": "Force-Majeure Project Jupiter still in tape"
@@ -1242,6 +1242,15 @@
     {
       "tick_id": "2026-09-28T12:26:00+02:00",
       "scraped_at": "2026-09-28T12:27:58+02:00",
+      "magnitude": 35,
+      "confidence": 66,
+      "direction": "mixed_cautious",
+      "items": 8,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-28T12:36:00+02:00",
+      "scraped_at": "2026-09-28T12:38:25+02:00",
       "magnitude": 35,
       "confidence": 66,
       "direction": "mixed_cautious",
