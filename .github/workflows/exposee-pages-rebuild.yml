@@ -57,8 +57,8 @@ jobs:
               && grep -q 'touch-action:none;' /tmp/pdf-live.html \
               && grep -q 'pointerdown",pointerDown,{passive:false}' /tmp/core-live.js \
               && grep -q 'lostpointercapture' /tmp/core-live.js \
-              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-19' /tmp/convert-live.html \
-              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-19' /tmp/convert-short-live.html \
+              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-20' /tmp/convert-live.html \
+              && grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-20' /tmp/convert-short-live.html \
               && grep -q 'function fetchWithRetry' /tmp/uocr-live.js \
               && grep -q 'withHeartbeat' /tmp/uocr-live.js \
               && grep -q 'diagnoseLocalOcrBottleneck' /tmp/uocr-live.js \
@@ -89,7 +89,7 @@ jobs:
             fi
             if [ "$i" = "18" ]; then
               echo "Live gate failed after 90s. Diagnostics:" >&2
-              grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-19' /tmp/convert-live.html || echo "MISSING: runtime v18 in converter" >&2
+              grep -q 'alantu-unlimited-ocr.js?v=browser-webgpu-20' /tmp/convert-live.html || echo "MISSING: runtime v18 in converter" >&2
               grep -q 'function fetchWithRetry' /tmp/uocr-live.js || echo "MISSING: fetchWithRetry" >&2
               grep -q 'withHeartbeat' /tmp/uocr-live.js || echo "MISSING: withHeartbeat" >&2
               grep -q 'diagnoseLocalOcrBottleneck' /tmp/uocr-live.js || echo "MISSING: diagnoseLocalOcrBottleneck" >&2
