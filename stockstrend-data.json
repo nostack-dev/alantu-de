@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-09-28T20:30:00+02:00",
+  "updated_at": "2026-09-28T20:35:00+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-28T20:30:00+02:00",
-    "scraped_at": "2026-09-28T20:32:41+02:00",
+    "tick_id": "2026-09-28T20:35:00+02:00",
+    "scraped_at": "2026-09-28T20:39:40+02:00",
     "timezone": "Europe/Berlin",
-    "scrape_window": "after 2026-09-28T20:15:00+02:00 → 2026-09-28T20:30:00+02:00",
+    "scrape_window": "after 2026-09-28T20:30:00+02:00 → 2026-09-28T20:35:00+02:00",
     "baseline": false,
     "volume_enriched": true,
     "vector": {
@@ -13,9 +13,9 @@
       "magnitude": 40,
       "confidence": 66,
       "early_signal": true,
-      "early_signal_note": "Kurs ~133.52; Force-Majeure bleibt Last."
+      "early_signal_note": "Kurs ~133.41; Force-Majeure bleibt Last."
     },
-    "early_signal_note": "Kurs ~133.52; Force-Majeure bleibt Last.",
+    "early_signal_note": "Kurs ~133.41; Force-Majeure bleibt Last.",
     "chart": {
       "magnitude": 40,
       "confidence": 66,
@@ -57,17 +57,17 @@
         "items": 5,
         "window": "same-day 2026-09-28",
         "notes": [
-          "ORCL ~$133.52 (+0.02 vs prior $133.50); Force-Majeure / Jupiter overhang still heavy",
-          "Same-day PeopleSoft breach wave (Mandiant) + AI-trade downgrade tone",
+          "ORCL ~$133.41 (-0.11 vs prior $133.52); Force-Majeure / Jupiter overhang still heavy",
+          "Same-day PeopleSoft breach wave + AI-trade downgrade + Monday slide tone",
           "Ellison canceled large share sale + pledge headlines still active",
-          "SPY ~766.68 / QQQ ~737.6; BTC ~$83872.71",
+          "SPY ~766.36 / QQQ ~737.02; BTC ~$83,782.43",
           "Fed / jobs / CPI week headlines keep risk tone mixed"
         ]
       },
       "user-Bright Data": {
         "status": "fail",
         "items": 0,
-        "error": "HTTP 401 Auth method is not supported (search_engine probe skipped; expected)"
+        "error": "HTTP 401 Auth method is not supported (discover probe; expected)"
       },
       "user-Treg": {
         "status": "auth_needed",
@@ -88,11 +88,11 @@
           "thedistributed.co"
         ],
         "window": "24h–30d aggregator snapshots 2026-09-28",
-        "freshest": "2026-09-28T20:32:41+02:00",
+        "freshest": "2026-09-28T20:39:40+02:00",
         "notes": [
           "ApeWisdom 24h: 23 mentions (WSB 22), upvotes 63, sentiment ~71% overall (API JSON + page)",
           "AltIndex: page Hold; score 46/100; Reddit mentions up 239% 24h; page Hold bias",
-          "The Distributed: ORCL 30d ~1813 mentions / ~49% bullish (near-mixed)"
+          "The Distributed: ticker page 404 this tick; reused prior 30d ~1813 mentions / ~49% bullish (near-mixed)"
         ],
         "orcl_hint": {
           "apewisdom_mentions_24h": 23,
@@ -103,22 +103,23 @@
           "altindex_score": 46,
           "altindex_reddit_up_pct_24h": 239,
           "distributed_mentions_30d": 1813,
-          "distributed_sentiment_bullish": 0.49
+          "distributed_sentiment_bullish": 0.49,
+          "distributed_note": "ticker URL 404; values from prior tick HTML snapshot"
         }
       },
       "TikTokPublic": {
         "status": "fail",
         "items": 0,
-        "note": "skipped (Treg auth_needed; Apify retired)"
+        "note": "Treg auth_needed; Apify retired — TikTok skipped"
       },
       "Yahoo": {
         "status": "ok",
         "items": 4,
         "prices": {
-          "ORCL": 133.52,
-          "SPY": 766.68,
-          "QQQ": 737.6,
-          "BTC-USD": 83872.71
+          "ORCL": 133.41,
+          "SPY": 766.36,
+          "QQQ": 737.02,
+          "BTC-USD": 83782.43
         },
         "note": "query1 chart 1m/1d"
       },
@@ -134,7 +135,7 @@
         "sentiment": "bearish",
         "strength": 84,
         "symbol": "ORCL",
-        "symbol_note": "Force majeure + cost shield still priced; ORCL ~$133.52",
+        "symbol_note": "Force majeure + cost shield still priced; ORCL ~$133.41",
         "bias": "risk_off",
         "bias_label": "Vorsicht / Bias risk-off",
         "links": {
@@ -147,7 +148,7 @@
         "sentiment": "mixed",
         "strength": 72,
         "symbol": "ORCL",
-        "symbol_note": "PeopleSoft breach + AI-trade downgrade tone same-day",
+        "symbol_note": "PeopleSoft breach + AI-trade downgrade + Monday slide tone",
         "bias": "mixed",
         "bias_label": "Gemischt",
         "links": {
@@ -156,29 +157,16 @@
         }
       },
       {
-        "theme": "US macro Fed/CPI/Jobs week",
+        "theme": "Fed / Jobs / CPI week",
         "sentiment": "mixed",
         "strength": 60,
         "symbol": "SPY",
-        "symbol_note": "SPY ~766.68 / QQQ ~737.6; risk tone mixed",
+        "symbol_note": "SPY ~766.36; rate-path headlines keep risk mixed",
         "bias": "mixed",
         "bias_label": "Gemischt",
         "links": {
           "tradingview": "https://www.tradingview.com/symbols/SPY/",
           "yahoo": "https://finance.yahoo.com/quote/SPY"
-        }
-      },
-      {
-        "theme": "Ellison pledge / sale cancel",
-        "sentiment": "mixed",
-        "strength": 55,
-        "symbol": "ORCL",
-        "symbol_note": "Canceled large sale + fresh pledge headlines; overhang/relief mix",
-        "bias": "mixed",
-        "bias_label": "Gemischt",
-        "links": {
-          "tradingview": "https://www.tradingview.com/symbols/ORCL/",
-          "yahoo": "https://finance.yahoo.com/quote/ORCL"
         }
       }
     ],
@@ -193,15 +181,15 @@
         "hype_bull": 2,
         "hype_bear": 3,
         "hype_net": -1,
-        "why": "Kurs bei etwa 133.52 Dollar, Force-Majeure bleibt Last. Frische Meldungen zu Breach und KI-Risiken — weiter abwarten.",
+        "why": "Kurs bei etwa 133.41 Dollar, Force-Majeure bleibt Last. Frische Meldungen zu Breach und KI-Risiken — weiter abwarten.",
         "evidence": {
           "x_posts": 0,
           "reddit_posts": 0,
           "news": 5,
           "snippets": [
-            "ORCL ~$133.52 (+0.02 vs prior $133.50); Force-Majeure overhang still heavy",
-            "PeopleSoft breach + AI-trade downgrade headlines (same-day)",
-            "BTC ~$83872.71; SPY ~766.68 / QQQ ~737.6; Fed/Jobs week"
+            "ORCL ~$133.41 (-0.11 vs prior $133.52); Force-Majeure overhang still heavy",
+            "PeopleSoft breach + AI-trade downgrade + Monday slide headlines",
+            "BTC ~$83,782.43; SPY ~766.36 / QQQ ~737.02; Fed/Jobs week"
           ],
           "voices": [
             {
@@ -209,94 +197,86 @@
               "text": "Force-Majeure und Kostenschutz bleiben Last — Kurs leicht unter Druck.",
               "url": "https://www.reuters.com/business/oracle-cites-force-majeure-shield-itself-controversial-data-center-bloomberg-2026-09-24/",
               "lean": "bear",
-              "at": "2026-09-28T20:32:41+02:00"
+              "at": "2026-09-28T20:39:40+02:00"
             },
             {
               "source": "News",
-              "text": "PeopleSoft-Breach-Welle (Mandiant) sorgt weiter für Unruhe.",
+              "text": "PeopleSoft-Breach-Welle und Montags-Rutsch (Benzinga) sorgen weiter für Unruhe.",
               "url": "https://www.benzinga.com/",
               "lean": "bear",
-              "at": "2026-09-28T20:32:41+02:00"
+              "at": "2026-09-28T20:39:40+02:00"
             },
             {
               "source": "News",
               "text": "Seeking Alpha sieht das KI-Narrativ kritisch — Downgrade-Ton.",
               "url": "https://seekingalpha.com/article/4950182-oracle-stock-heres-how-badly-ai-trade-could-go-rating-downgrade",
               "lean": "bear",
-              "at": "2026-09-28T20:32:41+02:00"
+              "at": "2026-09-28T20:39:40+02:00"
             },
             {
               "source": "News",
-              "text": "Ellison sagt großen Aktienverkauf ab und hinterlegt mehr Aktien — etwas Entlastung.",
+              "text": "Ellison sagt großen Aktienverkauf ab — etwas Entlastung für die Bullen.",
               "url": "https://finance.yahoo.com/quote/ORCL",
               "lean": "bull",
-              "at": "2026-09-28T20:32:41+02:00"
+              "at": "2026-09-28T20:39:40+02:00"
             },
             {
               "source": "News",
-              "text": "Kurs bei etwa 133.52 Dollar; kaum Bewegung zum Vortick.",
+              "text": "Kurs bei etwa 133.41 Dollar; leicht schwächer zum Vortick.",
               "url": "https://finance.yahoo.com/quote/ORCL",
               "lean": "mixed",
-              "at": "2026-09-28T20:32:41+02:00"
+              "at": "2026-09-28T20:39:40+02:00"
             },
             {
               "source": "News",
               "text": "Cloud- und KI-Auftragsbuch stützt die Bullen-Seite trotz Vorsicht.",
               "url": "https://finance.yahoo.com/quote/ORCL",
               "lean": "bull",
-              "at": "2026-09-28T20:32:41+02:00"
+              "at": "2026-09-28T20:39:40+02:00"
             },
             {
               "source": "Reddit",
               "text": "ApeWisdom 24h: 23 Mentions, Upvotes 63, WSB 22; Sentiment ~71%.",
               "url": "https://apewisdom.io/stocks/ORCL/",
               "lean": "mixed",
-              "at": "2026-09-28T20:32:41+02:00"
+              "at": "2026-09-28T20:39:40+02:00"
             },
             {
-              "source": "News",
-              "text": "The Distributed: ORCL 30d ~1813 Mentions, Sentiment nahe 49% bullish.",
-              "url": "https://www.thedistributed.co/stocks/ORCL/",
+              "source": "Reddit",
+              "text": "AltIndex Hold 46/100; Reddit-Mentions +239% in 24h — laut, aber kein klarer Bias.",
+              "url": "https://altindex.com/ticker/orcl",
               "lean": "mixed",
-              "at": "2026-09-28T20:32:41+02:00"
+              "at": "2026-09-28T20:39:40+02:00"
             }
           ]
         }
       }
     ],
     "freshness": {
-      "freshest_absolute": "2026-09-28T20:32:41+02:00",
+      "freshest_absolute": "2026-09-28T20:39:40+02:00",
       "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
-      "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok fail (Treg auth_needed); Bright Data 401; Apify retired",
-      "scrape_berlin": "2026-09-28T20:30:00+02:00",
-      "sample_window": "Web/news ≤24h; Reddit via ApeWisdom/AltIndex/TheDistributed; X fully credits_depleted",
+      "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok fail (Treg auth_needed); Bright Data 401; Apify retired; Distributed ticker 404",
+      "scrape_berlin": "2026-09-28T20:35:00+02:00",
+      "sample_window": "Web/news ≤24h; Reddit via ApeWisdom/AltIndex/TheDistributed(prior); X fully credits_depleted",
       "freshest_item_age": "",
       "oldest_usable_signal": "Force-Majeure Project Jupiter still overhang after ~3% drop"
     },
     "delta_vs_prev": {
-      "prev_tick_id": "2026-09-28T20:15:00+02:00",
+      "prev_tick_id": "2026-09-28T20:30:00+02:00",
       "magnitude": 0,
       "confidence": 0,
       "direction_changed": false,
       "items_usable": 0,
-      "orcl_price_delta": 0.02,
+      "orcl_price_delta": -0.11,
       "orcl_signal_changed": false,
       "notes": [
-        "Δmag 0; ORCL $133.52 was $133.50",
+        "Δmag 0; ORCL $133.41 was $133.52",
         "Stance HOLD unchanged; sources still X-depleted"
       ]
     },
     "material_change": false,
     "material_change_reasons": [],
     "mini_series": [
-      {
-        "tick_id": "2026-09-28T11:30:00+02:00",
-        "magnitude": 35,
-        "confidence": 66,
-        "direction": "mixed_cautious",
-        "items": 8,
-        "early_signal": true
-      },
       {
         "tick_id": "2026-09-28T11:36:00+02:00",
         "magnitude": 35,
@@ -616,17 +596,25 @@
         "direction": "mixed_cautious",
         "items": 8,
         "early_signal": true
+      },
+      {
+        "tick_id": "2026-09-28T20:35:00+02:00",
+        "magnitude": 40,
+        "confidence": 66,
+        "direction": "mixed_cautious",
+        "items": 8,
+        "orcl_price": 133.41
       }
     ],
     "signals_disclaimer": ""
   },
-  "early_signal_note": "Kurs ~133.52; Force-Majeure bleibt Last.",
+  "early_signal_note": "Kurs ~133.41; Force-Majeure bleibt Last.",
   "freshness": {
-    "freshest_absolute": "2026-09-28T20:32:41+02:00",
+    "freshest_absolute": "2026-09-28T20:39:40+02:00",
     "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
-    "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok fail (Treg auth_needed); Bright Data 401; Apify retired",
-    "scrape_berlin": "2026-09-28T20:30:00+02:00",
-    "sample_window": "Web/news ≤24h; Reddit via ApeWisdom/AltIndex/TheDistributed; X fully credits_depleted",
+    "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok fail (Treg auth_needed); Bright Data 401; Apify retired; Distributed ticker 404",
+    "scrape_berlin": "2026-09-28T20:35:00+02:00",
+    "sample_window": "Web/news ≤24h; Reddit via ApeWisdom/AltIndex/TheDistributed(prior); X fully credits_depleted",
     "freshest_item_age": "",
     "oldest_usable_signal": "Force-Majeure Project Jupiter still overhang after ~3% drop"
   },
@@ -1507,6 +1495,15 @@
       "direction": "mixed_cautious",
       "items": 8,
       "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-28T20:35:00+02:00",
+      "scraped_at": "2026-09-28T20:39:40+02:00",
+      "direction": "mixed_cautious",
+      "magnitude": 40,
+      "confidence": 66,
+      "early_signal": true,
+      "items": 8
     }
   ],
   "disclaimer": "",
