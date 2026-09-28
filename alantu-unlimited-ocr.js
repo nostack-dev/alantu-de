@@ -126,9 +126,9 @@ function sampleTextStyle(ctx,rect){
   // - photo/gradient/no stable background => never touch raster;
   // - two materially different foreground colors => never touch raster;
   // - antialias shades of one color are allowed.
-  const complexBackground=bgShare<.42;
-  const multicolor=secondShare>.14&&clusterSeparation>65&&dominance<.82;
-  const noisyForeground=domSpread>34;
+  const complexBackground=bgShare<.58;
+  const multicolor=secondShare>.08&&clusterSeparation>45&&dominance<.90;
+  const noisyForeground=domSpread>28;
   const safe=!complexBackground&&!multicolor&&!noisyForeground;
   let reason="";
   if(complexBackground)reason="komplexer/gradientiger Hintergrund";
@@ -155,17 +155,11 @@ function vectorizeTextRect(ctx,rect,style,sx,sy){
   const pix=(x,y,c)=>pd[((y+1)*pw+(x+1))*4+c];
   let removed=0;
   for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){
-    const tx=w<=1?0:xx/(w-1),ty=h<=1?0:yy/(h-1),oi=(yy*w+xx)*4;
+    const oi=(yy*w+xx)*4;
     const original=[pix(xx,yy,0),pix(xx,yy,1),pix(xx,yy,2)];
     const dBg=colorDistance(original,bg),dFg=colorDistance(original,fg);
-    const isGlyph=dBg>20 && dFg+7<dBg;
-    for(let c=0;c<3;c++){
-      if(isGlyph){
-        const top=pix(xx,-1,c),bottom=pix(xx,h,c),left=pix(-1,yy,c),right=pix(w,yy,c);
-        const vertical=top*(1-ty)+bottom*ty,horizontal=left*(1-tx)+right*tx;
-        od[oi+c]=clampByte((vertical+horizontal)/2);
-      }else od[oi+c]=original[c];
-    }
+    const isGlyph=dBg>12 && dFg+4<dBg;
+    for(let c=0;c<3;c++)od[oi+c]=isGlyph?bg[c]:original[c];
     if(isGlyph)removed++;
     od[oi+3]=255;
   }
@@ -191,6 +185,13 @@ async function makeVectorizedRaster(sourceCanvas,runs,pageW,pageH){
   for(const r of runs){
     const px={x0:r.bbox.x0*sx,y0:r.bbox.y0*sy,x1:r.bbox.x1*sx,y1:r.bbox.y1*sy};
     r.vectorStyle=sampleTextStyle(ctx,px);
+    const label=normalizeText(r.text),letters=(label.match(/\p{L}/gu)||[]),uppers=(label.match(/\p{Lu}/gu)||[]);
+    const heightRatio=Math.max(0,r.bbox.y1-r.bbox.y0)/Math.max(1,pageH);
+    const logoLike=label.length<=24&&heightRatio>.035&&letters.length>=2&&(uppers.length/letters.length)>.72;
+    if(logoLike){
+      r.vectorStyle.safe=false;
+      r.vectorStyle.reason="großer kurzer Versaltext / mögliches Branding";
+    }
     if(!r.vectorStyle.safe){
       r.vectorSkipped=true;
       r.vectorSkipReason=r.vectorStyle.reason;
@@ -820,7 +821,7 @@ async function convertPage(pageNo,token,onPreview=()=>{}){
         const fallback=await runSmallFallbackOcr(canvas,base.width,base.height,primaryError);
         if(token!==loadToken)throw new Error("cancelled");
         ocr=filterNativeDuplicates(fallback,native);provisional.ocrFallback=true;provisional.ocrNoText=ocr.length===0;
-        setStatus(ocr.length?"Fallback-OCR fertig · Bildtext wird als echter PDF-Textlayer ergänzt.":"Fallback-OCR fertig · auf dieser Bildseite wurde kein Text gefunden.",ocr.length?"ok":"");
+        setStatus(ocr.length?"Fallback-OCR fertig · Bildtext wird als sichtbarer echter PDF-Text ersetzt.":"Fallback-OCR fertig · auf dieser Bildseite wurde kein Text gefunden.",ocr.length?"ok":"");
       }catch(fallbackErr){
         if(fallbackErr?.message==="cancelled")throw fallbackErr;
         provisional.ocrError=primaryError+" | Fallback: "+shortError(fallbackErr);console.error(fallbackErr);
@@ -831,11 +832,18 @@ async function convertPage(pageNo,token,onPreview=()=>{}){
   }
   provisional.ocr=ocr;
   provisional.rawOcr=rawOcr;
-  // Searchable-PDF contract: NEVER repaint/replace original pixels. This is
-  // deliberate branding protection for multicolor logos, gradients, photos,
-  // antialiasing and custom type. OCR contributes text objects only.
-  provisional.vectorPngBytes=pngBytes;
-  provisional.vectorRasterUrl=previewUrl;
+  // Safe hybrid replacement: only flat-background, single-colour, non-brand
+  // OCR runs are removed from the raster and rebuilt as visible PDF/SVG text.
+  // Complex, multicolour, photo/gradient or logo-like runs stay baked exactly
+  // as they were. No invisible OCR text is created for skipped runs.
+  if(ocr.length){
+    const vectorized=await makeVectorizedRaster(canvas,ocr,base.width,base.height);
+    provisional.vectorPngBytes=vectorized.bytes;
+    provisional.vectorRasterUrl=vectorized.url;
+  }else{
+    provisional.vectorPngBytes=pngBytes;
+    provisional.vectorRasterUrl=previewUrl;
+  }
   provisional.processing=false;
   canvas.width=1;canvas.height=1;
   return provisional;
@@ -845,30 +853,28 @@ function allText(page){return [...page.native,...page.ocr]}
 function updateMetrics(){
   const native=pages.reduce((n,p)=>n+p.native.length,0);
   const imageText=pages.reduce((n,p)=>n+p.ocr.length,0);
-  const imageChars=pages.reduce((n,p)=>n+p.ocr.reduce((m,r)=>m+normalizeText(r.text).replace(/\s/g,"").length,0),0);
+  const converted=pages.reduce((n,p)=>n+p.ocr.filter(r=>r.vectorTextReady&&!r.vectorSkipped).length,0);
+  const skipped=pages.reduce((n,p)=>n+p.ocr.filter(r=>r.vectorSkipped).length,0);
+  const imageChars=pages.reduce((n,p)=>n+p.ocr.filter(r=>r.vectorTextReady&&!r.vectorSkipped).reduce((m,r)=>m+normalizeText(r.text).replace(/\s/g,"").length,0),0);
   const aiPages=pages.filter(p=>p.usedAi).length;
-  const convertedImagePages=pages.filter(p=>p.usedAi&&p.ocr.length>0).length;
   const pendingAi=pages.some(p=>p.processing);
   const fallbackAttempted=pages.filter(p=>p.ocrFallbackAttempted).length;
-  const fallbackAi=pages.filter(p=>p.ocrFallback&&p.ocr.length>0).length;
-  const noTextAi=pages.filter(p=>p.ocrNoText&&!p.ocrError).length;
   const failedAi=pages.filter(p=>p.ocrError&&!p.ocr.length).length;
-  const coverage=aiPages?Math.round(convertedImagePages/aiPages*100):null;
   if(!pages.length)setBottleneck("—");
   mPages.textContent=pages.length?String(pages.length):"—";
   mNative.textContent=pages.length?String(native):"—";
   mImageText.textContent=pages.length?String(imageText):"—";
   if(!pages.length)mImageTextPercent.textContent="—";
   else if(pendingAi)mImageTextPercent.textContent="läuft …";
-  else if(failedAi)mImageTextPercent.textContent=`${coverage||0} % Bildseiten mit OCR · ${failedAi}/${aiPages} ohne Textlayer`;
-  else if(aiPages)mImageTextPercent.textContent=`${coverage} % Bildseiten mit OCR · 100 % erkannter OCR-Text → PDF-Textlayer · ${imageText} Blöcke / ${imageChars} Zeichen`;
-  else mImageTextPercent.textContent="— · keine Rasterbilder";
+  else if(failedAi&&!converted)mImageTextPercent.textContent="0 echte Textobjekte · OCR fehlgeschlagen";
+  else if(imageText)mImageTextPercent.textContent=`${converted}/${imageText} OCR-Blöcke → sichtbarer echter Text · ${skipped} sicher übersprungen · ${imageChars} Zeichen`;
+  else mImageTextPercent.textContent="— · kein Bildtext";
   mBaked.textContent=pages.length?String(pages.length):"—";
-  mVisual.textContent=pages.length?"Originaloptik unverändert":"—";
+  mVisual.textContent=pages.length?(converted?"Hybrid · sichere Bildtexte ersetzt":"Original · nichts sicher ersetzbar"):"—";
   if(mIndexable){
     if(!pages.length)mIndexable.textContent="—";
-    else if(lastPdfVerification?.ok)mIndexable.textContent="verifiziert · "+lastPdfVerification.pages+" Seiten";
-    else mIndexable.textContent="bereit · Prüfung beim Export";
+    else if(lastPdfVerification?.ok)mIndexable.textContent=`verifiziert · ${lastPdfVerification.converted}/${lastPdfVerification.recognized} OCR-Blöcke echt`;
+    else mIndexable.textContent=converted?"bereit · Prüfung beim Export":"nur vorhandener PDF-Text";
   }
   if(fallbackAttempted){
     const codes=[...new Set(pages.filter(p=>p.ocrFallbackAttempted).map(p=>p.ocrPrimaryCode).filter(Boolean))];
@@ -922,16 +928,19 @@ function renderCompare(){
   sideGrid.hidden=compareMode!=="side";
   overlayWrap.hidden=compareMode!=="overlay";
   overlayStage.hidden=compareMode!=="overlay";
-  // Searchable-PDF preview: visual pixels stay exactly the original.
-  // The boxes only show where machine-readable OCR text will be placed.
-  beforeImg.src=p.previewUrl;afterImg.src=p.previewUrl;overlayBefore.src=p.previewUrl;overlayAfter.src=p.previewUrl;
-  if(afterVectorSvg){afterVectorSvg.innerHTML="";afterVectorSvg.removeAttribute("data-role")}
-  if(overlayVectorSvg){overlayVectorSvg.innerHTML="";overlayVectorSvg.removeAttribute("data-role")}
+  beforeImg.src=p.previewUrl;
+  afterImg.src=p.vectorRasterUrl||p.previewUrl;
+  overlayBefore.src=p.previewUrl;
+  overlayAfter.src=p.vectorRasterUrl||p.previewUrl;
+  renderVectorSvgLayer(afterVectorSvg,p);
+  renderVectorSvgLayer(overlayVectorSvg,p);
   makeBoxes(afterOverlay,p);makeBoxes(overlayBoxes,p);
   pageCounter.textContent=`${currentPage+1} / ${pages.length}`;
   prevBtn.disabled=currentPage<=0;nextBtn.disabled=currentPage>=pages.length-1;
   const opacity=Number(overlayOpacity.value)/100;
-  overlayAfter.style.opacity=String(opacity);if(overlayVectorSvg)overlayVectorSvg.style.opacity=String(opacity);overlayValue.textContent=Math.round(opacity*100)+"%";
+  overlayAfter.style.opacity=String(opacity);
+  if(overlayVectorSvg)overlayVectorSvg.style.opacity=String(opacity);
+  overlayValue.textContent=Math.round(opacity*100)+"%";
 }
 function setCompareMode(mode){
   compareMode=mode;
@@ -966,13 +975,10 @@ function safePdfText(font,text){
   return normalizeText(out);
 }
 async function verifyMachineReadablePdf(bytes){
-  const expectedByPage=pages.map(p=>[...(p.native||[]),...(p.ocr||[])]
-    .map(r=>normalizeText(r.text).split(/\s+/).map(cleanForCompare).filter(t=>t.length>=3))
-    .flat()
-    .filter(Boolean));
-  // Use PDF.js itself, because this is the same class of text extraction that
-  // archives/search indexers consume. A PDF is not called "fertig" unless the
-  // OCR text can actually be read back from the exported PDF.
+  const expectedByPage=pages.map(p=>[
+      ...(p.native||[]),
+      ...(p.ocr||[]).filter(r=>r.vectorTextReady&&!r.vectorSkipped)
+    ].map(r=>normalizeText(r.text).split(/\s+/).map(cleanForCompare).filter(t=>t.length>=3)).flat().filter(Boolean));
   const doc=await pdfjsLib.getDocument({data:new Uint8Array(bytes),disableWorker:true}).promise;
   try{
     if(doc.numPages!==pages.length)throw new Error("Seitenzahl nach Export stimmt nicht.");
@@ -980,12 +986,12 @@ async function verifyMachineReadablePdf(bytes){
     for(let i=1;i<=doc.numPages;i++){
       const pg=await doc.getPage(i),tc=await pg.getTextContent();
       const extracted=cleanForCompare((tc.items||[]).map(x=>x.str||"").join(" "));
-      for(const wanted of expectedByPage[i-1]){
-        if(!extracted.includes(wanted))missing.push({page:i,text:wanted.slice(0,80)});
-      }
+      for(const wanted of expectedByPage[i-1])if(!extracted.includes(wanted))missing.push({page:i,text:wanted.slice(0,80)});
     }
-    if(missing.length)throw new Error("Textlayer nicht vollständig auslesbar: "+missing.slice(0,3).map(x=>"S."+x.page+" "+x.text).join(" | "));
-    return {ok:true,pages:doc.numPages,ocrRuns:expectedByPage.reduce((n,a)=>n+a.length,0)};
+    if(missing.length)throw new Error("Echter Text nicht vollständig auslesbar: "+missing.slice(0,3).map(x=>"S."+x.page+" "+x.text).join(" | "));
+    const recognized=pages.reduce((n,p)=>n+(p.ocr||[]).length,0);
+    const converted=pages.reduce((n,p)=>n+(p.ocr||[]).filter(r=>r.vectorTextReady&&!r.vectorSkipped).length,0);
+    return {ok:true,pages:doc.numPages,recognized,converted};
   }finally{try{await doc.destroy()}catch{}}
 }
 
@@ -993,49 +999,64 @@ async function buildSearchablePdf(){
   if(!pages.length)return null;
   if(!sourcePdfBytes)throw new Error("Original-PDF ist nicht mehr im Speicher.");
   busy.classList.add("show");
-  busy.textContent="Searchable PDF wird gebaut …";
-  setStatus("Original bleibt unverändert · erkannter Bildtext wird als maschinenlesbarer PDF-Textlayer ergänzt …");
+  busy.textContent="PDF mit echtem Text wird gebaut …";
+  setStatus("Sichere Bildtexte werden aus dem Raster entfernt und als sichtbare PDF-Textobjekte neu gesetzt …");
   const out=await PDFDocument.create();
   const regular=await out.embedFont(StandardFonts.Helvetica);
   const src=await PDFDocument.load(sourcePdfBytes,{ignoreEncryption:true});
   const copied=await out.copyPages(src,src.getPageIndices());
 
-  const drawInvisible=(page,p,r)=>{
+  const drawVisible=(page,p,r)=>{
     const text=safePdfText(regular,r.text);if(!text)return;
     const b=r.bbox,boxW=Math.max(2,b.x1-b.x0),boxH=Math.max(2,b.y1-b.y0);
     const widthAt1=Math.max(.01,regular.widthOfTextAtSize(text,1));
     const size=Math.max(2,Math.min(boxH*.82,boxW/widthAt1));
     const y=p.height-b.y1+(boxH-size)*.45;
-    page.drawText(text,{
-      x:b.x0,y,size,font:regular,
-      color:rgb(0,0,0),opacity:0,lineHeight:size
-    });
+    const col=r.vectorStyle?.rgb||[0,0,0];
+    page.drawText(text,{x:b.x0,y,size,font:regular,color:rgb(col[0],col[1],col[2]),opacity:1,lineHeight:size});
   };
 
   for(let i=0;i<pages.length;i++){
-    const p=pages[i];
-    busy.textContent=`PDF-Seite ${i+1} / ${pages.length} · Textlayer`;
+    const p=pages[i],converted=(p.ocr||[]).filter(r=>r.vectorTextReady&&!r.vectorSkipped);
+    busy.textContent=`PDF-Seite ${i+1} / ${pages.length} · echter Text`;
     setProgress((i/pages.length)*100);
-    const page=copied[i];
-    if(!page)throw new Error("Originalseite "+(i+1)+" konnte nicht übernommen werden.");
-    // Always preserve the original PDF page, including its native text,
-    // vectors, colors, transparency, branding and page rotation. We NEVER
-    // rasterize/replace it in the searchable-PDF export.
-    out.addPage(page);
-    for(const r of p.ocr||[])drawInvisible(page,p,r);
+
+    // Image-only pages can be rebuilt cleanly: original raster with only safe
+    // text pixels removed + visible PDF text objects. This actually replaces
+    // image text instead of layering invisible search text on top.
+    if((p.native||[]).length===0&&converted.length>0&&p.vectorPngBytes){
+      const page=out.addPage([p.width,p.height]);
+      const img=await out.embedPng(p.vectorPngBytes);
+      page.drawImage(img,{x:0,y:0,width:p.width,height:p.height});
+      for(const r of converted)drawVisible(page,p,r);
+    }else{
+      // Mixed/native-vector pages keep their original PDF objects. For each
+      // safe OCR run, cover only that text's cleaned raster patch, then place
+      // visible real text. Unsafe branding/photo/gradient runs are untouched.
+      const page=copied[i];
+      if(!page)throw new Error("Originalseite "+(i+1)+" konnte nicht übernommen werden.");
+      out.addPage(page);
+      for(const r of converted){
+        if(r.diffPatchBytes&&r.diffPatchBox){
+          const patch=await out.embedPng(r.diffPatchBytes),b=r.diffPatchBox;
+          page.drawImage(patch,{x:b.x0,y:p.height-b.y1,width:b.x1-b.x0,height:b.y1-b.y0});
+        }
+        drawVisible(page,p,r);
+      }
+    }
     if(i%2===1)await new Promise(requestAnimationFrame);
   }
 
   out.setTitle(sanitizeName(sourceName));
-  out.setSubject("ALANTU searchable PDF · original appearance + machine-readable text layer");
-  out.setKeywords(["searchable PDF","OCR","text layer","full text index"]);
-  out.setProducer("ALANTU searchable PDF");
+  out.setSubject("ALANTU hybrid PDF · raster text replaced by visible machine-readable PDF text where visually safe");
+  out.setKeywords(["machine-readable PDF","OCR","visible text objects","full text index"]);
+  out.setProducer("ALANTU hybrid text replacement");
   const bytes=await out.save({useObjectStreams:false});
-  setStatus("Textlayer wird aus exportierter PDF zurückgelesen …");
+  setStatus("Echter Text wird aus exportierter PDF zurückgelesen …");
   lastPdfVerification=await verifyMachineReadablePdf(bytes);
-  if(mIndexable)mIndexable.textContent="verifiziert · "+lastPdfVerification.pages+" Seiten";
+  if(mIndexable)mIndexable.textContent=`verifiziert · ${lastPdfVerification.converted}/${lastPdfVerification.recognized} OCR-Blöcke echt`;
   setProgress(100);
-  setStatus("Fertig · Original unverändert · Text markieren/kopieren · Volltextindex verifiziert.","ok");
+  setStatus(`Fertig · ${lastPdfVerification.converted}/${lastPdfVerification.recognized} OCR-Blöcke als sichtbarer echter Text · Branding/komplexe Bereiche bleiben original.`,"ok");
   busy.classList.remove("show");
   setTimeout(()=>setProgress(0),900);
   return new Blob([bytes],{type:"application/pdf"});
@@ -1105,9 +1126,9 @@ async function loadPdf(file){
     const failureHint=firstFailure?" · "+shortError(firstFailure.ocrError).slice(0,220):"";
     setStatus(
       noImprovement?`Kein OCR-Text erzeugt · ${failed} technische Fehler / ${noText} Seiten ohne erkannten Text. Export gesperrt, weil kein zusätzlicher maschinenlesbarer Text entstanden ist.${failureHint}`:
-      failed?`${pages.length} Seiten fertig · ${fallback} Bildseiten via Fallback als Textlayer ergänzt · ${failed}/${aiPages} Bildseiten nach kompletter Kaskade ohne Textlayer.${failureHint}`:
+      failed?`${pages.length} Seiten fertig · ${fallback} Bildseiten via Fallback als sichtbarer echter Text ersetzt · ${failed}/${aiPages} Bildseiten nach kompletter Kaskade ohne Textlayer.${failureHint}`:
       fallback?`${pages.length} Seiten fertig · Fallback-OCR auf ${fallback} Bildseiten${noText?`, ${noText} ohne gefundenen Text`:""}.`:
-      `${pages.length} Seiten fertig · Originaloptik erhalten · maschinenlesbarer Textlayer bereit.`,
+      `${pages.length} Seiten fertig · Originaloptik erhalten · sichtbarer echter PDF-Text bereit.`,
       (noImprovement||failed)?"error":"ok"
     );
     downloadPdfBtn.disabled=noImprovement;downloadSvgBtn.disabled=noImprovement;currentPage=0;renderCompare();setTimeout(()=>setProgress(0),900);
@@ -1142,5 +1163,5 @@ sideBtn.addEventListener("click",()=>setCompareMode("side"));overlayBtn.addEvent
 overlayOpacity.addEventListener("input",renderCompare);showBoxes.addEventListener("change",renderCompare);
 downloadPdfBtn.addEventListener("click",downloadPdf);downloadSvgBtn.addEventListener("click",downloadSvg);clearModelBtn.addEventListener("click",clearModelCache);
 
-window.__alantuSearchablePdfContract={nativeText:"preserved-original-pdf-objects",ocrText:"invisible-real-pdf-text-objects",visual:"original-pdf-preserved-no-pixel-replacement",fullTextIndex:"verified-by-pdfjs-readback-on-export",copyable:true,brandingSafe:true,manualAnchor:false};
+window.__alantuSearchablePdfContract={nativeText:"preserved-original-pdf-objects",ocrText:"visible-real-pdf-text-for-safe-raster-runs",visual:"safe-raster-text-removed-and-replaced-complex-branding-preserved",fullTextIndex:"verified-visible-text-by-pdfjs-readback-on-export",copyable:true,brandingSafe:true,invisibleOcrText:false,manualAnchor:false};
 mEngine.textContent="Unlimited-OCR 3B · WebGPU native";updateMetrics();setCompareMode("side");
