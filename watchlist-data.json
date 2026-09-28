@@ -1,7 +1,12 @@
 {
-  "updated_at": "2026-09-28T09:41:00+02:00",
+  "updated_at": "2026-09-28T09:46:00+02:00",
   "watchlist": [
-    "ORCL"
+    {
+      "symbol": "ORCL",
+      "name": "Oracle",
+      "added_at": "2026-09-17T11:30:00+02:00",
+      "note": ""
+    }
   ],
   "stocks": {
     "ORCL": {
@@ -9,7 +14,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-28T09:41:00+02:00",
+        "at": "2026-09-28T09:46:00+02:00",
         "signal": "hold",
         "social_impulse": -3,
         "hype_bull": 38,
@@ -1096,6 +1101,22 @@
           "voice_bear": 2,
           "voice_mixed": 3,
           "price": 137.1
+        },
+        {
+          "at": "2026-09-28T09:46:00+02:00",
+          "signal": "hold",
+          "social_impulse": -3,
+          "confidence": 65,
+          "x_posts": 0,
+          "reddit_posts": 0,
+          "news": 5,
+          "hype_bull": 38,
+          "hype_bear": 25,
+          "hype_net": 13,
+          "voice_bull": 3,
+          "voice_bear": 2,
+          "voice_mixed": 3,
+          "price": 137.1
         }
       ],
       "voices_archive": [
@@ -1524,7 +1545,7 @@
       "hype_net": 13,
       "confidence": 65,
       "hype_state": "mixed",
-      "updated_at": "2026-09-28T09:41:00+02:00",
+      "updated_at": "2026-09-28T09:46:00+02:00",
       "why": "Force-Majeure und Kreditdruck belasten; Stifel hält Buy. Kurs flach bei etwa 137 Dollar.",
       "evidence": {
         "X": 0,
@@ -1535,7 +1556,7 @@
         "bull": 3,
         "bear": 2,
         "mixed": 3,
-        "updated_at": "2026-09-28T09:41:00+02:00"
+        "updated_at": "2026-09-28T09:46:00+02:00"
       },
       "hype_mixed": 37,
       "sentiment_unit": "percent_all_classified",
