@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-09-28T08:05:00+02:00",
+  "updated_at": "2026-09-28T08:15:00+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-28T08:05:00+02:00",
-    "scraped_at": "2026-09-28T08:07:16+02:00",
+    "tick_id": "2026-09-28T08:15:00+02:00",
+    "scraped_at": "2026-09-28T08:18:07+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "user-X": {
@@ -29,10 +29,10 @@
         "items": 5,
         "window": "same-day 2026-09-28",
         "notes": [
-          "Futures soft Mon open; Fear&Greed ~36 Fear; SPY ~771 / QQQ ~744",
-          "ORCL ~$137.10; Force-Majeure Project Jupiter (NM) still live after Sep 24",
+          "Stifel reiterated Buy / PT $200 after Force-Majeure; ORCL ~$137.10",
+          "Force-Majeure Project Jupiter (NM) still live after Sep 24",
           "AI backlog ~$664B vs debt/cash-burn and capex caution",
-          "BTC ~$83,137; risk appetite muted into NFP week",
+          "Fear&Greed ~36–37 Fear; SPY ~771.35 / QQQ ~744.50; BTC ~$83,221",
           "Macro: NFP Fr 02.10, Core PCE Wed 30.09, CPI ~14.10, FOMC 28.10"
         ]
       },
@@ -60,10 +60,10 @@
           "thedistributed.co"
         ],
         "window": "24h–30d aggregator snapshots 2026-09-28",
-        "freshest": "2026-09-28T08:07:16+02:00",
+        "freshest": "2026-09-28T08:18:07+02:00",
         "notes": [
           "ApeWisdom 24h: 9 mentions (Upvotes 15), sentiment ~50% overall",
-          "AltIndex: ~38 daily investing-subreddit mentions; sentiment 77/100; AI Score 50 Hold; mentions +239% 24h",
+          "AltIndex: ~38 daily investing-subreddit mentions; sentiment 77/100; AI Score 50 Hold",
           "The Distributed 30d: 1781 mentions; 49% bull / 19% bear / 32% neutral (updated 28 Sep 2026)"
         ],
         "orcl_hint": {
@@ -88,7 +88,7 @@
           "ORCL": 137.1,
           "SPY": 771.35,
           "QQQ": 744.5,
-          "BTC-USD": 83137.33
+          "BTC-USD": 83221.17
         },
         "note": "query2 chart 5d"
       }
@@ -105,30 +105,43 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-28T08:07:16+02:00",
+      "freshest_absolute": "2026-09-28T08:18:07+02:00",
       "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
       "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok skip; Bright Data 401; Treg auth_needed",
-      "scrape_berlin": "2026-09-28T08:05:00+02:00",
-      "sample_window": "Web/news ≤few days Force-Majeure+market; Reddit via ApeWisdom/AltIndex/TheDistributed; X credits_depleted",
+      "scrape_berlin": "2026-09-28T08:15:00+02:00",
+      "sample_window": "Web/news ≤few days Force-Majeure+Stifel+market; Reddit via ApeWisdom/AltIndex/TheDistributed; X credits_depleted",
       "freshest_item_age": "",
       "oldest_usable_signal": "Force-Majeure Project Jupiter Sep 24; NFP week; ORCL ~$137"
     },
     "vector": {
       "direction": "mixed_cautious",
       "magnitude": 35,
-      "confidence": 68,
+      "confidence": 67,
       "early_signal": true,
-      "early_signal_note": "Force-Majeure und Kursdruck; Markt vorsichtig."
+      "early_signal_note": "Force-Majeure bleibt; Stifel hält Buy."
     },
     "top_themes": [
       {
         "theme": "Force-Majeure Project Jupiter",
         "sentiment": "bearish",
-        "strength": 88,
+        "strength": 86,
         "symbol": "ORCL",
-        "symbol_note": "Sep 24 notice still live; ORCL ~$137; lenders/debt pressure",
+        "symbol_note": "Sep 24 notice still live; ORCL ~$137; Stifel sees precautionary, keeps Buy $200",
         "bias": "risk_off",
         "bias_label": "Vorsicht / Bias risk-off",
+        "links": {
+          "tradingview": "https://www.tradingview.com/symbols/ORCL/",
+          "yahoo": "https://finance.yahoo.com/quote/ORCL"
+        }
+      },
+      {
+        "theme": "Stifel Buy vs Debt/Capex Mixed",
+        "sentiment": "mixed",
+        "strength": 74,
+        "symbol": "ORCL",
+        "symbol_note": "Stifel Buy PT $200; backlog ~$664B vs debt/cash-burn; AI Score 50 Hold",
+        "bias": "mixed",
+        "bias_label": "Abwarten / Bias mixed",
         "links": {
           "tradingview": "https://www.tradingview.com/symbols/ORCL/",
           "yahoo": "https://finance.yahoo.com/quote/ORCL"
@@ -137,27 +150,14 @@
       {
         "theme": "Morning Futures Soft / Fear Zone",
         "sentiment": "leicht_bearish",
-        "strength": 70,
+        "strength": 68,
         "symbol": "SPY",
-        "symbol_note": "SPY ~771 / QQQ ~744; Fear&Greed ~36 Fear; BTC ~$83.1k",
+        "symbol_note": "SPY ~771 / QQQ ~744; Fear&Greed ~36–37 Fear; BTC ~$83.2k",
         "bias": "risk_off",
         "bias_label": "Vorsicht / Bias risk-off",
         "links": {
           "tradingview": "https://www.tradingview.com/symbols/SPY/",
           "yahoo": "https://finance.yahoo.com/quote/SPY"
-        }
-      },
-      {
-        "theme": "ORCL AI Backlog vs Debt Mixed",
-        "sentiment": "mixed",
-        "strength": 76,
-        "symbol": "ORCL",
-        "symbol_note": "~$137; backlog ~$664B vs Force-Majeure/debt; Reddit ApeWisdom 9/24h @50%",
-        "bias": "mixed",
-        "bias_label": "Abwarten / Bias mixed",
-        "links": {
-          "tradingview": "https://www.tradingview.com/symbols/ORCL/",
-          "yahoo": "https://finance.yahoo.com/quote/ORCL"
         }
       },
       {
@@ -175,9 +175,9 @@
       }
     ],
     "delta_vs_prev": {
-      "prev_tick_id": "2026-09-22T08:25:00+02:00",
-      "magnitude_delta": 5,
-      "confidence_delta": 3,
+      "prev_tick_id": "2026-09-28T08:05:00+02:00",
+      "magnitude_delta": 0,
+      "confidence_delta": -1,
       "direction_prev": "mixed_cautious",
       "direction_now": "mixed_cautious",
       "direction_changed": false,
@@ -188,21 +188,17 @@
       "volume_now": 8,
       "volume_change_pct": 0.0,
       "new_themes": [
-        "Force-Majeure Project Jupiter",
-        "NFP Week Macro Pressure"
+        "Stifel Buy nach Force-Majeure"
       ],
-      "gone_themes": [
-        "SoftBank-Schulden Bonds LIVE",
-        "Morning Futures Mild Bid"
-      ],
+      "gone_themes": [],
       "sentiment_swings": [
-        "After multi-day gap: ORCL $148.56→$137.10; Force-Majeure replaces SoftBank-bonds headline; Reddit 49/19/32 vs prior 50/17/33; X still credits_exhausted"
+        "10-min tick: ORCL flat $137.10; Stifel Buy $200 counterweight to Force-Majeure; Reddit aggregators unchanged; X still credits_exhausted"
       ],
       "orcl": {
-        "impulse_prev": 0,
-        "impulse_now": -5,
-        "hype_net_prev": 1,
-        "hype_net_now": -1,
+        "impulse_prev": -5,
+        "impulse_now": -3,
+        "hype_net_prev": -1,
+        "hype_net_now": 1,
         "signal_prev": "hold",
         "signal_now": "hold"
       },
@@ -215,24 +211,20 @@
         "web_now": 5
       }
     },
-    "material_change": true,
-    "material_change_reasons": [
-      "magnitude_delta_abs>=5 (30→35)",
-      "ORCL price swing vs #36 ($148.56→$137.10)",
-      "new Force-Majeure theme Project Jupiter"
-    ],
+    "material_change": false,
+    "material_change_reasons": [],
     "chart": {
       "magnitude": 35,
-      "confidence": 68,
+      "confidence": 67,
       "direction": "mixed_cautious",
       "items": 8
     },
     "baseline": false,
     "scrape_window": {
-      "start": "2026-09-22T08:25:00+02:00",
-      "end": "2026-09-28T08:05:00+02:00",
-      "kind": "gap_resume",
-      "note": "Tick #37 after multi-day gap (last #36 2026-09-22; routine failed 2026-09-25). Publish partial OK."
+      "start": "2026-09-28T08:05:00+02:00",
+      "end": "2026-09-28T08:15:00+02:00",
+      "kind": "scheduled_5min",
+      "note": "Tick #38 scheduled Mo–Fr 5-min window; publish partial OK (X skipped)."
     },
     "volume_enriched": true,
     "mini_series": [
@@ -506,12 +498,20 @@
         "direction": "mixed_cautious",
         "items": 8,
         "early_signal": true
+      },
+      {
+        "tick_id": "2026-09-28T08:15:00+02:00",
+        "magnitude": 35,
+        "confidence": 67,
+        "direction": "mixed_cautious",
+        "items": 8,
+        "early_signal": true
       }
     ],
     "overall_bias": {
       "key": "mixed",
       "label": "Gemischt / vorsichtig",
-      "note": "Force-Majeure und Kursdruck bei ORCL; Fear-Zone und NFP-Woche halten Vorsicht. X-Credits erschöpft."
+      "note": "Force-Majeure bleibt bei ORCL; Stifel-Buy und Auftragsbuch halten Gegengewicht. X-Credits erschöpft."
     },
     "macro_calendar": [
       {
@@ -555,77 +555,77 @@
         "name": "Oracle",
         "hype_state": "mixed",
         "signal": "hold",
-        "confidence": 66,
-        "social_impulse": -5,
-        "hype_bull": 2,
-        "hype_bear": 3,
-        "hype_net": -1,
-        "why": "Force-Majeure bei Project Jupiter und hohe Schulden belasten. Kurs etwa 137 Dollar, Reddit gemischt.",
+        "confidence": 65,
+        "social_impulse": -3,
+        "hype_bull": 3,
+        "hype_bear": 2,
+        "hype_net": 1,
+        "why": "Force-Majeure bei Project Jupiter bleibt Thema, Analysten halten aber Buy. Kurs etwa 137 Dollar, Reddit gemischt.",
         "evidence": {
           "x_posts": 0,
           "reddit_posts": 0,
           "news": 5,
           "snippets": [
-            "Force-Majeure Project Jupiter still live — ORCL ~$137.10",
-            "ORCL voices bull2/bear3/mixed3; Reddit ApeWisdom 9/24h @50%; X skipped (credits)",
-            "Futures soft; Fear&Greed ~36; BTC ~$83.1k; NFP Fr 02.10"
+            "Force-Majeure Project Jupiter still live — ORCL ~$137.10; Stifel Buy PT $200",
+            "ORCL voices bull3/bear2/mixed3; Reddit ApeWisdom 9/24h @50%; X skipped (credits)",
+            "Fear&Greed ~36–37; BTC ~$83,221; NFP Fr 02.10"
           ],
           "voices": [
             {
               "source": "News",
-              "text": "Force-Majeure bei Project Jupiter in New Mexico; Aktien und Kredite unter Druck.",
+              "text": "Force-Majeure bei Project Jupiter bleibt aktuell; Aktien und Kredite unter Druck.",
               "url": "https://elpasomatters.org/2026/09/24/project-jupiter-rent-force-majeure-new-mexico-oracle-ai-el-paso-data-center/",
               "lean": "bear",
-              "at": "2026-09-28T08:07:16+02:00"
+              "at": "2026-09-28T08:18:07+02:00"
             },
             {
               "source": "News",
-              "text": "ORCL-Kurs um etwa 137 Dollar; Schulden und hoher Capex bleiben Gegenwind.",
-              "url": "https://www.abqjournal.com/business/oracle-invokes-force-majeure-on-project-jupiter-but-says-data-center-still-on-track/3127907",
-              "lean": "bear",
-              "at": "2026-09-28T08:07:16+02:00"
+              "text": "Stifel hält Buy und Kursziel 200 Dollar; sieht Notice eher als Vorsicht.",
+              "url": "https://finbold.com/wall-street-sets-oracle-stock-price-target-for-next-12-months-2/",
+              "lean": "bull",
+              "at": "2026-09-28T08:18:07+02:00"
             },
             {
               "source": "News",
               "text": "Auftragsbuch rund 664 Mrd. Dollar; AI-Wachstum bleibt das Gegenargument.",
               "url": "https://www.insidermonkey.com/news/oracle-orcl-reports-a-664-billion-backlog-can-ai-growth-outpace-its-cash-burn-1840386/",
               "lean": "bull",
-              "at": "2026-09-28T08:07:16+02:00"
+              "at": "2026-09-28T08:18:07+02:00"
             },
             {
               "source": "News",
-              "text": "Fear-and-Greed etwa 36 (Fear); Futures zum Wochenstart weich.",
+              "text": "ORCL-Kurs um etwa 137 Dollar; Schulden und hoher Capex bleiben Gegenwind.",
+              "url": "https://www.abqjournal.com/business/oracle-invokes-force-majeure-on-project-jupiter-but-says-data-center-still-on-track/3127907",
+              "lean": "bear",
+              "at": "2026-09-28T08:18:07+02:00"
+            },
+            {
+              "source": "News",
+              "text": "Fear-and-Greed etwa 36–37 (Fear); Risikoappetit vor NFP verhalten.",
               "url": "https://www.benzinga.com/markets/market-summary/26/09/61989154/dow-drops-for-third-session-investor-sentiment-improves-but-greed-index-remains-in-fear-zone",
               "lean": "mixed",
-              "at": "2026-09-28T08:07:16+02:00"
-            },
-            {
-              "source": "News",
-              "text": "BTC etwa 83.100 Dollar; Risikoappetit verhalten vor NFP.",
-              "url": "https://finance.yahoo.com/quote/BTC-USD",
-              "lean": "mixed",
-              "at": "2026-09-28T08:07:16+02:00"
+              "at": "2026-09-28T08:18:07+02:00"
             },
             {
               "source": "Reddit",
               "text": "ApeWisdom: ORCL 9 Mentions/24h (Upvotes 15), Sentiment ~50%.",
               "url": "https://apewisdom.io/stocks/ORCL/",
               "lean": "mixed",
-              "at": "2026-09-28T08:07:16+02:00"
+              "at": "2026-09-28T08:18:07+02:00"
             },
             {
               "source": "Reddit",
-              "text": "AltIndex: ~38 Mentions/Tag, Sentiment 77/100, AI-Score 50 Hold; Mentions +239% 24h.",
+              "text": "AltIndex: ~38 Mentions/Tag, Sentiment 77/100, AI-Score 50 Hold.",
               "url": "https://altindex.com/ticker/orcl",
               "lean": "bull",
-              "at": "2026-09-28T08:07:16+02:00"
+              "at": "2026-09-28T08:18:07+02:00"
             },
             {
               "source": "Reddit",
               "text": "TheDistributed 30d: 1781 Mentions, 49% bull / 19% bear / 32% neutral (Stand 28.09.).",
               "url": "https://thedistributed.co/stocks/ORCL",
               "lean": "mixed",
-              "at": "2026-09-28T08:07:16+02:00"
+              "at": "2026-09-28T08:18:07+02:00"
             }
           ]
         },
@@ -636,17 +636,17 @@
         "price": 137.1
       }
     ],
-    "early_signal_note": "Force-Majeure und Kursdruck; Markt vorsichtig.",
+    "early_signal_note": "Force-Majeure bleibt; Stifel hält Buy.",
     "signals_disclaimer": ""
   },
   "signals_disclaimer": "",
-  "early_signal_note": "Force-Majeure und Kursdruck; Markt vorsichtig.",
+  "early_signal_note": "Force-Majeure bleibt; Stifel hält Buy.",
   "freshness": {
-    "freshest_absolute": "2026-09-28T08:07:16+02:00",
+    "freshest_absolute": "2026-09-28T08:18:07+02:00",
     "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
     "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok skip; Bright Data 401; Treg auth_needed",
-    "scrape_berlin": "2026-09-28T08:05:00+02:00",
-    "sample_window": "Web/news ≤few days Force-Majeure+market; Reddit via ApeWisdom/AltIndex/TheDistributed; X credits_depleted",
+    "scrape_berlin": "2026-09-28T08:15:00+02:00",
+    "sample_window": "Web/news ≤few days Force-Majeure+Stifel+market; Reddit via ApeWisdom/AltIndex/TheDistributed; X credits_depleted",
     "freshest_item_age": "",
     "oldest_usable_signal": "Force-Majeure Project Jupiter Sep 24; NFP week; ORCL ~$137"
   },
@@ -957,6 +957,15 @@
       "scraped_at": "2026-09-28T08:07:16+02:00",
       "magnitude": 35,
       "confidence": 68,
+      "direction": "mixed_cautious",
+      "items": 8,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-28T08:15:00+02:00",
+      "scraped_at": "2026-09-28T08:18:07+02:00",
+      "magnitude": 35,
+      "confidence": 67,
       "direction": "mixed_cautious",
       "items": 8,
       "early_signal": true
