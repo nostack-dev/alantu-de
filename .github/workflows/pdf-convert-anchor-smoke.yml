@@ -26,8 +26,8 @@ jobs:
       - name: Guard source
         run: |
           set -euo pipefail
-          grep -q 'alantu-unlimited-ocr.js?v=searchable-text-3' pdf-convert-anchor.html
-          grep -q 'alantu-unlimited-ocr.js?v=searchable-text-3' pdfconvert.html
+          grep -q 'alantu-unlimited-ocr.js?v=visible-text-replace-1' pdf-convert-anchor.html
+          grep -q 'alantu-unlimited-ocr.js?v=visible-text-replace-1' pdfconvert.html
           grep -q 'from "./vendor/unlimited-ocr-browser-engine.js"' alantu-unlimited-ocr.js
           grep -q 'function fetchWithRetry' alantu-unlimited-ocr.js
           grep -q 'withHeartbeat' alantu-unlimited-ocr.js
@@ -52,6 +52,11 @@ jobs:
           grep -q 'copyPages' alantu-unlimited-ocr.js
           grep -q 'diffPatchBytes' alantu-unlimited-ocr.js
           grep -q 'window.__alantuSearchablePdfContract' alantu-unlimited-ocr.js
+          grep -q 'visible-real-pdf-text-for-safe-raster-runs' alantu-unlimited-ocr.js
+          grep -q 'invisibleOcrText:false' alantu-unlimited-ocr.js
+          grep -q 'makeVectorizedRaster(canvas,ocr,base.width,base.height)' alantu-unlimited-ocr.js
+          grep -q 'page.drawText(text,{x:b.x0,y,size,font:regular,color:rgb' alantu-unlimited-ocr.js
+          ! grep -q 'const drawInvisible=' alantu-unlimited-ocr.js
           grep -q 'afterVectorSvg' pdf-convert-anchor.html
           grep -q 'NakliTechie/gemma4-webgpu@0ca5e3a' alantu-unlimited-ocr.js
           grep -q 'Unlimited-OCR-DeepEncoder-ONNX' alantu-unlimited-ocr.js
@@ -78,7 +83,7 @@ jobs:
             if curl -fsSL --max-time 20 "https://www.alantu.de/pdfconvert.html?smoke=${{ github.sha }}" -o /tmp/page.html \
               && curl -fsSL --max-time 20 "https://www.alantu.de/alantu-unlimited-ocr.js?smoke=${{ github.sha }}" -o /tmp/uocr.js \
               && curl -fsSL --max-time 20 "https://www.alantu.de/vendor/unlimited-ocr-browser-engine.js?smoke=${{ github.sha }}" -o /tmp/engine.js \
-              && grep -q 'alantu-unlimited-ocr.js?v=searchable-text-3' /tmp/page.html \
+              && grep -q 'alantu-unlimited-ocr.js?v=visible-text-replace-1' /tmp/page.html \
               && grep -q 'function fetchWithRetry' /tmp/uocr.js \
               && grep -q 'withHeartbeat' /tmp/uocr.js \
               && grep -q 'diagnoseLocalOcrBottleneck' /tmp/uocr.js \
@@ -102,6 +107,10 @@ jobs:
               && grep -q 'copyPages' /tmp/uocr.js \
               && grep -q 'diffPatchBytes' /tmp/uocr.js \
               && grep -q 'window.__alantuSearchablePdfContract' /tmp/uocr.js \
+              && grep -q 'visible-real-pdf-text-for-safe-raster-runs' /tmp/uocr.js \
+              && grep -q 'invisibleOcrText:false' /tmp/uocr.js \
+              && grep -q 'makeVectorizedRaster(canvas,ocr,base.width,base.height)' /tmp/uocr.js \
+              && ! grep -q 'const drawInvisible=' /tmp/uocr.js \
               && grep -q 'afterVectorSvg' /tmp/page.html \
               && grep -q 'createGemmaEngine' /tmp/engine.js \
               && ! grep -q '@wllama/wllama' /tmp/uocr.js \
