@@ -101,8 +101,8 @@
   <main class="shell layout">
     <aside class="panel">
       <div class="eyebrow">PDF → SEARCHABLE PDF</div>
-      <h1>Bildtext raus. Vektortext rein.</h1>
-      <p class="intro">Text, der nur als Bild in der PDF steckt, wird erkannt, aus dem Rasterbereich entfernt und an derselben Stelle als sichtbarer PDF-Vektortext neu gesetzt. Nicht erkannte Bildteile bleiben als Raster-Diff erhalten. Die OCR-Stufe passt sich automatisch an den Browser an.</p>
+      <h1>Original bleibt. Text wird lesbar.</h1>
+      <p class="intro">Die Original-PDF bleibt visuell unverändert. Vorhandene PDF-Textobjekte bleiben erhalten. Text in Bildern wird erkannt und als unsichtbarer, echter PDF-Textlayer ergänzt – markierbar, kopierbar und direkt für Volltextindexe lesbar.</p>
 
       <label class="dropzone" id="dropzone">
         <input id="pdfInput" type="file" accept="application/pdf,.pdf" aria-label="PDF auswählen">
@@ -119,6 +119,7 @@
           <div class="metric"><span>Vorhandener PDF-Text</span><strong id="mNative">—</strong></div>
           <div class="metric"><span>Bildtext erkannt</span><strong id="mImageText">—</strong></div>
           <div class="metric"><span>Bildtext → PDF-Textlayer</span><strong id="mImageTextPercent">—</strong></div>
+          <div class="metric"><span>Volltextindex</span><strong id="mIndexable">—</strong></div>
           <div class="metric"><span>Originalseiten</span><strong id="mBaked">—</strong></div>
           <div class="metric"><span>Visuell</span><strong id="mVisual">—</strong></div>
           <div class="metric"><span>Engine</span><strong id="mEngine">Unlimited-OCR 3B</strong></div>
@@ -182,6 +183,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
-  <script type="module" src="./alantu-unlimited-ocr.js?v=searchable-text-2"></script>
+  <script type="module" src="./alantu-unlimited-ocr.js?v=searchable-text-3"></script>
 </body>
 </html>
