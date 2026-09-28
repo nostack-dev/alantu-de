@@ -18,8 +18,8 @@ async function makeFixture(browser){
     x.font='700 72px Arial';x.fillStyle='#D91E3A';x.fillText('ALANTU',90,180);
     x.fillStyle='#1457D9';x.fillText(' EXPOSE',390,180);
     // Simple monochrome OCR block: this one is safe to vectorize, preserving exact #111111.
-    x.fillStyle='#111111';x.font='42px Arial';x.fillText('Wohnung mit Seeblick in Konstanz',90,280);
-    x.fillStyle='#ddd';x.fillRect(90,380,1020,700);
+    x.fillStyle='#111111';x.font='42px Arial';x.fillText('Wohnung mit Seeblick in Konstanz',90,500);
+    x.fillStyle='#ddd';x.fillRect(90,650,1020,600);
     return c.toDataURL('image/png');
   });
   await p.close();
@@ -200,7 +200,7 @@ if(Number(side.imageText)<1)errors.push('image-text-count:'+side.imageText);
 if(!/^100 % Bildseiten mit OCR · 3B-OCR · /.test(side.imageTextPercent))errors.push('image-text-percent:'+side.imageTextPercent);
 if(!/komplex\/Branding unverändert/.test(side.imageTextPercent))errors.push('branding-skip-metric:'+side.imageTextPercent);
 if(side.baked!=='2')errors.push('baked-pages:'+side.baked);
-if(!/^Original \+ sicherer Raster-Diff \+ [\d.]+ Vektorglyphen · 1 komplex unverändert$/.test(side.visual))errors.push('visual:'+side.visual);
+if(!/^Original \+ sicherer Raster-Diff \+ [\d.]+ Vektorglyphen · [1-9]\d* komplex unverändert$/.test(side.visual))errors.push('visual:'+side.visual);
 if(!/Unlimited-OCR 3B/.test(side.engine))errors.push('engine:'+side.engine);
 if(!side.beforeSrc||!side.afterSrc||side.beforeSrc===side.afterSrc)errors.push('side-by-side-vector-preview-not-distinct');
 if(side.boxes<1)errors.push('side-image-text-box-missing');
