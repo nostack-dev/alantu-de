@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0d0d0b">
-  <title>ALANTU — Searchable PDF</title>
+  <title>ALANTU — PDF → echter Text</title>
   <style>
     :root{
       --ink:#0d0d0b;--paper:#f4f0e8;--muted:#756f66;--line:rgba(13,13,11,.14);
@@ -95,14 +95,14 @@
 <body>
   <header class="shell topbar">
     <div class="brand"><span class="mark" aria-hidden="true"><i></i></span><span>ALANTU</span></div>
-    <div class="topnote">3B-OCR → lokales Fallback · kein Upload</div>
+    <div class="topnote">3B-OCR → sichtbarer echter PDF-Text · kein Upload</div>
   </header>
 
   <main class="shell layout">
     <aside class="panel">
-      <div class="eyebrow">PDF → SEARCHABLE PDF</div>
-      <h1>Original bleibt. Text wird lesbar.</h1>
-      <p class="intro">Die Original-PDF bleibt visuell unverändert. Vorhandene PDF-Textobjekte bleiben erhalten. Text in Bildern wird erkannt und als unsichtbarer, echter PDF-Textlayer ergänzt – markierbar, kopierbar und direkt für Volltextindexe lesbar.</p>
+      <div class="eyebrow">PDF → ECHTER TEXT</div>
+      <h1>Bildtext raus. Echter Text rein.</h1>
+      <p class="intro">Vorhandene PDF-Textobjekte bleiben echte Textobjekte. Sicher erkannter Text in Bildern wird aus dem Raster entfernt und sichtbar als echter PDF-Text neu gesetzt. Mehrfarbiges Branding, Logos, Fotos und komplexe Hintergründe werden automatisch nicht angefasst.</p>
 
       <label class="dropzone" id="dropzone">
         <input id="pdfInput" type="file" accept="application/pdf,.pdf" aria-label="PDF auswählen">
@@ -118,17 +118,17 @@
           <div class="metric"><span>Seiten</span><strong id="mPages">—</strong></div>
           <div class="metric"><span>Vorhandener PDF-Text</span><strong id="mNative">—</strong></div>
           <div class="metric"><span>Bildtext erkannt</span><strong id="mImageText">—</strong></div>
-          <div class="metric"><span>Bildtext → PDF-Textlayer</span><strong id="mImageTextPercent">—</strong></div>
+          <div class="metric"><span>Bildtext → echter PDF-Text</span><strong id="mImageTextPercent">—</strong></div>
           <div class="metric"><span>Volltextindex</span><strong id="mIndexable">—</strong></div>
           <div class="metric"><span>Originalseiten</span><strong id="mBaked">—</strong></div>
           <div class="metric"><span>Visuell</span><strong id="mVisual">—</strong></div>
           <div class="metric"><span>Engine</span><strong id="mEngine">Unlimited-OCR 3B</strong></div>
           <div class="metric"><span>Flaschenhals</span><strong id="mBottleneck">—</strong></div>
         </div>
-        <button class="action primary" id="downloadPdfBtn" type="button" disabled>Searchable PDF herunterladen</button>
+        <button class="action primary" id="downloadPdfBtn" type="button" disabled>PDF mit echtem Text herunterladen</button>
         <button class="action" id="downloadSvgBtn" type="button" disabled hidden>Zusätzlich als SVG</button>
         <button class="action" id="clearModelBtn" type="button">OCR-Runtime zurücksetzen</button>
-        <p class="note">Vorhandene PDF-Textobjekte bleiben erhalten. Erkannter Text in Bildern wird zusätzlich als unsichtbarer echter PDF-Textlayer positionsgenau eingebettet. Die Optik bleibt unverändert; Text ist markierbar, kopierbar und für Volltextindexe maschinenlesbar.</p>
+        <p class="note">Kein unsichtbarer OCR-Layer: Nur visuell sichere Bildtexte werden wirklich aus dem Raster entfernt und als sichtbare PDF-Textobjekte ersetzt. Komplexe oder mehrfarbige Branding-Bereiche bleiben unverändert im Originalbild.</p>
       </div>
     </aside>
 
@@ -163,7 +163,7 @@
             <div class="paper"><img id="beforeImg" alt=""></div>
           </div>
           <div class="pane" id="sideAfter">
-            <div class="pane-head"><span>Nachher</span><span>Original + Textlayer</span></div>
+            <div class="pane-head"><span>Nachher</span><span>Bereinigtes Bild + echter Text</span></div>
             <div class="paper"><img id="afterImg" alt=""><svg id="afterVectorSvg" class="vector-svg" aria-hidden="true"></svg><div class="overlay-boxes" id="afterOverlay"></div></div>
           </div>
         </div>
@@ -183,6 +183,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
-  <script type="module" src="./alantu-unlimited-ocr.js?v=searchable-text-3"></script>
+  <script type="module" src="./alantu-unlimited-ocr.js?v=visible-text-replace-1"></script>
 </body>
 </html>
