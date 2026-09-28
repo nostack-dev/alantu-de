@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-09-28T10:26:00+02:00",
+  "updated_at": "2026-09-28T10:46:00+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-28T10:26:00+02:00",
-    "scraped_at": "2026-09-28T10:26:45+02:00",
+    "tick_id": "2026-09-28T10:46:00+02:00",
+    "scraped_at": "2026-09-28T10:46:08+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "user-X": {
@@ -29,17 +29,17 @@
         "items": 5,
         "window": "same-day 2026-09-28",
         "notes": [
-          "Force-Majeure Project Jupiter still live; ORCL ~$137.1",
-          "OpenAI pauses latest model training; Nasdaq futures soft into week",
+          "Force-Majeure Project Jupiter still live; ORCL ~$137.1; debt/BBB- caution",
+          "OpenAI pauses latest model training (2nd in 3 months); Nasdaq futures soft",
           "Q1 FY27 Cloud Infra +121%; FY guidance ≥$90B; backlog conversion focus",
-          "SPY ~771.35 / QQQ ~744.5; BTC ~$82783.9; Iran/oil + AI pause risk tone",
+          "SPY ~771.35 / QQQ ~744.5; BTC ~$82861.09; AI pause + PCE/NFP week risk tone",
           "Macro: PCE Wed 30.09; NFP Fr 02.10; FOMC 28.10"
         ]
       },
       "user-Bright Data": {
         "status": "fail",
         "items": 0,
-        "error": "HTTP 401 Auth method is not supported (scrape_as_markdown probe)"
+        "error": "HTTP 401 Auth method is not supported (search_engine probe)"
       },
       "user-Treg": {
         "status": "auth_needed",
@@ -60,7 +60,7 @@
           "thedistributed.co"
         ],
         "window": "24h–30d aggregator snapshots 2026-09-28",
-        "freshest": "2026-09-28T10:26:45+02:00",
+        "freshest": "2026-09-28T10:46:08+02:00",
         "notes": [
           "ApeWisdom 24h: 9 mentions (WSB 8), upvotes 14, sentiment ~50% overall",
           "AltIndex: AI Score 50 Hold; price $137.1; ~66 daily Reddit mentions (page Hold)",
@@ -89,9 +89,9 @@
           "ORCL": 137.1,
           "SPY": 771.35,
           "QQQ": 744.5,
-          "BTC-USD": 82783.9
+          "BTC-USD": 82861.09
         },
-        "note": "query1 chart 5d; ORCL 137.1 SPY 771.35 QQQ 744.5 BTC 82783.9"
+        "note": "query1 chart 5d; ORCL 137.1 SPY 771.35 QQQ 744.5 BTC 82861.09"
       }
     },
     "totals": {
@@ -106,10 +106,10 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-28T10:26:45+02:00",
+      "freshest_absolute": "2026-09-28T10:46:08+02:00",
       "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
       "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok fail; Bright Data 401; Treg auth_needed",
-      "scrape_berlin": "2026-09-28T10:26:00+02:00",
+      "scrape_berlin": "2026-09-28T10:46:00+02:00",
       "sample_window": "Web/news ≤24h; Reddit via ApeWisdom/AltIndex/TheDistributed; X fully credits_depleted",
       "freshest_item_age": "",
       "oldest_usable_signal": "Force-Majeure Project Jupiter + OpenAI pause / soft futures"
@@ -119,7 +119,7 @@
       "magnitude": 35,
       "confidence": 66,
       "early_signal": true,
-      "early_signal_note": "OpenAI pausiert; Futures und BTC weich."
+      "early_signal_note": "OpenAI pausiert; Futures weich, BTC leicht."
     },
     "top_themes": [
       {
@@ -164,9 +164,9 @@
       {
         "theme": "BTC Soft / Risk Tone",
         "sentiment": "leicht_bearish",
-        "strength": 70,
+        "strength": 68,
         "symbol": "BTC-USD",
-        "symbol_note": "BTC ~$82783.9 soft vs prior; Iran/oil + AI pause weigh",
+        "symbol_note": "BTC ~$82861.09 slight bounce vs #54; AI pause + macro week weigh",
         "bias": "risk_off",
         "bias_label": "Vorsicht / Bias risk-off",
         "links": {
@@ -176,7 +176,7 @@
       }
     ],
     "delta_vs_prev": {
-      "prev_tick_id": "2026-09-28T10:16:00+02:00",
+      "prev_tick_id": "2026-09-28T10:26:00+02:00",
       "magnitude_delta": 0,
       "confidence_delta": 0,
       "direction_prev": "mixed_cautious",
@@ -188,12 +188,10 @@
       "volume_prev": 8,
       "volume_now": 8,
       "volume_change_pct": 0.0,
-      "new_themes": [
-        "OpenAI Pause / Soft Tech Futures"
-      ],
+      "new_themes": [],
       "gone_themes": [],
       "sentiment_swings": [
-        "ORCL flat $137.1; BTC soft 82783.9 (was 82900.47); OpenAI pause + soft futures vs #53"
+        "ORCL flat $137.1; BTC 82861.09 (was 82783.9); OpenAI pause theme continues vs #54"
       ],
       "orcl": {
         "impulse_prev": -3,
@@ -222,10 +220,10 @@
     },
     "baseline": false,
     "scrape_window": {
-      "start": "2026-09-28T10:16:00+02:00",
-      "end": "2026-09-28T10:26:00+02:00",
+      "start": "2026-09-28T10:26:00+02:00",
+      "end": "2026-09-28T10:46:00+02:00",
       "kind": "tick_interval",
-      "note": "5-Min-Routine Mo–Fr 8–22 Berlin; Tick nach #53."
+      "note": "5-Min-Routine Mo–Fr 8–22 Berlin; Tick nach #54."
     },
     "volume_enriched": true,
     "mini_series": [
@@ -542,6 +540,14 @@
         "direction": "mixed_cautious",
         "items": 8,
         "early_signal": true
+      },
+      {
+        "tick_id": "2026-09-28T10:46:00+02:00",
+        "magnitude": 35,
+        "confidence": 66,
+        "direction": "mixed_cautious",
+        "items": 8,
+        "early_signal": true
       }
     ],
     "stock_signals": [
@@ -555,7 +561,7 @@
         "hype_bull": 3,
         "hype_bear": 2,
         "hype_net": 1,
-        "why": "Force-Majeure und Kreditdruck belasten weiter; Cloud-Wachstum stützt. Kurs flach bei etwa 137 Dollar.",
+        "why": "Kreditdruck und Force-Majeure belasten weiter; Cloud-Wachstum hält dagegen. Kurs flach bei etwa 137 Dollar.",
         "evidence": {
           "x_posts": 0,
           "reddit_posts": 0,
@@ -563,88 +569,84 @@
           "snippets": [
             "OpenAI training pause + soft Nasdaq futures; ORCL ~$137.1",
             "Force-Majeure Project Jupiter still live; Cloud Infra +121% / FY ≥$90B",
-            "BTC ~$82783.9; SPY ~771.35 / QQQ ~744.5; NFP/PCE week"
+            "BTC ~$82861.09; SPY ~771.35 / QQQ ~744.5; NFP/PCE week"
           ],
           "voices": [
             {
               "source": "News",
               "text": "Force-Majeure bei Project Jupiter bleibt; Banken preisen Kredite neu.",
-              "url": "https://www.tikr.com/blog/oracle-stock-fell-nearly-4-on-its-project-jupiter-notice-the-2028-target-lands-where-the-street-sees-cash-flow-turning",
+              "url": "https://seekingalpha.com/article/4950046-one-notch-higher-than-junk-oracle-debt-warning-played-out",
               "lean": "bear",
-              "at": "2026-09-28T10:26:45+02:00"
+              "at": "2026-09-28T10:46:08+02:00"
             },
             {
               "source": "News",
               "text": "Starke Cloud-Zahlen und höheres Jahresziel stützen die Bullen-Seite.",
-              "url": "https://stockanalysis.com/stocks/orcl/transcripts/689425-q1-2027/",
+              "url": "https://www.prnewswire.com/news-releases/oracle-announces-q1-results-driven-by-triple-digit-growth-in-cloud-infrastructure-revenues-302875728.html",
               "lean": "bull",
-              "at": "2026-09-28T10:26:45+02:00"
+              "at": "2026-09-28T10:46:08+02:00"
             },
             {
               "source": "News",
               "text": "OpenAI pausiert Training; Nasdaq-Futures und Tech starten weich.",
               "url": "https://www.fxstreet.com/analysis/nasdaq-futs-drop-amid-openai-model-training-pause-202609280607",
               "lean": "bear",
-              "at": "2026-09-28T10:26:45+02:00"
+              "at": "2026-09-28T10:46:08+02:00"
             },
             {
               "source": "News",
               "text": "Kurs um 137.1 Dollar; Markt wartet auf Klarheit beim Rechenzentrum.",
               "url": "https://finance.yahoo.com/quote/ORCL",
               "lean": "mixed",
-              "at": "2026-09-28T10:26:45+02:00"
+              "at": "2026-09-28T10:46:08+02:00"
             },
             {
               "source": "News",
-              "text": "Futures leicht im Minus; Iran-Spannungen und Zinswetter belasten.",
-              "url": "https://news.trustfinance.com/news/en-US/us-stock-futures-dip-on-iran-tensions-openai-development-halt",
+              "text": "KI-Aktien unter Druck; OpenAI-Pause trifft Chip- und Cloud-Namen.",
+              "url": "https://news.trustfinance.com/news/en-US/ai-stocks-fall-after-openai-pauses-advanced-model-training-for-second-time",
               "lean": "mixed",
-              "at": "2026-09-28T10:26:45+02:00"
+              "at": "2026-09-28T10:46:08+02:00"
             },
             {
               "source": "News",
               "text": "Backlog und Cloud-Wachstum bleiben stark trotz Bau-Risiken.",
-              "url": "https://www.investing.com/analysis/oracles-664-billion-backlog-faces-a-harder-conversion-test-200688353",
+              "url": "https://www.cnbc.com/2026/09/10/oracle-orcl-q1-earnings-report-2027.html",
               "lean": "bull",
-              "at": "2026-09-28T10:26:45+02:00"
+              "at": "2026-09-28T10:46:08+02:00"
             },
             {
-              "source": "Reddit",
-              "text": "ApeWisdom: 9 Mentions/24h, Sentiment ~50%; AltIndex Hold.",
-              "url": "https://apewisdom.io/stocks/ORCL",
+              "source": "News",
+              "text": "AltIndex hält AI-Score bei 50; Reddit-Mentions weiter erhöht.",
+              "url": "https://altindex.com/ticker/orcl",
               "lean": "mixed",
-              "at": "2026-09-28T10:26:45+02:00"
+              "at": "2026-09-28T10:46:08+02:00"
             },
             {
-              "source": "Reddit",
-              "text": "The Distributed 30d: 49% bull / 19% bear bei 1782 Mentions.",
+              "source": "News",
+              "text": "Distributed: 49 Prozent bullisch zu 19 Prozent bärisch über 30 Tage.",
               "url": "https://thedistributed.co/stocks/ORCL",
               "lean": "bull",
-              "at": "2026-09-28T10:26:45+02:00"
+              "at": "2026-09-28T10:46:08+02:00"
             }
           ],
           "price": 137.1
         },
+        "price": 137.1,
         "links": {
           "tradingview": "https://www.tradingview.com/symbols/ORCL/",
           "yahoo": "https://finance.yahoo.com/quote/ORCL"
-        },
-        "price": 137.1
+        }
       }
     ],
     "signals_disclaimer": "",
-    "early_signal_note": "OpenAI pausiert; Futures und BTC weich."
+    "early_signal_note": "OpenAI pausiert; Futures weich, BTC leicht."
   },
   "signals_disclaimer": "",
-  "early_signal_note": "OpenAI pausiert; Futures und BTC weich.",
+  "early_signal_note": "OpenAI pausiert; Futures weich, BTC leicht.",
   "freshness": {
-    "freshest_absolute": "2026-09-28T10:26:45+02:00",
-    "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
-    "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok fail; Bright Data 401; Treg auth_needed",
-    "scrape_berlin": "2026-09-28T10:26:00+02:00",
-    "sample_window": "Web/news ≤24h; Reddit via ApeWisdom/AltIndex/TheDistributed; X fully credits_depleted",
-    "freshest_item_age": "",
-    "oldest_usable_signal": "Force-Majeure Project Jupiter + OpenAI pause / soft futures"
+    "updated_at": "2026-09-28T10:46:00+02:00",
+    "freshest": "2026-09-28T10:46:08+02:00",
+    "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok fail; Bright Data 401; Treg auth_needed"
   },
   "history": [
     {
@@ -1104,6 +1106,15 @@
     {
       "tick_id": "2026-09-28T10:26:00+02:00",
       "scraped_at": "2026-09-28T10:26:45+02:00",
+      "magnitude": 35,
+      "confidence": 66,
+      "direction": "mixed_cautious",
+      "items": 8,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-28T10:46:00+02:00",
+      "scraped_at": "2026-09-28T10:46:08+02:00",
       "magnitude": 35,
       "confidence": 66,
       "direction": "mixed_cautious",
