@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-09-28T10:06:00+02:00",
+  "updated_at": "2026-09-28T10:16:00+02:00",
   "timezone": "Europe/Berlin",
   "tick": {
-    "tick_id": "2026-09-28T10:06:00+02:00",
-    "scraped_at": "2026-09-28T10:11:56+02:00",
+    "tick_id": "2026-09-28T10:16:00+02:00",
+    "scraped_at": "2026-09-28T10:22:07+02:00",
     "timezone": "Europe/Berlin",
     "sources": {
       "user-X": {
@@ -32,7 +32,7 @@
           "Force-Majeure Project Jupiter (NM) still live; ORCL ~$137.1",
           "Q1 FY27 Cloud Infra +121%; FY guidance ≥$90B; Investor Day Oct 28",
           "~$18B Project Jupiter debt quoted ~89–91 Cent; S&P near junk notch",
-          "SPY ~771.35 / QQQ ~744.5; BTC ~$82947.12; focus NFP/PCE week",
+          "SPY ~771.35 / QQQ ~744.5; BTC ~$82900.47; focus NFP/PCE week",
           "Macro: PCE Wed 30.09; NFP Fr 02.10; FOMC 28.10; Oct hike ~65–71%"
         ]
       },
@@ -60,11 +60,11 @@
           "thedistributed.co"
         ],
         "window": "24h–30d aggregator snapshots 2026-09-28",
-        "freshest": "2026-09-28T10:11:56+02:00",
+        "freshest": "2026-09-28T10:22:07+02:00",
         "notes": [
           "ApeWisdom 24h: 9 mentions (WSB 8), upvotes 14, sentiment ~50% overall",
           "AltIndex: AI Score 50 Hold; price $137.1; ~66 daily Reddit mentions (page meta Hold)",
-          "The Distributed 30d: 1782 mentions; 49% bull / 19% bear / 32% neutral (updated 28 Sep 2026)"
+          "The Distributed 30d: 1782 mentions; 49% bull / 19% bear / 32% neutral (updated 28 September 2026)"
         ],
         "orcl_hint": {
           "mentions_24h_approx": 9,
@@ -85,7 +85,7 @@
       "Yahoo": {
         "status": "ok",
         "items": 4,
-        "note": "ORCL 137.1 SPY 771.35 QQQ 744.5 BTC 82947.12 (query1 chart)"
+        "note": "ORCL 137.1 SPY 771.35 QQQ 744.5 BTC 82900.47 (query1 chart)"
       },
       "Apify": {
         "status": "retired",
@@ -105,10 +105,10 @@
       }
     },
     "freshness": {
-      "freshest_absolute": "2026-09-28T10:11:56+02:00",
+      "freshest_absolute": "2026-09-28T10:22:07+02:00",
       "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
       "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok skip; Bright Data 401; Treg auth_needed",
-      "scrape_berlin": "2026-09-28T10:06:00+02:00",
+      "scrape_berlin": "2026-09-28T10:16:00+02:00",
       "sample_window": "Web/news ≤few days Force-Majeure+debt-reprice+Q1+market; Reddit via ApeWisdom/AltIndex/TheDistributed; X credits_depleted",
       "freshest_item_age": "",
       "oldest_usable_signal": "Force-Majeure Project Jupiter Sep 24; NFP week; ORCL ~$137.1"
@@ -152,7 +152,7 @@
         "sentiment": "cautious",
         "strength": 70,
         "symbol": "SPY",
-        "symbol_note": "SPY ~771.35 / QQQ ~744.5; BTC ~$82947.12; PCE Wed; NFP Fr; Oct hike ~65–71%",
+        "symbol_note": "SPY ~771.35 / QQQ ~744.5; BTC ~$82900.47; PCE Wed; NFP Fr; Oct hike ~65–71%",
         "bias": "mixed",
         "bias_label": "Beobachten / Bias mixed",
         "links": {
@@ -165,7 +165,7 @@
         "sentiment": "leicht_bearish",
         "strength": 66,
         "symbol": "BTC-USD",
-        "symbol_note": "BTC ~$82947.12 soft vs prior tick; oil/geopolitics noise ahead of data",
+        "symbol_note": "BTC ~$82900.47 soft vs prior tick; oil/geopolitics noise ahead of data",
         "bias": "risk_off",
         "bias_label": "Vorsicht / Bias risk-off",
         "links": {
@@ -175,7 +175,7 @@
       }
     ],
     "delta_vs_prev": {
-      "prev_tick_id": "2026-09-28T10:01:00+02:00",
+      "prev_tick_id": "2026-09-28T10:06:00+02:00",
       "magnitude_delta": 0,
       "confidence_delta": 0,
       "direction_prev": "mixed_cautious",
@@ -190,7 +190,7 @@
       "new_themes": [],
       "gone_themes": [],
       "sentiment_swings": [
-        "ORCL flat $137.1; BTC soft 82947.12; Force-Majeure narrative unchanged vs #51"
+        "ORCL flat $137.1; BTC soft 82900.47; Force-Majeure narrative unchanged vs #52"
       ],
       "orcl": {
         "impulse_prev": -3,
@@ -219,10 +219,10 @@
     },
     "baseline": false,
     "scrape_window": {
-      "start": "2026-09-28T10:01:00+02:00",
-      "end": "2026-09-28T10:06:00+02:00",
+      "start": "2026-09-28T10:06:00+02:00",
+      "end": "2026-09-28T10:16:00+02:00",
       "kind": "scheduled_5min",
-      "note": "Tick #52 scheduled Mo–Fr 5-min window; publish partial OK (X skipped)."
+      "note": "Tick #53 scheduled Mo–Fr 5-min window; publish partial OK (X skipped)."
     },
     "volume_enriched": true,
     "mini_series": [
@@ -586,6 +586,14 @@
         "confidence": 66,
         "direction": "mixed_cautious",
         "items": 8
+      },
+      {
+        "tick_id": "2026-09-28T10:16:00+02:00",
+        "magnitude": 35,
+        "confidence": 66,
+        "direction": "mixed_cautious",
+        "items": 8,
+        "early_signal": true
       }
     ],
     "stock_signals": [
@@ -607,7 +615,7 @@
           "snippets": [
             "Force-Majeure + Kreditdruck — ORCL ~$137.1; Cloud Infra +121%",
             "ORCL voices bull3/bear2/mixed3; Reddit ApeWisdom 9/24h @50%; X skipped (credits)",
-            "SPY ~771.35; BTC ~$82947.12; NFP Fr 02.10"
+            "SPY ~771.35; BTC ~$82900.47; NFP Fr 02.10"
           ],
           "voices": [
             {
@@ -615,64 +623,66 @@
               "text": "Force-Majeure bei Project Jupiter bleibt; Banken preisen 18-Mrd-Kredite neu.",
               "url": "https://www.reuters.com/business/oracle-cites-force-majeure-shield-itself-controversial-data-center-bloomberg-2026-09-24/",
               "lean": "bear",
-              "at": "2026-09-28T10:11:56+02:00"
+              "at": "2026-09-28T10:22:07+02:00"
             },
             {
               "source": "News",
               "text": "Starke Cloud-Zahlen und höheres Jahresziel stützen die Bullen-Seite.",
               "url": "https://investor.oracle.com/investor-news/news-details/2026/Oracle-Announces-Q1-Results-Driven-by-Triple-Digit-Growth-in-Cloud-Infrastructure-Revenues/default.aspx",
               "lean": "bull",
-              "at": "2026-09-28T10:11:56+02:00"
+              "at": "2026-09-28T10:22:07+02:00"
             },
             {
               "source": "News",
               "text": "Kosten und Genehmigungen beim New-Mexico-Bau belasten die Stimmung.",
               "url": "https://www.insidermonkey.com/news/oracles-ai-expansion-faces-a-new-test-as-data-center-costs-rise-1845132/",
               "lean": "bear",
-              "at": "2026-09-28T10:11:56+02:00"
+              "at": "2026-09-28T10:22:07+02:00"
             },
             {
               "source": "News",
               "text": "Kurs um 137.1 Dollar; Markt wartet auf neue Klarheit beim Rechenzentrum.",
               "url": "https://finance.yahoo.com/quote/ORCL",
               "lean": "mixed",
-              "at": "2026-09-28T10:11:56+02:00"
+              "at": "2026-09-28T10:22:07+02:00"
             },
             {
               "source": "News",
               "text": "Diese Woche Jobs und Inflation — Zinswetter bleibt angespannt.",
               "url": "https://www.fxstreet.com/analysis/yields-rip-higher-as-focus-shifts-to-jobs-data-202609280622",
               "lean": "mixed",
-              "at": "2026-09-28T10:11:56+02:00"
+              "at": "2026-09-28T10:22:07+02:00"
             },
             {
               "source": "News",
               "text": "Analysten sehen weiter Wachstum, aber Bau-Risiken bleiben im Blick.",
-              "url": "https://brief.sharpertrades.com/oracle-data-center-risk-weighs-on-stock-as-project-jupiter-raises-ai-buildout-questions/",
+              "url": "https://finance.yahoo.com/quote/ORCL/analysis/",
               "lean": "bull",
-              "at": "2026-09-28T10:11:56+02:00"
+              "at": "2026-09-28T10:22:07+02:00"
             },
             {
               "source": "Reddit",
-              "text": "ApeWisdom und AltIndex zeigen neutrale Stimmung um die 50.",
-              "url": "https://apewisdom.io/stocks/ORCL/",
+              "text": "ApeWisdom: 9 Mentions/24h, Sentiment ~50%; AltIndex Hold.",
+              "url": "https://apewisdom.io/stocks/ORCL",
               "lean": "mixed",
-              "at": "2026-09-28T10:11:56+02:00"
+              "at": "2026-09-28T10:22:07+02:00"
             },
             {
               "source": "Reddit",
-              "text": "TheDistributed: in 30 Tagen leicht mehr Bullen als Bären.",
+              "text": "The Distributed 30d: 49% bull / 19% bear bei 1782 Mentions.",
               "url": "https://thedistributed.co/stocks/ORCL",
               "lean": "bull",
-              "at": "2026-09-28T10:11:56+02:00"
+              "at": "2026-09-28T10:22:07+02:00"
             }
-          ]
+          ],
+          "price": 137.1
         },
-        "price": 137.1,
         "links": {
           "tradingview": "https://www.tradingview.com/symbols/ORCL/",
           "yahoo": "https://finance.yahoo.com/quote/ORCL"
-        }
+        },
+        "updated_at": "2026-09-28T10:16:00+02:00",
+        "price": 137.1
       }
     ],
     "signals_disclaimer": "",
@@ -681,14 +691,13 @@
   "signals_disclaimer": "",
   "early_signal_note": "Force-Majeure bleibt; Kurs flach bei 137.",
   "freshness": {
-    "freshest_absolute": "2026-09-28T10:11:56+02:00",
+    "freshest_absolute": "2026-09-28T10:22:07+02:00",
     "primary_signal": "same-day Web/News + PublicReddit aggregators (X credits_exhausted; Apify retired)",
     "quality": "mittel Web+PublicReddit; X skipped (credits $0.00); TikTok skip; Bright Data 401; Treg auth_needed",
-    "scrape_berlin": "2026-09-28T10:06:00+02:00",
+    "scrape_berlin": "2026-09-28T10:16:00+02:00",
     "sample_window": "Web/news ≤few days Force-Majeure+debt-reprice+Q1+market; Reddit via ApeWisdom/AltIndex/TheDistributed; X credits_depleted",
     "freshest_item_age": "",
-    "oldest_usable_signal": "Force-Majeure Project Jupiter Sep 24; NFP week; ORCL ~$137.1",
-    "updated_at": "2026-09-28T10:06:00+02:00"
+    "oldest_usable_signal": "Force-Majeure Project Jupiter Sep 24; NFP week; ORCL ~$137.1"
   },
   "history": [
     {
@@ -1130,6 +1139,15 @@
     {
       "tick_id": "2026-09-28T10:06:00+02:00",
       "scraped_at": "2026-09-28T10:11:56+02:00",
+      "magnitude": 35,
+      "confidence": 66,
+      "direction": "mixed_cautious",
+      "items": 8,
+      "early_signal": true
+    },
+    {
+      "tick_id": "2026-09-28T10:16:00+02:00",
+      "scraped_at": "2026-09-28T10:22:07+02:00",
       "magnitude": 35,
       "confidence": 66,
       "direction": "mixed_cautious",
