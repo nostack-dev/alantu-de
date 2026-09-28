@@ -919,8 +919,11 @@ function renderCompare(){
   sideGrid.hidden=compareMode!=="side";
   overlayWrap.hidden=compareMode!=="overlay";
   overlayStage.hidden=compareMode!=="overlay";
-  beforeImg.src=p.previewUrl;afterImg.src=p.vectorRasterUrl||p.previewUrl;overlayBefore.src=p.previewUrl;overlayAfter.src=p.vectorRasterUrl||p.previewUrl;
-  renderVectorSvgLayer(afterVectorSvg,p);renderVectorSvgLayer(overlayVectorSvg,p);
+  // Searchable-PDF preview: visual pixels stay exactly the original.
+  // The boxes only show where machine-readable OCR text will be placed.
+  beforeImg.src=p.previewUrl;afterImg.src=p.previewUrl;overlayBefore.src=p.previewUrl;overlayAfter.src=p.previewUrl;
+  if(afterVectorSvg){afterVectorSvg.innerHTML="";afterVectorSvg.removeAttribute("data-role")}
+  if(overlayVectorSvg){overlayVectorSvg.innerHTML="";overlayVectorSvg.removeAttribute("data-role")}
   makeBoxes(afterOverlay,p);makeBoxes(overlayBoxes,p);
   pageCounter.textContent=`${currentPage+1} / ${pages.length}`;
   prevBtn.disabled=currentPage<=0;nextBtn.disabled=currentPage>=pages.length-1;
