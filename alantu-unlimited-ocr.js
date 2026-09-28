@@ -147,37 +147,135 @@ function sampleTextStyle(ctx,rect){
 }
 function vectorizeTextRect(ctx,rect,style,sx,sy){
   const W=ctx.canvas.width,H=ctx.canvas.height;
-  const x0=Math.max(1,Math.floor(rect.x0)-1),y0=Math.max(1,Math.floor(rect.y0)-1),x1=Math.min(W-2,Math.ceil(rect.x1)+1),y1=Math.min(H-2,Math.ceil(rect.y1)+1);
+  const x0=Math.max(1,Math.floor(rect.x0)-2),y0=Math.max(1,Math.floor(rect.y0)-2),x1=Math.min(W-2,Math.ceil(rect.x1)+2),y1=Math.min(H-2,Math.ceil(rect.y1)+2);
   const w=x1-x0+1,h=y1-y0+1;if(w<2||h<2)return {removed:0,pxBox:{x0,y0,x1,y1}};
   if(!style?.safe)return {removed:0,pxBox:null,skipped:true,reason:style?.reason||"unsicher"};
-  const patch=ctx.getImageData(x0-1,y0-1,w+2,h+2),pd=patch.data,pw=w+2,out=ctx.createImageData(w,h),od=out.data;
-  const bg=style.background||[255,255,255],fg=style.exactRgb||[0,0,0];
+
+  const patch=ctx.getImageData(x0-1,y0-1,w+2,h+2),pd=patch.data,pw=w+2;
+  const bg=(style.background||[255,255,255]).map(clampByte),fg=(style.exactRgb||[0,0,0]).map(clampByte);
+  const axis=[bg[0]-fg[0],bg[1]-fg[1],bg[2]-fg[2]];
+  const axis2=axis[0]*axis[0]+axis[1]*axis[1]+axis[2]*axis[2];
+  if(axis2<900)return {removed:0,pxBox:null,skipped:true,reason:"Text und Hintergrund farblich nicht sicher trennbar"};
+
+  const n=w*h,core=new Uint8Array(n),soft=new Uint8Array(n),mask=new Uint8Array(n);
   const pix=(x,y,c)=>pd[((y+1)*pw+(x+1))*4+c];
-  let removed=0;
+  const alphaAt=new Float32Array(n),residAt=new Float32Array(n);
+
+  // Model antialiasing as an actual mixture of sampled foreground/background.
+  // This removes not only dark core pixels but also the almost-white fringe
+  // pixels (e.g. 254/254/254 on white) that the old nearest-colour rule left.
   for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){
-    const oi=(yy*w+xx)*4;
+    const k=yy*w+xx,p=[pix(xx,yy,0),pix(xx,yy,1),pix(xx,yy,2)];
+    const v=[bg[0]-p[0],bg[1]-p[1],bg[2]-p[2]];
+    const alpha=Math.max(0,Math.min(1,(v[0]*axis[0]+v[1]*axis[1]+v[2]*axis[2])/axis2));
+    const recon=[bg[0]-axis[0]*alpha,bg[1]-axis[1]*alpha,bg[2]-axis[2]*alpha];
+    const residual=colorDistance(p,recon);
+    alphaAt[k]=alpha;residAt[k]=residual;
+    // Core needs a clear amount of ink. Fringe may be extremely light, but
+    // must still sit on the same foreground↔background colour line.
+    if(alpha>=.055&&residual<=20)core[k]=mask[k]=1;
+    if(alpha>=.0035&&residual<=Math.max(7,15-alpha*5))soft[k]=1;
+  }
+
+  let coreCount=0;for(const v of core)coreCount+=v;
+  if(coreCount<Math.max(3,Math.round(w*h*.001))){
+    return {removed:0,pxBox:null,skipped:true,reason:"zu wenig sicherer Textkern"};
+  }
+
+  // Grow only through colour-compatible pixels connected to a real glyph core.
+  // Three 8-neighbour passes capture antialias/subpixel halos without eating
+  // unrelated white/branding/photo pixels elsewhere in the OCR rectangle.
+  for(let pass=0;pass<3;pass++){
+    const add=[];
+    for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){
+      const k=yy*w+xx;if(mask[k]||!soft[k])continue;
+      let hit=false;
+      for(let dy=-1;dy<=1&&!hit;dy++)for(let dx=-1;dx<=1;dx++){
+        if(!dx&&!dy)continue;const nx=xx+dx,ny=yy+dy;
+        if(nx>=0&&ny>=0&&nx<w&&ny<h&&mask[ny*w+nx]){hit=true;break}
+      }
+      if(hit)add.push(k);
+    }
+    if(!add.length)break;
+    for(const k of add)mask[k]=1;
+  }
+
+  const out=ctx.createImageData(w,h),od=out.data;
+  let removed=0,fringeLeft=0;
+  for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){
+    const k=yy*w+xx,oi=k*4;
     const original=[pix(xx,yy,0),pix(xx,yy,1),pix(xx,yy,2)];
-    const dBg=colorDistance(original,bg),dFg=colorDistance(original,fg);
-    const isGlyph=dBg>12 && dFg+4<dBg;
-    for(let c=0;c<3;c++)od[oi+c]=isGlyph?bg[c]:original[c];
-    if(isGlyph)removed++;
+    if(mask[k]){
+      od[oi]=bg[0];od[oi+1]=bg[1];od[oi+2]=bg[2];removed++;
+    }else{
+      od[oi]=original[0];od[oi+1]=original[1];od[oi+2]=original[2];
+      if(soft[k]&&alphaAt[k]>.0035&&residAt[k]<12){
+        // Count only residual fringe directly adjacent to removed glyph pixels.
+        let near=false;
+        for(let dy=-1;dy<=1&&!near;dy++)for(let dx=-1;dx<=1;dx++){
+          if(!dx&&!dy)continue;const nx=xx+dx,ny=yy+dy;
+          if(nx>=0&&ny>=0&&nx<w&&ny<h&&mask[ny*w+nx]){near=true;break}
+        }
+        if(near)fringeLeft++;
+      }
+    }
     od[oi+3]=255;
   }
   if(removed<Math.max(3,Math.round(w*h*.0015)))return {removed:0,pxBox:null,skipped:true,reason:"zu wenig sicherer Textpixel"};
   ctx.putImageData(out,x0,y0);
-  return {removed,pxBox:{x0,y0,x1:x1+1,y1:y1+1},skipped:false};
+  return {
+    removed,fringeLeft,pxBox:{x0,y0,x1:x1+1,y1:y1+1},skipped:false,
+    eraseMask:mask,maskWidth:w,maskHeight:h,maskX0:x0,maskY0:y0
+  };
 }
-async function cropDiffPatch(canvas,pxBox,sx,sy){
-  const x0=Math.max(0,Math.floor(pxBox.x0)),y0=Math.max(0,Math.floor(pxBox.y0));
-  const x1=Math.min(canvas.width,Math.ceil(pxBox.x1)),y1=Math.min(canvas.height,Math.ceil(pxBox.y1));
-  const w=Math.max(1,x1-x0),h=Math.max(1,y1-y0);
-  const c=document.createElement("canvas");c.width=w;c.height=h;
-  c.getContext("2d",{alpha:false}).drawImage(canvas,x0,y0,w,h,0,0,w,h);
-  const blob=await canvasToBlob(c,"image/png");
-  const bytes=new Uint8Array(await blobToArrayBuffer(blob));
+
+async function makeSparseErasePatch(v,style,sx,sy){
+  const mask=v.eraseMask,w=v.maskWidth,h=v.maskHeight;
+  let minX=w,minY=h,maxX=-1,maxY=-1;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(mask[y*w+x]){
+    if(x<minX)minX=x;if(y<minY)minY=y;if(x>maxX)maxX=x;if(y>maxY)maxY=y;
+  }
+  if(maxX<minX||maxY<minY)return null;
+  // One pixel breathing room stays fully transparent. Only pixels that
+  // actually belonged to the old raster glyph are painted with background.
+  minX=Math.max(0,minX-1);minY=Math.max(0,minY-1);maxX=Math.min(w-1,maxX+1);maxY=Math.min(h-1,maxY+1);
+  const pw=maxX-minX+1,ph=maxY-minY+1;
+  const c=document.createElement("canvas");c.width=pw;c.height=ph;
+  const x=c.getContext("2d"),img=x.createImageData(pw,ph),d=img.data,bg=(style.background||[255,255,255]).map(clampByte);
+  for(let yy=0;yy<ph;yy++)for(let xx=0;xx<pw;xx++){
+    const src=(yy+minY)*w+(xx+minX),i=(yy*pw+xx)*4;
+    if(mask[src]){d[i]=bg[0];d[i+1]=bg[1];d[i+2]=bg[2];d[i+3]=255}
+    else d[i+3]=0;
+  }
+  x.putImageData(img,0,0);
+  const blob=await canvasToBlob(c,"image/png"),bytes=new Uint8Array(await blobToArrayBuffer(blob));
   c.width=1;c.height=1;
-  return {bytes,box:{x0:x0/sx,y0:y0/sy,x1:x1/sx,y1:y1/sy}};
+  const ax0=v.maskX0+minX,ay0=v.maskY0+minY,ax1=v.maskX0+maxX+1,ay1=v.maskY0+maxY+1;
+  return {bytes,box:{x0:ax0/sx,y0:ay0/sy,x1:ax1/sx,y1:ay1/sy}};
 }
+
+async function makeTransparentWhiteDiff(canvas){
+  const c=document.createElement("canvas");c.width=canvas.width;c.height=canvas.height;
+  const x=c.getContext("2d",{alpha:true});x.drawImage(canvas,0,0);
+  const img=x.getImageData(0,0,c.width,c.height),d=img.data;
+  let transparent=0;
+  // PDF page background is white. Remove redundant white/near-white raster
+  // pixels globally; on white this is visually identical but the baked diff
+  // now contains only real unmatched visual information.
+  for(let i=0;i<d.length;i+=4){
+    const dr=255-d[i],dg=255-d[i+1],db=255-d[i+2];
+    const dist=Math.sqrt(dr*dr+dg*dg+db*db);
+    const chroma=Math.max(d[i],d[i+1],d[i+2])-Math.min(d[i],d[i+1],d[i+2]);
+    if(dist<=18&&chroma<=10){d[i+3]=0;transparent++}
+    else d[i+3]=255;
+  }
+  x.putImageData(img,0,0);
+  const blob=await canvasToBlob(c,"image/png"),bytes=new Uint8Array(await blobToArrayBuffer(blob)),url=URL.createObjectURL(blob);
+  const share=transparent/Math.max(1,c.width*c.height);
+  c.width=1;c.height=1;
+  return {bytes,url,transparentShare:share};
+}
+
 async function makeVectorizedRaster(sourceCanvas,runs,pageW,pageH){
   const c=document.createElement("canvas");c.width=sourceCanvas.width;c.height=sourceCanvas.height;
   const ctx=c.getContext("2d",{alpha:false});ctx.drawImage(sourceCanvas,0,0);
@@ -196,6 +294,7 @@ async function makeVectorizedRaster(sourceCanvas,runs,pageW,pageH){
       r.vectorSkipped=true;
       r.vectorSkipReason=r.vectorStyle.reason;
       r.vectorPixelsRemoved=0;
+      r.vectorFringeLeft=0;
       r.vectorTextReady=false;
       r.diffPatchBytes=null;
       r.diffPatchBox=null;
@@ -206,6 +305,7 @@ async function makeVectorizedRaster(sourceCanvas,runs,pageW,pageH){
       r.vectorSkipped=true;
       r.vectorSkipReason=v.reason||"unsicher";
       r.vectorPixelsRemoved=0;
+      r.vectorFringeLeft=0;
       r.vectorTextReady=false;
       r.diffPatchBytes=null;
       r.diffPatchBox=null;
@@ -214,21 +314,26 @@ async function makeVectorizedRaster(sourceCanvas,runs,pageW,pageH){
     r.vectorSkipped=false;
     r.vectorSkipReason="";
     r.vectorPixelsRemoved=v.removed;
+    r.vectorFringeLeft=v.fringeLeft||0;
     r.vectorTextReady=true;
-    r._vectorPxBox=v.pxBox;
+    const patch=await makeSparseErasePatch(v,r.vectorStyle,sx,sy);
+    r.diffPatchBytes=patch?.bytes||null;
+    r.diffPatchBox=patch?.box||null;
   }
-  for(const r of runs){
-    if(!r._vectorPxBox)continue;
-    const patch=await cropDiffPatch(c,r._vectorPxBox,sx,sy);
-    r.diffPatchBytes=patch.bytes;
-    r.diffPatchBox=patch.box;
-    delete r._vectorPxBox;
-  }
-  const blob=await canvasToBlob(c,"image/png");
-  const bytes=new Uint8Array(await blobToArrayBuffer(blob));
-  const url=URL.createObjectURL(blob);
+
+  // The page-scale raster is now a true diff: near-white page pixels are
+  // transparent, safe OCR glyphs are gone, and only unmatched artwork /
+  // branding / photos remain baked.
+  const diff=await makeTransparentWhiteDiff(c);
+  window.__alantuUocrDebug=window.__alantuUocrDebug||{};
+  window.__alantuUocrDebug.lastRasterDiff={
+    transparentShare:diff.transparentShare,
+    removedPixels:runs.reduce((n,r)=>n+(r.vectorPixelsRemoved||0),0),
+    fringeLeft:runs.reduce((n,r)=>n+(r.vectorFringeLeft||0),0),
+    contract:"transparent-white-diff+sparse-glyph-erasure"
+  };
   c.width=1;c.height=1;
-  return {bytes,url};
+  return {bytes:diff.bytes,url:diff.url,transparentShare:diff.transparentShare};
 }
 function vectorTextSpec(r){
   const b=r.bbox,boxW=Math.max(2,b.x1-b.x0),boxH=Math.max(2,b.y1-b.y0);
@@ -870,7 +975,7 @@ function updateMetrics(){
   else if(imageText)mImageTextPercent.textContent=`${converted}/${imageText} OCR-Blöcke → sichtbarer echter Text · ${skipped} sicher übersprungen · ${imageChars} Zeichen`;
   else mImageTextPercent.textContent="— · kein Bildtext";
   mBaked.textContent=pages.length?String(pages.length):"—";
-  mVisual.textContent=pages.length?(converted?"Hybrid · sichere Bildtexte ersetzt":"Original · nichts sicher ersetzbar"):"—";
+  mVisual.textContent=pages.length?(converted?"Hybrid · Raster-Diff + echter Text":"Original · nichts sicher ersetzbar"):"—";
   if(mIndexable){
     if(!pages.length)mIndexable.textContent="—";
     else if(lastPdfVerification?.ok)mIndexable.textContent=`verifiziert · ${lastPdfVerification.converted}/${lastPdfVerification.recognized} OCR-Blöcke echt`;
@@ -1163,5 +1268,5 @@ sideBtn.addEventListener("click",()=>setCompareMode("side"));overlayBtn.addEvent
 overlayOpacity.addEventListener("input",renderCompare);showBoxes.addEventListener("change",renderCompare);
 downloadPdfBtn.addEventListener("click",downloadPdf);downloadSvgBtn.addEventListener("click",downloadSvg);clearModelBtn.addEventListener("click",clearModelCache);
 
-window.__alantuSearchablePdfContract={nativeText:"preserved-original-pdf-objects",ocrText:"visible-real-pdf-text-for-safe-raster-runs",visual:"safe-raster-text-removed-and-replaced-complex-branding-preserved",fullTextIndex:"verified-visible-text-by-pdfjs-readback-on-export",copyable:true,brandingSafe:true,invisibleOcrText:false,manualAnchor:false};
+window.__alantuSearchablePdfContract={nativeText:"preserved-original-pdf-objects",ocrText:"visible-real-pdf-text-for-safe-raster-runs",visual:"transparent-diff-only-safe-raster-text-removed-complex-branding-preserved",rasterDiff:"near-white-page-pixels-transparent+sparse-glyph-erasure",fullTextIndex:"verified-visible-text-by-pdfjs-readback-on-export",copyable:true,brandingSafe:true,invisibleOcrText:false,manualAnchor:false};
 mEngine.textContent="Unlimited-OCR 3B · WebGPU native";updateMetrics();setCompareMode("side");
