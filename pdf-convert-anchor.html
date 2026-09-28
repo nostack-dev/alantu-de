@@ -119,7 +119,7 @@
           <div class="metric"><span>PDF-Text → Vektor</span><strong id="mNative">—</strong></div>
           <div class="metric"><span>Bildtext erkannt</span><strong id="mImageText">—</strong></div>
           <div class="metric"><span>Bildseiten → echter Text</span><strong id="mImageTextPercent">—</strong></div>
-          <div class="metric"><span>Raster-Diff-Seiten</span><strong id="mBaked">—</strong></div>
+          <div class="metric"><span>Originalseiten / Raster-Diff</span><strong id="mBaked">—</strong></div>
           <div class="metric"><span>Visuell</span><strong id="mVisual">—</strong></div>
           <div class="metric"><span>Engine</span><strong id="mEngine">Unlimited-OCR 3B</strong></div>
           <div class="metric"><span>Flaschenhals</span><strong id="mBottleneck">—</strong></div>
@@ -127,7 +127,7 @@
         <button class="action primary" id="downloadPdfBtn" type="button" disabled>Hybrid-Vector-PDF herunterladen</button>
         <button class="action" id="downloadSvgBtn" type="button" disabled>Zusätzlich als Vektor-SVG</button>
         <button class="action" id="clearModelBtn" type="button">OCR-Runtime zurücksetzen</button>
-        <p class="note">PDF-Text und erkannter Bildtext werden als sichtbarer Vektortext gesetzt. Ihre alten Rasterpixel werden aus dem Hintergrund herausgerechnet; nicht erkannter Inhalt bleibt als Raster-Diff. Kein manueller Anchor. Im PDF entsteht echter PDF-Text, im SVG echter SVG-Text.</p>
+        <p class="note">Vorhandener PDF-Text und alle Vektorobjekte bleiben im Original-PDF unangetastet. Nur erkannter Text in Rasterbildern wird pixelgenau aus dem Bild-Diff entfernt, als sichtbare Vektorglyphen rekonstruiert und zusätzlich als echter such-/kopierbarer PDF-Text hinterlegt. Alles andere bleibt original.</p>
       </div>
     </aside>
 
@@ -182,6 +182,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
-  <script type="module" src="./alantu-unlimited-ocr.js?v=browser-webgpu-17"></script>
+  <script type="module" src="./alantu-unlimited-ocr.js?v=browser-webgpu-18"></script>
 </body>
 </html>
