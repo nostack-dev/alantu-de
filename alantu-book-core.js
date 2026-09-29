@@ -39,32 +39,69 @@ export function createAlantuCoverCanvas({
   // Minimal champagne rule.
   ctx.fillRect(pad,Math.round(height*.145),Math.round(width*.075),Math.max(2,Math.round(width*.003)));
 
-  // Title: centered vertically, premium serif, max 3 lines.
+  // Title band: below brand rule (~0.15h), above subtitle (~0.79h).
+  const titleTop=Math.round(height*.15);
+  const titleBottom=Math.round(height*.79);
+  const titleBand=Math.max(1,titleBottom-titleTop);
+
+  // Title: premium serif, max 3 lines; hard-break unbreakable words; shrink to fit band.
   let fontSize=Math.round(width*.092);
+  const minFontSize=Math.max(16,Math.round(width*.018));
   let lines=[];
-  const words=safeTitle.split(" ");
+  const words=safeTitle.split(" ").filter(Boolean);
+
+  function breakWord(word){
+    if(ctx.measureText(word).width<=usable)return [word];
+    const chars=[...word];
+    const parts=[];
+    let chunk="";
+    for(const ch of chars){
+      const test=chunk+ch;
+      if(chunk&&ctx.measureText(test).width>usable){
+        parts.push(chunk);
+        chunk=ch;
+      }else{
+        chunk=test;
+      }
+    }
+    if(chunk)parts.push(chunk);
+    return parts.length?parts:[word];
+  }
 
   function layout(){
     lines=[];
     let line="";
     for(const word of words){
-      const test=line?line+" "+word:word;
-      if(ctx.measureText(test).width>usable&&line){
-        lines.push(line);
-        line=word;
-      }else{
-        line=test;
+      for(const piece of breakWord(word)){
+        const test=line?`${line} ${piece}`:piece;
+        if(line&&ctx.measureText(test).width>usable){
+          lines.push(line);
+          line=piece;
+        }else{
+          line=test;
+        }
       }
     }
     if(line)lines.push(line);
   }
 
-  do{
+  function metrics(){
+    const lineHeight=Math.round(fontSize*1.14);
+    const ascent=Math.round(fontSize*.8);
+    const descent=Math.round(fontSize*.25);
+    const blockSpan=(lines.length-1)*lineHeight;
+    const visualHeight=ascent+blockSpan+descent;
+    return {lineHeight,ascent,descent,blockSpan,visualHeight};
+  }
+
+  while(true){
     ctx.font=`400 ${fontSize}px Georgia, 'Times New Roman', serif`;
     layout();
-    if(lines.length<=3)break;
-    fontSize-=4;
-  }while(fontSize>44);
+    const {visualHeight}=metrics();
+    if(lines.length<=3&&visualHeight<=titleBand)break;
+    if(fontSize<=minFontSize)break;
+    fontSize=Math.max(minFontSize,fontSize-2);
+  }
 
   if(lines.length>3){
     lines=lines.slice(0,3);
@@ -75,14 +112,17 @@ export function createAlantuCoverCanvas({
     lines[2]=last.trimEnd()+"…";
   }
 
-  const lineHeight=Math.round(fontSize*1.14);
-  const blockHeight=(lines.length-1)*lineHeight;
-  let y=Math.round(height*.56-blockHeight/2);
+  const {lineHeight,ascent,descent,blockSpan}=metrics();
+  // Prefer optical center around 0.56h, then clamp into the title band.
+  let y=Math.round(height*.56-blockSpan/2);
+  const minY=titleTop+ascent;
+  const maxY=titleBottom-descent-blockSpan;
+  y=minY<=maxY?Math.max(minY,Math.min(y,maxY)):minY;
 
   ctx.fillStyle="#f4f0e8";
   ctx.font=`400 ${fontSize}px Georgia, 'Times New Roman', serif`;
   for(const line of lines){
-    ctx.fillText(line,pad,y);
+    ctx.fillText(line,pad,y,usable);
     y+=lineHeight;
   }
 
