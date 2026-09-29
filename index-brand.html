@@ -3,11 +3,26 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0d0d0b">
+  <meta name="theme-color" content="#ffffff">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="alternate icon" href="/favicon.ico" sizes="any">
-  <meta name="description" content="ALANTU – Premium-Exposés für Immobilienmakler. Interaktiv, dreidimensional und auf jedem Gerät ein Erlebnis.">
-  <title>ALANTU — Premium-Exposés für Immobilienmakler</title>
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <meta name="description" content="ALANTU macht aus Ihrem PDF-Exposé ein interaktives 3D-Exposé zum Blättern – für Immobilienmakler in ganz Deutschland. Ein Link, jedes Gerät, Ihr Branding.">
+  <title>ALANTU — 3D-Exposés für Immobilienmakler</title>
+  <link rel="canonical" href="https://www.alantu.de/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="de_DE">
+  <meta property="og:site_name" content="ALANTU">
+  <meta property="og:url" content="https://www.alantu.de/">
+  <meta property="og:title" content="ALANTU — 3D-Exposés für Immobilienmakler">
+  <meta property="og:description" content="Aus Ihrem PDF-Exposé wird ein 3D-Exposé zum Blättern. Ein Link für Smartphone, Tablet und Desktop – mit Ihrem Branding.">
+  <meta property="og:image" content="https://www.alantu.de/assets/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ALANTU — 3D-Exposés für Immobilienmakler">
+  <meta name="twitter:description" content="Aus Ihrem PDF-Exposé wird ein 3D-Exposé zum Blättern – mit Ihrem Branding.">
+  <meta name="twitter:image" content="https://www.alantu.de/assets/og-image.png">
   <style>
     :root{
       --ink:#0d0d0b;
@@ -463,35 +478,157 @@
     }
 
 </style>
+  <style id="alantu-chrome">
+    /* Seiten-Chrome im minimalen ALANTU-Stil. Das 3D-Exposé (.stage, #bookCanvas, Buch-Runtime) bleibt unverändert. */
+    :root{
+      --c-bg:#ffffff;--c-soft:#f5f5f7;--c-line:#e8e8ed;--c-text:#1b1b1f;--c-muted:#6b6b76;
+      --c-green:#00c761;--c-green-ink:#00873f;--c-green-soft:#e6f9ef;--c-radius:14px;
+    }
+    html,body{background:var(--c-bg)}
+    html{scroll-behavior:auto}
+    body{color:var(--c-text);line-height:1.55}
+    :focus-visible{outline:3px solid var(--c-green);outline-offset:2px}
+    .skip{position:absolute;left:-9999px;top:10px;z-index:100;background:var(--c-text);color:#fff;padding:9px 14px;border-radius:999px;font-size:14px}
+    .skip:focus{left:12px}
+    .site-head{background:var(--c-bg);border-bottom:1px solid var(--c-line)}
+    .topbar{min-height:66px;border-bottom:0}
+    .brand{color:var(--c-text)}
+    .mark:before,.mark:after{background:var(--c-text)}
+    .nav{gap:2px}
+    .nav a{font-size:14.5px;font-weight:560;color:var(--c-muted);padding:9px 12px}
+    .nav a:hover{color:var(--c-text);background:var(--c-soft)}
+    .nav .cta-small{border:0;background:var(--c-text);color:#fff;font-weight:650;padding:10px 18px;margin-left:6px}
+    .nav .cta-small:hover{background:#000;color:#fff}
+    .hero{padding:64px 0 56px}
+    .eyebrow{text-transform:none;letter-spacing:0;font-size:14px;font-weight:600;color:var(--c-muted);margin-bottom:18px}
+    .eyebrow:before{width:8px;height:8px;border-radius:50%;background:var(--c-green)}
+    h1{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-weight:780;font-size:clamp(44px,5.4vw,74px);line-height:1.02;letter-spacing:-.045em}
+    .lede{color:var(--c-muted);font-size:19px;line-height:1.55;margin:22px 0 28px}
+    .btn{min-height:50px;font-weight:650;font-size:15.5px}
+    .btn-dark{background:var(--c-text);color:#fff}
+    .btn-ghost{background:var(--c-soft);border-color:transparent;color:var(--c-text)}
+    .btn-green{background:var(--c-green);color:#fff}
+    .btn-line{background:#fff;border-color:var(--c-line);color:var(--c-text)}
+    .micro{font-size:13.5px;color:var(--c-muted)}
+    .micro span:before{color:var(--c-green-ink)}
+    .share-link{color:var(--c-muted);font-size:12px}
+    .proof{border-color:var(--c-line);background:var(--c-bg)}
+    .proof-no{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-weight:760;font-size:28px;letter-spacing:-.04em;color:var(--c-text)}
+    .proof-txt{font-size:14px;color:var(--c-muted)}
+    .section{padding:104px 0}
+    .kicker{text-transform:none;letter-spacing:0;font-size:14px;font-weight:600;color:var(--c-green-ink);margin-bottom:14px}
+    h2{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-weight:760;font-size:clamp(32px,4.2vw,52px);line-height:1.05;letter-spacing:-.04em}
+    .h2-sub{color:var(--c-muted);font-size:18px;line-height:1.55;margin:18px 0 0;max-width:560px}
+    .feature-list{border-top:1px solid var(--c-line)}
+    .feature{border-bottom:1px solid var(--c-line)}
+    .feature-no{font-size:13px;font-weight:700;color:var(--c-green-ink)}
+    .feature h3{font-size:19px;font-weight:680;color:var(--c-text)}
+    .feature p{font-size:15.5px;color:var(--c-muted)}
+    .dark{background:var(--c-soft);color:var(--c-text)}
+    .dark p{color:var(--c-muted)}
+    .dark .kicker{color:var(--c-green-ink)}
+    .quote{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-weight:720;letter-spacing:-.035em;border-left:3px solid var(--c-green);color:var(--c-text);font-size:clamp(26px,3.4vw,42px);line-height:1.12}
+    .soft-band{background:var(--c-soft)}
+    .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+    .card{background:#fff;border:1px solid var(--c-line);border-radius:var(--c-radius);padding:26px}
+    .soft-band .card{border-color:transparent}
+    .step-no{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--c-text);color:#fff;font-weight:700;font-size:15px;margin-bottom:18px}
+    .card h3{margin:0 0 8px;font-size:20px;font-weight:700;letter-spacing:-.02em}
+    .card p{margin:0;color:var(--c-muted);font-size:15.5px;line-height:1.6}
+    .section-head{max-width:720px;margin-bottom:44px}
+    .tool{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:40px;align-items:center;border:1px solid var(--c-line);border-radius:22px;padding:44px}
+    .tool ul{list-style:none;margin:22px 0 26px;padding:0;display:grid;gap:10px}
+    .tool li{display:flex;gap:10px;color:var(--c-text);font-size:15.5px}
+    .tool li:before{content:"✓";color:var(--c-green-ink);font-weight:700}
+    .tool-visual{background:var(--c-soft);border-radius:var(--c-radius);padding:28px;display:grid;gap:12px}
+    .tool-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border-radius:12px;padding:14px 16px;font-size:14.5px}
+    .tool-row b{font-weight:650}
+    .tool-row span{color:var(--c-muted)}
+    .pill{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;font-size:12.5px;font-weight:680;background:var(--c-soft);color:var(--c-muted)}
+    .pill.green{background:var(--c-green-soft);color:var(--c-green-ink)}
+    .prices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:stretch}
+    .plan{display:flex;flex-direction:column;background:#fff;border:1px solid var(--c-line);border-radius:var(--c-radius);padding:28px}
+    .plan.featured{border:2px solid var(--c-text)}
+    .plan h3{margin:12px 0 4px;font-size:21px;font-weight:720;letter-spacing:-.02em}
+    .plan .for{color:var(--c-muted);font-size:14.5px;margin:0 0 18px;min-height:44px}
+    .price{font-size:44px;font-weight:790;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
+    .price small{font-size:15px;font-weight:560;color:var(--c-muted);letter-spacing:0;margin-left:4px}
+    .price-note{font-size:13px;color:var(--c-muted);margin:8px 0 20px}
+    .plan ul{list-style:none;padding:0;margin:0 0 24px;display:grid;gap:9px;flex:1}
+    .plan li{display:flex;gap:10px;font-size:15px}
+    .plan li:before{content:"✓";color:var(--c-green-ink);font-weight:700}
+    .plan .btn{width:100%}
+    .fineprint{color:var(--c-muted);font-size:13.5px;margin-top:22px;max-width:760px}
+    .faq{max-width:820px}
+    .faq details{border-bottom:1px solid var(--c-line)}
+    .faq summary{list-style:none;cursor:pointer;padding:22px 40px 22px 0;font-size:18px;font-weight:650;letter-spacing:-.01em;position:relative}
+    .faq summary::-webkit-details-marker{display:none}
+    .faq summary:after{content:"+";position:absolute;right:4px;top:18px;font-size:26px;font-weight:400;color:var(--c-muted)}
+    .faq details[open] summary:after{content:"−"}
+    .faq details p{margin:0 0 22px;color:var(--c-muted);font-size:16px;line-height:1.65;max-width:720px}
+    .cta-band{background:var(--c-text);color:#fff;border-radius:24px;padding:64px 56px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:32px;align-items:center}
+    .cta-band h2{color:#fff}
+    .cta-band p{color:#b9b9c3;margin:14px 0 0;font-size:17px;max-width:560px}
+    .cta-band .actions{justify-content:flex-end}
+    .cta-band .btn-ghost{background:rgba(255,255,255,.12);color:#fff}
+    footer{border-top:1px solid var(--c-line);padding:36px 0 44px}
+    .footer-row{font-size:13.5px;color:var(--c-muted);align-items:flex-start}
+    .footer-row .brand{font-size:12px}
+    .footer-links{display:flex;gap:18px;flex-wrap:wrap}
+    .footer-links a:hover{color:var(--c-text)}
+    @media(max-width:980px){
+      .grid3,.prices{grid-template-columns:1fr}
+      .tool{grid-template-columns:1fr;padding:32px}
+      .cta-band{grid-template-columns:1fr;padding:44px 32px}
+      .cta-band .actions{justify-content:flex-start}
+      .section{padding:84px 0}
+    }
+    @media(max-width:640px){
+      .topbar{min-height:60px}
+      .hero{padding:36px 0 44px}
+      h1{font-size:clamp(38px,11vw,54px)}
+      .lede{font-size:17px}
+      .section{padding:68px 0}
+      .tool{padding:24px}
+      .plan{padding:24px}
+      .cta-band{padding:36px 24px;border-radius:20px}
+      .faq summary{font-size:16.5px}
+    }
+  </style>
 </head>
 <body>
+  <a class="skip" href="#inhalt">Zum Inhalt springen</a>
+  <div class="site-head">
   <header class="shell topbar">
-    <a class="brand" href="#" aria-label="ALANTU Startseite">
+    <a class="brand" href="/" aria-label="ALANTU Startseite">
       <span class="mark" aria-hidden="true"><i></i></span>
       <span>ALANTU</span>
     </a>
     <nav class="nav" aria-label="Hauptnavigation">
       <a href="#produkt">Produkt</a>
-      <a href="#makler">Für Makler</a>
-      <a class="cta-small" href="mailto:hallo@alantu.de?subject=ALANTU%20Demo">Demo anfragen</a>
+      <a href="#ablauf">So funktioniert’s</a>
+      <a href="#preise">Preise</a>
+      <a href="#faq">FAQ</a>
+      <a class="cta-small" href="mailto:chris.hohlfeld@gmail.com?subject=ALANTU%20Demo%20anfragen">Demo anfragen</a>
     </nav>
   </header>
+  </div>
 
-  <main>
+  <main id="inhalt">
     <section class="shell hero">
       <div class="hero-copy">
-        <div class="eyebrow">Premium-Exposés für Immobilienmakler</div>
+        <div class="eyebrow">3D-Exposés für Immobilienmakler</div>
         <h1>Immobilien verdienen mehr als ein PDF.</h1>
-        <p class="lede">ALANTU macht aus einem Exposé ein Erlebnis: hochwertig gestaltet, dreidimensional und so direkt, dass Interessenten auf Desktop und Smartphone wirklich darin blättern.</p>
+        <p class="lede">ALANTU macht aus Ihrem vorhandenen PDF-Exposé ein 3D-Exposé, in dem Interessenten wirklich blättern – auf dem Smartphone, dem Tablet und am Desktop. Ein Link, Ihr Branding, keine App.</p>
         <div class="actions">
           <button class="btn btn-dark" id="experienceBtn" type="button">
             Exposé erleben
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <a class="btn btn-ghost" href="mailto:hallo@alantu.de?subject=ALANTU%20für%20mein%20Objekt">Für mein Objekt</a>
+          <a class="btn btn-ghost" href="/pdf-to-exposee.html">Eigenes PDF ausprobieren</a>
         </div>
         <div class="micro" aria-label="Produktvorteile">
-          <span>Keine App</span><span>Desktop & Mobile</span><span>Ihr Branding</span>
+          <span>Keine App</span><span>Desktop &amp; Mobile</span><span>Ihr Branding</span><span>Aus Ihrem PDF</span>
         </div>
       </div>
 
@@ -563,7 +700,7 @@
       </div>
     </section>
 
-    <section class="proof">
+    <section class="proof" aria-label="Kurz gesagt">
       <div class="shell proof-row">
         <div class="proof-item"><div class="proof-no">3D</div><div class="proof-txt">Echtes Blättergefühl statt PDF-Scrollen.</div></div>
         <div class="proof-item"><div class="proof-no">1×</div><div class="proof-txt">Ein Link für Smartphone, Tablet und Desktop.</div></div>
@@ -576,6 +713,7 @@
         <div>
           <div class="kicker">Das Produkt</div>
           <h2>Ein Exposé, das sich wie Wert anfühlt.</h2>
+          <p class="h2-sub">Ihr Exposé bleibt Ihr Exposé – mit allen Bildern, Grundrissen und Pflichtangaben. ALANTU ändert nur, wie es sich anfühlt.</p>
         </div>
         <div class="feature-list">
           <article class="feature">
@@ -584,16 +722,72 @@
           </article>
           <article class="feature">
             <div class="feature-no">02</div>
-            <div><h3>Für das Objekt gebaut</h3><p>Große Bilder, ruhige Typografie, Grundrisse, Lage, Kennzahlen und Maklerkontakt werden zu einer einzigen klaren Präsentation statt zu einer PDF-Sammlung.</p></div>
+            <div><h3>Aus Ihrem vorhandenen PDF</h3><p>Sie müssen nichts neu gestalten. Das PDF aus Ihrer Maklersoftware oder von Ihrer Agentur wird Seite für Seite hochauflösend übernommen – inklusive Grundrissen, Lage und Energieausweis-Angaben.</p></div>
           </article>
           <article class="feature">
             <div class="feature-no">03</div>
-            <div><h3>Auf jedem Gerät elegant</h3><p>Desktop zeigt das Exposé wie ein aufgeschlagenes Buch. Auf dem Smartphone wird daraus eine natürliche, einhändig bedienbare Einzelblatt-Erfahrung.</p></div>
+            <div><h3>Auf jedem Gerät elegant</h3><p>Am Desktop zeigt sich das Exposé wie ein aufgeschlagenes Buch. Auf dem Smartphone wird daraus eine natürliche, einhändig bedienbare Einzelseiten-Ansicht – mit Vollbild per Doppeltipp.</p></div>
           </article>
           <article class="feature">
             <div class="feature-no">04</div>
             <div><h3>Der Makler bleibt die Marke</h3><p>Logo, Farben und Ansprechpartner des Maklers stehen im Vordergrund. ALANTU liefert die Präsentationsschicht, ohne sich zwischen Makler und Kunde zu drängen.</p></div>
           </article>
+          <article class="feature">
+            <div class="feature-no">05</div>
+            <div><h3>Ein Link zum Teilen</h3><p>Als Antwort auf Portal-Anfragen, per E-Mail, WhatsApp oder auf Ihrer Website: Interessenten öffnen das Exposé direkt im Browser, ohne Download und ohne Installation.</p></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="soft-band section" id="ablauf">
+      <div class="shell">
+        <div class="section-head">
+          <div class="kicker">So funktioniert’s</div>
+          <h2>In drei Schritten vom PDF zum 3D-Exposé.</h2>
+        </div>
+        <div class="grid3">
+          <article class="card">
+            <div class="step-no">1</div>
+            <h3>PDF auswählen</h3>
+            <p>Nehmen Sie Ihr fertiges Exposé-PDF (bis 40 Seiten). Die Umwandlung läuft direkt im Browser – das PDF verlässt dabei Ihr Gerät nicht.</p>
+          </article>
+          <article class="card">
+            <div class="step-no">2</div>
+            <h3>Prüfen &amp; branden</h3>
+            <p>Sie blättern sofort durch das Ergebnis und setzen Firmenname und Cover-Text. Auf Wunsch stimmen wir Farben und Logo mit Ihnen ab.</p>
+          </article>
+          <article class="card">
+            <div class="step-no">3</div>
+            <h3>Link teilen</h3>
+            <p>Wir veröffentlichen das 3D-Exposé unter einem festen Link, den Sie an Interessenten schicken oder auf Ihrer Website einbinden.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell section" id="konverter">
+      <div class="tool">
+        <div>
+          <div class="kicker">Das Werkzeug</div>
+          <h2>PDF zu Exposé – jetzt selbst testen.</h2>
+          <p class="h2-sub">Laden Sie ein eigenes Exposé-PDF und blättern Sie wenige Sekunden später im 3D-Exposé. Kostenlos, ohne Anmeldung.</p>
+          <ul>
+            <li>Umwandlung vollständig im Browser, kein Upload</li>
+            <li>Jede Seite hochauflösend und beidseitig bedruckt</li>
+            <li>Firmenname und Cover-Text anpassbar</li>
+            <li>Vollbild, Wischen und Tippen auf allen Geräten</li>
+          </ul>
+          <div class="actions">
+            <a class="btn btn-green" href="/pdf-to-exposee.html">PDF zu Exposé öffnen</a>
+            <a class="btn btn-line" href="/pdfconvert.html">PDF-Text-Werkzeug</a>
+          </div>
+        </div>
+        <div class="tool-visual" aria-hidden="true">
+          <div class="tool-row"><b>expose-wohnung.pdf</b><span class="pill">PDF · 12 Seiten</span></div>
+          <div class="tool-row"><b>Seiten rendern</b><span class="pill green">im Browser</span></div>
+          <div class="tool-row"><b>3D-Exposé</b><span class="pill green">bereit zum Blättern</span></div>
+          <div class="tool-row"><b>Branding</b><span>Ihr Firmenname</span></div>
         </div>
       </div>
     </section>
@@ -601,12 +795,122 @@
     <section class="dark" id="makler">
       <div class="shell">
         <div>
-          <div class="kicker">Für hochwertige Vermarktung</div>
+          <div class="kicker">Für Makler, die Wirkung wollen</div>
           <h2>Der erste Eindruck beginnt vor der Besichtigung.</h2>
-          <p>Wenn ein Objekt hochwertig ist, sollte sich auch der Link dazu hochwertig anfühlen. ALANTU macht genau diesen Moment zum Teil der Vermarktung.</p>
-          <a class="btn" style="background:var(--paper);color:var(--ink);margin-top:10px" href="mailto:hallo@alantu.de?subject=ALANTU%20Demo">Demo für ein Objekt anfragen</a>
+          <p>Wenn ein Objekt hochwertig ist, sollte sich auch der Link dazu hochwertig anfühlen. Ob Stadtwohnung in Konstanz, Einfamilienhaus im Umland oder Villa am See: ALANTU macht diesen Moment zum Teil Ihrer Vermarktung – für Makler in ganz Deutschland.</p>
+          <a class="btn btn-dark" style="margin-top:10px" href="mailto:chris.hohlfeld@gmail.com?subject=ALANTU%20Demo%20f%C3%BCr%20ein%20Objekt">Demo für ein Objekt anfragen</a>
         </div>
-        <div class="quote">„Nicht noch ein Immobilien-Tool. Sondern die schönste Art, ein Objekt zu zeigen.“</div>
+        <div class="quote">Nicht noch ein Immobilien-Tool. Sondern die schönste Art, ein Objekt zu zeigen.</div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         PREISE – zentral hier ändern (einzige Stelle mit Preisangaben).
+         Einführungspreise, Stand 2026. Beträge zzgl. MwSt.
+         ============================================================ -->
+    <section class="shell section" id="preise">
+      <div class="section-head">
+        <div class="kicker">Preise</div>
+        <h2>Einfach starten. Klar kalkulieren.</h2>
+        <p class="h2-sub">Einführungspreise für die ersten Makler. Alle Preise zzgl. MwSt.</p>
+      </div>
+      <div class="prices">
+        <article class="plan">
+          <span class="pill">Einführungspreis</span>
+          <h3>Einzel-Exposé</h3>
+          <p class="for">Für ein einzelnes Objekt, das besonders wirken soll.</p>
+          <div class="price">149&nbsp;€<small>einmalig</small></div>
+          <p class="price-note">pro Objekt</p>
+          <ul>
+            <li>1 3D-Exposé aus Ihrem PDF</li>
+            <li>Veröffentlichung unter festem Link</li>
+            <li>Ihr Firmenname auf dem Cover</li>
+            <li>Eine Korrekturrunde</li>
+          </ul>
+          <a class="btn btn-line" href="mailto:chris.hohlfeld@gmail.com?subject=ALANTU%20Einzel-Expos%C3%A9">Anfragen</a>
+        </article>
+        <article class="plan featured">
+          <span class="pill green">Einführungspreis</span>
+          <h3>Makler</h3>
+          <p class="for">Für Einzelmakler mit laufenden Objekten.</p>
+          <div class="price">79&nbsp;€<small>/ Monat</small></div>
+          <p class="price-note">bis zu 5 aktive Exposés</p>
+          <ul>
+            <li>Bis zu 5 aktive 3D-Exposés</li>
+            <li>Austausch von Objekten jederzeit</li>
+            <li>Logo, Farben und Ansprechpartner</li>
+            <li>Persönliche Einrichtung</li>
+          </ul>
+          <a class="btn btn-dark" href="mailto:chris.hohlfeld@gmail.com?subject=ALANTU%20Paket%20Makler">Demo anfragen</a>
+        </article>
+        <article class="plan">
+          <span class="pill">Einführungspreis</span>
+          <h3>Büro</h3>
+          <p class="for">Für Maklerbüros mit mehreren Ansprechpartnern.</p>
+          <div class="price">199&nbsp;€<small>/ Monat</small></div>
+          <p class="price-note">bis zu 20 aktive Exposés</p>
+          <ul>
+            <li>Bis zu 20 aktive 3D-Exposés</li>
+            <li>Mehrere Ansprechpartner</li>
+            <li>Einheitliches Büro-Branding</li>
+            <li>Priorisierte Umsetzung</li>
+          </ul>
+          <a class="btn btn-line" href="mailto:chris.hohlfeld@gmail.com?subject=ALANTU%20Paket%20B%C3%BCro">Anfragen</a>
+        </article>
+      </div>
+      <p class="fineprint">Der PDF-zu-Exposé-Konverter ist kostenlos testbar. Die Veröffentlichung unter festem Link übernehmen wir in der Einführungsphase persönlich für Sie. Konditionen und Laufzeiten besprechen wir im Demo-Gespräch.</p>
+    </section>
+    <!-- /PREISE -->
+
+    <section class="soft-band section" id="faq">
+      <div class="shell">
+        <div class="section-head">
+          <div class="kicker">FAQ</div>
+          <h2>Häufige Fragen</h2>
+        </div>
+        <div class="faq">
+          <details>
+            <summary>Brauchen Interessenten eine App?</summary>
+            <p>Nein. Das 3D-Exposé öffnet sich in jedem aktuellen Browser – auf dem iPhone, auf Android-Geräten, auf Tablets und am Desktop.</p>
+          </details>
+          <details>
+            <summary>Welche Unterlagen brauche ich?</summary>
+            <p>Ihr fertiges Exposé als PDF, so wie Sie es heute schon verschicken – zum Beispiel aus Ihrer Maklersoftware. Seitenformat und Gestaltung bleiben erhalten.</p>
+          </details>
+          <details>
+            <summary>Was passiert mit meinem PDF beim Testen?</summary>
+            <p>Im Konverter wird das PDF ausschließlich in Ihrem Browser verarbeitet und nicht auf einen Server hochgeladen. Für die Darstellung werden Programmbibliotheken (z.&nbsp;B. three.js und PDF.js) von einem Content-Delivery-Netzwerk geladen. Details finden Sie in der <a href="/datenschutz/" style="text-decoration:underline">Datenschutzerklärung</a>.</p>
+          </details>
+          <details>
+            <summary>Bleiben Pflichtangaben wie der Energieausweis erhalten?</summary>
+            <p>Ja. ALANTU übernimmt jede Seite Ihres PDFs vollständig. Angaben nach § 87 GEG, Provisionshinweise und Ihr Impressum stehen also genau dort, wo sie in Ihrem Exposé stehen. Für die Inhalte bleibt der Makler verantwortlich.</p>
+          </details>
+          <details>
+            <summary>Wie teile ich das Exposé?</summary>
+            <p>Sie erhalten einen festen Link, den Sie als Antwort auf Portal-Anfragen, per E-Mail oder WhatsApp verschicken oder auf Ihrer Website verlinken. In der Einführungsphase richten wir die Veröffentlichung persönlich für Sie ein.</p>
+          </details>
+          <details>
+            <summary>Funktioniert ALANTU nur am Bodensee?</summary>
+            <p>Nein. ALANTU ist für Makler in ganz Deutschland gemacht. Das Beispiel-Exposé auf dieser Seite zeigt ein fiktives Objekt.</p>
+          </details>
+          <details>
+            <summary>Was kostet ALANTU?</summary>
+            <p>Die aktuellen Einführungspreise finden Sie oben unter <a href="#preise" style="text-decoration:underline">Preise</a>. Den Konverter können Sie vorab kostenlos und ohne Anmeldung ausprobieren.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell section">
+      <div class="cta-band">
+        <div>
+          <h2>Ihr nächstes Objekt als 3D-Exposé.</h2>
+          <p>Schicken Sie uns ein Exposé-PDF oder vereinbaren Sie eine kurze Demo – wir zeigen Ihnen Ihr eigenes Objekt zum Blättern.</p>
+        </div>
+        <div class="actions">
+          <a class="btn btn-green" href="mailto:chris.hohlfeld@gmail.com?subject=ALANTU%20Demo%20anfragen">Demo anfragen</a>
+          <a class="btn btn-ghost" href="/pdf-to-exposee.html">PDF ausprobieren</a>
+        </div>
       </div>
     </section>
   </main>
@@ -614,8 +918,13 @@
   <footer>
     <div class="shell footer-row">
       <div class="brand"><span class="mark" aria-hidden="true"><i></i></span><span>ALANTU</span></div>
-      <div>Premium-Exposés für Immobilienmakler · Deutschland</div>
-      <div>© 2026 ALANTU</div>
+      <nav class="footer-links" aria-label="Rechtliches und Kontakt">
+        <a href="/pdf-to-exposee.html">PDF zu Exposé</a>
+        <a href="mailto:chris.hohlfeld@gmail.com?subject=ALANTU">Kontakt</a>
+        <a href="/impressum/">Impressum</a>
+        <a href="/datenschutz/">Datenschutz</a>
+      </nav>
+      <div>© 2026 ALANTU · 3D-Exposés für Immobilienmakler</div>
     </div>
   </footer>
 
