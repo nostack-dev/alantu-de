@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-29T08:34:00+02:00",
+  "updated_at": "2026-09-29T08:39:00+02:00",
   "watchlist": [
     {
       "symbol": "ORCL",
@@ -14,7 +14,7 @@
       "name": "Oracle",
       "added_at": "2026-09-17T11:30:00+02:00",
       "latest": {
-        "at": "2026-09-29T08:34:00+02:00",
+        "at": "2026-09-29T08:39:00+02:00",
         "signal": "hold",
         "social_impulse": -4,
         "confidence": 65,
@@ -2078,6 +2078,22 @@
           "voice_bear": 3,
           "voice_mixed": 3,
           "price": 132.6
+        },
+        {
+          "at": "2026-09-29T08:39:00+02:00",
+          "signal": "hold",
+          "social_impulse": -4,
+          "confidence": 65,
+          "x_posts": 0,
+          "reddit_posts": 0,
+          "news": 5,
+          "hype_bull": 30,
+          "hype_bear": 40,
+          "hype_net": -10,
+          "voice_bull": 2,
+          "voice_bear": 3,
+          "voice_mixed": 3,
+          "price": 132.6
         }
       ],
       "voices_archive": [
@@ -3976,6 +3992,62 @@
           "url": "https://thedistributed.co/stocks/ORCL/",
           "lean": "mixed",
           "at": "2026-09-29T08:36:00+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Force-Majeure zu Project Jupiter bleibt Last — Kurs weiter unter Druck.",
+          "url": "https://www.cnbc.com/2026/09/24/oracle-data-center-force-majeure.html",
+          "lean": "bear",
+          "at": "2026-09-29T08:41:00+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Montagsschwäche hält an: Oracle rutscht weiter — Unruhe bleibt.",
+          "url": "https://www.benzinga.com/",
+          "lean": "bear",
+          "at": "2026-09-29T08:41:00+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Seeking Alpha warnt vor KI-Trade-Risiko — Downgrade-Ton belastet.",
+          "url": "https://seekingalpha.com/",
+          "lean": "bear",
+          "at": "2026-09-29T08:41:00+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Ellison stoppt Plan für großen Aktienverkauf — leichte Entlastung.",
+          "url": "https://finance.yahoo.com/quote/ORCL",
+          "lean": "bull",
+          "at": "2026-09-29T08:41:00+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Bernstein bestätigt Buy-Rating — leichte Stütze für die Bullen.",
+          "url": "https://www.marketbeat.com/",
+          "lean": "bull",
+          "at": "2026-09-29T08:41:00+02:00"
+        },
+        {
+          "source": "News",
+          "text": "Kurs bei etwa 132.60 Dollar; kaum Bewegung vor Börsenöffnung.",
+          "url": "https://finance.yahoo.com/quote/ORCL",
+          "lean": "mixed",
+          "at": "2026-09-29T08:41:00+02:00"
+        },
+        {
+          "source": "Reddit",
+          "text": "ApeWisdom 24h: 28 Mentions, Upvotes 1014, Rank 20; Sentiment ~75%.",
+          "url": "https://apewisdom.io/stocks/ORCL/",
+          "lean": "mixed",
+          "at": "2026-09-29T08:41:00+02:00"
+        },
+        {
+          "source": "Reddit",
+          "text": "The Distributed 30d: 1800 Mentions, ~49% bullish — nahe Mixed.",
+          "url": "https://thedistributed.co/stocks/ORCL/",
+          "lean": "mixed",
+          "at": "2026-09-29T08:41:00+02:00"
         }
       ],
       "signal": "hold",
@@ -3986,7 +4058,7 @@
       "hype_net": -10,
       "confidence": 65,
       "hype_state": "mixed",
-      "updated_at": "2026-09-29T08:34:00+02:00",
+      "updated_at": "2026-09-29T08:39:00+02:00",
       "why": "Kurs bei etwa 132.60 Dollar, Force-Majeure bleibt Last. Ellison stoppt großen Aktienverkauf — Bild weiter gemischt, abwarten.",
       "evidence": {
         "X": 0,
@@ -3999,56 +4071,56 @@
           "text": "Force-Majeure zu Project Jupiter bleibt Last — Kurs weiter unter Druck.",
           "url": "https://www.cnbc.com/2026/09/24/oracle-data-center-force-majeure.html",
           "lean": "bear",
-          "at": "2026-09-29T08:36:00+02:00"
+          "at": "2026-09-29T08:41:00+02:00"
         },
         {
           "source": "News",
           "text": "Montagsschwäche hält an: Oracle rutscht weiter — Unruhe bleibt.",
           "url": "https://www.benzinga.com/",
           "lean": "bear",
-          "at": "2026-09-29T08:36:00+02:00"
+          "at": "2026-09-29T08:41:00+02:00"
         },
         {
           "source": "News",
-          "text": "PeopleSoft-Breach und CapEx-Vorsicht belasten die Stimmung weiter.",
-          "url": "https://www.benzinga.com/",
+          "text": "Seeking Alpha warnt vor KI-Trade-Risiko — Downgrade-Ton belastet.",
+          "url": "https://seekingalpha.com/",
           "lean": "bear",
-          "at": "2026-09-29T08:36:00+02:00"
+          "at": "2026-09-29T08:41:00+02:00"
         },
         {
           "source": "News",
           "text": "Ellison stoppt Plan für großen Aktienverkauf — leichte Entlastung.",
           "url": "https://finance.yahoo.com/quote/ORCL",
           "lean": "bull",
-          "at": "2026-09-29T08:36:00+02:00"
+          "at": "2026-09-29T08:41:00+02:00"
         },
         {
           "source": "News",
-          "text": "Cloud- und KI-Auftragsbuch stützt die Bullen-Seite trotz Vorsicht.",
-          "url": "https://finance.yahoo.com/quote/ORCL",
+          "text": "Bernstein bestätigt Buy-Rating — leichte Stütze für die Bullen.",
+          "url": "https://www.marketbeat.com/",
           "lean": "bull",
-          "at": "2026-09-29T08:36:00+02:00"
+          "at": "2026-09-29T08:41:00+02:00"
         },
         {
           "source": "News",
           "text": "Kurs bei etwa 132.60 Dollar; kaum Bewegung vor Börsenöffnung.",
           "url": "https://finance.yahoo.com/quote/ORCL",
           "lean": "mixed",
-          "at": "2026-09-29T08:36:00+02:00"
+          "at": "2026-09-29T08:41:00+02:00"
         },
         {
           "source": "Reddit",
           "text": "ApeWisdom 24h: 28 Mentions, Upvotes 1014, Rank 20; Sentiment ~75%.",
           "url": "https://apewisdom.io/stocks/ORCL/",
           "lean": "mixed",
-          "at": "2026-09-29T08:36:00+02:00"
+          "at": "2026-09-29T08:41:00+02:00"
         },
         {
           "source": "Reddit",
           "text": "The Distributed 30d: 1800 Mentions, ~49% bullish — nahe Mixed.",
           "url": "https://thedistributed.co/stocks/ORCL/",
           "lean": "mixed",
-          "at": "2026-09-29T08:36:00+02:00"
+          "at": "2026-09-29T08:41:00+02:00"
         }
       ],
       "hype_mixed": 30,
