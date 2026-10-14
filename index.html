@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-<title>Das Baubuch · Kommunale Wohnbau</title>
+<title>ALANTU · Baubuch — Baucontrolling &amp; Projektentwicklung</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon.ico" sizes="any">
 <style>
 
   :root, html[data-theme="light"] {
@@ -1061,6 +1063,194 @@
   }
   svg.chart-svg { width: 100%; height: auto; display: block; }
 
+
+  /* ALANTU Brand Mark & Badges */
+  .alantu-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .alantu-mark svg {
+    display: block;
+    border-radius: 6px;
+  }
+  .sidebar-brand-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: inherit;
+    width: 100%;
+  }
+  .sidebar-brand-text h1 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 750;
+    letter-spacing: 0.14em;
+    color: var(--tx-main);
+    line-height: 1.15;
+  }
+  .sidebar-brand-text p {
+    margin: 2px 0 0;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: var(--tx-muted);
+  }
+
+  /* Header Brand Link (Digitalisierungsplanung style) */
+  .header-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    text-decoration: none;
+    color: var(--tx-main);
+    margin-right: 6px;
+    flex-shrink: 0;
+  }
+  .header-brand .brand-text {
+    font-size: 14px;
+    font-weight: 750;
+    letter-spacing: 0.16em;
+    color: var(--tx-main);
+    line-height: 1;
+  }
+  .header-brand .brand-badge {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: var(--primary-subtle);
+    color: var(--primary);
+    border: 1px solid var(--primary-border);
+    padding: 2px 6px;
+    border-radius: 4px;
+    line-height: 1.2;
+  }
+
+  /* ALANTU Modern SaaS Footer */
+  .app-footer {
+    border-top: 1px solid var(--border);
+    background: var(--bg-card);
+    margin-top: 48px;
+    padding: 36px 20px 84px;
+  }
+  .footer-shell {
+    max-width: 1040px;
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 36px;
+    flex-wrap: wrap;
+  }
+  .footer-brand-section {
+    max-width: 440px;
+  }
+  .footer-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .footer-brand-name {
+    font-size: 14px;
+    font-weight: 750;
+    letter-spacing: 0.14em;
+    color: var(--tx-main);
+  }
+  .footer-tagline {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--tx-muted);
+    padding-left: 6px;
+    border-left: 1px solid var(--border);
+  }
+  .footer-desc {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--tx-muted);
+  }
+  .footer-meta-section {
+    display: flex;
+    gap: 40px;
+    flex-wrap: wrap;
+  }
+  .footer-meta-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .footer-col-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--tx-subtle);
+  }
+  .footer-meta-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 12px;
+    color: var(--tx-muted);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .footer-links-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 12.5px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .footer-link {
+    color: var(--tx-body);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.12s ease;
+  }
+  .footer-link:hover {
+    color: var(--primary);
+    text-decoration: underline;
+  }
+  .footer-bottom-row {
+    max-width: 1040px;
+    margin: 24px auto 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 11.5px;
+    color: var(--tx-muted);
+  }
+  .footer-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .footer-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
   /* MOBILE RESPONSIVE OVERRIDES */
   @media (max-width: 820px) {
     .app-shell {
@@ -1149,11 +1339,15 @@
   <!-- Left Sidebar Navigation (Desktop) & Mobile Off-Canvas -->
   <aside class="app-sidebar" id="appSidebar">
     <div class="sidebar-brand-box">
-      <div class="sidebar-logo">WOHNBAU</div>
-      <div class="sidebar-brand-text">
-        <h1>Das Baubuch</h1>
-        <p>Baukosten &amp; Controlling</p>
-      </div>
+      <a href="/" class="sidebar-brand-link" title="ALANTU Baubuch">
+        <span class="alantu-mark" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 64 64" fill="none"><rect width="64" height="64" rx="14" fill="var(--primary)"/><path d="M18 42.5 28.8 18h6.6L46 42.5h-7.1l-2.1-5.4H27.3l-2.1 5.4H18Zm11.5-11.3h5.1L32 24.4l-2.5 6.8Z" fill="#ffffff"/></svg>
+        </span>
+        <div class="sidebar-brand-text">
+          <h1>ALANTU</h1>
+          <p>Baubuch &amp; Controlling</p>
+        </div>
+      </a>
       <button type="button" class="drawer-close-btn mobile-menu-close" onclick="toggleMobileNav(false)" style="margin-left:auto;display:none" title="Menü schließen"><svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
 
@@ -1214,6 +1408,13 @@
           <svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           <span id="mobileCurrentPhaseLabel">Grundstück</span>
         </button>
+        <a href="/" class="header-brand" title="ALANTU Baubuch">
+          <span class="alantu-mark" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 64 64" fill="none"><rect width="64" height="64" rx="14" fill="var(--primary)"/><path d="M18 42.5 28.8 18h6.6L46 42.5h-7.1l-2.1-5.4H27.3l-2.1 5.4H18Zm11.5-11.3h5.1L32 24.4l-2.5 6.8Z" fill="#ffffff"/></svg>
+          </span>
+          <span class="brand-text">ALANTU</span>
+          <span class="brand-badge">Baubuch</span>
+        </a>
         <div class="header-project-pill" id="activeProjectPill">
           <span class="dot"></span>
           <span>Projekt:</span>
@@ -1859,7 +2060,7 @@
     <!-- Wirtschaftlichkeits-Parameter & Mietformel -->
     <div class="card">
       <div class="card-header">
-        <h2> Die Wohnbau-Wirtschaftlichkeitsformel (50J AfA)</h2>
+        <h2> Die ALANTU-Wirtschaftlichkeitsformel (50J AfA)</h2>
         
       </div>
 
@@ -1927,7 +2128,7 @@
       <div class="table-wrap">
         <table class="data-table">
           <thead>
-            <tr><th>Kriterium</th><th>KfW 55</th><th>EH 40 / QNG (Kommunale Wohnbau)</th></tr>
+            <tr><th>Kriterium</th><th>KfW 55</th><th>EH 40 / QNG (ALANTU Baubuch)</th></tr>
           </thead>
           <tbody>
             <tr><td><b>Primärenergiebedarf:</b></td><td>Max. 55 % Referenz</td><td><b style="color:var(--green)">Max. 40 % Referenz</b></td></tr>
@@ -2095,7 +2296,7 @@
         <p style="font-size:12px;color:var(--tx);margin:0 0 6px">
           3 % Sicherheitseinbehalt (<b>4.633,86 €</b>) abgelöst durch <b>Bankbürgschaft</b> auf kommunalem Formular <b>KEV 311 Sich 2</b>.
         </p>
-        <span class="badge badge-green"> Original-Bürgschaftsurkunde liegt im Tresor der Kommunale Wohnbau vor</span>
+        <span class="badge badge-green"> Original-Bürgschaftsurkunde liegt im Tresor der ALANTU Baubuch vor</span>
       </div>
     </div>
   </div>
@@ -2311,6 +2512,51 @@
       </section>
     </main>
 
+    <!-- ALANTU Enterprise Footer -->
+    <footer class="app-footer">
+      <div class="footer-shell">
+        <div class="footer-brand-section">
+          <div class="footer-brand-row">
+            <span class="alantu-mark" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 64 64" fill="none"><rect width="64" height="64" rx="14" fill="var(--primary)"/><path d="M18 42.5 28.8 18h6.6L46 42.5h-7.1l-2.1-5.4H27.3l-2.1 5.4H18Zm11.5-11.3h5.1L32 24.4l-2.5 6.8Z" fill="#ffffff"/></svg>
+            </span>
+            <span class="footer-brand-name">ALANTU</span>
+            <span class="footer-tagline">Baubuch &amp; Baucontrolling</span>
+          </div>
+          <p class="footer-desc">
+            Standardisiertes Baucontrolling und transparentes Vergabewesen für Wohnungsbau und Projektentwicklung. Durchgängige Prozesskette von der Grundstücksprüfung (§ 34 BauGB) über DIN 276 und AVA/ERP-Abgleich bis zur VOB-Schlussrechnungsprüfung.
+          </p>
+        </div>
+
+        <div class="footer-meta-section">
+          <div class="footer-meta-col">
+            <span class="footer-col-title">Methodik &amp; Normen</span>
+            <ul class="footer-meta-list">
+              <li>DIN 276:2018-12 (KG 100–800)</li>
+              <li>VOB/A § 17 &amp; VOB/B § 12, § 13</li>
+              <li>KEV 311 Bürgschaften &amp; Sicherheiten</li>
+              <li>50J AfA &amp; Gebäude-Entropiemodell</li>
+            </ul>
+          </div>
+          <div class="footer-meta-col">
+            <span class="footer-col-title">Navigation &amp; Recht</span>
+            <ul class="footer-links-list">
+              <li><a href="/impressum/" class="footer-link">Impressum</a></li>
+              <li><a href="/datenschutz/" class="footer-link">Datenschutz</a></li>
+              <li><a href="https://github.com/nostack-dev/alantu-de" target="_blank" rel="noopener" class="footer-link">GitHub</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom-row">
+        <span>© 2026 ALANTU · Alle Rechte vorbehalten.</span>
+        <span class="footer-status-pill">
+          <span class="footer-status-dot"></span> System aktiv · DIN 276 &amp; VOB Konform
+        </span>
+      </div>
+    </footer>
+
     <!-- Pinned Process Navigation Dock (100% stable, zero jump) -->
     <div class="process-nav-dock" id="processNavDock">
       <button type="button" class="btn btn-outline nav-dock-btn" id="dockPrevBtn" onclick="processStepPrev()">
@@ -2334,7 +2580,7 @@
 <aside class="leitfaden-drawer" id="leitfadenDrawer">
   <div class="drawer-header">
     <div>
-      <h3>Praxis-Leitfaden Wohnungsbau</h3>
+      <h3>ALANTU Praxis-Leitfaden</h3>
       <p>Erfahrungswissen &amp; Abnahmekriterien</p>
     </div>
     <button type="button" class="drawer-close-btn" onclick="toggleLeitfaden(false)" title="Schließen"><svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
@@ -2500,7 +2746,7 @@
       </div>
       <div class="drawer-fact-box">
         <h4>Normative Grundlage:</h4>
-        <p>DIN 276 Kostenfeststellung · Kommunales Benchmarking.</p>
+        <p>DIN 276 Kostenfeststellung · ALANTU Benchmarking.</p>
       </div>
       <div class="drawer-fact-box">
         <h4>Praxis-Regeln:</h4>
@@ -2881,7 +3127,7 @@ const NEUBAU_VORLAGEN_DE = [
   { id: 'custom', name: 'Manuelle Eingabe (Wohnfläche & Volumen)', wf: 650, bri: 2950 }
 ];
 
-/* Gewerke-Erfahrungswerte der Kommunale Wohnbau */
+/* Gewerke-Erfahrungswerte der ALANTU Baubuch */
 const GEWERKE = [
   { name: 'Rohbau (Maurer/Beton/Stahlbeton)', pct: 39.00, desc: 'Größter Block (ca. 39 %)' },
   { name: 'Zimmerer & Holzbau', pct: 4.50, desc: 'Dachstuhl, Holzbalken' },
@@ -3205,7 +3451,7 @@ const DIN_276_2018 = [
   {
     code: '700',
     name: 'Baunebenkosten',
-    desc: 'Architekten- & Ingenieurhonorare HOAI, Fachgutachten, Prüfungen und Gebühren (17 % bei Kommunale Wohnbau)',
+    desc: 'Architekten- & Ingenieurhonorare HOAI, Fachgutachten, Prüfungen und Gebühren (17 % bei ALANTU Baubuch)',
     pctOfTotal: 12.0,
     erpSupported: true,
     sub: [
@@ -3432,7 +3678,7 @@ const DOSSIER_SHEETS = {
         <tr><td><b>Auftragssumme:</b></td><td><b>129.800,00 € netto</b> / <b>154.462,00 € brutto</b></td><td>Wird als Obligo im Standard-ERP reserviert</td></tr>
         <tr><td><b>Vertragliche Umlagen:</b></td><td>Strom 3‰ · Wasser 2‰ · Versicherung 2,5‰</td><td>Gesamtabzug <b>1.158,47 €</b> auf Rechnungsbrutto</td></tr>
         <tr><td><b>Mängelsicherheit:</b></td><td>3 % Einbehalt (4.633,86 €)</td><td>Abgelöst durch Bürgschaft Formular <b>KEV 311 Sich 2</b></td></tr>
-        <tr><td><b>Sachbearbeitung:</b></td><td>Frau <b>Schmidt</b> (Projektsteuerung), Herr <b>Meyer</b>, Bauleiter Herr <b>Schneider</b></td><td>Technische Abteilung Kommunale Wohnbau, Rathausplatz 1</td></tr>
+        <tr><td><b>Sachbearbeitung:</b></td><td>Frau <b>Schmidt</b> (Projektsteuerung), Herr <b>Meyer</b>, Bauleiter Herr <b>Schneider</b></td><td>Technische Abteilung ALANTU Baubuch, Rathausplatz 1</td></tr>
       </table>
     `
   },
@@ -3478,9 +3724,9 @@ const DOSSIER_SHEETS = {
     title: '4. Bieterinfo & Absageschreiben (§ 19 VOB/A, § 13 VgV)',
     html: `
       <div style="background:#0b1220;border:1px solid #334155;border-radius:8px;padding:16px;font-family:monospace;font-size:12.5px;line-height:1.6">
-        <b style="color:#fff">Kommunale Wohnbaugesellschaft mbH</b><br>
+        <b style="color:#fff">ALANTU Projektentwicklung GmbH</b><br>
         Rathausplatz 1 · D-78000 Musterstadt · Tel. 0700/12345-55 · Fax 0700/12345-50<br>
-        Sachbearbeiterin: Frau Schmidt (Projektsteuerung) · E-Mail: vergabe@wohnbau-musterstadt.de<br>
+        Sachbearbeiterin: Frau Schmidt (Projektsteuerung) · E-Mail: vergabe@alantu.de<br>
         <hr style="border:0;border-top:1px dashed var(--line);margin:12px 0">
         <b>Betreff:</b> Vergabe Außenputzarbeiten (KG 355) · Musterstraße 10–12, Musterstadt<br>
         <b>Empfänger:</b> Müller & Partner GmbH / Putz & Stuck Bau GmbH / Malerfachbetrieb Becker GmbH / Wagner e.K.<br><br>
@@ -3498,7 +3744,7 @@ const DOSSIER_SHEETS = {
     html: `
       <table class="data-table">
         <tr><th style="width:200px">Vertragsklausel</th><th>Vereinbarter Inhalt</th></tr>
-        <tr><td><b>Parteien:</b></td><td>Kommunale Wohnbaugesellschaft mbH & <b>Malerbetrieb Meisterhand GmbH</b> (Handwerkerstraße 12, Musterstadt-Nord)</td></tr>
+        <tr><td><b>Parteien:</b></td><td>ALANTU Projektentwicklung GmbH & <b>Malerbetrieb Meisterhand GmbH</b> (Handwerkerstraße 12, Musterstadt-Nord)</td></tr>
         <tr><td><b>Vertragssumme:</b></td><td><b>129.800,00 € netto</b> + 19 % MwSt. (24.662,00 €) = <b>154.462,00 € brutto</b></td></tr>
         <tr><td><b>Umlagen (§ 8):</b></td><td>Baustrom 3‰ (463,39 €) · Bauwasser 2‰ (308,92 €) · Bauwesenversicherung 2,5‰ (386,16 €) = <b>1.158,47 € Abzug</b></td></tr>
         <tr><td><b>Vertragsstrafe (§ 5):</b></td><td>2/1000 der Abrechnungsbruttosumme je Werktag Verzug (max. 5 %)</td></tr>
@@ -3683,7 +3929,7 @@ const DOCX_DOCUMENTS = {
     filename: '00_Grundstueckspruefung_Ankaufbeschluss_Abnahme.docx',
     title: 'Ankaufprüfung & Beschlussvorlage (Abnahme)',
     getElements: () => [
-      { text: 'Kommunale Wohnbau · Geschäftsführung', bold: true, size: 24, color: '1E3A8A', after: 60 },
+      { text: 'ALANTU · Geschäftsführung', bold: true, size: 24, color: '1E3A8A', after: 60 },
       { text: 'ANKAUFPRÜFUNG & BESCHLUSSVORLAGE (GO / NO-GO)', bold: true, size: 28, color: '0F172A', after: 200 },
       { text: `Grundstück: ${selectedGS.name}\\nLage: ${selectedGS.lage} (${selectedGS.flurstueck})\\nFläche: ${selectedGS.flaeche} m² · Kaufpreis: ${eur(selectedGS.kaufpreis)}\\nBaurecht: ${selectedGS.baurecht}`, size: 20, after: 180 },
       { text: '1. Vorentwurf des Architekten & Wirtschaftlichkeitsprüfung:', bold: true, size: 22, after: 100 },
@@ -3701,7 +3947,7 @@ const DOCX_DOCUMENTS = {
       },
       { text: '2. Beschluss der Geschäftsführung / Abnahme:', bold: true, size: 22, before: 180, after: 100 },
       { text: `[ X ] GO: Der Ankauf des Grundstücks ${selectedGS.name} wird hiermit genehmigt. Das Projekt wird im Baubuch & ERP angelegt.`, bold: true, size: 21, color: '15803D', after: 240 },
-      { text: 'Musterstadt, Technische Geschäftsführung Kommunale Wohnbau\\n\\n___________________________________\\ngez. Geschäftsführung / Abnahme (Geschäftsführer)', size: 19 }
+      { text: 'Musterstadt, Technische Geschäftsführung ALANTU Baubuch\\n\\n___________________________________\\ngez. Geschäftsführung / Abnahme (Geschäftsführer)', size: 19 }
     ]
   },
 
@@ -3709,7 +3955,7 @@ const DOCX_DOCUMENTS = {
     filename: '08_Stammdaten_Projekt_101.docx',
     title: 'Projekt-Stammdaten & Kostenberechnung',
     getElements: () => [
-      { text: 'Kommunale Wohnungsbaugesellschaft mbH', bold: true, size: 24, color: '1E3A8A', after: 60 },
+      { text: 'ALANTU Projektentwicklung GmbH', bold: true, size: 24, color: '1E3A8A', after: 60 },
       { text: 'Rathausplatz 1 · 78000 Musterstadt · Technische Abteilung', size: 18, color: '64748B', after: 200 },
       { text: 'PROJEKT-STAMMDATEN & KOSTENBERECHNUNG (DIN 276)', bold: true, size: 28, color: '0F172A', after: 160 },
       { text: 'Projekt 101 · Neubau Musterstraße 10–12, 78000 Musterstadt\\nWohnfläche: 1.820 m² WoFlV · Brutto-Rauminhalt: 7.450 m³ DIN 277 BRI\\nGewerk: AUSSENPUTZARBEITEN (KG 355)', size: 20, after: 180 },
@@ -3724,12 +3970,12 @@ const DOCX_DOCUMENTS = {
           [{ text: 'KG 400', bold: true }, { text: 'Bauwerk – Technische Anlagen (Heizung 4,35 %, Elektro, Aufzug)' }, { text: '720.000 €', align: 'right' }, { text: '396 €/m²', align: 'right' }],
           [{ text: 'KG 500', bold: true }, { text: 'Außenanlagen & Freiflächen (Stellplätze, GaLaBau, Spielplatz)' }, { text: '145.000 €', align: 'right' }, { text: '80 €/m²', align: 'right' }],
           [{ text: 'KG 600', bold: true }, { text: 'Ausstattung & Kunstwerke (Briefkastenanlage, Beschilderung)' }, { text: '36.000 €', align: 'right' }, { text: '20 €/m²', align: 'right' }],
-          [{ text: 'KG 700', bold: true }, { text: 'Baunebenkosten (17 % Kommunale Wohnbau: Architekt HOAI, Statik, TGA)' }, { text: '544.000 €', align: 'right' }, { text: '299 €/m²', align: 'right' }],
+          [{ text: 'KG 700', bold: true }, { text: 'Baunebenkosten (17 % ALANTU Baubuch: Architekt HOAI, Statik, TGA)' }, { text: '544.000 €', align: 'right' }, { text: '299 €/m²', align: 'right' }],
           [{ text: 'KG 800', bold: true }, { text: 'Finanzierung (Bauzeitzinsen, Avalgebühren KEV 311)' }, { text: '114.000 €', align: 'right' }, { text: '63 €/m²', align: 'right' }],
           [{ text: 'Gesamtsumme', bold: true, bg: 'DCFCE7' }, { text: 'Gesamt-Investition (DIN 276:2018 KG 100–800)', bold: true, bg: 'DCFCE7' }, { text: '4.834.600 €', bold: true, align: 'right', bg: 'DCFCE7' }, { text: '2.656 €/m²', bold: true, align: 'right', bg: 'DCFCE7' }]
         ]
       },
-      { text: 'Musterstadt, Technische Abteilung Kommunale Wohnbau', size: 19, before: 180 }
+      { text: 'Musterstadt, Technische Abteilung ALANTU Baubuch', size: 19, before: 180 }
     ]
   },
 
@@ -3737,7 +3983,7 @@ const DOCX_DOCUMENTS = {
     filename: '01_Bewerberliste_Par17_VOBA.docx',
     title: 'Bewerberliste (§ 17 VOB/A)',
     getElements: () => [
-      { text: 'Kommunale Wohnungsbaugesellschaft mbH', bold: true, size: 24, color: '1E3A8A', after: 60 },
+      { text: 'ALANTU Projektentwicklung GmbH', bold: true, size: 24, color: '1E3A8A', after: 60 },
       { text: 'Rathausplatz 1 · 78000 Musterstadt', size: 18, color: '64748B', after: 200 },
       { text: 'B E W E R B E R L I S T E', bold: true, size: 30, color: '0F172A', after: 40 },
       { text: '(gemäß § 17 Nr. 6 VOB/A bis zum Eröffnungstermin streng geheim zu halten)', italic: true, size: 19, color: 'DC2626', after: 180 },
@@ -3763,7 +4009,7 @@ const DOCX_DOCUMENTS = {
     filename: '02_Submissionsprotokoll_Preisspiegel.docx',
     title: 'Submissionsprotokoll & Preisspiegel',
     getElements: () => [
-      { text: 'Kommunale Wohnungsbaugesellschaft mbH', bold: true, size: 24, color: '1E3A8A', after: 60 },
+      { text: 'ALANTU Projektentwicklung GmbH', bold: true, size: 24, color: '1E3A8A', after: 60 },
       { text: 'SUBMISSIONSPROTOKOLL & PREISSPIEGEL (N-LISTING)', bold: true, size: 28, color: '0F172A', after: 160 },
       { text: 'Projekt: 101 · Musterstraße 10–12 · Gewerk: AUSSENPUTZ (KG 355)\\nEröffnung: 31.03.2024 um 10:20 Uhr · Anwesende: Bauleitung & Vergabeausschuss', size: 20, after: 180 },
       {
@@ -3787,13 +4033,13 @@ const DOCX_DOCUMENTS = {
     filename: '03_Bieterinfo_Absageschreiben_VOBA.docx',
     title: 'Bieterinfo & Absageschreiben',
     getElements: () => [
-      { text: 'Kommunale Wohnungsbaugesellschaft mbH', bold: true, size: 26, color: '1E3A8A', after: 60 },
+      { text: 'ALANTU Projektentwicklung GmbH', bold: true, size: 26, color: '1E3A8A', after: 60 },
       { text: 'Rathausplatz 1 · 78000 Musterstadt · Tel. 0700/12345-55 · Fax 0700/12345-50', size: 18, color: '64748B', after: 240 },
       { text: 'Stuckateurbetrieb Müller & Partner GmbH\\nLängerach 7\\n78000 Musterstadt', size: 20, after: 260 },
       { text: 'Datum: 09.04.2024 · Unser Zeichen: Ti (Frau Schmidt)', size: 19, after: 160 },
       { text: 'Bieterinformation gemäß § 19 Abs. 1 VOB/A und § 13 VgV', bold: true, size: 24, color: '0F172A', after: 100 },
       { text: 'Bauvorhaben: Neubau Musterstraße 10–12, Musterstadt · Gewerk: Außenputz (KG 355)', size: 20, after: 180 },
-      { text: 'Sehr geehrte Damen und Herren,\\n\\nfür die Abgabe Ihres Angebots vom 31.03. bedanken wir uns verbindlich.\\n\\nNach eingehender rechnerischer und fachlicher Wertung aller fristgerecht eingegangenen Angebote müssen wir Ihnen leider mitteilen, dass Ihr Angebot bei der Vergabeentscheidung nicht das wirtschaftlichste war und nicht bezuschlagt werden konnte.\\n\\nDer Zuschlag wurde nach Maßgabe der VOB/A der Firma Malerbetrieb Meisterhand GmbH (Handwerkerstraße 12, 78000 Musterstadt) mit einer gewerteten Bruttoendsumme von 132.299,50 € erteilt.\\n\\nWir danken Ihnen für Ihr Interesse an städtischen Ausschreibungen der Kommunale Wohnbau und verbleiben\\n\\nmit freundlichen Grüßen\\nTechnische Abteilung / Bauherrin\\ni. A. Schmidt', size: 20 }
+      { text: 'Sehr geehrte Damen und Herren,\\n\\nfür die Abgabe Ihres Angebots vom 31.03. bedanken wir uns verbindlich.\\n\\nNach eingehender rechnerischer und fachlicher Wertung aller fristgerecht eingegangenen Angebote müssen wir Ihnen leider mitteilen, dass Ihr Angebot bei der Vergabeentscheidung nicht das wirtschaftlichste war und nicht bezuschlagt werden konnte.\\n\\nDer Zuschlag wurde nach Maßgabe der VOB/A der Firma Malerbetrieb Meisterhand GmbH (Handwerkerstraße 12, 78000 Musterstadt) mit einer gewerteten Bruttoendsumme von 132.299,50 € erteilt.\\n\\nWir danken Ihnen für Ihr Interesse an städtischen Ausschreibungen der ALANTU Baubuch und verbleiben\\n\\nmit freundlichen Grüßen\\nTechnische Abteilung / Bauherrin\\ni. A. Schmidt', size: 20 }
     ]
   },
 
@@ -3803,13 +4049,13 @@ const DOCX_DOCUMENTS = {
     getElements: () => [
       { text: 'B A U W E R K V E R T R A G', bold: true, size: 30, align: 'center', color: '1E3A8A', after: 60 },
       { text: 'nach den Regelungen der VOB Teile B und C sowie des BGB', italic: true, size: 19, align: 'center', color: '64748B', after: 240 },
-      { text: 'Auftraggeberin: Kommunale Wohnbau Kommunale Wohnungsbaugesellschaft mbH\\nAuftragnehmerin: Malerbetrieb Meisterhand GmbH, Handwerkerstraße 12, 78000 Musterstadt', size: 20, after: 180 },
+      { text: 'Auftraggeberin: ALANTU Baubuch ALANTU Projektentwicklung GmbH\\nAuftragnehmerin: Malerbetrieb Meisterhand GmbH, Handwerkerstraße 12, 78000 Musterstadt', size: 20, after: 180 },
       { text: '§ 1 Gegenstand der Leistung\\nAusführung der AUSSENPUTZARBEITEN (KG 355) für den Neubau Musterstraße 10–12, 78000 Musterstadt.', size: 20, after: 140 },
       { text: '§ 2 Vertragssumme\\nNettosumme: 129.800,00 € + 19 % MwSt. (24.662,00 €) = 154.462,00 € brutto (als Obligo im ERP reserviert).', size: 20, after: 140 },
       { text: '§ 3 Vertragliche Umlagen auf das Abrechnungsbrutto (Ziffer 8)\\n1. Baustrom: 3/1000 (= 463,39 €)\\n2. Bauwasser: 2/1000 (= 308,92 €)\\n3. Bauwesenversicherung: 2,5/1000 (= 386,16 €)\\nGesamtabzug Umlagen: 1.158,47 €.', size: 20, after: 140 },
       { text: '§ 4 Mängelsicherheit (Ziffer 9)\\n5 Jahre Verjährungsfrist (§ 13 Nr. 4 VOB/B). 3 % Sicherheitseinbehalt (4.633,86 €) ablösbar durch Bankbürgschaft auf Formular KEV 311 Sich 2.', size: 20, after: 140 },
       { text: '§ 5 Zahlungsbedingungen\\n2 % Skonto bei Ausgleich innerhalb von 10 Werktagen nach Rechnungsprüfung.', size: 20, after: 260 },
-      { text: 'Musterstadt, den 21.05.2024\\n\\n___________________________                  ___________________________\\nKommunale Wohnbau Auftraggeberin                         Meisterhand GmbH Auftragnehmerin', size: 20 }
+      { text: 'Musterstadt, den 21.05.2024\\n\\n___________________________                  ___________________________\\nALANTU Auftraggeberin                         Meisterhand GmbH Auftragnehmerin', size: 20 }
     ]
   },
 
@@ -3819,7 +4065,7 @@ const DOCX_DOCUMENTS = {
     getElements: () => [
       { text: 'FACHBAULEITERBESTELLUNG & FACHBAULEITERERKLÄRUNG', bold: true, size: 24, color: '1E3A8A', after: 80 },
       { text: 'gemäß § 45 Landesbauordnung Baden-Württemberg (LBO)', italic: true, size: 19, color: '64748B', after: 220 },
-      { text: 'An das Baurechtsamt der Stadt Musterstadt\\nBausache: Neubau Musterstraße 10–12, 78000 Musterstadt (Projekt 101)\\nBauherrin: Kommunale Wohnbau Kommunale Wohnungsbaugesellschaft mbH', size: 20, after: 180 },
+      { text: 'An das Baurechtsamt der Stadt Musterstadt\\nBausache: Neubau Musterstraße 10–12, 78000 Musterstadt (Projekt 101)\\nBauherrin: ALANTU Baubuch ALANTU Projektentwicklung GmbH', size: 20, after: 180 },
       { text: 'I. Fachbauleiterbestellung:\\nFür das Gewerk AUSSENPUTZARBEITEN (KG 355) wird als Fachbauleiter bestellt:\\nHerr Malerbetrieb Meisterhand (Fa. Meisterhand GmbH Musterstadt-Nord, Tel. 0700 123456).', size: 20, after: 160 },
       { text: 'II. Erklärung des Fachbauleiters:\\nIch erkläre hiermit, dass ich die Fachbauleitung für die genannten Außenputzarbeiten übernehme und für die fachgerechte, den bauaufsichtlichen Vorschriften entsprechende Ausführung Sorge tragen werde.', size: 20, after: 240 },
       { text: 'Musterstadt-Nord, den 21.05.2024\\n\\n___________________________________\\nUnterschrift Fachbauleiter (Meisterhand GmbH)', size: 20 }
@@ -3832,7 +4078,7 @@ const DOCX_DOCUMENTS = {
     getElements: () => [
       { text: 'A B N A H M E P R O T O K O L L', bold: true, size: 28, color: '1E3A8A', after: 80 },
       { text: 'gemäß § 12 VOB/B über die förmliche Abnahme der Bauleistung', size: 19, color: '64748B', after: 220 },
-      { text: 'Bauvorhaben: Neubau Musterstraße 10–12, 78000 Musterstadt · Gewerk: Außenputzarbeiten (KG 355)\\nAuftraggeberin: Kommunale Wohnbaugesellschaft · Auftragnehmerin: Malerbetrieb Meisterhand GmbH', size: 20, after: 180 },
+      { text: 'Bauvorhaben: Neubau Musterstraße 10–12, 78000 Musterstadt · Gewerk: Außenputzarbeiten (KG 355)\\nAuftraggeberin: ALANTU Baubuchgesellschaft · Auftragnehmerin: Malerbetrieb Meisterhand GmbH', size: 20, after: 180 },
       {
         type: 'table',
         colWidths: [2600, 6600],
@@ -3844,7 +4090,7 @@ const DOCX_DOCUMENTS = {
           [{ text: 'Ablauf Mängelhaftung', bold: true, bg: 'FEF3C7' }, { text: '30.10.2020', bold: true, bg: 'FEF3C7' }]
         ]
       },
-      { text: 'Musterstadt, den 30.10.2024\\n\\n___________________________                  ___________________________\\nKommunale Wohnbau (Schneider (Bauleitung))                      Auftragnehmer (Meisterhand GmbH)', size: 20, before: 180 }
+      { text: 'Musterstadt, den 30.10.2024\\n\\n___________________________                  ___________________________\\nALANTU Baubuch (Schneider (Bauleitung))                      Auftragnehmer (Meisterhand GmbH)', size: 20, before: 180 }
     ]
   },
 
@@ -3853,7 +4099,7 @@ const DOCX_DOCUMENTS = {
     title: 'Schlussrechnung (SR-Formular)',
     getElements: () => [
       { text: 'PRÜFVERMERK SCHLUSSRECHNUNG (SR-FORMULAR)', bold: true, size: 26, color: '1E3A8A', after: 80 },
-      { text: 'Kommunale Wohnbau Rechnungsprüfung & Bürgschaftsfreigabe · Projekt 101 Musterstraße 10–12', size: 19, color: '64748B', after: 200 },
+      { text: 'ALANTU Baubuch Rechnungsprüfung & Bürgschaftsfreigabe · Projekt 101 Musterstraße 10–12', size: 19, color: '64748B', after: 200 },
       { text: 'Auftragnehmerin: Malerbetrieb Meisterhand GmbH, Musterstadt-Nord · Gewerk: AUSSENPUTZ (KG 355)', size: 20, after: 160 },
       {
         type: 'table',
@@ -4032,12 +4278,12 @@ function goToTab(tabId) {
 
 function downloadAbsageschreiben() {
   downloadDocx('00_Grundstueck_Absageschreiben_Abnahme.docx', [
-    { text: 'Kommunale Wohnbau · Geschäftsführung', bold: true, size: 24, color: '1E3A8A', after: 60 },
+    { text: 'ALANTU · Geschäftsführung', bold: true, size: 24, color: '1E3A8A', after: 60 },
     { text: 'ABSAGESCHREIBEN / DISCARD-MITTEILUNG', bold: true, size: 28, color: 'DC2626', after: 200 },
     { text: `Grundstücksangebot: ${selectedGS.name}\nLage: ${selectedGS.lage}\nFläche: ${selectedGS.flaeche} m² · Kaufpreisforderung: ${eur(selectedGS.kaufpreis)}`, size: 20, after: 180 },
-    { text: 'Begründung der Ablehnung durch Geschäftsführung / Abnahme (Kommunale Wohnbau Geschäftsführung):', bold: true, size: 22, after: 100 },
+    { text: 'Begründung der Ablehnung durch Geschäftsführung / Abnahme (ALANTU Baubuch Geschäftsführung):', bold: true, size: 22, after: 100 },
     { text: selectedGS.begruendung, size: 20, after: 180 },
-    { text: 'Musterstadt, Technische Geschäftsführung Kommunale Wohnbau\n\n___________________________________\ngez. Geschäftsführung / Abnahme (Geschäftsführer)', size: 19 }
+    { text: 'Musterstadt, Technische Geschäftsführung ALANTU Baubuch\n\n___________________________________\ngez. Geschäftsführung / Abnahme (Geschäftsführer)', size: 19 }
   ]);
 }
 
@@ -4175,7 +4421,7 @@ document.getElementById('btnNoGoDecision')?.addEventListener('click', () => {
       </p>
       <div style="background:var(--card-sub);border:1px solid var(--line);border-radius:10px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;color:var(--tx-bright);margin-bottom:12px;line-height:1.5">
         <b>Absageschreiben an Anbieter:</b><br>
-        „Sehr geehrte Damen und Herren, nach eingehender baurechtlicher und kalkulatorischer Prüfung müssen wir Ihnen mitteilen, dass das Grundstück ${selectedGS.name} zu den angebotenen Konditionen für den Mietwohnungsbau der Kommunale Wohnbau wirtschaftlich nicht darstellbar ist. Wir bedanken uns für das Angebot und verbleiben mit freundlichen Grüßen, Kommunale Wohnbau Geschäftsführung / Abnahme.“
+        „Sehr geehrte Damen und Herren, nach eingehender baurechtlicher und kalkulatorischer Prüfung müssen wir Ihnen mitteilen, dass das Grundstück ${selectedGS.name} zu den angebotenen Konditionen für den Mietwohnungsbau der ALANTU Baubuch wirtschaftlich nicht darstellbar ist. Wir bedanken uns für das Angebot und verbleiben mit freundlichen Grüßen, ALANTU Baubuch Geschäftsführung / Abnahme.“
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-outline" onclick="loadReferenceGS('projekt_101')" style="color:var(--green);border-color:var(--green);font-size:12px">
