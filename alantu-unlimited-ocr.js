@@ -826,7 +826,7 @@ async function ensureDecoder(){
 async function runUnlimited(ocrCanvas){
   if(MOCK_OCR){
     if(MOCK_OCR_DELAY)await new Promise(r=>setTimeout(r,MOCK_OCR_DELAY));
-    return "<|det|>text [[80,80,920,180]]<|/det|>ALANTU EXPOSE\n<|det|>text [[80,220,920,330]]<|/det|>Wohnung mit Seeblick in Konstanz";
+    return "<|det|>text [[80,80,920,180]]<|/det|>ALANTU EXPOSE\n<|det|>text [[80,220,920,330]]<|/det|>Wohnung mit Seeblick in Musterstadt";
   }
 
   if(FORCE_FALLBACK_OCR)throw new Error("3B-OCR absichtlich übersprungen (Fallback-Test).");

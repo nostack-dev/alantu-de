@@ -11,7 +11,7 @@ async function makeFixture(browser){
     const c=document.getElementById('c'),x=c.getContext('2d');
     x.fillStyle='white';x.fillRect(0,0,640,640);
     x.fillStyle='#111';x.font='700 46px Arial';x.fillText('ALANTU OCR TEST',48,130);
-    x.font='30px Arial';x.fillText('Wohnung Konstanz 495000 EUR',48,210);
+    x.font='30px Arial';x.fillText('Wohnung Musterstadt 495000 EUR',48,210);
     return c.toDataURL('image/png');
   });
   await p.close();

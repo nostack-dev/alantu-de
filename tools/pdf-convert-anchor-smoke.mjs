@@ -18,7 +18,7 @@ async function makeFixture(browser){
     x.font='700 72px Arial';x.fillStyle='#D91E3A';x.fillText('ALANTU',90,180);
     x.fillStyle='#1457D9';x.fillText(' EXPOSE',390,180);
     // Simple monochrome OCR block: this one is safe to vectorize, preserving exact #111111.
-    x.fillStyle='#111111';x.font='42px Arial';x.fillText('Wohnung mit Seeblick in Konstanz',90,500);
+    x.fillStyle='#111111';x.font='42px Arial';x.fillText('Wohnung mit Seeblick in Musterstadt',90,500);
     x.fillStyle='#ddd';x.fillRect(90,650,1020,600);
     return c.toDataURL('image/png');
   });
@@ -224,9 +224,9 @@ const allText=textPages.join(' | ');
 // Hybrid contract: unsafe multicolour branding stays baked and is NOT faked
 // as an invisible text layer; only visually safe image text becomes real PDF text.
 if(/ALANTU EXPOSE/.test(allText))errors.push('branding-should-remain-baked-not-fake-text:'+allText);
-if(!/Wohnung mit Seeblick in Konstanz/.test(allText))errors.push('safe-ocr-visible-text-missing:'+allText);
+if(!/Wohnung mit Seeblick in Musterstadt/.test(allText))errors.push('safe-ocr-visible-text-missing:'+allText);
 if(!/Native PDF Text/.test(allText)||!/Already searchable/.test(allText))errors.push('native-pdf-text-missing:'+allText);
-const firstVectorItem=extracted.items?.[0]?.find(x=>/Wohnung mit Seeblick in Konstanz/.test(x.str));
+const firstVectorItem=extracted.items?.[0]?.find(x=>/Wohnung mit Seeblick in Musterstadt/.test(x.str));
 if(!firstVectorItem)errors.push('safe-ocr-vector-position-item-missing');
 else{
   // Safe mock bbox [[80,220,920,330]] maps from 0..999 into a 600x800 page.
@@ -243,7 +243,7 @@ if(!(rasterAlpha.share>.20))errors.push('white-raster-not-removed:'+JSON.stringi
 if((side.rasterDiff?.fringeLeft||0)>2)errors.push('antialias-fringe-left:'+JSON.stringify(side.rasterDiff));
 if(visualDiff.mae>8||visualDiff.changed>.08)errors.push('hybrid-visual-drift-too-large:'+JSON.stringify(visualDiff));
 
-console.log(JSON.stringify({url,loadingView,side,overlay,visualDiff,rasterAlpha,download:{name:dl.suggestedFilename(),bytes:stat.size,textPages,firstTextLayerItem:extracted.items?.[0]?.find(x=>/Wohnung mit Seeblick in Konstanz/.test(x.str))||null},ok:errors.length===0,errors},null,2));
+console.log(JSON.stringify({url,loadingView,side,overlay,visualDiff,rasterAlpha,download:{name:dl.suggestedFilename(),bytes:stat.size,textPages,firstTextLayerItem:extracted.items?.[0]?.find(x=>/Wohnung mit Seeblick in Musterstadt/.test(x.str))||null},ok:errors.length===0,errors},null,2));
 if(errors.length){
   await browser.close();
   throw new Error('Unlimited OCR searchable PDF smoke failed: '+errors.join(' | '));
