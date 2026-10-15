@@ -5,6 +5,10 @@ on:
     branches: ["main"]
     paths:
       - "index-brand.html"
+      - "index.html"
+      - "baubuch.html"
+      - "jszip.min.js"
+      - ".nojekyll"
       - "pdf-to-exposee.html"
       - "pdf-to-exposee-anchor.html"
       - "pdf-convert-anchor.html"
