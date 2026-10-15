@@ -1326,11 +1326,6 @@
 
 </style>
 <script src="jszip.min.js"></script>
-<script>
-  if (typeof JSZip === 'undefined') {
-    document.write('<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\/script>');
-  }
-</script>
 </head>
 <body>
 
@@ -3564,18 +3559,18 @@ function renderDin276Table() {
     for (const sub of visibleSubs) {
       const subBudget = Math.round(groupBudget * (sub.pctOfGroup / 100));
       const subKw = wf ? Math.round(subBudget / wf) : 0;
-      const isMissingInStandard-ERP = !sub.erp;
+      const isMissingInStandardErp = !sub.erp;
       
       rowsHtml += `
-        <tr style="${isMissingInStandard-ERP ? 'background:rgba(239,68,68,0.06);' : ''}">
-          <td style="padding-left:24px;font-family:monospace;color:${isMissingInStandard-ERP ? '#f87171' : 'var(--mut)'}">
+        <tr style="${isMissingInStandardErp ? 'background:rgba(239,68,68,0.06);' : ''}">
+          <td style="padding-left:24px;font-family:monospace;color:${isMissingInStandardErp ? '#f87171' : 'var(--mut)'}">
             ${sub.code}
           </td>
           <td>
-            <b style="color:${isMissingInStandard-ERP ? '#fca5a5' : 'var(--tx-bright)'}">${sub.name}</b>
+            <b style="color:${isMissingInStandardErp ? '#fca5a5' : 'var(--tx-bright)'}">${sub.name}</b>
             <br><span style="font-size:11px;color:var(--mut)">${sub.desc}</span>
           </td>
-          <td style="text-align:right;font-weight:600;color:${isMissingInStandard-ERP ? '#f87171' : 'var(--tx)'}">${eur(subBudget)}</td>
+          <td style="text-align:right;font-weight:600;color:${isMissingInStandardErp ? '#f87171' : 'var(--tx)'}">${eur(subBudget)}</td>
           <td style="text-align:right;color:var(--mut);font-size:11.5px">${num(subKw)} €/m²</td>
           <td style="text-align:center"><span class="badge badge-green" style="font-size:10px">100 %</span></td>
           <td style="text-align:center">
