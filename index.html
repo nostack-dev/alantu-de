@@ -21,6 +21,10 @@
     --tx-muted: #64748b;
     --tx-subtle: #94a3b8;
 
+    --gold: #d97706;
+    --gold-dark: #b45309;
+    --gold-subtle: #fef3c7;
+    --gold-border: #fde68a;
     --primary: #1e3a8a;
     --primary-hover: #172554;
     --primary-subtle: #f0f4f8;
@@ -80,6 +84,10 @@
     --tx-muted: #94a3b8;
     --tx-subtle: #64748b;
 
+    --gold: #f59e0b;
+    --gold-dark: #fbbf24;
+    --gold-subtle: rgba(245, 158, 11, 0.15);
+    --gold-border: rgba(245, 158, 11, 0.3);
     --primary: #3b82f6;
     --primary-hover: #60a5fa;
     --primary-subtle: rgba(59, 130, 246, 0.12);
@@ -374,7 +382,7 @@
     gap: 8px;
     flex-shrink: 0;
   }
-  .leitfaden-toggle-btn, .theme-toggle-btn, .mobile-menu-btn {
+  .leitfaden-toggle-btn, .theme-toggle-btn {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -383,7 +391,7 @@
     min-height: 36px !important;
     max-height: 36px !important;
     padding: 0 12px !important;
-    border-radius: 4px !important;
+    border-radius: 6px !important;
     background: transparent !important;
     border: 1px solid var(--border) !important;
     color: var(--tx-main) !important;
@@ -398,6 +406,23 @@
   }
   .leitfaden-toggle-btn:hover, .theme-toggle-btn:hover {
     background: var(--bg-subtle);
+  }
+  .mobile-menu-btn {
+    display: none !important;
+  }
+  @media (max-width: 900px) {
+    .mobile-menu-btn {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+      height: 36px !important;
+      padding: 0 10px !important;
+      border-radius: 6px !important;
+      background: var(--bg-subtle) !important;
+      border: 1px solid var(--border) !important;
+      color: var(--tx-main) !important;
+    }
   }
 
   /* Calm Key-Metric Strip - Wrap-friendly, ZERO horizontal scroll! */
@@ -878,30 +903,35 @@
     white-space: nowrap;
   }
   .badge-blue { background: var(--primary-subtle); color: var(--primary); border: 1px solid var(--primary-border); }
-  .badge-green { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
-  .badge-red { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
-  .badge-orange { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+  .badge-green { background: var(--green-subtle); color: var(--green); border: 1px solid var(--green-border); }
+  .badge-red { background: var(--red-subtle); color: var(--red); border: 1px solid var(--red-border); }
+  .badge-orange { background: var(--orange-subtle); color: var(--orange); border: 1px solid var(--orange-border); }
+  html[data-theme="light"] .badge-green { color: #15803d; }
+  html[data-theme="light"] .badge-red { color: #b91c1c; }
+  html[data-theme="light"] .badge-orange { color: #b45309; }
 
-  /* Callouts */
+  /* Callouts - Clean, High Contrast in Light & Dark */
   .callout {
-    padding: 14px 16px;
-    border-radius: 4px;
-    margin: 14px 0;
-    font-size: 13px;
-    line-height: 1.5;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 12px 0;
+    font-size: 12.5px;
+    line-height: 1.55;
+    border: 1px solid var(--border);
   }
-  .callout-good { background: var(--green-subtle); color: var(--tx-body); border-left: 3px solid var(--green); }
-  .callout-warn { background: var(--red-subtle); color: var(--tx-body); border-left: 3px solid var(--red); }
-  .callout-info { background: var(--primary-subtle); color: var(--tx-body); border-left: 3px solid var(--primary); }
+  .callout-good { background: var(--green-subtle); color: var(--tx-main); border-left: 4px solid var(--green); }
+  .callout-warn { background: var(--red-subtle); color: var(--tx-main); border-left: 4px solid var(--red); }
+  .callout-info { background: var(--primary-subtle); color: var(--tx-main); border-left: 4px solid var(--primary); }
+  .callout-quote { background: var(--bg-subtle); color: var(--tx-body); border-left: 4px solid var(--primary); font-style: italic; }
 
-  /* Official DIN 276 & VOB Tables - Exactly Matching Word .docx */
+  /* Official DIN 276 & VOB Tables - Adaptive Background & Contrast */
   .table-wrap {
     overflow-x: auto;
-    border-radius: 4px;
+    border-radius: 6px;
     border: 1px solid var(--border);
-    background: #ffffff;
+    background: var(--bg-card);
     -webkit-overflow-scrolling: touch;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    box-shadow: var(--shadow-sm);
     margin-bottom: 16px;
   }
   table.data-table {
@@ -918,7 +948,7 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     padding: 10px 14px;
-    border-top: 1px solid #94a3b8;
+    border-top: 1px solid var(--border);
     border-bottom: 2px solid var(--primary);
     border-left: none;
     border-right: none;
@@ -939,8 +969,20 @@
   }
   table.data-table tr.winner td {
     background: var(--green-subtle) !important;
-    color: #14532d;
+    color: var(--green) !important;
     font-weight: 600;
+  }
+  html[data-theme="light"] table.data-table tr.winner td {
+    color: var(--green-dark) !important;
+  }
+  table.data-table tr.tr-missing {
+    background: var(--red-subtle) !important;
+  }
+  table.data-table tr.tr-missing td {
+    color: var(--red-dark);
+  }
+  html[data-theme="dark"] table.data-table tr.tr-missing td {
+    color: #fca5a5;
   }
   table.data-table tr.sum-row td, table.data-table tr.total-row td {
     font-weight: 700;
@@ -972,15 +1014,17 @@
     border-radius: 3px;
   }
   .decision-symbol.go {
-    background: #dcfce7;
-    color: #15803d;
-    border: 1px solid #86efac;
+    background: var(--green-subtle);
+    color: var(--green);
+    border: 1px solid var(--green-border);
   }
+  html[data-theme="light"] .decision-symbol.go { color: #15803d; }
   .decision-symbol.nogo {
-    background: #fee2e2;
-    color: #b91c1c;
-    border: 1px solid #fca5a5;
+    background: var(--red-subtle);
+    color: var(--red);
+    border: 1px solid var(--red-border);
   }
+  html[data-theme="light"] .decision-symbol.nogo { color: #b91c1c; }
 
   /* Grids */
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
@@ -3537,21 +3581,21 @@ function renderDin276Table() {
     const groupKw = wf ? Math.round(groupBudget / wf) : 0;
     const isSpecial = group.code === '800' || group.code === '200' || group.code === '600';
     rowsHtml += `
-      <tr style="background:var(--table-th-bg);border-top:2px solid var(--line-strong);font-weight:800">
-        <td style="color:var(--cyan);font-family:monospace;font-size:13.5px">KG ${group.code}</td>
+      <tr style="background:var(--table-th-bg);border-top:2px solid var(--border);font-weight:800">
+        <td style="color:var(--primary);font-family:monospace;font-size:13.5px">KG ${group.code}</td>
         <td>
-          <span style="color:#f8fafc;font-size:13px">${group.name}</span>
-          <br><small style="color:#94a3b8;font-weight:400">${group.desc}</small>
+          <span style="color:var(--tx-main);font-size:13px">${group.name}</span>
+          <br><small style="color:var(--tx-muted);font-weight:400">${group.desc}</small>
         </td>
-        <td style="text-align:right;color:#38bdf8;font-size:13px">${eur(groupBudget)}</td>
-        <td style="text-align:right;color:#cbd5e1">${num(groupKw)} €/m²</td>
+        <td style="text-align:right;color:var(--primary);font-size:13px;font-weight:700">${eur(groupBudget)}</td>
+        <td style="text-align:right;color:var(--tx-muted);font-size:12.5px">${num(groupKw)} €/m²</td>
         <td style="text-align:center"><span class="badge badge-green">100 %</span></td>
         <td style="text-align:center">
           ${group.erpSupported 
             ? '<span class="badge badge-blue">Unterstützt</span>' 
             : '<span class="badge badge-red">Fehlt / Eingeschränkt</span>'}
         </td>
-        <td style="color:#cbd5e1;font-size:11.5px"><i>Hauptgruppe (${visibleSubs.length} Untergruppen)</i></td>
+        <td style="color:var(--tx-muted);font-size:11.5px"><i>Hauptgruppe (${visibleSubs.length} Untergruppen)</i></td>
       </tr>
     `;
 
@@ -3562,16 +3606,16 @@ function renderDin276Table() {
       const isMissingInStandardErp = !sub.erp;
       
       rowsHtml += `
-        <tr style="${isMissingInStandardErp ? 'background:rgba(239,68,68,0.06);' : ''}">
-          <td style="padding-left:24px;font-family:monospace;color:${isMissingInStandardErp ? '#f87171' : 'var(--mut)'}">
+        <tr class="${isMissingInStandardErp ? 'tr-missing' : ''}">
+          <td style="padding-left:24px;font-family:monospace;color:${isMissingInStandardErp ? 'var(--red)' : 'var(--tx-muted)'}">
             ${sub.code}
           </td>
           <td>
-            <b style="color:${isMissingInStandardErp ? '#fca5a5' : 'var(--tx-bright)'}">${sub.name}</b>
-            <br><span style="font-size:11px;color:var(--mut)">${sub.desc}</span>
+            <b style="color:${isMissingInStandardErp ? 'var(--red)' : 'var(--tx-main)'}">${sub.name}</b>
+            <br><span style="font-size:11px;color:var(--tx-muted)">${sub.desc}</span>
           </td>
-          <td style="text-align:right;font-weight:600;color:${isMissingInStandardErp ? '#f87171' : 'var(--tx)'}">${eur(subBudget)}</td>
-          <td style="text-align:right;color:var(--mut);font-size:11.5px">${num(subKw)} €/m²</td>
+          <td style="text-align:right;font-weight:600;color:${isMissingInStandardErp ? 'var(--red)' : 'var(--tx-main)'}">${eur(subBudget)}</td>
+          <td style="text-align:right;color:var(--tx-muted);font-size:11.5px">${num(subKw)} €/m²</td>
           <td style="text-align:center"><span class="badge badge-green" style="font-size:10px">100 %</span></td>
           <td style="text-align:center">
             ${sub.erp 
@@ -3766,7 +3810,7 @@ const DOSSIER_SHEETS = {
         <tr><td><b>Befund:</b></td><td><span class="badge badge-green">Leistung im Wesentlichen mangelfrei erbracht – Abnahme erfolgt</span></td></tr>
         <tr><td><b>Vorbehaltene Restmängel:</b></td><td>1. Sockelputz-Anschluss an TG-Abfahrt nacharbeiten (14 Tage Frist)<br>2. Gerüstankerlöcher Nordgiebel farblich egalisieren (14 Tage Frist)</td></tr>
         <tr><td><b>Verjährungsbeginn:</b></td><td>30.10.2024 (Beginn der 5-jährigen Frist gem. § 13 Nr. 4 VOB/B)</td></tr>
-        <tr><td><b>Ablauf Mängelhaftung:</b></td><td><b style="color:var(--gold)">30.10.2020</b></td></tr>
+        <tr><td><b>Ablauf Mängelhaftung:</b></td><td><b style="color:var(--gold)">30.10.2029</b></td></tr>
       </table>
     `
   },
