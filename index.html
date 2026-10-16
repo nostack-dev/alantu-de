@@ -1542,8 +1542,11 @@
     </nav>
 
     <div class="sidebar-footer">
+      <button type="button" class="sidebar-export-btn" id="btnSidebarProcessDocx" onclick="downloadDocx(DOCX_DOCUMENTS.prozessablauf.filename, DOCX_DOCUMENTS.prozessablauf.getElements())" style="margin-bottom:6px;background:var(--primary);color:#ffffff;border-color:var(--primary)">
+        <svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg> Prozessablauf (.docx)
+      </button>
       <button type="button" class="sidebar-export-btn" id="btnSidebarZipDownload" onclick="document.getElementById('btnExportAllDocx')?.click()">
-        <svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Alle Dossiers (ZIP)
+        <svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Alle Dossiers (.docx)
       </button>
       <div class="sidebar-compliance-badge">
         <span class="dot"></span> DIN 276 &amp; VOB aktiv
@@ -2486,16 +2489,19 @@
         <span class="sub">Authentische Rekonstruktion aller 8 Formulare mit direktem Word-Export (.docx)</span>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-outline" onclick="downloadDocx(DOCX_DOCUMENTS.prozessablauf.filename, DOCX_DOCUMENTS.prozessablauf.getElements())" style="font-size:12px;padding:6px 12px;color:var(--primary);border-color:var(--primary);font-weight:700">
+           <svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg> Vollständiger Prozessablauf (.docx)
+        </button>
         <button class="btn btn-outline" id="btnExportCurrentDocx" style="font-size:12px;padding:6px 12px;color:var(--cyan);border-color:var(--cyan)">
            <svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Aktuelles Blatt (.docx)
         </button>
         <button class="btn btn-primary" id="btnExportAllDocx" style="font-size:12px;padding:6px 12px">
-           Alle 8 Formulare als .docx herunterladen
+           Alle Dossiers &amp; Prozess (.docx)
         </button>
       </div>
     </div>
 
-    <!-- Tab Buttons für die 8 Excel-Blätter -->
+    <!-- Tab Buttons für die Excel-Blätter + Gesamtprozess -->
     <div class="dossier-tab-bar" id="dossierTabs">
       <button class="dossier-tab-btn active" data-dossier="stammdaten"> 1. Stammdaten</button>
       <button class="dossier-tab-btn" data-dossier="bewerber"> 2. Bewerberliste (§ 17)</button>
@@ -2505,6 +2511,7 @@
       <button class="dossier-tab-btn" data-dossier="fachbauleiter"> 6. Fachbauleiter</button>
       <button class="dossier-tab-btn" data-dossier="abnahme"> 7. Abnahmeprotokoll</button>
       <button class="dossier-tab-btn" data-dossier="sr"> 8. Schlussrechnung (SR)</button>
+      <button class="dossier-tab-btn" data-dossier="prozessablauf" style="font-weight:700"> 9. Vollständiger Prozessablauf</button>
     </div>
 
     <!-- Container für Blattinhalte -->
@@ -2736,7 +2743,12 @@
       <h3>ALANTU Praxis-Leitfaden</h3>
       <p>Erfahrungswissen &amp; Abnahmekriterien</p>
     </div>
-    <button type="button" class="drawer-close-btn" onclick="toggleLeitfaden(false)" title="Schließen"><svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button type="button" class="btn btn-primary" onclick="downloadDocx(DOCX_DOCUMENTS.prozessablauf.filename, DOCX_DOCUMENTS.prozessablauf.getElements())" style="font-size:11.5px;padding:5px 10px">
+        <svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Prozessablauf (.docx)
+      </button>
+      <button type="button" class="drawer-close-btn" onclick="toggleLeitfaden(false)" title="Schließen"><svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
   </div>
   <div class="drawer-body" id="leitfadenDrawerBody">
 
@@ -3946,6 +3958,26 @@ const DOSSIER_SHEETS = {
         <tr style="background:rgba(34,197,94,.18)"><td><b style="color:var(--green)">Zur sofortigen Auszahlung freigegeben:</b></td><td style="text-align:right"><b style="color:var(--green);font-size:15px">25.237,46 €</b></td></tr>
       </table>
     `
+  },
+  prozessablauf: {
+    title: '9. Vollständiger Baubuch-Prozessablauf (Gesamtdokumentation Phase 0 bis Phase 7)',
+    html: `
+      <div style="background:var(--card-sub);border:1px solid var(--line);border-radius:10px;padding:16px;font-size:13px;line-height:1.65">
+        <p style="margin-bottom:12px"><b>Vollständige Prozessablaufkette (Pflicht über Kür) von der Grundstücksprüfung bis zur DIN-276-Saldenliste:</b></p>
+        <table class="data-table">
+          <tr><th>Phase</th><th>Kerninhalt &amp; Methodik</th><th>Ergebnis / Artefakt</th></tr>
+          <tr><td><b>1. Systemarchitektur</b></td><td>Banken-DIN 276 (2018-12, KG 100–800) vs. Gewerke-Ausschreibung (AVA) vs. ERP (nur 70 % Untergruppen, kein Switch KG ↔ Gewerk, z. B. Innentür = Schreiner + Gipser + Maler; Außenfensterbank Naturstein vs. Holz).</td><td>Baubuch als führendes Bindeglied</td></tr>
+          <tr><td><b>2. Phase 0: Grundstück</b></td><td>Eingang Grundstücksangebot, Architekt zeichnet Haus (Kubatur Wfl/BRI) &amp; erste Kostenschätzung („Was kostet das jetzt?“).</td><td>Gate: <b>GO</b> (Ankauf) oder <b>DISCARD</b> (Verwerfen)</td></tr>
+          <tr><td><b>3. Phase 1: 2-Wege-Schätzung</b></td><td>Baukostensteigerung (+5 % bis +10 % Okt.→Okt., Fachbuch Baukosten 2024/2025). 1× nach Wohnfläche, 1× nach Volumen (BRI) für dasselbe Referenzprojekt + 2. Referenzprojekt → Mittelung auf „Summe X“ + Außenanlagen + BNK.</td><td>Gesamt-Schätzpreis (z. B. 1,35 Mio. €)</td></tr>
+          <tr><td><b>4. Phase 2: 50J-AfA &amp; Miete</b></td><td>Finanzamt 2 % AfA/Jahr (50J = 0 €) → Umkehrschluss: 2 % p.a. Reinvestition gegen Entropie-Kurve + 1 % Verwaltung + 2 % Kredite = <b>mind. 5 % Rendite</b>. Staatliche Förderung bis 50 % bei <b>EH40</b> (max. 40 % Emissionen + LifeCycle-Kosten).</td><td>Zielmiete ca. 20,00 €/m² Monatsmiete</td></tr>
+          <tr><td><b>5. Phase 3: Gewerke &amp; GU</b></td><td>Verteilung Schätzpreis in % (<b>Rohbau ca. 39 %</b> = rd. 552.150 €, <b>Heizung 4,35 %</b>). Weiche: <b>GU</b> (funktionale LB, +13 % Zuschlag, Festpreis, BNK sinken von 18 % auf 5–7 % weil Statiker beim GU) vs. <b>Einzelvergabe</b> (BNK 18 %). Baubuch wird immer benötigt!</td><td>Gewerke-Matrix &amp; Vergabestrategie</td></tr>
+          <tr><td><b>6. Phase 4: Ausschreibung</b></td><td>LV &amp; Gewerke-Datenblatt, Übersicht Angebote &amp; Schutzgebühr, Submission &amp; Preisspiegel (N-Listing, Günstigster gewinnt). Auftrag im ERP anlegen blockiert Volumen (Obligo: keine Zahlung ohne Auftrag!).</td><td>Bauvertrag + Rücklaufliste, Absageschreiben, Fachbauleitererklärung, Zeitplan („Wann fertig?“)</td></tr>
+          <tr><td><b>7. Phase 5: Kostenschnitte</b></td><td><b>3 bis 4 Kostenschnitte</b> mittendrin (Unschärfe ±20–25 % → ±3 %). Kontenauszug KG 100–800: Bereits ausgegeben (Ist) + offene Rest-Schätzung = <b>Forecast</b> (Frühwarnung &amp; Gegensteuern).</td><td>Forecast-Bericht auf halber Strecke</td></tr>
+          <tr><td><b>8. Phase 6: Abnahme &amp; SR</b></td><td>Baustellen-Abnahme mit Protokoll (erst nach Abnahme ist Handwerker entlastet &amp; darf Schlussrechnung stellen!). ERP-Export: Links abgerechnet &gt; Rechts bezahlt wegen <b>Skonto</b>. <b>5 % Sicherheit</b> (5 Jahre Cash oder Bankbürgschaft + Rückgabeliste).</td><td>Abnahmeprotokoll, SR-Checkliste, Bürgschaftsbuch</td></tr>
+          <tr><td><b>9. Phase 7: Saldenliste</b></td><td>Auflösung der 5-stelligen Konten (z. B. 7xxxx = Nebenkosten) in echte <b>DIN-276-Saldenliste 100 bis 800 mit Summenstrichen</b> („200 Strich drunter, 700 Strich drunter“).</td><td>Endkosten €/m² Wfl als neues Referenzprojekt (Closed Loop)</td></tr>
+        </table>
+      </div>
+    `
   }
 };
 
@@ -4275,6 +4307,55 @@ const DOCX_DOCUMENTS = {
       },
       { text: 'Prüfbestätigung: Bürgschaftsurkunde KEV 311 Sich 2 liegt im Original vor. Mängel beseitigt.', bold: true, size: 20, before: 180, after: 180 },
       { text: 'Musterstadt, den 15.11.2024\\ngez. Bode (Rechnungsprüfung)                    gez. Schneider (Bauleitung) (Bauleitung)', size: 19 }
+    ]
+  },
+
+  prozessablauf: {
+    filename: '09_Vollstaendiger_Baubuch_Prozessablauf.docx',
+    title: 'Vollständiger Baubuch-Prozessablauf (Gesamtdokumentation)',
+    getElements: () => [
+      { text: 'DER VOLLSTÄNDIGE BAUBUCH-PROZESSABLAUF', bold: true, size: 32, color: '1E3A8A', after: 80 },
+      { text: 'Gesamtdokumentation der operativen Prozesskette: Grundstücksprüfung, 2-Wege-Kostenschätzung, DIN 276 / Gewerke-Matrix, 50-Jahre-AfA, Ausschreibung, 3–4 Kostenschnitte, Abnahme, Bürgschaften & Saldenliste', size: 20, color: '64748B', after: 220 },
+
+      { text: '1. Ausgangslage: Banken-DIN 276, Gewerke-Praxis und ERP-Grenzen', bold: true, size: 25, color: '0F172A', before: 180, after: 80 },
+      { text: 'Im Wohnungsbau treffen drei unterschiedliche Ordnungslogiken aufeinander: Banken fordern zur Finanzierung eine standardisierte Kostenberechnung nach DIN 276:2018-12 (Kostengruppen 100 bis 800). Ausschreibung und Baustelle (AVA/ORCA) arbeiten nach Handwerker-Gewerken. Das kaufmännische ERP-System fungiert als reine Zahlungsbank, deckt aber nur ca. 70 % der DIN-Untergruppen ab (30 % fehlen) und beherrscht keinen Switch zwischen Kostengruppen und Gewerken.', size: 20, after: 100 },
+      { text: '• Das n:m-Problem beim Umswitchen: An einer einzigen Innentür/Innenwand (IBD-Architektur) sind mehrere Gewerke beteiligt (Gipser, Schreiner, Maler). Außenfensterbänke fallen je nach Material (Naturstein vs. Holz) in unterschiedliche Gewerke. KG 300 spaltet sich in Untergruppen (z. B. 321) und weiter in Handwerker-Aufträge auf.', size: 20, after: 140 },
+
+      { text: '2. Phase 0: Grundstücksangebot & Vorprüfung („Machen wir das oder nicht?“)', bold: true, size: 25, color: '0F172A', before: 180, after: 80 },
+      { text: 'Der Prozess startet mit dem Eingang eines Grundstücksangebots bei der Geschäftsführung. Der Architekt zeichnet ein erstes Haus auf das Grundstück (Ermittlung Wohnfläche m² Wfl und Volumen m³ BRI) und erstellt eine erste Kostenschätzung („Was kostet das jetzt?“). Auf dieser Basis fällt die Grundsatzentscheidung: Bei JA (GO) startet der Prozess; bei NEIN (DISCARD) wird das Grundstück sofort verworfen.', size: 20, after: 140 },
+
+      { text: '3. Phase 1: Projektkalkulation & 2-Wege-Kostenschätzung (Übersichtsblatt)', bold: true, size: 25, color: '0F172A', before: 180, after: 80 },
+      { text: 'Aufgrund laufender Baukostensteigerungen (+5 % bis +10 % pro Jahr, Okt.→Okt., getrieben durch Industrie, Technik, Heizungen, Leitungen; Abgleich mit Fachbuch „Baukosten 2024/2025“) erfolgt die Schätzung über zwei Berechnungswege anhand eines abgeschlossenen Referenzprojekts:\\n1. Berechnung nach Wohnfläche (€/m² Wfl)\\n2. Berechnung nach Volumen (€/m³ BRI, umbauter Raum)\\nErgänzt um den Ansatz eines zweiten Referenzprojekts werden die Gesamtkosten auf „Summe X“ gemittelt. Zuzüglich Außenanlagen (KG 500, eigenes Verfahren) und Baunebenkosten (KG 700, Architekt/Fachingenieure) ergibt sich der Gesamt-Schätzpreis (z. B. 1,35 Mio. €).', size: 20, after: 140 },
+
+      { text: '4. Phase 2: 50 Jahre AfA, Entropie-Kurve, 5-%-Formel & EH40-Förderung', bold: true, size: 25, color: '0F172A', before: 180, after: 80 },
+      { text: 'Das Finanzamt setzt 2 % Wertminderung (AfA) pro Jahr an (nach 50 Jahren = 0 €). Umkehrschluss: Es müssen im Schnitt 2 % pro Jahr reinvestiert werden, um gegen den Verfall (Entropie) anzuhalten. Während am Anfang wenig Verfall auftritt, steigt die Investitionskurve später (ab 30 Jahren) durch Alterung, Energiekosten und Vorschriften steil an.', size: 20, after: 100 },
+      {
+        type: 'table',
+        colWidths: [3200, 1800, 4200],
+        rows: [
+          [{ text: 'Rendite-Baustein', isHeader: true }, { text: 'Ansatz p.a.', isHeader: true }, { text: 'Begründung', isHeader: true }],
+          [{ text: '1. AfA / Substanzerhalt', bold: true }, { text: '2,0 %', bold: true }, { text: 'Auf 50 Jahre gerechnet gegen Gebäude-Entropie' }],
+          [{ text: '2. Verwaltungskosten', bold: true }, { text: 'mind. 1,0 %', bold: true }, { text: 'Laufende Bewirtschaftung und Verwaltung' }],
+          [{ text: '3. Kreditzinsen', bold: true }, { text: 'ca. 2,0 %', bold: true }, { text: 'Kapitaldienst für Fremdfinanzierung' }],
+          [{ text: 'Mindest-Gesamtrendite', bold: true, bg: 'FEF3C7' }, { text: 'mind. 5,0 %', bold: true, bg: 'FEF3C7' }, { text: 'Begründet ca. 20,00 €/m² Monatsmiete', bold: true, bg: 'FEF3C7' }]
+        ]
+      },
+      { text: 'Förderhebel EH40: Der Staat übernimmt bis zur Hälfte der Baukosten, wenn das Gebäude die Effizienzhausklasse 40 (EH40 = max. 40 % der Emissionen statt KfW 55 = 55 %) sowie die LifeCycle-Kosten-Auflagen erfüllt.', size: 20, before: 100, after: 140 },
+
+      { text: '5. Phase 3: Verteilung auf Gewerke (%) & GU vs. Einzelvergabe', bold: true, size: 25, color: '0F172A', before: 180, after: 80 },
+      { text: 'Der Schätzpreis wird nach Erfahrungswerten prozentual auf die Gewerke verteilt (Rohbauarbeiten ca. 39 % = rd. 552.150 €, Heizung ca. 4,35 %, Zimmermann, Dachdecker etc.).\\n• Generalunternehmer (GU): Funktionale Leistungsbeschreibung, Festpreis mit ca. 13 % GU-Zuschlag (trägt volles Kalkulations-/Inflationsrisiko). Dafür sinken die eigenen Baunebenkosten von 18 % auf 5–7 % (Statiker ist bereits beim GU enthalten).\\n• Einzelvergabe: Wenn GU zu teuer oder bei Kleinmaßnahmen übernimmt das Unternehmen selbst die GU-Rolle. Wichtig: Das Baubuch (Kostenschätzung & Soll-Ist-Vergleich) wird IMMER benötigt – egal ob GU oder Einzelvergabe!', size: 20, after: 140 },
+
+      { text: '6. Phase 4: Ausschreibung, Submission, Obligo & Pflichtformulare', bold: true, size: 25, color: '0F172A', before: 180, after: 80 },
+      { text: 'Ausschreibung über Gewerke-Datenblatt und Leistungsverzeichnis (LV) mit mehreren Angeboten. Erfassung der abgeholten Unterlagen und gezahlten Schutzgebühr. Nach Submission und Preisspiegel (N-Listing) erhält der günstigste Bieter den Auftrag.\\n• Volumen-Blockierung (Obligo): Mit Auftragsanlage im ERP wird das Budget blockiert – ohne angelegten Auftrag kann keine Rechnung bezahlt werden!\\n• Zwingende Dokumente & Rücklauf-Liste: 1. Bauvertrag + Überwachung Vertragsrücklauf (Wann wem geschickt, wann unterschrieben zurück?), 2. Absageschreiben an unterlegene Bieter, 3. Fachbauleitererklärung.\\n• Pragmatischer Bauzeitenplan: Statt starrer Wand-Gantt-Charts ein schlankes Taktungstool („Wann ist es fertig?“, Vorbild: Stammdaten_AUSSENPUTZfinal).', size: 20, after: 140 },
+
+      { text: '7. Phase 5: Laufendes Controlling – Die 3 bis 4 Kostenschnitte & Forecast', bold: true, size: 25, color: '0F172A', before: 180, after: 80 },
+      { text: 'Damit die Kosten während der Bauzeit nicht aus dem Ruder laufen („Ist größer Schätzung“), sind 3 bis 4 Kostenschnitte vorgeschrieben. Die Unschärfe sinkt von ±20–25 % am Anfang auf ±3 % bei Endabrechnung. Auf halber Strecke wird nach DIN-Kostengruppen 100 bis 800 abgerechnet: Bereits ausgegeben (Ist) + noch offene Schätzungen = Forecast (Frühwarnung zum rechtzeitigen Gegensteuern).', size: 20, after: 140 },
+
+      { text: '8. Phase 6: Baustellen-Abnahme, Schlussrechnung, Skonto & 5 % Bürgschaften', bold: true, size: 25, color: '0F172A', before: 180, after: 80 },
+      { text: '• Baustellen-Abnahme: Begehung vor Ort mit Abnahmeprotokoll und Mängelerfassung. Erst nach erfolgter Abnahme ist der Handwerker rechtlich entlastet und darf die Schlussrechnung stellen (Prüfung per Schlussrechnungs-Checkliste).\\n• Skonto-Differenz im Export: Die linke Spalte („abgerechnet“) ist größer als die rechte Spalte („bezahlt“), weil Skonto abgezogen wird.\\n• 5 % Gewährleistungssicherheit (5 Jahre): Einbehalt von 5 % der Vertragssumme in Cash oder Ablösung durch Bankbürgschaft („Bank zahlt Summe N bei Mängeln“), inklusive Führung der Bürgschaftsliste und Rückgabe nach 5 Jahren.', size: 20, after: 140 },
+
+      { text: '9. Phase 7: DIN-276-Saldenliste mit Summenstrichen & Erfahrungswert-Rückfluss', bold: true, size: 25, color: '0F172A', before: 180, after: 80 },
+      { text: 'Behebung des ERP-Reporting-Defizits (5-stellige Konten wie 7xxxx ohne Gruppensummierung): Das Baubuch erstellt nach Projektabschluss die vollständige Saldenliste der Kostengruppen 100 bis 800 mit klarem Summenstrich unter jeder Hauptgruppe („200 Strich drunter, 700 Strich drunter“). Die tatsächlichen Endkosten pro m² Wohnfläche und m³ BRI fließen als neues Referenzprojekt direkt zurück in Phase 1 für die Kostenschätzung des nächsten Bauvorhabens (Closed Loop).', size: 20, after: 160 }
     ]
   }
 };
