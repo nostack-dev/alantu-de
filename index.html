@@ -4005,9 +4005,11 @@ function createWordXml(elements) {
       const colWidths = el.colWidths || [];
       let tblXml = '<w:tbl><w:tblPr><w:tblW w:w="9200" w:type="dxa"/><w:tblBorders>';
       tblXml += '<w:top w:val="single" w:sz="6" w:space="0" w:color="CBD5E1"/>';
+      tblXml += '<w:left w:val="none"/>';
       tblXml += '<w:bottom w:val="single" w:sz="6" w:space="0" w:color="CBD5E1"/>';
+      tblXml += '<w:right w:val="none"/>';
       tblXml += '<w:insideH w:val="single" w:sz="4" w:space="0" w:color="E2E8F0"/>';
-      tblXml += '<w:insideV w:val="none"/><w:left w:val="none"/><w:right w:val="none"/>';
+      tblXml += '<w:insideV w:val="none"/>';
       tblXml += '</w:tblBorders></w:tblPr>';
 
       if (colWidths.length) {
@@ -4023,16 +4025,16 @@ function createWordXml(elements) {
           const bg = cell.bg ? `<w:shd w:val="clear" w:color="auto" w:fill="${cell.bg}"/>` : (cell.isHeader ? '<w:shd w:val="clear" w:color="auto" w:fill="F1F5F9"/>' : '');
           const jc = cell.align && cell.align !== 'left' ? `<w:jc w:val="${cell.align}"/>` : '';
           const bold = cell.bold || cell.isHeader ? '<w:b/>' : '';
-          const sz = cell.isHeader ? '<w:sz w:val="21"/>' : '<w:sz w:val="20"/>';
+          const sz = cell.isHeader ? '<w:sz w:val="21"/><w:szCs w:val="21"/>' : '<w:sz w:val="20"/><w:szCs w:val="20"/>';
           const color = cell.color ? `<w:color w:val="${cell.color}"/>` : (cell.isHeader ? '<w:color w:val="1E293B"/>' : '<w:color w:val="334155"/>');
 
-          const lines = String(cell.text || '').split('\\n');
+          const lines = String(cell.text || '').split('\n');
           const runs = lines.map((l, li) => {
-            const br = li > 0 ? '<w:br/>' : '';
-            return `${br}<w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>${bold}${sz}${color}</w:rPr><w:t xml:space="preserve">${escapeXml(l)}</w:t></w:r>`;
+            const br = li > 0 ? '<w:r><w:br/></w:r>' : '';
+            return `${br}<w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/>${bold}${color}${sz}</w:rPr><w:t xml:space="preserve">${escapeXml(l)}</w:t></w:r>`;
           }).join('');
 
-          tblXml += `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${bg}<w:tcMar><w:top w:w="120"/><w:bottom w:w="120"/><w:left w:w="140"/><w:right w:w="140"/></w:tcMar></w:tcPr><w:p><w:pPr>${jc}<w:spacing w:after="0"/></w:pPr>${runs}</w:p></w:tc>`;
+          tblXml += `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${bg}<w:tcMar><w:top w:w="120" w:type="dxa"/><w:left w:w="140" w:type="dxa"/><w:bottom w:w="120" w:type="dxa"/><w:right w:w="140" w:type="dxa"/></w:tcMar></w:tcPr><w:p><w:pPr><w:spacing w:after="0"/>${jc}</w:pPr>${runs}</w:p></w:tc>`;
         });
         tblXml += '</w:tr>';
       }
@@ -4042,17 +4044,19 @@ function createWordXml(elements) {
       // Paragraph
       const bold = el.bold ? '<w:b/>' : '';
       const italic = el.italic ? '<w:i/>' : '';
-      const sz = el.size ? `<w:sz w:val="${el.size}"/>` : '<w:sz w:val="21"/>';
+      const szVal = el.size || 21;
+      const sz = `<w:sz w:val="${szVal}"/><w:szCs w:val="${szVal}"/>`;
       const color = el.color ? `<w:color w:val="${el.color}"/>` : '';
       const jc = el.align && el.align !== 'left' ? `<w:jc w:val="${el.align}"/>` : '';
-      const spaceAfter = el.after !== undefined ? `<w:spacing w:after="${el.after}"/>` : '<w:spacing w:after="120"/>';
-      const spaceBefore = el.before !== undefined ? `<w:spacing w:before="${el.before}"/>` : '';
-      const lines = String(el.text || '').split('\\n');
+      const spBefore = el.before !== undefined ? ` w:before="${el.before}"` : '';
+      const spAfter = el.after !== undefined ? ` w:after="${el.after}"` : ' w:after="120"';
+      const spacingXml = `<w:spacing${spBefore}${spAfter}/>`;
+      const lines = String(el.text || '').split('\n');
       const runs = lines.map((l, i) => {
-        const br = i > 0 ? '<w:br/>' : '';
-        return `${br}<w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>${bold}${italic}${sz}${color}</w:rPr><w:t xml:space="preserve">${escapeXml(l)}</w:t></w:r>`;
+        const br = i > 0 ? '<w:r><w:br/></w:r>' : '';
+        return `${br}<w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/>${bold}${italic}${color}${sz}</w:rPr><w:t xml:space="preserve">${escapeXml(l)}</w:t></w:r>`;
       }).join('');
-      bodyXml += `<w:p><w:pPr>${jc}${spaceBefore}${spaceAfter}</w:pPr>${runs}</w:p>`;
+      bodyXml += `<w:p><w:pPr>${spacingXml}${jc}</w:pPr>${runs}</w:p>`;
     }
   }
 
